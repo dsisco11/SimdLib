@@ -1,0 +1,55 @@
+SimdLib Development Roadmap:
+
+  Accepted Direction:
+    ☐ Complete the standalone test-coverage audit and improvements before beginning Tensor architecture work.
+    ☐ Keep `Tensor<int_t>` / `Tensor<int_t, element_count>` design separate from implementation until its public contract, ownership model, and migration boundary are approved.
+
+  Milestone 1 - Analyze and Improve Standalone Test Coverage:
+    ☐ Inventory every standalone SimdLib test, compile probe, smoke test, oracle comparison, property-style test, benchmark, and downstream integration test; map each one to the public API, configuration path, type/register-width combination, and behavior it covers.
+    ☐ Produce a dedicated test-coverage document that distinguishes runtime behavioral coverage, constexpr coverage, compile-only header/configuration coverage, compiler and instruction-set coverage, fallback-path coverage, formatter coverage, ODR coverage, and downstream SurvivalSoldSeparately integration coverage.
+    ☐ Configure source-based coverage measurement for the supported toolchains where practical, record the exact commands and limitations, and use line/branch/function results as evidence rather than treating a percentage target as a substitute for behavioral analysis.
+    ☐ Audit `Api` across every supported element type and 128/256-bit register width, including arithmetic, comparisons, masks, shuffles, blends, loads/stores, partial vectors, conversions, reductions, shifts, and edge-case contracts.
+    ☐ Audit `SimdVector`, `SimdAlgo`, and `SimdResample` coverage across static sizes, full-register and partial tails, aligned and unaligned data, empty/single-element inputs where supported, aliasing or overlap contracts, and scalar-reference parity.
+    ☐ Audit `Bmi` and `uint128_t` coverage for intrinsic-enabled and portable paths, signed bit-pattern preservation, boundary bit indices/counts, carry/borrow propagation, division/remainder edge cases, constexpr behavior, and randomized oracle parity.
+    ☐ Audit opt-in formatter coverage for all supported presentation types, width/alignment/fill/sign/alternate-form/zero-padding/locale behaviors inherited from standard formatting, invalid format specifications, and parity with the corresponding standard scalar formatter.
+    ☐ Identify public declarations, overload families, template branches, feature gates, failure/precondition paths, and previously fixed regressions that currently have no direct or meaningful test coverage.
+    ☐ Classify gaps by correctness risk, portability risk, regression likelihood, and implementation complexity; record which gaps require tests, which are unreachable defensive branches, and which expose a contract that should first be clarified.
+    ☐ Add scalar reference implementations or independent oracles for operations whose existing tests only repeat the implementation strategy or compare one SimdLib abstraction against another.
+    ☐ Add table-driven boundary tests and deterministic randomized/property-style tests for the highest-risk gaps, using reproducible seeds and failure output that identifies the type, width, operation, and input values.
+    ☐ Add targeted regression tests for every correctness issue documented during extraction, including signed lane arithmetic, register-byte span capacity, movemask semantics, BMI signed bit patterns, carry/borrow behavior, and formatting delegation.
+    ☐ Expand compile-only coverage for every public header as the first include, umbrella/focused-header boundaries, deprecated compatibility headers, caller configuration overrides, disabled instruction families, and unavailable API instantiation diagnostics.
+    ☐ Exercise MSVC and clang-cl across the supported feature profiles, including portable/disabled-feature builds; add GCC or other compiler coverage only where the current support contract claims it.
+    ☐ Run sanitizer and debug-contract configurations where supported and ensure tests do not rely on undefined behavior, inactive-lane garbage, strict-aliasing violations, or accidental compiler constant folding.
+    ☐ Keep benchmarks separate from correctness assertions, but add test inputs that prevent benchmark-only code paths from becoming the sole exercise of a public operation.
+    ☐ Keep standalone tests independent of Vox and Unreal Engine; use downstream tests only to validate integration and compatibility aliases, not as the sole coverage for SimdLib behavior.
+    ☐ Re-run the complete standalone compiler/configuration matrix and the focused downstream integration suite after adding coverage; ignore only the already-authorized known mutation-system failures when broad downstream validation is run.
+    ☐ Record before/after coverage measurements, newly covered contracts, remaining justified gaps, commands, compiler versions, test/assertion counts, seeds, and log/report paths in this checklist and the dedicated coverage document.
+    ☐ End Milestone 1 only when the coverage map is reviewable, all high-risk gaps have direct tests or a written justification, and the improved standalone suite is green across the supported matrix.
+
+  Milestone 2 - Start Designing Tensor Types to Surpass SimdAlgo:
+    ☐ Start designing a `Tensor<int_t>` and `Tensor<int_t, element_count>` API intended to surpass the current Algorithms/`SimdAlgo` utility.
+    ☐ Create a dedicated Tensor architecture document and keep this milestone design-only until the public contract, ownership model, and migration boundary are approved.
+    ☐ Inventory every `SimdAlgo` operation and downstream use case that Tensor must replace or improve, including `AnyEqual`, `AllEqual`, `Compare`, bitwise operations, in-place conversion, execution batching, and 128/256-bit selection.
+    ☐ Decide whether `Tensor<int_t>` means dynamic extent and `Tensor<int_t, element_count>` means static extent through one defaulted template parameter such as `std::dynamic_extent`.
+    ☐ Decide whether the word Tensor initially describes a one-dimensional SIMD sequence or whether the design must represent rank, shape, strides, and multidimensional extents; do not let the two-parameter sketch silently preclude future multidimensional support.
+    ☐ Decide whether each Tensor specialization owns storage, views caller-owned storage, or separates owning and view types.
+    ☐ Define element-type requirements and determine whether the initial `int_t` constraint means all standard integral types, integer-like SimdLib types such as `uint128_t`, or a narrower supported matrix.
+    ☐ Define static-extent and dynamic-extent construction from arrays, spans, iterators/ranges, aligned storage, unaligned storage, and initializer data.
+    ☐ Define size, extent, alignment, aliasing, overlap, mutability, lifetime, and exception/precondition contracts before selecting an implementation strategy.
+    ☐ Define how Tensor partitions full SIMD registers and scalar/partial tails while preserving `SimdVector` inactive-lane invariants.
+    ☐ Decide whether algorithms are Tensor members, constrained free functions, expression objects, or a layered combination, and show representative call sites for each approach.
+    ☐ Design lazy versus eager evaluation semantics and explicitly account for temporary lifetime, aliasing, code size, compile time, and debuggability.
+    ☐ Define comparison results: scalar predicates such as `all`/`any`, packed bit masks, element-wise boolean tensors, or purpose-specific result types.
+    ☐ Define conversion semantics for widening, narrowing, saturation, reinterpretation, in-place conversion, and conversions whose output element count differs from the input count.
+    ☐ Define compile-time and runtime dispatch boundaries for 128-bit, 256-bit, future widths, and scalar fallbacks without exposing backend selection in ordinary call sites.
+    ☐ Specify constexpr expectations for static extents and identify which dynamic-extent operations can remain constexpr under C++20.
+    ☐ Write API sketches for at least one static-extent workflow, one dynamic-extent workflow, one comparison/mask workflow, one bitwise workflow, and one conversion workflow.
+    ☐ Build a migration table mapping each `SimdAlgo` entry point to its proposed Tensor equivalent, intentional removal, or retained low-level role.
+    ☐ Define correctness tests using scalar reference implementations and parity tests against the existing `SimdAlgo` behavior.
+    ☐ Define benchmark scenarios that compare Tensor, `SimdAlgo`, direct `Api`, and scalar implementations for small static arrays, large dynamic spans, aligned data, unaligned data, and partial tails.
+    ☐ Establish design acceptance gates covering API clarity, zero-allocation paths, vectorization quality, no-regression targets, compile-time cost, and a credible incremental migration path.
+    ☐ End Milestone 2 with an approved design and implementation-milestone proposal; do not deprecate or remove `SimdAlgo` during this design milestone.
+
+  Execution Evidence:
+    ☐ Milestone 1 standalone coverage map, before/after measurements, added regression/property/boundary tests, remaining-gap justifications, and compiler/configuration validation evidence recorded.
+    ☐ Milestone 2 Tensor architecture document, API sketches, `SimdAlgo` migration table, benchmark plan, and design decision recorded.
