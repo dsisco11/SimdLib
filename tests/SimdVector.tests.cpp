@@ -81,6 +81,36 @@ TEST_CASE("SimdVector bitwise saturation widening and hash match logical lanes",
 	REQUIRE(sameHash != otherHash);
 }
 
+TEST_CASE("SimdVector signed partial masks preserve every active bit", "[simdlib][vector][partial][regression]")
+{
+	using Vector = SimdLib::SimdVector<std::int32_t, 3>;
+	require_lanes(Vector(~Vector(0, 1, -1)), std::array<std::int32_t, 3>{-1, -2, 0});
+	REQUIRE(Vector(-2, 3, 4).area() == -24);
+}
+
+TEST_CASE("SimdVector partial positions ignore inactive zero-filled lanes", "[simdlib][vector][partial][position]")
+{
+	using Unsigned = SimdLib::SimdVector<std::uint16_t, 3>;
+	const Unsigned positive(8, 4, 7);
+	REQUIRE(positive.min_position() == 1);
+	REQUIRE(positive.max_position() == 0);
+}
+
+TEST_CASE("SimdVector hashes respect floating equality for signed zero", "[simdlib][vector][hash][float]")
+{
+	const SimdLib::SimdVector<float, 3> positive_zero(0.0f, 2.0f, 0.0f);
+	const SimdLib::SimdVector<float, 3> negative_zero(-0.0f, 2.0f, -0.0f);
+	REQUIRE(positive_zero == negative_zero.getRegister());
+	REQUIRE(std::hash<SimdLib::SimdVector<float, 3>>{}(positive_zero) ==
+			std::hash<SimdLib::SimdVector<float, 3>>{}(negative_zero));
+
+	const SimdLib::SimdVector<double, 1> positive_double_zero(0.0);
+	const SimdLib::SimdVector<double, 1> negative_double_zero(-0.0);
+	REQUIRE(positive_double_zero == negative_double_zero.getRegister());
+	REQUIRE(std::hash<SimdLib::SimdVector<double, 1>>{}(positive_double_zero) ==
+			std::hash<SimdLib::SimdVector<double, 1>>{}(negative_double_zero));
+}
+
 TEST_CASE("SimdVector floating convenience operations retain scalar semantics", "[simdlib][vector][float]")
 {
 	using Vector = SimdLib::SimdVector<float, 3>;

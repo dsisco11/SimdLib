@@ -15,6 +15,7 @@ option(SIMDLIB_BUILD_CONFIGURATION_TESTS "Build compile-only configuration probe
 option(SIMDLIB_BUILD_HEADER_TESTS "Build first-and-only public-header probes" ON)
 option(SIMDLIB_FETCH_TEST_DEPENDENCIES "Fetch missing test-only dependencies" ON)
 option(SIMDLIB_STRICT_WARNINGS "Treat warnings in SimdLib-owned targets as errors" OFF)
+option(SIMDLIB_ENABLE_COVERAGE "Instrument SimdLib-owned targets for source coverage" OFF)
 
 add_library(SimdLib INTERFACE)
 add_library(SimdLib::SimdLib ALIAS SimdLib)
@@ -45,6 +46,15 @@ foreach(consumer_source IN LISTS SIMDLIB_PUBLIC_CONSUMER_SOURCES)
 endforeach()
 
 add_library(SimdLibDevelopmentWarnings INTERFACE)
+if(SIMDLIB_ENABLE_COVERAGE)
+	if(NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR SIMDLIB_MSVC_STYLE_DRIVER)
+		message(FATAL_ERROR "SIMDLIB_ENABLE_COVERAGE currently requires Clang with its GNU-like command-line driver")
+	endif()
+	target_compile_options(SimdLibDevelopmentWarnings INTERFACE
+		-fprofile-instr-generate -fcoverage-mapping)
+	target_link_options(SimdLibDevelopmentWarnings INTERFACE
+		-fprofile-instr-generate)
+endif()
 if(SIMDLIB_STRICT_WARNINGS)
 	if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 		if(SIMDLIB_MSVC_STYLE_DRIVER)
@@ -74,7 +84,9 @@ if(SIMDLIB_BUILD_CONFIGURATION_TESTS)
         ConfigDefaultProbe
         ConfigOverrideVectorcallProbe
         ConfigOverrideForceInlineProbe
+        ConfigOverridePreconditionProbe
         ConfigDisabledInstructionsProbe
+        ConfigDisabledPublicHeadersProbe
         ConfigClangUnsupportedTargetProbe
         ConfigVendorAttributeProbe
         ConstexprProbe)
@@ -159,14 +171,25 @@ if(SIMDLIB_BUILD_TESTS)
 
     simdlib_add_catch_test(SimdLibTestsFormat tests/Format.tests.cpp SimdLib.Tests.Format)
     set_tests_properties(SimdLib.Tests.Format PROPERTIES LABELS "FORMAT;SSE42")
+	add_executable(SimdLibFormatOdr
+		tests/format_odr/main.cpp
+		tests/format_odr/second_translation_unit.cpp)
+	target_link_libraries(SimdLibFormatOdr PRIVATE SimdLib::SimdLib)
+	simdlib_enable_development_warnings(SimdLibFormatOdr)
+	add_test(NAME SimdLib.FormatOdr COMMAND SimdLibFormatOdr)
+	set_tests_properties(SimdLib.FormatOdr PROPERTIES LABELS "FORMAT;ODR")
 	if(SIMDLIB_MSVC_STYLE_DRIVER)
 		target_compile_definitions(SimdLibTestsFormat PRIVATE
 			SIMDLIB_HAS_SSE3=1 SIMDLIB_HAS_SSSE3=1 SIMDLIB_HAS_SSE41=1 SIMDLIB_HAS_SSE42=1)
+		target_compile_definitions(SimdLibFormatOdr PRIVATE
+			SIMDLIB_HAS_SSE3=1 SIMDLIB_HAS_SSSE3=1 SIMDLIB_HAS_SSE41=1 SIMDLIB_HAS_SSE42=1)
 		if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 			target_compile_options(SimdLibTestsFormat PRIVATE /arch:AVX2)
+			target_compile_options(SimdLibFormatOdr PRIVATE /arch:AVX2)
 		endif()
     else()
         target_compile_options(SimdLibTestsFormat PRIVATE -msse4.2)
+		target_compile_options(SimdLibFormatOdr PRIVATE -msse4.2)
     endif()
 
     if(SIMDLIB_BUILD_TESTS_128)
@@ -184,8 +207,14 @@ if(SIMDLIB_BUILD_TESTS)
 
         simdlib_add_catch_test(SimdLibTestsUInt128Optimized tests/UInt128.tests.cpp SimdLib.Tests.UInt128Optimized)
         simdlib_add_catch_test(SimdLibTestsUInt128Portable tests/UInt128.tests.cpp SimdLib.Tests.UInt128Portable)
+        simdlib_add_catch_test(SimdLibTestsUInt128Scalar tests/UInt128.tests.cpp SimdLib.Tests.UInt128Scalar)
         target_compile_definitions(SimdLibTestsUInt128Portable PRIVATE
             SIMDLIB_USE_COMPILER_CARRY_INTRINSICS=0)
+		target_compile_definitions(SimdLibTestsUInt128Scalar PRIVATE
+			SIMDLIB_USE_COMPILER_CARRY_INTRINSICS=0
+			SIMDLIB_HAS_SSE=0 SIMDLIB_HAS_SSE2=0 SIMDLIB_HAS_SSE3=0 SIMDLIB_HAS_SSSE3=0
+			SIMDLIB_HAS_SSE41=0 SIMDLIB_HAS_SSE42=0 SIMDLIB_HAS_AVX=0 SIMDLIB_HAS_AVX2=0
+			SIMDLIB_HAS_FMA=0 SIMDLIB_HAS_BMI1=0 SIMDLIB_HAS_BMI2=0)
 		if(SIMDLIB_MSVC_STYLE_DRIVER)
 			target_compile_definitions(SimdLibTestsUInt128Optimized PRIVATE
 				SIMDLIB_HAS_SSE3=1 SIMDLIB_HAS_SSSE3=1 SIMDLIB_HAS_SSE41=1 SIMDLIB_HAS_SSE42=1)
@@ -201,6 +230,7 @@ if(SIMDLIB_BUILD_TESTS)
         endif()
         set_tests_properties(SimdLib.Tests.UInt128Optimized PROPERTIES LABELS "UINT128;OPTIMIZED;SSE42")
         set_tests_properties(SimdLib.Tests.UInt128Portable PROPERTIES LABELS "UINT128;PORTABLE;SSE42")
+		set_tests_properties(SimdLib.Tests.UInt128Scalar PROPERTIES LABELS "UINT128;PORTABLE;SCALAR")
 
         add_test(NAME SimdLib.Tests.UInt128ResultSetEquivalence
             COMMAND ${CMAKE_COMMAND}
@@ -208,6 +238,13 @@ if(SIMDLIB_BUILD_TESTS)
                 -DOPTIMIZED_EXECUTABLE=$<TARGET_FILE:SimdLibTestsUInt128Optimized>
                 -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/CompareUInt128ResultSets.cmake)
         set_tests_properties(SimdLib.Tests.UInt128ResultSetEquivalence PROPERTIES LABELS "UINT128;EQUIVALENCE;SSE42")
+
+		add_test(NAME SimdLib.Tests.UInt128ScalarResultSetEquivalence
+			COMMAND ${CMAKE_COMMAND}
+				-DPORTABLE_EXECUTABLE=$<TARGET_FILE:SimdLibTestsUInt128Scalar>
+				-DOPTIMIZED_EXECUTABLE=$<TARGET_FILE:SimdLibTestsUInt128Optimized>
+				-P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/CompareUInt128ResultSets.cmake)
+		set_tests_properties(SimdLib.Tests.UInt128ScalarResultSetEquivalence PROPERTIES LABELS "UINT128;EQUIVALENCE;SCALAR")
     endif()
 
     if(SIMDLIB_BUILD_TESTS_256)

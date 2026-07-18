@@ -86,6 +86,27 @@ TEST_CASE("uint128_t formatting supports documented integer presentation control
 	CHECK(std::format("{:0>24x}", value) == "000000010000000000000023");
 }
 
+TEST_CASE("uint128_t formatting matches the standard uint64 formatter within the scalar range", "[format][uint128][parity]")
+{
+	const std::array values{
+		std::uint64_t{0}, std::uint64_t{1}, std::uint64_t{9}, std::uint64_t{42},
+		std::uint64_t{0x1234'5678'9ABC'DEF0}, std::numeric_limits<std::uint64_t>::max()};
+	const std::array<std::string_view, 15> formats{
+		"{}", "{:d}", "{:x}", "{:X}", "{:b}", "{:B}", "{:o}",
+		"{:+}", "{: }", "{:#x}", "{:#X}", "{:#b}", "{:#o}", "{:024x}", "{:*>30x}"};
+
+	for (std::uint64_t scalar : values)
+	{
+		const SimdLib::uint128_t wide{scalar};
+		for (const std::string_view format : formats)
+		{
+			CAPTURE(scalar, std::string(format));
+			CHECK(std::vformat(format, std::make_format_args(wide)) ==
+				  std::vformat(format, std::make_format_args(scalar)));
+		}
+	}
+}
+
 TEST_CASE("uint128_t formatting rejects unsupported specifications", "[format][uint128]")
 {
 	const SimdLib::uint128_t value{1};
@@ -108,4 +129,15 @@ TEST_CASE("SimdVector formatting preserves logical element order and container p
 	CHECK(std::format("{:-^15}", partial) == "---{7, 8, 9}---");
 	CHECK_THROWS_AS(std::vformat("{:x}", std::make_format_args(full)), std::format_error);
 	CHECK_THROWS_AS(std::vformat("{:.3}", std::make_format_args(full)), std::format_error);
+}
+
+TEST_CASE("SimdVector formatting delegates element presentation across scalar families", "[format][vector][parity]")
+{
+	const SimdLib::SimdVector<std::uint64_t, 2> unsigned_values{0, std::numeric_limits<std::uint64_t>::max()};
+	const SimdLib::SimdVector<float, 3> float_values{0.0f, -1.5f, std::numeric_limits<float>::infinity()};
+	const SimdLib::SimdVector<double, 1> double_value{-0.0};
+
+	CHECK(std::format("{}", unsigned_values) == "{0, 18446744073709551615}");
+	CHECK(std::format("{}", float_values) == "{0, -1.5, inf}");
+	CHECK(std::format("{}", double_value) == "{-0}");
 }

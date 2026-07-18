@@ -141,34 +141,14 @@ template <std::size_t ReadWidth, std::size_t WriteWidth> struct SimdAlgo final
 										 const read_t predicate) noexcept
 	{
 		using simd = SimdImpl<count>;
+		constexpr bool legacy_eight_byte_comparison = ReadWidth == 8 && WriteWidth == 8 && count == 8;
+		static_assert(WriteWidth == 1 || legacy_eight_byte_comparison,
+			"SimdAlgo comparison output is a packed one-bit mask");
+		static_assert(count % write_data_size == 0, "Packed comparison output requires a whole number of destination elements");
 		const auto predicateVector = simd::set1(predicate);
-
-		// Special-case: compare exactly eight bytes without reading beyond the source span.
-		if constexpr (ReadWidth == 8 && count == 8)
-		{
-			const auto value = simd::load_half(read.data());
-			const auto mask = simd::movemask_slim(simd::cmpeq(value, predicateVector));
-			write[0] = static_cast<write_t>(LowBits(static_cast<std::uint32_t>(mask), count));
-		}
-		// When the input spans less than a SIMD register, avoid out-of-bounds reads by staging into a
-		// zero-padded scratch register.
-		else if constexpr (count < simd::element_count)
-		{
-			std::array<read_t, simd::element_count> temp{};
-			std::memcpy(temp.data(), read.data(), count * sizeof(read_t));
-			const auto v = simd::load(std::span<const read_t, simd::element_count>(temp));
-			const auto mask = simd::movemask_slim(simd::cmpeq(v, predicateVector));
-			write[0] = static_cast<write_t>(LowBits(static_cast<std::uint32_t>(mask), count));
-		}
-		else
-		{
-			Execute<count>(write,
-						   [&read, &predicateVector](const std::size_t index) noexcept
-						   {
-							   const auto v = simd::load_unsafe(read.subspan(index, simd::element_count));
-							   return simd::movemask_slim(simd::cmpeq(v, predicateVector));
-						   });
-		}
+		simd::template transform_pack<1>(read, write,
+			[&predicateVector](const typename simd::vector_t value) noexcept
+			{ return simd::movemask_slim(simd::cmpeq(value, predicateVector)); });
 	}
 
 #pragma region Bitwise Operations (constrained)
@@ -335,41 +315,6 @@ template <std::size_t ReadWidth, std::size_t WriteWidth> struct SimdAlgo final
 #pragma endregion
 
   protected:
-	template <std::size_t count, std::invocable<std::size_t> Func>
-	SIMDLIB_FORCE_INLINE constexpr static void Execute(std::span<write_t, count / write_data_size> write, Func &&func) noexcept
-	{
-		static_assert(write_width == 1, "SimdAlgo currently only supports a write_width of 1");
-		using simd = SimdImpl<count>;
-		constexpr const auto batch_count = (count + simd::element_count - 1) / simd::element_count;
-
-		// results per comparison
-		constexpr const auto batch_size = simd::element_count / write_width;
-		// bytes per comparison
-		constexpr const auto batch_bytes = batch_size / 8;
-		// bits per comparison
-		constexpr const auto batch_bits = batch_size % 8;
-
-		for (int batchIndex = 0; batchIndex < batch_count; ++batchIndex)
-		{
-			const auto readIndex = batchIndex * simd::element_count;
-			const typename simd::mask_t result = std::invoke(func, readIndex);
-
-			if constexpr (batch_bytes > 0)
-			{
-				const auto wByteIndex = batchIndex * batch_bytes;
-				std::copy_n(reinterpret_cast<const write_t *>(&result), batch_bytes, &write[wByteIndex]);
-			}
-			else
-			{
-				const auto bitIndex = batchIndex * batch_size;
-				const auto byteIndex = bitIndex >> 3;
-				const auto bitOffset = bitIndex & 0b111;
-				constexpr std::uint32_t result_mask = (std::uint32_t{1} << batch_bits) - 1;
-				write[byteIndex] |= (static_cast<std::uint32_t>(result) & result_mask) << bitOffset;
-			}
-		}
-	}
-
 #pragma region Simd Chooser
 	// tags to denote the type of the function to be called in the ChooseSimd
 	struct simd_128_tag

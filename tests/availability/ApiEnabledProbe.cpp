@@ -31,6 +31,20 @@ static_assert(specialization_available<256, std::uint64_t>());
 static_assert(specialization_available<256, float>());
 static_assert(specialization_available<256, double>());
 
+static_assert(!SimdLib::is_api_available_v<128, bool>);
+static_assert(!SimdLib::is_api_available_v<128, char>);
+static_assert(!SimdLib::is_api_available_v<128, wchar_t>);
+static_assert(!SimdLib::is_api_available_v<128, long double>);
+
+static_assert(SimdLib::Api<128, std::int32_t>::element_width == 32);
+static_assert(SimdLib::Api<128, float>::element_width == 32);
+static_assert(requires(SimdLib::Api<128, std::int32_t>::int_vector_t value) {
+	SimdLib::Api<128, std::int32_t>::convert_to_float(value);
+});
+static_assert(requires(SimdLib::Api<128, float>::float_vector_t value) {
+	SimdLib::Api<128, float>::convert_to_int(value);
+});
+
 consteval bool constexpr_paths_match()
 {
     using simd = SimdLib::Api<128, std::uint64_t>;

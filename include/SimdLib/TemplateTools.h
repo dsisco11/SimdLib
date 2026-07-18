@@ -1,7 +1,9 @@
 #pragma once
+#include <concepts>
 #include <cstddef>
 #include <cstdint>
 #include <limits>
+#include <tuple>
 #include <type_traits>
 #include <utility>
 
@@ -37,9 +39,8 @@ using select_signed_integer_t =
 #pragma region Concepts
 
 template <class T>
-concept integer_like = requires(T x) {
-	{ std::numeric_limits<T>::is_specialized == true };
-};
+concept integer_like = std::numeric_limits<T>::is_specialized && std::numeric_limits<T>::is_integer &&
+	!std::same_as<std::remove_cv_t<T>, bool>;
 
 #pragma endregion
 

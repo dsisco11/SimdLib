@@ -119,6 +119,7 @@ template <> class std::numeric_limits<SimdLib::uint128_t>
   public:
 	static constexpr bool is_specialized = true;
 	static constexpr bool is_signed = false;
+	static constexpr bool is_integer = true;
 	static constexpr int digits = 128;
 	[[nodiscard]] static constexpr SimdLib::uint128_t min() noexcept
 	{
@@ -141,6 +142,10 @@ namespace Bmi = SimdLib::Bmi;
 
 static_assert((SIMDLIB_BMI_EXPECT_BMI1 != 0) == SimdLib::Config::has_bmi1);
 static_assert((SIMDLIB_BMI_EXPECT_BMI2 != 0) == SimdLib::Config::has_bmi2);
+static_assert(Bmi::integer_like<std::int32_t>);
+static_assert(Bmi::integer_like<uint128_t>);
+static_assert(!Bmi::integer_like<bool>);
+static_assert(!Bmi::integer_like<float>);
 
 template <std::unsigned_integral int_t> [[nodiscard]] constexpr int_t reference_bzhi(const int_t value, const unsigned index) noexcept
 {
@@ -320,7 +325,58 @@ void mix_digest(std::uint64_t &digest, const std::uint64_t value)
 	digest ^= value;
 	digest *= 1099511628211ULL;
 }
+
+template <std::signed_integral signed_t>
+void require_signed_bit_pattern_contract(const signed_t source, const signed_t rhs)
+{
+	using unsigned_t = std::make_unsigned_t<signed_t>;
+	const unsigned_t source_bits = std::bit_cast<unsigned_t>(source);
+	const unsigned_t rhs_bits = std::bit_cast<unsigned_t>(rhs);
+	const auto bits = [](const signed_t value) { return std::bit_cast<unsigned_t>(value); };
+
+	CHECK(bits(Bmi::andn(source, rhs)) == static_cast<unsigned_t>((~source_bits) & rhs_bits));
+	CHECK(bits(Bmi::bzhi(source, 13)) == reference_bzhi(source_bits, 13));
+	CHECK(bits(Bmi::blsi(source)) == static_cast<unsigned_t>(source_bits & (unsigned_t{0} - source_bits)));
+	CHECK(bits(Bmi::blsr(source)) == static_cast<unsigned_t>(source_bits & (source_bits - 1)));
+	CHECK(bits(Bmi::blsmsk(source)) == static_cast<unsigned_t>(source_bits ^ (source_bits - 1)));
+	CHECK(bits(Bmi::bextr(source, 17, 5)) == reference_bextr(source_bits, 5, 17));
+
+	signed_t high{};
+	const signed_t low = Bmi::mulx(source, rhs, high);
+	if constexpr (sizeof(signed_t) <= 4)
+	{
+		const std::uint64_t product = static_cast<std::uint64_t>(source_bits) * rhs_bits;
+		CHECK(bits(low) == static_cast<unsigned_t>(product));
+		CHECK(bits(high) == static_cast<unsigned_t>(product >> std::numeric_limits<unsigned_t>::digits));
+	}
+	else
+	{
+		const auto product = reference_mulx64(source_bits, rhs_bits);
+		CHECK(bits(low) == product.low);
+		CHECK(bits(high) == product.high);
+	}
+}
 } // namespace
+
+TEST_CASE("BMI signed helpers preserve two's-complement bit patterns", "[simdlib][bmi][signed][regression]")
+{
+	require_signed_bit_pattern_contract<std::int32_t>(std::bit_cast<std::int32_t>(0xF234'5678u),
+													 std::bit_cast<std::int32_t>(0x8ACE'1357u));
+	require_signed_bit_pattern_contract<std::int64_t>(std::bit_cast<std::int64_t>(0xF234'5678'9ABC'DEF0ull),
+													 std::bit_cast<std::int64_t>(0x8ACE'1357'2468'BDF1ull));
+}
+
+TEST_CASE("BMI absolute value handles signed boundaries without arithmetic overflow", "[simdlib][bmi][signed][abs]")
+{
+	CHECK(Bmi::abs(std::int8_t{0}) == 0);
+	CHECK(Bmi::abs(std::int8_t{-127}) == 127);
+	CHECK(Bmi::abs(std::numeric_limits<std::int8_t>::min()) == std::numeric_limits<std::int8_t>::min());
+	CHECK(Bmi::abs(std::int32_t{1} << 30) == (std::int32_t{1} << 30));
+	CHECK(Bmi::abs(-(std::int32_t{1} << 30)) == (std::int32_t{1} << 30));
+	CHECK(Bmi::abs(std::numeric_limits<std::int32_t>::max()) == std::numeric_limits<std::int32_t>::max());
+	CHECK(Bmi::abs(std::numeric_limits<std::int32_t>::min()) == std::numeric_limits<std::int32_t>::min());
+	CHECK(Bmi::abs(std::numeric_limits<std::int64_t>::min()) == std::numeric_limits<std::int64_t>::min());
+}
 
 TEST_CASE("BMI exhaustive 8-bit domains match scalar references", "[simdlib][bmi][exhaustive]")
 {

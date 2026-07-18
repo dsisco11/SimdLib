@@ -20,13 +20,30 @@ TEST_CASE("256-bit aligned and unaligned transfer matrix", "[simdlib][avx2][tran
     require_supported_transfer_matrix<256>();
 }
 
+TEST_CASE("256-bit partial loads accept unaligned prefixes and zero inactive lanes", "[simdlib][avx2][transfer][partial]")
+{
+    require_supported_partial_transfer_matrix<256>();
+}
+
 TEST_CASE("256-bit movemask contracts are byte and element granular", "[simdlib][avx2][movemask]")
 {
     require_supported_movemask_matrix<256>();
 }
 
+TEST_CASE("256-bit transform_pack preserves packed lane order and exact tails", "[simdlib][avx2][transform-pack]")
+{
+	require_transform_pack_mask_contract<256, std::uint8_t, 40>();
+	require_transform_pack_mask_contract<256, std::uint8_t, 80>();
+	require_transform_pack_mask_contract<256, std::uint16_t, 24>();
+	require_transform_pack_mask_contract<256, std::uint64_t, 8>();
+	require_transform_pack_width_contract<256, std::uint32_t, 11, 3>();
+	require_transform_pack_width_contract<256, std::uint64_t, 9, 9>();
+}
+
 TEST_CASE("256-bit arithmetic, horizontal operations, shuffles, and blends match scalar references", "[simdlib][avx2][operations]")
 {
+	require_supported_comparison_matrix<256>();
+
     using simd = SimdLib::Api<256, std::int32_t>;
     const auto lhs = simd::setr(1, 2, 3, 4, 5, 6, 7, 8);
     const auto rhs = simd::setr(8, 7, 6, 5, 4, 3, 2, 1);

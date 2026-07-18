@@ -19,7 +19,8 @@
 namespace SimdLib::Bmi
 {
 template <class T>
-concept integer_like = std::numeric_limits<T>::is_specialized;
+concept integer_like = std::numeric_limits<T>::is_specialized && std::numeric_limits<T>::is_integer &&
+	!std::same_as<std::remove_cv_t<T>, bool>;
 
 #pragma region Pre-Optimized Generic Integer Operations
 // These methods are versions of common std methods that would usually optimize down into roughtly the same code as is written here, but we optimize these ahead
@@ -60,13 +61,16 @@ template <std::integral int_t> [[nodiscard]] [[msvc::flatten]] SIMDLIB_FORCE_INL
 }
 
 /// @brief Branchless find absolute value of the input.
+/// @note For the minimum signed value, returns the unchanged two's-complement magnitude bit pattern because its positive magnitude is not representable.
 template <std::integral int_t> [[nodiscard]] [[msvc::flatten]] SIMDLIB_FORCE_INLINE constexpr static int_t abs(const int_t lhs) noexcept
 {
 	if constexpr (std::is_signed_v<int_t>)
-	{ // flip sign bit if negative
-		constexpr std::uint8_t sign_shift = std::numeric_limits<int_t>::digits - 1;
-		const int_t mask = lhs >> sign_shift;
-		return (lhs + mask) ^ mask;
+	{
+		using unsigned_t = std::make_unsigned_t<int_t>;
+		const unsigned_t value = std::bit_cast<unsigned_t>(lhs);
+		const unsigned_t sign = value >> (std::numeric_limits<unsigned_t>::digits - 1);
+		const unsigned_t mask = unsigned_t{0} - sign;
+		return std::bit_cast<int_t>(static_cast<unsigned_t>((value ^ mask) + sign));
 	}
 	else
 	{

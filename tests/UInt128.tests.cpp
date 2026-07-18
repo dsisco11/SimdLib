@@ -310,11 +310,52 @@ TEST_CASE("uint128 carry and borrow propagation matches the two-word oracle", "[
 
 TEST_CASE("uint128 register facade preserves lane order", "[simdlib][uint128][simd]")
 {
+#if SIMDLIB_HAS_SSE42
 	const uint128_t value{0x0123'4567'89AB'CDEFULL, 0xFEDC'BA98'7654'3210ULL};
 	const auto registerValue = value.to_register();
 	CHECK(uint128_t::from_register(registerValue) == value);
 	CHECK((SimdLib::Api<128, std::uint64_t>::extract<0>(registerValue) == value.low()));
 	CHECK((SimdLib::Api<128, std::uint64_t>::extract<1>(registerValue) == value.high()));
+#else
+	SUCCEED("The scalar profile intentionally has no SIMD register facade");
+#endif
+}
+
+TEST_CASE("uint128 integral construction and heterogeneous comparisons are explicit", "[simdlib][uint128][comparison]")
+{
+	const uint128_t fromNegative{std::int64_t{-1}};
+	CHECK(fromNegative.low() == std::numeric_limits<std::uint64_t>::max());
+	CHECK(fromNegative.high() == 0);
+	CHECK_FALSE(fromNegative == std::int64_t{-1});
+	CHECK((fromNegative <=> std::int64_t{-1}) == std::strong_ordering::greater);
+	CHECK(uint128_t{42} == std::int32_t{42});
+	CHECK((uint128_t{41} <=> std::uint64_t{42}) == std::strong_ordering::less);
+	CHECK(uint128_t{true} == uint128_t{1});
+	CHECK(uint128_t{false} == uint128_t{});
+}
+
+TEST_CASE("uint128 masks and bit helpers cover word boundaries", "[simdlib][uint128][bits]")
+{
+	const std::array<int, 11> widths{-1, 0, 1, 63, 64, 65, 96, 127, 128, 129, 255};
+	for (const int width : widths)
+	{
+		const uint128_t mask = uint128_t::create_mask(width);
+		const unsigned clamped = width <= 0 ? 0u : width >= 128 ? 128u : static_cast<unsigned>(width);
+		CHECK(SimdLib::popcount(mask) == static_cast<int>(clamped));
+		if (clamped == 0)
+			CHECK(mask == uint128_t{});
+		else
+		{
+			CHECK(SimdLib::countr_one(mask) == static_cast<int>(clamped));
+			CHECK(SimdLib::bit_width(mask) == static_cast<int>(clamped));
+		}
+	}
+
+	CHECK((uint128_t::create_mask<1>(63) == uint128_t{std::uint64_t{1} << 63, 0}));
+	CHECK((uint128_t::create_mask<1>(64) == uint128_t{0, 1}));
+	CHECK((uint128_t::create_mask<64>(64) == uint128_t{0, std::numeric_limits<std::uint64_t>::max()}));
+	CHECK((uint128_t::create_mask<65>(63) == uint128_t{std::uint64_t{1} << 63, std::numeric_limits<std::uint64_t>::max()}));
+	CHECK(uint128_t::create_mask<128>(1) == uint128_t{~std::uint64_t{0} << 1, ~std::uint64_t{0}});
 }
 
 TEST_CASE("uint128 shifts define every boundary count", "[simdlib][uint128][shift]")

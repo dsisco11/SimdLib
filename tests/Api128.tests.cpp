@@ -19,9 +19,23 @@ TEST_CASE("128-bit aligned and unaligned transfer matrix", "[simdlib][sse42][tra
     require_supported_transfer_matrix<128>();
 }
 
+TEST_CASE("128-bit partial loads accept unaligned prefixes and zero inactive lanes", "[simdlib][sse42][transfer][partial]")
+{
+    require_supported_partial_transfer_matrix<128>();
+}
+
 TEST_CASE("128-bit movemask contracts are byte and element granular", "[simdlib][sse42][movemask]")
 {
     require_supported_movemask_matrix<128>();
+}
+
+TEST_CASE("128-bit transform_pack preserves packed lane order and exact tails", "[simdlib][sse42][transform-pack]")
+{
+    require_transform_pack_mask_contract<128, std::uint8_t, 24>();
+    require_transform_pack_mask_contract<128, std::uint8_t, 80>();
+    require_transform_pack_mask_contract<128, std::uint64_t, 8>();
+    require_transform_pack_width_contract<128, std::uint32_t, 7, 3>();
+    require_transform_pack_width_contract<128, std::uint32_t, 19, 9>();
 }
 
 TEST_CASE("128-bit arithmetic and int8 division match scalar results", "[simdlib][sse42][arithmetic]")
@@ -39,6 +53,8 @@ TEST_CASE("128-bit arithmetic and int8 division match scalar results", "[simdlib
 
 TEST_CASE("128-bit comparisons and saturation match scalar semantics", "[simdlib][sse42][comparison][saturation]")
 {
+	require_supported_comparison_matrix<128>();
+
     using words = SimdLib::Api<128, std::int32_t>;
     const auto lhs = words::setr(1, 2, 3, 4);
     const auto rhs = words::setr(1, 0, 3, 9);
@@ -48,6 +64,19 @@ TEST_CASE("128-bit comparisons and saturation match scalar semantics", "[simdlib
     REQUIRE(bytes::to_array(bytes::add_saturated(bytes::set1(250), bytes::set1(10))) ==
             std::array<std::uint8_t, 16>{255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255});
     REQUIRE(bytes::to_array(bytes::subtract_saturated(bytes::set1(5), bytes::set1(10))) == std::array<std::uint8_t, 16>{});
+}
+
+TEST_CASE("128-bit signed integer and float conversion gates preserve lane values", "[simdlib][sse42][conversion]")
+{
+	using integers = SimdLib::Api<128, std::int32_t>;
+	using floats = SimdLib::Api<128, float>;
+	const auto integer_values = integers::setr(-7, 0, 42, 1'000'000);
+	REQUIRE(floats::to_array(integers::convert_to_float(integer_values)) ==
+			std::array<float, 4>{-7.0f, 0.0f, 42.0f, 1'000'000.0f});
+
+	const auto float_values = floats::setr(-7.0f, 0.0f, 42.0f, 1'000'000.0f);
+	REQUIRE(integers::to_array(floats::convert_to_int(float_values)) ==
+			std::array<std::int32_t, 4>{-7, 0, 42, 1'000'000});
 }
 
 TEST_CASE("128-bit widening and horizontal arithmetic match scalar references", "[simdlib][sse42][widen][horizontal]")

@@ -8,6 +8,37 @@
 #include <span>
 #include <vector>
 
+namespace
+{
+template <std::size_t ReadWidth, std::size_t Count>
+void require_compare_tail_contract()
+{
+	using Algo = SimdLib::SimdAlgo<ReadWidth, 1>;
+	using read_t = typename Algo::read_t;
+	using write_t = typename Algo::write_t;
+	static_assert(Count % 8 == 0);
+
+	std::array<read_t, Count> input{};
+	constexpr read_t predicate = static_cast<read_t>(7);
+	for (std::size_t index = 0; index < Count; ++index)
+		input[index] = index % 3 == 1 ? predicate : static_cast<read_t>(index + 20);
+
+	std::array<write_t, Count / 8 + 2> guarded{};
+	guarded.fill(static_cast<write_t>(0xA5));
+	std::span<write_t, Count / 8> output{guarded.data() + 1, Count / 8};
+	Algo::Compare(std::span<const read_t, Count>{input}, output, predicate);
+
+	std::array<write_t, Count / 8> expected{};
+	for (std::size_t index = 0; index < Count; ++index)
+		if (input[index] == predicate)
+			expected[index / 8] |= static_cast<write_t>(write_t{1} << (index % 8));
+
+	REQUIRE(std::equal(output.begin(), output.end(), expected.begin()));
+	REQUIRE(guarded.front() == static_cast<write_t>(0xA5));
+	REQUIRE(guarded.back() == static_cast<write_t>(0xA5));
+}
+} // namespace
+
 TEST_CASE("SimdAlgo fixed spans preserve equality and packed comparison semantics", "[simdlib][algo]")
 {
 	using Algo = SimdLib::SimdAlgo<8, 8>;
@@ -28,6 +59,18 @@ TEST_CASE("SimdAlgo fixed spans preserve equality and packed comparison semantic
 	}();
 	REQUIRE(Algo::AnyEqual(std::span<const std::uint8_t, 32>(uniform), std::uint8_t{42}));
 	REQUIRE(Algo::AllEqual(std::span<const std::uint8_t, 32>(uniform), std::uint8_t{42}));
+}
+
+TEST_CASE("SimdAlgo packed comparisons overwrite exact tail output without overread or overwrite", "[simdlib][algo][compare][tail]")
+{
+	require_compare_tail_contract<8, 24>();
+	require_compare_tail_contract<8, 40>();
+	require_compare_tail_contract<16, 24>();
+	require_compare_tail_contract<16, 40>();
+	require_compare_tail_contract<32, 24>();
+	require_compare_tail_contract<32, 40>();
+	require_compare_tail_contract<64, 24>();
+	require_compare_tail_contract<64, 40>();
 }
 
 TEST_CASE("SimdAlgo fixed bitwise operations match scalar references including tails", "[simdlib][algo]")

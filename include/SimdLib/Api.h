@@ -12,7 +12,9 @@
 #include <functional>
 #include <immintrin.h>
 #include <intrin.h>
+#include <limits>
 #include <span>
+#include <type_traits>
 #include <utility>
 
 // This file contains SIMD implementations for 128-bit and 256-bit integer and floating-point types.
@@ -34,7 +36,12 @@ enum class comparison_operation
 
 template <std::size_t register_width, class element_t>
 inline constexpr bool is_api_available_v =
-	std::is_arithmetic_v<element_t> && Config::target_x86 &&
+	(std::same_as<element_t, std::int8_t> || std::same_as<element_t, std::uint8_t> ||
+	 std::same_as<element_t, std::int16_t> || std::same_as<element_t, std::uint16_t> ||
+	 std::same_as<element_t, std::int32_t> || std::same_as<element_t, std::uint32_t> ||
+	 std::same_as<element_t, std::int64_t> || std::same_as<element_t, std::uint64_t> ||
+	 std::same_as<element_t, float> || std::same_as<element_t, double>) &&
+	Config::target_x86 &&
 	((register_width == 128 && Config::has_sse42) || (register_width == 256 && Config::has_sse42 && Config::has_avx2));
 
 template <std::size_t register_width, class element_t>
@@ -86,11 +93,16 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	constexpr static inline bool using_int = std::is_integral_v<element_t>;
 	constexpr static inline bool using_unsigned = std::is_unsigned_v<element_t>;
 	constexpr static inline bool using_float = std::is_floating_point_v<element_t>;
-	constexpr static inline std::size_t element_width = std::numeric_limits<element_t>::digits;
+	constexpr static inline std::size_t element_width = sizeof(element_t) * 8;
 	constexpr static inline std::size_t byte_count = register_width / 8;
 	constexpr static inline std::size_t byte_count_half = byte_count / 2;
 	constexpr static inline std::size_t element_count = register_width / (sizeof(element_t) * 8);
 	constexpr static inline std::size_t element_count_half = element_count / 2;
+	template <std::size_t result_bit_width> using packed_element_t = select_unsigned_integer_t<result_bit_width>;
+	template <std::size_t result_bit_width, std::size_t source_count>
+	constexpr static inline std::size_t packed_element_count =
+		(source_count * result_bit_width + std::numeric_limits<packed_element_t<result_bit_width>>::digits - 1) /
+		std::numeric_limits<packed_element_t<result_bit_width>>::digits;
 
 	template <class target_simd>
 	constexpr static inline bool is_widen_target_v = requires {
@@ -138,7 +150,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 
 		if constexpr (active_count == element_count)
 		{
-			return impl::load(data.data());
+			return impl::load_unaligned(data.data());
 		}
 		else
 		{
@@ -1206,6 +1218,110 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 #pragma endregion
 
 #pragma region Transform
+
+	/** @brief Applies a SIMD transform whose fixed-width lane results are packed contiguously into integer storage.
+	 *  @tparam result_bit_width Number of logical result bits produced per source element.
+	 *  @tparam count Number of source elements.
+	 *  @tparam Func Callable that accepts `vector_t` and returns an unsigned integer containing packed lane results, with lane zero in the least-significant bits.
+	 *  @param read Source elements to transform.
+	 *  @param write Destination storage for the packed result bit stream.
+	 *  @param func SIMD transformation that returns one packed result for each loaded register.
+	 *  @return None.
+	 */
+	template <std::size_t result_bit_width, std::size_t count, std::invocable<vector_t> Func>
+	SIMDLIB_FORCE_INLINE constexpr static void transform_pack(
+		std::span<const element_t, count> read,
+		std::span<packed_element_t<result_bit_width>, packed_element_count<result_bit_width, count>> write,
+		Func &&func) noexcept
+		requires(result_bit_width > 0 && result_bit_width <= 64)
+	{
+		using result_t = std::remove_cvref_t<std::invoke_result_t<Func, vector_t>>;
+		using write_t = packed_element_t<result_bit_width>;
+		// uintptr_t is the standard unsigned type that most closely represents the target's native integer register width.
+		// Accumulating into it lets us write whole machine words instead of updating individual destination bytes.
+		using native_word_t = std::uintptr_t;
+		static_assert(std::unsigned_integral<result_t> && !std::same_as<result_t, bool>,
+			"Packed SIMD transforms must return an unsigned integer");
+		static_assert(element_count * result_bit_width <= 64,
+			"A packed SIMD register result cannot exceed 64 bits");
+		static_assert(element_count * result_bit_width <= std::numeric_limits<result_t>::digits,
+			"The packed transform result type must contain every result bit for one SIMD register");
+		// Callback results place the first SIMD lane in the least-significant bits. Copying the accumulator directly to
+		// sequential storage preserves that lane order only when the least-significant byte is stored first.
+		static_assert(std::endian::native == std::endian::little,
+			"Packed SIMD transforms require little-endian integer storage");
+
+		constexpr std::size_t native_word_width = std::numeric_limits<native_word_t>::digits;
+		constexpr std::size_t total_result_bit_count = count * result_bit_width;
+		constexpr std::size_t flushed_native_word_count = total_result_bit_count / native_word_width;
+		// The destination rounds up to a complete write_t. After flushing every full native word, the final store may
+		// therefore include both pending result bits and zero-valued padding, but can never exceed one native word.
+		constexpr std::size_t remaining_storage_byte_count =
+			packed_element_count<result_bit_width, count> * sizeof(write_t) - flushed_native_word_count * sizeof(native_word_t);
+		static_assert(remaining_storage_byte_count <= sizeof(native_word_t));
+		auto write_bytes = std::as_writable_bytes(write);
+		// pending holds the next unwritten output bits in its least-significant positions. Staging them here avoids both
+		// clearing the destination first and read-modify-write operations on partial destination elements.
+		native_word_t pending = 0;
+		std::size_t pending_bit_count = 0;
+		std::size_t write_byte_offset = 0;
+
+		// Append one SIMD register's packed result to the logical output stream. The loop normally executes once and only
+		// needs another iteration when the result crosses a native-word boundary.
+		const auto append = [&](const result_t packed_result, std::size_t result_bit_count) constexpr noexcept
+		{
+			std::uint64_t remaining = static_cast<std::uint64_t>(packed_result);
+			while (result_bit_count != 0)
+			{
+				const std::size_t available_bit_count = native_word_width - pending_bit_count;
+				const std::size_t consumed_bit_count = std::min(result_bit_count, available_bit_count);
+				const std::uint64_t consumed_mask = consumed_bit_count == 64
+					? std::numeric_limits<std::uint64_t>::max()
+					: (std::uint64_t{1} << consumed_bit_count) - 1;
+
+				pending |= static_cast<native_word_t>((remaining & consumed_mask) << pending_bit_count);
+				remaining = consumed_bit_count == 64 ? 0 : remaining >> consumed_bit_count;
+				pending_bit_count += consumed_bit_count;
+				result_bit_count -= consumed_bit_count;
+
+				// memcpy permits a native-width store without imposing alignment or aliasing requirements on write_t.
+				if (pending_bit_count == native_word_width)
+				{
+					std::memcpy(write_bytes.data() + write_byte_offset, &pending, sizeof(pending));
+					write_byte_offset += sizeof(pending);
+					pending = 0;
+					pending_bit_count = 0;
+				}
+			}
+		};
+
+		constexpr std::size_t full_batch_count = count / element_count;
+		for (std::size_t batch_index = 0; batch_index < full_batch_count; ++batch_index)
+		{
+			const std::size_t read_index = batch_index * element_count;
+			const vector_t value = load_unsafe(read.subspan(read_index, element_count));
+			append(std::invoke(func, value), element_count * result_bit_width);
+		}
+
+		constexpr std::size_t tail_count = count % element_count;
+		if constexpr (tail_count != 0)
+		{
+			constexpr std::size_t read_index = full_batch_count * element_count;
+			// SIMD loads require a complete register. Zero-fill its inactive lanes, then append only the valid lanes' result
+			// bits so callback output for the padded lanes cannot leak into the packed destination.
+			std::array<element_t, element_count> staged{};
+			std::copy_n(read.data() + read_index, tail_count, staged.data());
+			const vector_t value = load(std::span<const element_t, element_count>(staged));
+			append(std::invoke(func, value), tail_count * result_bit_width);
+		}
+
+		if constexpr (remaining_storage_byte_count != 0)
+		{
+			// pending began as zero, so unused high bits in the final write_t are deterministically cleared without a separate
+			// destination-initialization pass.
+			std::memcpy(write_bytes.data() + write_byte_offset, &pending, remaining_storage_byte_count);
+		}
+	}
 
 	/** @brief Applies a unary SIMD transform to an element span in place.
 	 *  @tparam Func Callable that accepts and returns `vector_t`.

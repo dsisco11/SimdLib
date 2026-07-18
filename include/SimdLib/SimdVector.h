@@ -132,8 +132,12 @@ class SimdVector final
 	 */
 	SIMDLIB_FORCE_INLINE constexpr static vector_t BuildPairProductPartner(const vector_t value) noexcept
 	{
-		constexpr vector_t evenLaneMask = []<std::size_t... Indices>(std::index_sequence<Indices...>) constexpr noexcept -> vector_t
-		{ return simd::setr(((Indices % 2) == 0 ? std::numeric_limits<element_t>::max() : element_t{0})...); }(std::make_index_sequence<simd::element_count>{});
+		const vector_t evenLaneMask = []<std::size_t... Indices>(std::index_sequence<Indices...>) constexpr noexcept -> vector_t
+		{
+			return simd::setr(((Indices % 2) == 0
+				? std::bit_cast<element_t>(std::numeric_limits<std::make_unsigned_t<element_t>>::max())
+				: element_t{0})...);
+		}(std::make_index_sequence<simd::element_count>{});
 
 		return [&]<std::size_t... ByteIndices>(std::index_sequence<ByteIndices...>) constexpr noexcept -> vector_t
 		{
@@ -608,7 +612,7 @@ class SimdVector final
 		else
 		{
 			const auto partialMask = []<std::size_t... Indices>(std::index_sequence<Indices...>) constexpr noexcept -> vector_t
-			{ return simd::setr_partial(((void)Indices, std::numeric_limits<element_t>::max())...); }(std::make_index_sequence<element_count>{});
+			{ return simd::setr_partial(((void)Indices, static_cast<element_t>(~element_t{0}))...); }(std::make_index_sequence<element_count>{});
 
 			return simd::bitwise_xor(m_data, partialMask);
 		}
@@ -729,7 +733,7 @@ class SimdVector final
 	 */
 	SIMDLIB_FORCE_INLINE constexpr bool VECTORCALL operator==(vector_t rhs) const noexcept
 	{
-		return mask_has_all(simd::cmp_eq(m_data, rhs));
+		return mask_has_all(simd::cmp_eq_mask(m_data, rhs));
 	}
 
 	/** @brief Returns true if all elements are greater than the corresponding element in the other vector.
@@ -774,7 +778,7 @@ class SimdVector final
 	 */
 	SIMDLIB_FORCE_INLINE constexpr bool VECTORCALL any_equal(vector_t rhs) const noexcept
 	{
-		return mask_has_any(simd::cmp_eq(m_data, rhs));
+		return mask_has_any(simd::cmp_eq_mask(m_data, rhs));
 	}
 
 	/** @brief Returns true if all elements equal the corresponding element in the other vector.
@@ -783,7 +787,7 @@ class SimdVector final
 	 */
 	SIMDLIB_FORCE_INLINE constexpr bool VECTORCALL all_equal(vector_t rhs) const noexcept
 	{
-		return mask_has_all(simd::cmp_eq(m_data, rhs));
+		return mask_has_all(simd::cmp_eq_mask(m_data, rhs));
 	}
 
 	/** @brief Returns true if any element is greater than the corresponding element in the other vector.
@@ -1064,7 +1068,7 @@ class SimdVector final
 	SIMDLIB_FORCE_INLINE std::size_t VECTORCALL min_position() const noexcept
 		requires requires(vector_t value) { simd::min_position(value); }
 	{
-		return simd::min_position(m_data);
+		return simd::min_position(FillInactiveLanes(m_data, std::numeric_limits<element_t>::max()));
 	}
 
 	/** @brief Returns the first index of the maximum value in the vector.
@@ -1073,7 +1077,7 @@ class SimdVector final
 	SIMDLIB_FORCE_INLINE std::size_t VECTORCALL max_position() const noexcept
 		requires requires(vector_t value) { simd::max_position(value); }
 	{
-		return simd::max_position(m_data);
+		return simd::max_position(FillInactiveLanes(m_data, std::numeric_limits<element_t>::lowest()));
 	}
 
 	/** @brief Alternates subtraction and addition across lanes for floating-point SIMD families.
@@ -1419,7 +1423,7 @@ template <class element_t, int element_count> struct hash<SimdLib::SimdVector<el
 				uint32_t part;
 				if constexpr (std::is_floating_point_v<element_t>)
 				{
-					part = std::bit_cast<uint32_t>(lanes[index]);
+					part = lanes[index] == element_t{0} ? 0u : std::bit_cast<uint32_t>(lanes[index]);
 				}
 				else if constexpr (std::is_signed_v<element_t>)
 				{
@@ -1451,7 +1455,7 @@ template <class element_t, int element_count> struct hash<SimdLib::SimdVector<el
 				uint64_t part;
 				if constexpr (std::is_floating_point_v<element_t>)
 				{
-					part = std::bit_cast<uint64_t>(lanes[index]);
+					part = lanes[index] == element_t{0} ? 0ull : std::bit_cast<uint64_t>(lanes[index]);
 				}
 				else if constexpr (std::is_signed_v<element_t>)
 				{
