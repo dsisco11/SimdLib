@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
+  <Type Name="SimdLib::uint128_t">
+    <DisplayString>0x{m_data[1],x16}{m_data[0],x16}</DisplayString>
+    <Expand>
+      <Item Name="low">m_data[0]</Item>
+      <Item Name="high">m_data[1]</Item>
+    </Expand>
+  </Type>
+  <Type Name="SimdLib::SimdVector&lt;*,*&gt;">
+    <DisplayString>{$T2} logical lanes</DisplayString>
+    <Expand>
+      <Item Name="register">m_data</Item>
+    </Expand>
+  </Type>
+</AutoVisualizer>

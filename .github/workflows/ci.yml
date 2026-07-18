@@ -1,0 +1,169 @@
+name: SimdLib CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    name: MSVC ${{ matrix.arch }} ${{ matrix.config }}
+    runs-on: windows-2022
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [x64, Win32]
+        config: [Debug, Release]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure
+        shell: pwsh
+        run: |
+          cmake -S . -B build -G 'Visual Studio 17 2022' -A '${{ matrix.arch }}' -T v143 `
+            -DSIMDLIB_BUILD_TESTS=ON `
+            -DSIMDLIB_BUILD_TESTS_OPTIONAL=OFF `
+            -DSIMDLIB_BUILD_EXAMPLES=ON `
+            -DSIMDLIB_STRICT_WARNINGS=ON
+      - name: Build
+        run: cmake --build build --config ${{ matrix.config }} --parallel
+      - name: Test
+        run: ctest --test-dir build -C ${{ matrix.config }} --output-on-failure
+
+  clang-cl:
+    name: clang-cl ${{ matrix.arch }} ${{ matrix.config }}
+    runs-on: windows-2022
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [x64, x86]
+        config: [Debug, Release]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: ${{ matrix.arch }}
+      - name: Configure standalone clang-cl
+        run: >-
+          cmake -S . -B build -G Ninja
+          -DCMAKE_BUILD_TYPE=${{ matrix.config }}
+          -DCMAKE_CXX_COMPILER=clang-cl
+          -DSIMDLIB_BUILD_TESTS=ON
+          -DSIMDLIB_BUILD_TESTS_OPTIONAL=OFF
+          -DSIMDLIB_BUILD_EXAMPLES=ON
+          -DSIMDLIB_STRICT_WARNINGS=ON
+      - name: Build
+        run: cmake --build build --parallel
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
+
+  linux:
+    name: ${{ matrix.compiler }} ${{ matrix.arch }} ${{ matrix.config }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler: [gcc, clang]
+        arch: [x64, x86]
+        config: [Debug, Release]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install x86 multilib support
+        if: matrix.arch == 'x86'
+        run: sudo apt-get update && sudo apt-get install -y g++-multilib
+      - name: Select compiler and architecture
+        shell: bash
+        run: |
+          if [[ '${{ matrix.compiler }}' == 'clang' ]]; then
+            echo 'CXX=clang++' >> "$GITHUB_ENV"
+          else
+            echo 'CXX=g++' >> "$GITHUB_ENV"
+          fi
+          if [[ '${{ matrix.arch }}' == 'x86' ]]; then
+            echo 'ARCH_FLAGS=-m32' >> "$GITHUB_ENV"
+          else
+            echo 'ARCH_FLAGS=' >> "$GITHUB_ENV"
+          fi
+      - name: Configure
+        run: >-
+          cmake -S . -B build -G Ninja
+          -DCMAKE_BUILD_TYPE=${{ matrix.config }}
+          -DCMAKE_CXX_FLAGS="${ARCH_FLAGS}"
+          -DCMAKE_EXE_LINKER_FLAGS="${ARCH_FLAGS}"
+          -DSIMDLIB_BUILD_TESTS=ON
+          -DSIMDLIB_BUILD_TESTS_OPTIONAL=OFF
+          -DSIMDLIB_BUILD_EXAMPLES=ON
+          -DSIMDLIB_STRICT_WARNINGS=ON
+      - name: Build
+        run: cmake --build build --parallel
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
+
+  feature-matrix:
+    name: AVX2 FMA BMI1 BMI2 enabled and disabled
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure strict Release matrix
+        run: >-
+          cmake -S . -B build -G Ninja
+          -DCMAKE_BUILD_TYPE=Release
+          -DSIMDLIB_BUILD_TESTS=ON
+          -DSIMDLIB_BUILD_TESTS_OPTIONAL=ON
+          -DSIMDLIB_BUILD_EXAMPLES=ON
+          -DSIMDLIB_STRICT_WARNINGS=ON
+      - name: Build
+        run: cmake --build build --parallel
+      - name: Run feature profiles
+        run: ctest --test-dir build --output-on-failure -L 'AVX2|FMA|BMI|SCALAR'
+
+  sanitizer:
+    name: Clang ASan and UBSan
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure
+        env:
+          CXX: clang++
+        run: >-
+          cmake -S . -B build -G Ninja
+          -DCMAKE_BUILD_TYPE=Debug
+          -DCMAKE_CXX_FLAGS='-fsanitize=address,undefined -fno-omit-frame-pointer'
+          -DCMAKE_EXE_LINKER_FLAGS='-fsanitize=address,undefined'
+          -DSIMDLIB_BUILD_TESTS=ON
+          -DSIMDLIB_BUILD_TESTS_OPTIONAL=OFF
+          -DSIMDLIB_BUILD_EXAMPLES=ON
+          -DSIMDLIB_STRICT_WARNINGS=ON
+      - name: Build
+        run: cmake --build build --parallel
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
+
+  contract-gates:
+    name: constexpr, header hygiene, ODR, and consumer
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure header and constexpr probes
+        run: >-
+          cmake -S . -B build/contracts -G Ninja
+          -DCMAKE_BUILD_TYPE=Release
+          -DSIMDLIB_BUILD_TESTS=OFF
+          -DSIMDLIB_BUILD_CONFIGURATION_TESTS=ON
+          -DSIMDLIB_BUILD_HEADER_TESTS=ON
+          -DSIMDLIB_BUILD_SMOKE_TESTS=ON
+          -DSIMDLIB_STRICT_WARNINGS=ON
+      - name: Build compile-time contracts
+        run: cmake --build build/contracts --parallel
+      - name: Run multi-translation-unit ODR smoke test
+        run: ctest --test-dir build/contracts --output-on-failure -R SimdLib.HeaderOnlySmoke
+      - name: Configure add_subdirectory consumer
+        run: >-
+          cmake -S tests/consumer -B build/consumer -G Ninja
+          -DCMAKE_BUILD_TYPE=Release
+          -DSIMDLIB_SOURCE_DIR=${{ github.workspace }}
+      - name: Build and test header-only consumer
+        run: |
+          cmake --build build/consumer --parallel
+          ctest --test-dir build/consumer --output-on-failure
