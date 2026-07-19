@@ -92,9 +92,41 @@ UInt128 addition, and resampling; each operation also has a correctness test.
 | `SimdAlgo` | `AnyEqual` and `AllEqual` full-register/tail outcomes, bitwise transforms, conversions, comparison packing, scalar parity, non-register-multiple tails, and destination canaries | Read widths 8/16/32/64; empty, single, multi-element, exact-register, multi-register, and tail extents | General comparison currently supports `WriteWidth == 1`; unsupported widths are a compile-time precondition, not an untested runtime branch. |
 | `SimdResample` | Scalar-reference parity for reductions and expansion, boundary dimensions, randomized inputs, and SIMD/scalar equivalence | SIMD enabled and scalar-only profiles | No material gap found. This remains the strongest standalone surface. |
 | `Bmi` | BMI1/BMI2 operations, portable and intrinsic equivalence, signed bit-pattern preservation, boundary indices/counts, generic 128-bit support, constexpr evaluation, and deterministic randomized scalar oracles | BMI1 only, BMI2 only, both, and portable | Several derived helpers have names whose edge semantics are not independently specified. Existing production contracts remain covered, but new tests should follow an API-contract review rather than canonizing incidental behavior. |
-| `uint128_t` | Construction, heterogeneous comparisons, arithmetic, carry/borrow, shifts, masks, bit helpers, register conversion, constexpr behavior, randomized native/scalar oracle parity, and optimized/portable/scalar digest equivalence | Optimized compiler carry, portable carry, and all SIMD/BMI/FMA disabled | Division and remainder are not public operations, so the audit item is not applicable. |
+| `uint128_t` | Construction, signed/unsigned heterogeneous comparisons, arithmetic, carry/borrow, boolean and integral shifts, dynamic and fixed-width masks, deprecated extraction compatibility, `Bmi::bextr`, numeric-limit sentinels, bit helpers including `bit_ceil` overflow, register conversion, constexpr behavior, randomized native/scalar oracle parity, and optimized/portable/scalar digest equivalence | Optimized compiler carry, portable carry, and all SIMD/BMI/FMA disabled | Division and remainder are not public operations. Deprecated `extract` is compatibility-only; `Bmi::bextr` remains the preferred API. |
 | Formatters | UInt128 decimal/binary/octal/hex output, signs, alternate forms, width/alignment/fill/zero padding, scalar `uint64_t` parity where the value fits, accepted/rejected grammar, integral and floating vectors, header isolation, and multi-TU ODR | Opt-in `Format.h` and umbrella include | Locale-specific formatting is deliberately rejected so output remains locale-independent; no formatter-contract gap remains. |
 | `Config` and `TemplateTools` | Compiler/target detection, feature constants, caller overrides, disabled public headers, type availability, alias widths, concepts, constexpr loops, tuple iteration, and constant evaluation | Default, override, disabled, MSVC, clang-cl, and Clang | Unavailable `Api` instantiations are tested through availability concepts instead of intentional hard-error compile failures. |
+
+## uint128_t boundary and compatibility matrix
+
+| Contract | Direct boundary proof |
+| --- | --- |
+| Heterogeneous comparison | Signed integral cases cover a negative right operand, zero, matching and mismatching positive low words, a nonzero high word, equality true/false, and less/equal/greater ordering. Unsigned cases separately retain matching/mismatching equality and all three ordering results. |
+| Deprecated dynamic `extract` | Volatile-derived runtime calls cover zero length, bit 127, starts 128 and 200, a 12-bit range crossing bit 64, and a 16-bit request truncated at bit 127. Every result is checked against an exact value and the preferred `Bmi::bextr` call. |
+| `Bmi::bextr(uint128_t)` | The same table directly covers zero length, out-of-range starts, cross-word extraction, ordinary extraction, and truncation at the upper object boundary. |
+| `create_mask<Width>(offset)` | Runtime offsets cover negative, zero, 63, 64, 127, 128, and 129 for a five-bit mask, proving unchanged, cross-word, truncated-final-bit, and empty out-of-range results. Existing cases retain representative widths 1, 64, 65, and 128. |
+| Shift counts | Volatile-derived values cover `false`, `true`, negative, zero, 1, 63, 64, 65, 127, 128, 129, 191, 255, 256, and `UINT64_MAX` for both directions. The optimized profile executes SIMD shifts; the scalar-only profile executes the two-word branches. |
+| `numeric_limits` sentinels | Runtime assertions cover `min`, `lowest`, `max`, `epsilon`, `round_error`, `infinity`, `quiet_NaN`, `signaling_NaN`, and `denorm_min`. All non-finite/fractional sentinels are zero because this is an exact bounded unsigned integer type. |
+| `bit_ceil` | Volatile-derived inputs cover zero, one, an ordinary low-word value, an ordinary high-word value, the largest value that rounds to `2^127`, exact `2^127`, and overflow from both `2^127 + 1` and the all-ones value. |
+
+The deprecated dynamic member `extract` remains a tested compatibility contract
+because it is still part of the public class and has documented boundary
+behavior. This coverage does not promote it for new callers: its deprecation and
+the preferred `Bmi::bextr` replacement remain unchanged. If the deprecated API
+is intentionally removed later, its compatibility tests should be removed with
+the declaration rather than transferred into a new preferred surface.
+
+The optimized, portable-carry, and scalar-only executables each run the same
+six focused boundary cases with 131 assertions. Separate Clang profiles preserve
+object/profile provenance: the scalar profile records both outcomes for
+comparison, extraction/truncation, five-bit mask offsets, boolean normalization,
+zero/oversized shifts, and `bit_ceil`; the optimized profile records runtime SIMD
+shift dispatch. Randomized two-word and compiler-native oracles plus optimized-
+versus-portable and optimized-versus-scalar result-set comparisons remain intact.
+
+Validation on 2026-07-19 passes 35/35 focused `UINT128` tests with MSVC
+Release and 38/38 with Clang Debug coverage. Each of the three Clang runtime
+profiles passes 131 assertions across the six focused boundary cases. The
+complete strict suites pass 154/154 and 157/157 respectively.
 
 ## Formatter grammar matrix
 

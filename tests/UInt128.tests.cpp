@@ -39,10 +39,79 @@ struct words128 final
 	friend constexpr bool operator==(const words128&, const words128&) noexcept = default;
 };
 
+/** @brief Describes one heterogeneous signed-integral comparison contract. */
+struct heterogeneous_comparison_case final
+{
+	uint128_t lhs;
+	std::int64_t rhs;
+	bool equal;
+	std::strong_ordering ordering;
+};
+
+/** @brief Describes one dynamic extraction boundary and its exact result. */
+struct extraction_case final
+{
+	std::uint8_t length;
+	std::uint8_t start;
+	uint128_t expected;
+};
+
+/** @brief Describes one bit-ceiling boundary and its exact result. */
+struct bit_ceil_case final
+{
+	uint128_t value;
+	uint128_t expected;
+};
+
 [[nodiscard]] constexpr words128 words(const uint128_t value) noexcept
 {
 	return {value.low(), value.high()};
 }
+
+/**
+ * @brief Calls the deprecated dynamic extraction compatibility API.
+ * @param value Source value.
+ * @param length Requested bit count.
+ * @param start First source bit.
+ * @return The extracted and low-aligned value.
+ */
+#if defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable : 4996)
+#elif defined(__clang__) || defined(__GNUC__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+[[nodiscard]] uint128_t deprecated_extract(
+	const uint128_t value,
+	const std::uint8_t length,
+	const std::uint8_t start) noexcept
+{
+	return value.extract(length, start);
+}
+#if defined(_MSC_VER)
+#pragma warning(pop)
+#elif defined(__clang__) || defined(__GNUC__)
+#pragma GCC diagnostic pop
+#endif
+
+/**
+ * @brief Calls a fixed-width mask specialization with a runtime offset.
+ * @tparam Width Compile-time mask width.
+ * @param offset Runtime bit offset.
+ * @return The shifted and truncated mask.
+ */
+#if defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable : 4702)
+#endif
+template <int Width> [[nodiscard]] uint128_t runtime_create_mask(const int offset) noexcept
+{
+	return uint128_t::create_mask<Width>(offset);
+}
+#if defined(_MSC_VER)
+#pragma warning(pop)
+#endif
 
 [[nodiscard]] constexpr words128 add_words(const words128 lhs, const words128 rhs) noexcept
 {
@@ -356,10 +425,57 @@ TEST_CASE("uint128 integral construction and heterogeneous comparisons are expli
 	CHECK(fromNegative.high() == 0);
 	CHECK_FALSE(fromNegative == std::int64_t{-1});
 	CHECK((fromNegative <=> std::int64_t{-1}) == std::strong_ordering::greater);
+
+	const std::array cases{
+		heterogeneous_comparison_case{uint128_t{}, -1, false, std::strong_ordering::greater},
+		heterogeneous_comparison_case{uint128_t{}, 0, true, std::strong_ordering::equal},
+		heterogeneous_comparison_case{uint128_t{41}, 42, false, std::strong_ordering::less},
+		heterogeneous_comparison_case{uint128_t{42}, 42, true, std::strong_ordering::equal},
+		heterogeneous_comparison_case{uint128_t{43}, 42, false, std::strong_ordering::greater},
+		heterogeneous_comparison_case{uint128_t{0, 1}, std::numeric_limits<std::int64_t>::max(), false, std::strong_ordering::greater},
+	};
+	for (const auto& test : cases)
+	{
+		volatile std::uint64_t low = test.lhs.low();
+		volatile std::uint64_t high = test.lhs.high();
+		volatile std::int64_t rhs = test.rhs;
+		const uint128_t lhs{low, high};
+		CAPTURE(lhs.low(), lhs.high(), rhs);
+		CHECK((lhs == rhs) == test.equal);
+		CHECK((lhs <=> rhs) == test.ordering);
+	}
+
 	CHECK(uint128_t{42} == std::int32_t{42});
+	CHECK(uint128_t{42} == std::uint64_t{42});
+	CHECK_FALSE(uint128_t{43} == std::uint64_t{42});
 	CHECK((uint128_t{41} <=> std::uint64_t{42}) == std::strong_ordering::less);
+	CHECK((uint128_t{42} <=> std::uint64_t{42}) == std::strong_ordering::equal);
+	CHECK((uint128_t{0, 1} <=> std::numeric_limits<std::uint64_t>::max()) == std::strong_ordering::greater);
 	CHECK(uint128_t{true} == uint128_t{1});
 	CHECK(uint128_t{false} == uint128_t{});
+}
+
+TEST_CASE("uint128 deprecated extraction remains compatible with Bmi bextr at boundaries", "[simdlib][uint128][extract][compatibility]")
+{
+	volatile std::uint64_t sourceLow = 0x0123'4567'89AB'CDEFULL;
+	volatile std::uint64_t sourceHigh = 0xFEDC'BA98'7654'3210ULL;
+	const uint128_t source{sourceLow, sourceHigh};
+	const std::array cases{
+		extraction_case{0, 0, {}},
+		extraction_case{1, 127, uint128_t{1}},
+		extraction_case{1, 128, {}},
+		extraction_case{8, 200, {}},
+		extraction_case{12, 60, uint128_t{0x100}},
+		extraction_case{16, 120, uint128_t{0xFE}},
+	};
+	for (const auto& test : cases)
+	{
+		volatile std::uint8_t length = test.length;
+		volatile std::uint8_t start = test.start;
+		CAPTURE(length, start);
+		CHECK(deprecated_extract(source, length, start) == test.expected);
+		CHECK(SimdLib::Bmi::bextr(source, length, start) == test.expected);
+	}
 }
 
 TEST_CASE("uint128 masks and bit helpers cover word boundaries", "[simdlib][uint128][bits]")
@@ -384,11 +500,27 @@ TEST_CASE("uint128 masks and bit helpers cover word boundaries", "[simdlib][uint
 	CHECK((uint128_t::create_mask<64>(64) == uint128_t{0, std::numeric_limits<std::uint64_t>::max()}));
 	CHECK((uint128_t::create_mask<65>(63) == uint128_t{std::uint64_t{1} << 63, std::numeric_limits<std::uint64_t>::max()}));
 	CHECK(uint128_t::create_mask<128>(1) == uint128_t{~std::uint64_t{0} << 1, ~std::uint64_t{0}});
+	volatile int negativeOffset = -7;
+	volatile int zeroOffset = 0;
+	volatile int lowBoundaryOffset = 63;
+	volatile int wordBoundaryOffset = 64;
+	volatile int finalBitOffset = 127;
+	volatile int widthOffset = 128;
+	volatile int oversizedOffset = 129;
+	CHECK(runtime_create_mask<5>(negativeOffset) == uint128_t::create_mask(5));
+	CHECK(runtime_create_mask<5>(zeroOffset) == uint128_t::create_mask(5));
+	CHECK(runtime_create_mask<5>(lowBoundaryOffset) == (uint128_t::create_mask(5) << 63));
+	CHECK(runtime_create_mask<5>(wordBoundaryOffset) == uint128_t{0, 0x1F});
+	CHECK(runtime_create_mask<5>(finalBitOffset) == uint128_t{0, std::uint64_t{1} << 63});
+	CHECK(runtime_create_mask<5>(widthOffset) == uint128_t{});
+	CHECK(runtime_create_mask<5>(oversizedOffset) == uint128_t{});
 }
 
 TEST_CASE("uint128 shifts define every boundary count", "[simdlib][uint128][shift]")
 {
-	const uint128_t value{0x0123'4567'89AB'CDEFULL, 0xFEDC'BA98'7654'3210ULL};
+	volatile std::uint64_t valueLow = 0x0123'4567'89AB'CDEFULL;
+	volatile std::uint64_t valueHigh = 0xFEDC'BA98'7654'3210ULL;
+	const uint128_t value{valueLow, valueHigh};
 	constexpr std::array<unsigned, 11> shifts{0, 1, 63, 64, 65, 127, 128, 129, 191, 255, 256};
 	for (const unsigned shift : shifts)
 	{
@@ -398,6 +530,15 @@ TEST_CASE("uint128 shifts define every boundary count", "[simdlib][uint128][shif
 	}
 	CHECK((value << -1) == value);
 	CHECK((value >> -1) == value);
+	volatile bool falseCount = false;
+	volatile bool trueCount = true;
+	CHECK((value << falseCount) == value);
+	CHECK((value >> falseCount) == value);
+	CHECK((value << trueCount) == (value << 1));
+	CHECK((value >> trueCount) == (value >> 1));
+	volatile std::uint64_t oversized = std::numeric_limits<std::uint64_t>::max();
+	CHECK((value << oversized) == uint128_t{});
+	CHECK((value >> oversized) == uint128_t{});
 }
 
 TEST_CASE("uint128 public integer surface remains constexpr-equivalent at runtime", "[simdlib][uint128][surface]")
@@ -413,9 +554,37 @@ TEST_CASE("uint128 public integer surface remains constexpr-equivalent at runtim
 	CHECK(std::numeric_limits<uint128_t>::min() == uint128_t{});
 	CHECK(std::numeric_limits<uint128_t>::lowest() == uint128_t{});
 	CHECK((std::numeric_limits<uint128_t>::max() == uint128_t{~std::uint64_t{0}, ~std::uint64_t{0}}));
+	CHECK(std::numeric_limits<uint128_t>::epsilon() == uint128_t{});
+	CHECK(std::numeric_limits<uint128_t>::round_error() == uint128_t{});
+	CHECK(std::numeric_limits<uint128_t>::infinity() == uint128_t{});
+	CHECK(std::numeric_limits<uint128_t>::quiet_NaN() == uint128_t{});
+	CHECK(std::numeric_limits<uint128_t>::signaling_NaN() == uint128_t{});
+	CHECK(std::numeric_limits<uint128_t>::denorm_min() == uint128_t{});
 	CHECK(SimdLib::countr_zero(uint128_t{}) == 128);
 	CHECK(SimdLib::countl_zero(uint128_t{}) == 128);
 	CHECK(SimdLib::bit_ceil(uint128_t{1, std::uint64_t{1} << 63}) == uint128_t{});
+}
+
+TEST_CASE("uint128 bit ceil covers identity rounding and overflow boundaries", "[simdlib][uint128][bits][ceil]")
+{
+	const std::array cases{
+		bit_ceil_case{uint128_t{}, uint128_t{1}},
+		bit_ceil_case{uint128_t{1}, uint128_t{1}},
+		bit_ceil_case{uint128_t{5}, uint128_t{8}},
+		bit_ceil_case{uint128_t{1, 1}, uint128_t{0, 2}},
+		bit_ceil_case{uint128_t{std::numeric_limits<std::uint64_t>::max(), (std::uint64_t{1} << 63) - 1}, uint128_t{0, std::uint64_t{1} << 63}},
+		bit_ceil_case{uint128_t{0, std::uint64_t{1} << 63}, uint128_t{0, std::uint64_t{1} << 63}},
+		bit_ceil_case{uint128_t{1, std::uint64_t{1} << 63}, uint128_t{}},
+		bit_ceil_case{std::numeric_limits<uint128_t>::max(), uint128_t{}},
+	};
+	for (const auto& test : cases)
+	{
+		volatile std::uint64_t low = test.value.low();
+		volatile std::uint64_t high = test.value.high();
+		const uint128_t value{low, high};
+		CAPTURE(value.low(), value.high());
+		CHECK(SimdLib::bit_ceil(value) == test.expected);
+	}
 }
 
 TEST_CASE("uint128 optimized operations match the portable two-word oracle", "[simdlib][uint128][oracle]")

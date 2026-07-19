@@ -121,17 +121,17 @@ SimdLib Test Coverage Expansion:
     ☒ End Phase 5 only when every documented accepted grammar component and every explicit rejection category has a direct test.
 
   Phase 6 - Close `uint128_t` Edge and Compatibility Gaps:
-    ☐ Add a heterogeneous equality/ordering table covering negative signed inputs, zero, matching/mismatching positive lows, nonzero high words, and each ordering result.
-    ☐ Add runtime tests for the deprecated dynamic member `extract`: zero length, start 127, start 128 or greater, a range crossing bit 64, and truncation at bit 127.
-    ☐ Decide whether deprecated `extract` remains a compatibility contract; remove its coverage requirement only if the API itself is intentionally removed.
-    ☐ Add `create_mask<Width>(offset)` cases for negative/zero offsets, offsets 63/64/127, and offsets 128 or greater.
-    ☐ Add boolean shift-count tests and retain negative, zero, 63/64/65, 127/128, and oversized integral-count coverage.
-    ☐ Add runtime checks for `numeric_limits<uint128_t>::epsilon`, `round_error`, `infinity`, `quiet_NaN`, `signaling_NaN`, and `denorm_min`.
-    ☐ Add `Bmi::bextr(uint128_t)` cases for zero length, out-of-range start, a range truncated at bit 127, and a range crossing the word boundary.
-    ☐ Add `bit_ceil(0)`, `bit_ceil(1)`, ordinary low/high-word values, the largest non-overflowing result, and overflow-to-zero.
-    ☐ Ensure runtime tests use volatile-derived values where necessary to exercise portable, SIMD, and compiler-carry implementations instead of only the constexpr oracle.
-    ☐ Preserve optimized-versus-portable, optimized-versus-scalar, and compiler-native randomized equivalence tests.
-    ☐ End Phase 6 only when each boundary branch is covered in the appropriate runtime or constexpr profile and compatibility-only behavior is explicitly labeled.
+    ☒ Add a heterogeneous equality/ordering table covering negative signed inputs, zero, matching/mismatching positive lows, nonzero high words, and each ordering result.
+    ☒ Add runtime tests for the deprecated dynamic member `extract`: zero length, start 127, start 128 or greater, a range crossing bit 64, and truncation at bit 127.
+    ☒ Decide whether deprecated `extract` remains a compatibility contract; remove its coverage requirement only if the API itself is intentionally removed.
+    ☒ Add `create_mask<Width>(offset)` cases for negative/zero offsets, offsets 63/64/127, and offsets 128 or greater.
+    ☒ Add boolean shift-count tests and retain negative, zero, 63/64/65, 127/128, and oversized integral-count coverage.
+    ☒ Add runtime checks for `numeric_limits<uint128_t>::epsilon`, `round_error`, `infinity`, `quiet_NaN`, `signaling_NaN`, and `denorm_min`.
+    ☒ Add `Bmi::bextr(uint128_t)` cases for zero length, out-of-range start, a range truncated at bit 127, and a range crossing the word boundary.
+    ☒ Add `bit_ceil(0)`, `bit_ceil(1)`, ordinary low/high-word values, the largest non-overflowing result, and overflow-to-zero.
+    ☒ Ensure runtime tests use volatile-derived values where necessary to exercise portable, SIMD, and compiler-carry implementations instead of only the constexpr oracle.
+    ☒ Preserve optimized-versus-portable, optimized-versus-scalar, and compiler-native randomized equivalence tests.
+    ☒ End Phase 6 only when each boundary branch is covered in the appropriate runtime or constexpr profile and compatibility-only behavior is explicitly labeled.
 
   Phase 7 - Close `SimdVector` Partial and Wide-Vector Gaps:
     ☐ Add partial-vector divide and modulus tests that prove inactive lanes are filled with multiplicative identity before the operation and restored to zero afterward.
@@ -182,7 +182,7 @@ SimdLib Test Coverage Expansion:
     ☒ Phase 3 migrated-header assertion inventory, retained-invariant justifications, dedicated constexpr-target matrix, consumer compile-time measurements, and separate MSVC/Clang/compiler-path evidence recorded in `docs/StaticAssertionInventory.md` and `docs/ConstexprCompilerEvidence.md`; strict MSVC Release passes 144/144, Clang passes 147/147, and the external consumer passes 1/1.
     ☒ Phase 4 `SimdAlgo` full-register/tail outcome matrix recorded in `docs/TestCoverage.md`: focused MSVC and Clang runs pass 7/7 tests with 614 assertions, the strict MSVC suite passes 147/147, and the Clang suite passes 150/150.
     ☒ Phase 5 accepted/rejected formatter grammar matrix recorded in `docs/TestCoverage.md`: focused MSVC and Clang runs pass 8/8 tests, the formatter suite passes 267 assertions, the strict MSVC suite passes 148/148, and the Clang suite passes 151/151.
-    ☐ Phase 6 `uint128_t` boundary and compatibility matrix recorded.
+    ☒ Phase 6 `uint128_t` boundary and compatibility matrix recorded in `docs/TestCoverage.md`: focused MSVC passes 35/35, focused Clang passes 38/38, each Clang profile passes 131 assertions across six boundary cases, the strict MSVC suite passes 154/154, and the Clang suite passes 157/157.
     ☐ Phase 7 `SimdVector` full/partial/128/256-bit behavior matrix recorded.
     ☐ Phase 8 precondition inventory, negative-test results, and sanitizer evidence recorded.
     ☐ Phase 9 final compiler/configuration matrix, test/assertion counts, before/after coverage, remaining justifications, and clean-worktree evidence recorded.
