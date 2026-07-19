@@ -89,12 +89,38 @@ UInt128 addition, and resampling; each operation also has a correctness test.
 | --- | --- | --- | --- |
 | `Api` | Arithmetic, signed and unsigned comparisons, equality masks, movemasks, loads/stores, unaligned and partial transfers, same-shape transforms, packed transforms with full batches and tails, conversion between signed 32-bit lanes and float, shifts, shuffles, blends, reductions, casts, extraction, and register metadata | 128-bit SSE and 256-bit AVX2; FMA on/off; availability-disabled probes | Some inherited backend helper names are implementation exposure rather than a promised public family. Exhaustively testing them would freeze an accidental contract; the inheritance boundary should be clarified before such tests are added. More conversion rounding/overflow cases are medium-risk follow-up work. |
 | `SimdVector` | Construction, lane access, arithmetic, comparisons, masks, reductions, hashing, pair products, signed partial vectors, inactive-lane min/max behavior, and floating signed-zero equality/hash consistency | Representative integral and floating lane types, full and partial extents | Convenience overloads that delegate directly to `Api` are not all tested individually. Their underlying behavior is covered; add overload-specific tests when they acquire distinct contracts. |
-| `SimdAlgo` | `AnyEqual`, `AllEqual`, bitwise transforms, conversions, comparison packing, prefilled outputs, non-register-multiple tails, and destination canaries | Read widths 8/16/32/64; 24- and 40-element tail cases | General comparison currently supports `WriteWidth == 1`; unsupported widths are a compile-time precondition, not an untested runtime branch. |
+| `SimdAlgo` | `AnyEqual` and `AllEqual` full-register/tail outcomes, bitwise transforms, conversions, comparison packing, scalar parity, non-register-multiple tails, and destination canaries | Read widths 8/16/32/64; empty, single, multi-element, exact-register, multi-register, and tail extents | General comparison currently supports `WriteWidth == 1`; unsupported widths are a compile-time precondition, not an untested runtime branch. |
 | `SimdResample` | Scalar-reference parity for reductions and expansion, boundary dimensions, randomized inputs, and SIMD/scalar equivalence | SIMD enabled and scalar-only profiles | No material gap found. This remains the strongest standalone surface. |
 | `Bmi` | BMI1/BMI2 operations, portable and intrinsic equivalence, signed bit-pattern preservation, boundary indices/counts, generic 128-bit support, constexpr evaluation, and deterministic randomized scalar oracles | BMI1 only, BMI2 only, both, and portable | Several derived helpers have names whose edge semantics are not independently specified. Existing production contracts remain covered, but new tests should follow an API-contract review rather than canonizing incidental behavior. |
 | `uint128_t` | Construction, heterogeneous comparisons, arithmetic, carry/borrow, shifts, masks, bit helpers, register conversion, constexpr behavior, randomized native/scalar oracle parity, and optimized/portable/scalar digest equivalence | Optimized compiler carry, portable carry, and all SIMD/BMI/FMA disabled | Division and remainder are not public operations, so the audit item is not applicable. |
 | Formatters | UInt128 decimal/binary/octal/hex output, signs, alternate forms, width/alignment/fill/zero padding, scalar `uint64_t` parity where the value fits, integral and floating vectors, header isolation, and multi-TU ODR | Opt-in `Format.h` and umbrella include | Locale-specific output and a larger invalid-specification matrix are medium-risk follow-ups because parsing delegates to the corresponding standard scalar formatter. |
 | `Config` and `TemplateTools` | Compiler/target detection, feature constants, caller overrides, disabled public headers, type availability, alias widths, concepts, constexpr loops, tuple iteration, and constant evaluation | Default, override, disabled, MSVC, clang-cl, and Clang | Unavailable `Api` instantiations are tested through availability concepts instead of intentional hard-error compile failures. |
+
+## SimdAlgo outcome and boundary matrix
+
+| Operation and shape | Direct outcomes |
+| --- | --- |
+| `AnyEqual`, three exact 256-bit registers | No match returns false after the complete traversal; matches in the first, middle, and final register each return true. |
+| `AnyEqual`, three registers plus a three-element tail | A tail with no match returns false; a match only in the final tail element returns true. |
+| `AllEqual`, three exact 256-bit registers | Uniform input returns true; mismatches in the first, middle, and final register each return false. |
+| `AllEqual`, three registers plus a three-element tail | A uniform tail returns true; a mismatch only in the final tail element returns false. |
+| Static extents | Empty, one-element, three-element, exact 128-bit-register, and one-past-register extents run for every 8/16/32/64-bit read type. Empty `AnyEqual` directly exercises `LowBits` with a zero count; empty `AllEqual` verifies vacuous truth. |
+| Packed and bitwise output | Packed comparisons retain scalar-reference parity and front/back canaries for 24- and 40-element inputs at every read width. The nine-element 32-bit bitwise tail retains scalar parity for all five transforms and front/back canaries. |
+
+`LowBits` is called only when `count < SimdImpl<count>::element_count`.
+The 128-bit selection therefore admits at most 15 elements (for 8-bit
+reads), while selecting the 256-bit implementation requires at least its full
+lane count and cannot enter that branch. Consequently, the `count >= 32`
+safety case is unreachable through any supported public `AnyEqual`
+instantiation; directly exposing the private helper solely for a test would
+create an implementation test seam.
+
+Validation on 2026-07-19 runs 614 assertions across the seven `[algo]` cases.
+The focused matrix passes 7/7 with MSVC Release and Clang Debug coverage; the
+complete suites pass 147/147 and 150/150 respectively. A dedicated Clang
+profile records the zero-count `LowBits` return four times, both outcomes of
+the full-register search conditions, exact-traversal returns, and both tail
+results. The `count >= 32` return remains at zero as justified above.
 
 ## High-risk findings resolved by the audit
 

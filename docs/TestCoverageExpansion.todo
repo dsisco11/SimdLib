@@ -99,15 +99,15 @@ SimdLib Test Coverage Expansion:
     ☒ End Phase 3 only when test-example assertions have left public headers, every retained production-header assertion is justified as a real constraint/invariant, consumer compile-time evidence is recorded, every constant-evaluation branch has compile-time proof, and every supported runtime/compiler branch has a matching configuration run.
 
   Phase 4 - Close `SimdAlgo` Outcome and Boundary Gaps:
-    ☐ Add `AnyEqual` tests that return false after an exact full-register traversal with no tail.
-    ☐ Add `AnyEqual` tests that find a match in the first, middle, and final full register of a multi-register input.
-    ☐ Add `AnyEqual` tests for a tail-only match and a tail with no match.
-    ☐ Add `AllEqual` tests that return false from the first, middle, and final full register.
-    ☐ Add `AllEqual` tests for a full-register success, tail success, and tail failure.
-    ☐ Exercise the `LowBits` zero-count and 32-or-more-count boundaries through supported public calls, or document why a boundary is unreachable for valid template extents.
-    ☐ Cover single-element, exact-lane, multi-lane, and non-lane-multiple static extents across representative read widths.
-    ☐ Preserve scalar-reference parity and destination canaries for packed comparisons and bitwise transforms.
-    ☐ End Phase 4 only when both true and false exits of the full-register and tail paths are directly asserted.
+    ☒ Add `AnyEqual` tests that return false after an exact full-register traversal with no tail.
+    ☒ Add `AnyEqual` tests that find a match in the first, middle, and final full register of a multi-register input.
+    ☒ Add `AnyEqual` tests for a tail-only match and a tail with no match.
+    ☒ Add `AllEqual` tests that return false from the first, middle, and final full register.
+    ☒ Add `AllEqual` tests for a full-register success, tail success, and tail failure.
+    ☒ Exercise the `LowBits` zero-count and 32-or-more-count boundaries through supported public calls, or document why a boundary is unreachable for valid template extents.
+    ☒ Cover single-element, exact-lane, multi-lane, and non-lane-multiple static extents across representative read widths.
+    ☒ Preserve scalar-reference parity and destination canaries for packed comparisons and bitwise transforms.
+    ☒ End Phase 4 only when both true and false exits of the full-register and tail paths are directly asserted.
 
   Phase 5 - Complete Formatter Validation:
     ☐ Add runtime parsing tests for `{` and `}` as invalid two-character fill/alignment specifications for `SimdVector` and `uint128_t`.
@@ -180,7 +180,7 @@ SimdLib Test Coverage Expansion:
     ☒ Phase 1 BMI contract decisions, helper matrix, deterministic inputs, and portable/intrinsic equivalence results recorded.
     ☒ Phase 2 public `Api` operation/type matrix and backend-family reachability results recorded: no direct `Detail` test routes remain; focused MSVC Release and Clang coverage runs pass 33/33 tests, and the complete MSVC Release suite passes 137/137 tests.
     ☒ Phase 3 migrated-header assertion inventory, retained-invariant justifications, dedicated constexpr-target matrix, consumer compile-time measurements, and separate MSVC/Clang/compiler-path evidence recorded in `docs/StaticAssertionInventory.md` and `docs/ConstexprCompilerEvidence.md`; strict MSVC Release passes 144/144, Clang passes 147/147, and the external consumer passes 1/1.
-    ☐ Phase 4 `SimdAlgo` full-register/tail outcome matrix recorded.
+    ☒ Phase 4 `SimdAlgo` full-register/tail outcome matrix recorded in `docs/TestCoverage.md`: focused MSVC and Clang runs pass 7/7 tests with 614 assertions, the strict MSVC suite passes 147/147, and the Clang suite passes 150/150.
     ☐ Phase 5 accepted/rejected formatter grammar matrix recorded.
     ☐ Phase 6 `uint128_t` boundary and compatibility matrix recorded.
     ☐ Phase 7 `SimdVector` full/partial/128/256-bit behavior matrix recorded.
