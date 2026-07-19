@@ -13,6 +13,7 @@
 #include <cstring>
 #include <limits>
 #include <span>
+#include <type_traits>
 
 namespace SimdLib::Tests
 {
@@ -134,7 +135,8 @@ void require_supported_partial_transfer_matrix()
     require_partial_transfer_contracts<Width, float>();
 }
 
-template <std::size_t Width, std::integral Element>
+template <std::size_t Width, class Element>
+	requires std::is_arithmetic_v<Element>
 void require_comparison_contract()
 {
     using simd = Api<Width, Element>;
@@ -361,4 +363,385 @@ consteval bool constexpr_movemask_contract()
     return simd::movemask(value) == expected_byte_movemask<Width, Element>() &&
            simd::movemask_slim(value) == expected_slim_movemask<Width, Element>();
 }
+/**
+ * @brief Verifies public extrema values and first-position tie semantics for an integer Api specialization.
+ *
+ * @tparam Width The Api register width.
+ * @tparam Element The signed or unsigned integer lane type.
+ */
+template <std::size_t Width, std::integral Element>
+void require_extrema_position_contract()
+{
+	using simd = Api<Width, Element>;
+	std::array<Element, simd::element_count> values{};
+	std::array<Element, simd::element_count> other{};
+	for (std::size_t index = 0; index < values.size(); ++index)
+	{
+		values[index] = static_cast<Element>(index + 3);
+		other[index] = static_cast<Element>(index + 1);
+	}
+	values[0] = std::numeric_limits<Element>::max();
+	if constexpr (simd::element_count > 1)
+		values[1] = std::numeric_limits<Element>::lowest();
+	if constexpr (simd::element_count > 2)
+		values[2] = std::numeric_limits<Element>::lowest();
+	if constexpr (simd::element_count > 3)
+		values[3] = std::numeric_limits<Element>::max();
+
+	std::array<Element, simd::element_count> expected_min{};
+	std::array<Element, simd::element_count> expected_max{};
+	for (std::size_t index = 0; index < values.size(); ++index)
+	{
+		expected_min[index] = std::min(values[index], other[index]);
+		expected_max[index] = std::max(values[index], other[index]);
+	}
+	const auto value = simd::construct(values);
+	REQUIRE(simd::to_array(simd::min(value, simd::construct(other))) == expected_min);
+	REQUIRE(simd::to_array(simd::max(value, simd::construct(other))) == expected_max);
+	REQUIRE(simd::min_position(value) == 1);
+	REQUIRE(simd::max_position(value) == 0);
+	std::array<Element, simd::element_count> reversed{};
+	reversed.fill(static_cast<Element>(1));
+	reversed.front() = std::numeric_limits<Element>::lowest();
+	reversed.back() = std::numeric_limits<Element>::max();
+	const auto reversed_value = simd::construct(reversed);
+	REQUIRE(simd::min_position(reversed_value) == 0);
+	REQUIRE(simd::max_position(reversed_value) == simd::element_count - 1);
+	REQUIRE(simd::min_position(simd::set1(std::numeric_limits<Element>::lowest())) == 0);
+	REQUIRE(simd::max_position(simd::set1(std::numeric_limits<Element>::max())) == 0);
+}
+
+/**
+ * @brief Exercises extrema contracts for every supported public integer lane family.
+ *
+ * @tparam Width The Api register width.
+ */
+template <std::size_t Width>
+void require_integer_extrema_position_matrix()
+{
+	require_extrema_position_contract<Width, std::int8_t>();
+	require_extrema_position_contract<Width, std::uint8_t>();
+	require_extrema_position_contract<Width, std::int16_t>();
+	require_extrema_position_contract<Width, std::uint16_t>();
+	require_extrema_position_contract<Width, std::int32_t>();
+	require_extrema_position_contract<Width, std::uint32_t>();
+	require_extrema_position_contract<Width, std::int64_t>();
+	require_extrema_position_contract<Width, std::uint64_t>();
+}
+/**
+ * @brief Verifies public 64-bit signed and unsigned arithmetic behavior.
+ *
+ * @tparam Width The Api register width.
+ */
+template <std::size_t Width>
+void require_64bit_arithmetic_contract()
+{
+	using signed_simd = Api<Width, std::int64_t>;
+	const auto signed_value = signed_simd::set1(-9);
+	const auto signed_divisor = signed_simd::set1(2);
+	REQUIRE(signed_simd::to_array(signed_simd::divide(signed_value, signed_divisor))[0] == -4);
+	REQUIRE(signed_simd::to_array(signed_simd::modulus(signed_value, signed_divisor))[0] == -1);
+	REQUIRE(signed_simd::to_array(signed_simd::multiply(signed_value, signed_divisor))[0] == -18);
+	REQUIRE(signed_simd::to_array(signed_simd::absolute(signed_value))[0] == 9);
+	REQUIRE(signed_simd::to_array(signed_simd::shift_right_arithmetic(signed_value, 1))[0] == -5);
+	REQUIRE(signed_simd::to_array(signed_simd::min(signed_value, signed_divisor))[0] == -9);
+	REQUIRE(signed_simd::to_array(signed_simd::max(signed_value, signed_divisor))[0] == 2);
+
+	using unsigned_simd = Api<Width, std::uint64_t>;
+	const auto unsigned_value = unsigned_simd::set1(0x8000'0000'0000'0003ULL);
+	const auto unsigned_divisor = unsigned_simd::set1(3);
+	REQUIRE(unsigned_simd::to_array(unsigned_simd::divide(unsigned_value, unsigned_divisor))[0] == 0x2AAA'AAAA'AAAA'AAABL);
+	REQUIRE(unsigned_simd::to_array(unsigned_simd::modulus(unsigned_value, unsigned_divisor))[0] == 2);
+	REQUIRE(unsigned_simd::to_array(unsigned_simd::multiply(unsigned_value, unsigned_divisor))[0] == 0x8000'0000'0000'0009ULL);
+	REQUIRE(unsigned_simd::to_array(unsigned_simd::absolute(unsigned_value))[0] == 0x8000'0000'0000'0003ULL);
+	REQUIRE(unsigned_simd::to_array(unsigned_simd::shift_right(unsigned_value, 1))[0] == 0x4000'0000'0000'0001ULL);
+	REQUIRE(unsigned_simd::to_array(unsigned_simd::min(unsigned_value, unsigned_divisor))[0] == 3);
+	REQUIRE(unsigned_simd::to_array(unsigned_simd::max(unsigned_value, unsigned_divisor))[0] == 0x8000'0000'0000'0003ULL);
+}
+
+/**
+ * @brief Verifies arithmetic, bitwise, lane-access, and shift behavior for one integer Api specialization.
+ *
+ * @tparam Width The Api register width.
+ * @tparam Element The signed or unsigned integer lane type.
+ */
+template <std::size_t Width, std::integral Element>
+void require_integer_operation_contract()
+{
+	using simd = Api<Width, Element>;
+	using unsigned_t = std::make_unsigned_t<Element>;
+	std::array<Element, simd::element_count> lhs{};
+	std::array<Element, simd::element_count> rhs{};
+	std::array<Element, simd::element_count> sum{};
+	std::array<Element, simd::element_count> difference{};
+	std::array<Element, simd::element_count> product{};
+	std::array<Element, simd::element_count> quotient{};
+	std::array<Element, simd::element_count> remainder{};
+	std::array<Element, simd::element_count> bit_and{};
+	std::array<Element, simd::element_count> bit_or{};
+	std::array<Element, simd::element_count> bit_xor{};
+	std::array<Element, simd::element_count> bit_andnot{};
+	std::array<Element, simd::element_count> bit_not{};
+	std::array<Element, simd::element_count> shifted_left{};
+	std::array<Element, simd::element_count> shifted_right{};
+	for (std::size_t index = 0; index < simd::element_count; ++index)
+	{
+		lhs[index] = static_cast<Element>(index + 6);
+		rhs[index] = static_cast<Element>(index % 3 + 1);
+		sum[index] = static_cast<Element>(lhs[index] + rhs[index]);
+		difference[index] = static_cast<Element>(lhs[index] - rhs[index]);
+		product[index] = static_cast<Element>(lhs[index] * rhs[index]);
+		quotient[index] = static_cast<Element>(lhs[index] / rhs[index]);
+		remainder[index] = static_cast<Element>(lhs[index] % rhs[index]);
+		const auto lhs_bits = static_cast<unsigned_t>(lhs[index]);
+		const auto rhs_bits = static_cast<unsigned_t>(rhs[index]);
+		bit_and[index] = static_cast<Element>(lhs_bits & rhs_bits);
+		bit_or[index] = static_cast<Element>(lhs_bits | rhs_bits);
+		bit_xor[index] = static_cast<Element>(lhs_bits ^ rhs_bits);
+		bit_andnot[index] = static_cast<Element>((~lhs_bits) & rhs_bits);
+		bit_not[index] = static_cast<Element>(~lhs_bits);
+		shifted_left[index] = static_cast<Element>(lhs_bits << 1);
+		shifted_right[index] = static_cast<Element>(lhs_bits >> 1);
+	}
+
+	const auto left = simd::construct(lhs);
+	const auto right = simd::construct(rhs);
+	REQUIRE(simd::to_array(simd::add(left, right)) == sum);
+	REQUIRE(simd::to_array(simd::subtract(left, right)) == difference);
+	REQUIRE(simd::to_array(simd::multiply(left, right)) == product);
+	REQUIRE(simd::to_array(simd::divide(left, right)) == quotient);
+	REQUIRE(simd::to_array(simd::modulus(left, right)) == remainder);
+	REQUIRE(simd::to_array(simd::bitwise_and(left, right)) == bit_and);
+	REQUIRE(simd::to_array(simd::bitwise_or(left, right)) == bit_or);
+	REQUIRE(simd::to_array(simd::bitwise_xor(left, right)) == bit_xor);
+	REQUIRE(simd::to_array(simd::bitwise_andnot(left, right)) == bit_andnot);
+	REQUIRE(simd::to_array(simd::bitwise_not(left)) == bit_not);
+	REQUIRE(simd::to_array(simd::shift_left(left, 1)) == shifted_left);
+	REQUIRE(simd::to_array(simd::shift_right(left, 1)) == shifted_right);
+	REQUIRE(simd::to_array(simd::min(left, right)) == rhs);
+	REQUIRE(simd::to_array(simd::max(left, right)) == lhs);
+
+	const auto absolute_source = simd::set1(static_cast<Element>(std::is_signed_v<Element> ? -7 : 7));
+	REQUIRE(simd::to_array(simd::absolute(absolute_source)) == simd::to_array(simd::set1(7)));
+	if constexpr (std::is_signed_v<Element>)
+		REQUIRE(simd::to_array(simd::shift_right_arithmetic(absolute_source, 1)) == simd::to_array(simd::set1(-4)));
+
+	REQUIRE(simd::get_element(left, 0) == lhs[0]);
+	const auto replacement = static_cast<Element>(42);
+	const auto replaced = simd::set_element(left, static_cast<int>(simd::element_count - 1), replacement);
+	auto expected_replaced = lhs;
+	expected_replaced.back() = replacement;
+	REQUIRE(simd::to_array(replaced) == expected_replaced);
+}
+
+/**
+ * @brief Exercises the public integer operation contract for every supported lane type.
+ *
+ * @tparam Width The Api register width.
+ */
+template <std::size_t Width>
+void require_integer_operation_matrix()
+{
+	require_integer_operation_contract<Width, std::int8_t>();
+	require_integer_operation_contract<Width, std::uint8_t>();
+	require_integer_operation_contract<Width, std::int16_t>();
+	require_integer_operation_contract<Width, std::uint16_t>();
+	require_integer_operation_contract<Width, std::int32_t>();
+	require_integer_operation_contract<Width, std::uint32_t>();
+	require_integer_operation_contract<Width, std::int64_t>();
+	require_integer_operation_contract<Width, std::uint64_t>();
+}
+
+/**
+ * @brief Verifies public floating arithmetic, comparison, bitwise, and lane-access behavior.
+ *
+ * @tparam Width The Api register width.
+ * @tparam Element The floating-point lane type.
+ */
+template <std::size_t Width, std::floating_point Element>
+void require_floating_operation_contract()
+{
+	using simd = Api<Width, Element>;
+	using bits_t = std::conditional_t<sizeof(Element) == 4, std::uint32_t, std::uint64_t>;
+	std::array<Element, simd::element_count> lhs{};
+	std::array<Element, simd::element_count> rhs{};
+	std::array<Element, simd::element_count> sum{};
+	std::array<Element, simd::element_count> difference{};
+	std::array<Element, simd::element_count> product{};
+	std::array<Element, simd::element_count> quotient{};
+	std::array<Element, simd::element_count> minimum{};
+	std::array<Element, simd::element_count> maximum{};
+	std::array<Element, simd::element_count> absolute{};
+	for (std::size_t index = 0; index < simd::element_count; ++index)
+	{
+		lhs[index] = index == 0 ? static_cast<Element>(-3.5) : static_cast<Element>(index + 2);
+		rhs[index] = static_cast<Element>(2);
+		sum[index] = lhs[index] + rhs[index];
+		difference[index] = lhs[index] - rhs[index];
+		product[index] = lhs[index] * rhs[index];
+		quotient[index] = lhs[index] / rhs[index];
+		minimum[index] = std::min(lhs[index], rhs[index]);
+		maximum[index] = std::max(lhs[index], rhs[index]);
+		absolute[index] = lhs[index] < Element{0} ? -lhs[index] : lhs[index];
+	}
+
+	const auto left = simd::construct(lhs);
+	const auto right = simd::construct(rhs);
+	std::array<Element, simd::element_count> broadcast{};
+	broadcast.fill(static_cast<Element>(2.5));
+	REQUIRE(simd::to_array(simd::set1(static_cast<Element>(2.5))) == broadcast);
+	REQUIRE(simd::to_array(simd::add(left, right)) == sum);
+	REQUIRE(simd::to_array(simd::subtract(left, right)) == difference);
+	REQUIRE(simd::to_array(simd::multiply(left, right)) == product);
+	REQUIRE(simd::to_array(simd::divide(left, right)) == quotient);
+	REQUIRE(simd::to_array(simd::min(left, right)) == minimum);
+	REQUIRE(simd::to_array(simd::max(left, right)) == maximum);
+	REQUIRE(simd::to_array(simd::absolute(left)) == absolute);
+	REQUIRE(simd::get_element(left, 0) == lhs[0]);
+	const auto replaced = simd::set_element(left, static_cast<int>(simd::element_count - 1), static_cast<Element>(-9.25));
+	auto expected_replaced = lhs;
+	expected_replaced.back() = static_cast<Element>(-9.25);
+	REQUIRE(simd::to_array(replaced) == expected_replaced);
+
+	std::array<bits_t, simd::element_count> lhs_bits{};
+	std::array<bits_t, simd::element_count> rhs_bits{};
+	std::array<bits_t, simd::element_count> expected_and{};
+	std::array<bits_t, simd::element_count> expected_or{};
+	std::array<bits_t, simd::element_count> expected_xor{};
+	std::array<bits_t, simd::element_count> expected_andnot{};
+	std::array<bits_t, simd::element_count> expected_not{};
+	for (std::size_t index = 0; index < simd::element_count; ++index)
+	{
+		lhs_bits[index] = static_cast<bits_t>(bits_t{0x55} << (index % sizeof(bits_t)));
+		rhs_bits[index] = static_cast<bits_t>(~bits_t{0}) ^ static_cast<bits_t>(bits_t{0x11} << (index % sizeof(bits_t)));
+		expected_and[index] = lhs_bits[index] & rhs_bits[index];
+		expected_or[index] = lhs_bits[index] | rhs_bits[index];
+		expected_xor[index] = lhs_bits[index] ^ rhs_bits[index];
+		expected_andnot[index] = (~lhs_bits[index]) & rhs_bits[index];
+		expected_not[index] = ~lhs_bits[index];
+	}
+	const auto bit_left = simd::construct(std::bit_cast<std::array<Element, simd::element_count>>(lhs_bits));
+	const auto bit_right = simd::construct(std::bit_cast<std::array<Element, simd::element_count>>(rhs_bits));
+	REQUIRE(std::bit_cast<std::array<bits_t, simd::element_count>>(simd::to_array(simd::bitwise_and(bit_left, bit_right))) == expected_and);
+	REQUIRE(std::bit_cast<std::array<bits_t, simd::element_count>>(simd::to_array(simd::bitwise_or(bit_left, bit_right))) == expected_or);
+	REQUIRE(std::bit_cast<std::array<bits_t, simd::element_count>>(simd::to_array(simd::bitwise_xor(bit_left, bit_right))) == expected_xor);
+	REQUIRE(std::bit_cast<std::array<bits_t, simd::element_count>>(simd::to_array(simd::bitwise_andnot(bit_left, bit_right))) == expected_andnot);
+	REQUIRE(std::bit_cast<std::array<bits_t, simd::element_count>>(simd::to_array(simd::bitwise_not(bit_left))) == expected_not);
+}
+
+/**
+ * @brief Exercises public floating operations for both supported lane types.
+ *
+ * @tparam Width The Api register width.
+ */
+template <std::size_t Width>
+void require_floating_operation_matrix()
+{
+	require_floating_operation_contract<Width, float>();
+	require_floating_operation_contract<Width, double>();
+	require_comparison_contract<Width, float>();
+	require_comparison_contract<Width, double>();
+}
+
+/**
+ * @brief Verifies unsigned 32-bit conversion, division, and remainder boundary behavior.
+ *
+ * @tparam Width The Api register width.
+ */
+template <std::size_t Width>
+void require_unsigned_32bit_contract()
+{
+	using integers = Api<Width, std::uint32_t>;
+	using floats = Api<Width, float>;
+	constexpr std::array<std::uint32_t, 8> numerators{
+		0, 1, 7, 0x7FFF'FFFFU, 0x8000'0000U, 0xFFFF'FFFFU, 4'000'000'001U, 10};
+	constexpr std::array<std::uint32_t, 8> divisors{1, 1, 3, 7, 2, 65'535, 3, 4};
+	std::array<std::uint32_t, integers::element_count> lhs{};
+	std::array<std::uint32_t, integers::element_count> rhs{};
+	std::array<std::uint32_t, integers::element_count> quotient{};
+	std::array<std::uint32_t, integers::element_count> remainder{};
+	std::array<float, integers::element_count> converted{};
+	for (std::size_t index = 0; index < integers::element_count; ++index)
+	{
+		lhs[index] = numerators[index];
+		rhs[index] = divisors[index];
+		quotient[index] = lhs[index] / rhs[index];
+		remainder[index] = lhs[index] % rhs[index];
+		converted[index] = static_cast<float>(lhs[index]);
+	}
+	const auto left = integers::construct(lhs);
+	const auto right = integers::construct(rhs);
+	REQUIRE(integers::to_array(integers::divide(left, right)) == quotient);
+	REQUIRE(integers::to_array(integers::modulus(left, right)) == remainder);
+	REQUIRE(floats::to_array(integers::convert_to_float(left)) == converted);
+}
+
+/**
+ * @brief Verifies uint64_t adjacent multiply-add ordering and modulo-2^64 overflow.
+ *
+ * @tparam Width The Api register width.
+ */
+template <std::size_t Width>
+void require_uint64_multiply_add_adjacent_contract()
+{
+	using simd = Api<Width, std::uint64_t>;
+	std::array<std::uint64_t, simd::element_count> lhs{};
+	std::array<std::uint64_t, simd::element_count> rhs{};
+	for (std::size_t index = 0; index < simd::element_count; index += 2)
+	{
+		lhs[index] = std::numeric_limits<std::uint64_t>::max();
+		lhs[index + 1] = static_cast<std::uint64_t>(index + 2);
+		rhs[index] = 2;
+		rhs[index + 1] = 3;
+	}
+	std::array<std::uint64_t, simd::element_count> expected{};
+	for (std::size_t index = 0; index < simd::element_count; index += 2)
+		expected[index] = lhs[index] * rhs[index] + lhs[index + 1] * rhs[index + 1];
+	REQUIRE(simd::to_array(simd::multiply_add_adjacent(simd::construct(lhs), simd::construct(rhs))) == expected);
+}
+
+/**
+ * @brief Verifies signed 32-bit conversion in both directions.
+ *
+ * @tparam Width The Api register width.
+ */
+template <std::size_t Width>
+void require_signed_32bit_conversion_contract()
+{
+	using integers = Api<Width, std::int32_t>;
+	using floats = Api<Width, float>;
+	constexpr std::array<std::int32_t, 8> source_values{-7, 0, 42, 1'000'000, -1024, 16'777'216, 9, -3};
+	std::array<std::int32_t, integers::element_count> integers_source{};
+	std::array<float, integers::element_count> floats_expected{};
+	std::array<float, integers::element_count> floats_source{};
+	std::array<std::int32_t, integers::element_count> integers_expected{};
+	for (std::size_t index = 0; index < integers::element_count; ++index)
+	{
+		integers_source[index] = source_values[index];
+		floats_expected[index] = static_cast<float>(source_values[index]);
+		integers_expected[index] = static_cast<std::int32_t>(index) - 3;
+		floats_source[index] = static_cast<float>(integers_expected[index]);
+	}
+	REQUIRE(floats::to_array(integers::convert_to_float(integers::construct(integers_source))) == floats_expected);
+	REQUIRE(integers::to_array(floats::convert_to_int(floats::construct(floats_source))) == integers_expected);
+}
+
+/**
+ * @brief Exercises transform_pack through every supported integer Api specialization.
+ *
+ * @tparam Width The Api register width.
+ */
+template <std::size_t Width>
+void require_transform_pack_type_matrix()
+{
+	require_transform_pack_mask_contract<Width, std::int8_t, Api<Width, std::int8_t>::element_count + 3>();
+	require_transform_pack_mask_contract<Width, std::uint8_t, Api<Width, std::uint8_t>::element_count + 3>();
+	require_transform_pack_mask_contract<Width, std::int16_t, Api<Width, std::int16_t>::element_count + 3>();
+	require_transform_pack_mask_contract<Width, std::uint16_t, Api<Width, std::uint16_t>::element_count + 3>();
+	require_transform_pack_mask_contract<Width, std::int32_t, Api<Width, std::int32_t>::element_count + 3>();
+	require_transform_pack_mask_contract<Width, std::uint32_t, Api<Width, std::uint32_t>::element_count + 3>();
+	require_transform_pack_mask_contract<Width, std::int64_t, Api<Width, std::int64_t>::element_count + 3>();
+	require_transform_pack_mask_contract<Width, std::uint64_t, Api<Width, std::uint64_t>::element_count + 3>();
+}
+
 } // namespace SimdLib::Tests

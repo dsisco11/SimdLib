@@ -312,11 +312,18 @@ SIMDLIB_FORCE_INLINE constexpr Vector register_transform_binary(const Vector lhs
 
 #pragma region 128bit int8_t Extensions
 
+/**
+ * @brief Multiplies corresponding 8-bit lanes modulo 256. [eg: 0x81 * 0x02 => 0x02]
+ *
+ * @param lhs The first byte-lane register.
+ * @param rhs The second byte-lane register.
+ * @return The low byte of each lane product.
+ */
 SIMDLIB_FORCE_INLINE __m128i VECTORCALL _ext_mul_epi8(__m128i lhs, __m128i rhs) noexcept
 {
 	// unpack and multiply
 	const __m128i dst_even = _mm_mullo_epi16(lhs, rhs);
-	const __m128i dst_odd = _mm_mullo_epi16(_mm_srli_epi16(lhs, 8), _mm_srli_epi16(rhs, 8));
+	const __m128i dst_odd = _mm_slli_epi16(_mm_mullo_epi16(_mm_srli_epi16(lhs, 8), _mm_srli_epi16(rhs, 8)), 8);
 	// repack
 	const __m128i mask = _mm_set1_epi32(0x00FF00FF); // mask for even positions
 	return _mm_blendv_epi8(dst_odd, dst_even, mask);
@@ -334,13 +341,20 @@ SIMDLIB_FORCE_INLINE __m128i VECTORCALL _ext_srli_epx8(__m128i lhs, const int co
 	return _mm_and_si128(_mm_srli_epi16(lhs, count), mask);
 }
 
+/**
+ * @brief Arithmetic-right-shifts each signed 8-bit lane. [eg: 0x82 >> 1 => 0xC1]
+ *
+ * @param lhs The signed byte-lane register.
+ * @param count The per-lane shift count.
+ * @return The arithmetic-right-shifted byte lanes.
+ */
 SIMDLIB_FORCE_INLINE __m128i VECTORCALL _ext_srai_epx8(__m128i lhs, const int count) noexcept
 {
 	__m128i aeven = _mm_slli_epi16(lhs, 8);						 // even numbered elements get sign bit in position
 	aeven = _mm_sra_epi16(aeven, _mm_cvtsi32_si128(count + 8));	 // shift arithmetic, back to position
 	__m128i aodd = _mm_sra_epi16(lhs, _mm_cvtsi32_si128(count)); // shift odd numbered elements arithmetic
 	__m128i mask = _mm_set1_epi32(0x00FF00FF);					 // mask for even positions
-	__m128i res = _mm_blendv_epi8(mask, aodd, aeven);			 // interleave even and odd
+	__m128i res = _mm_blendv_epi8(aodd, aeven, mask);			 // interleave even and odd
 	return res;
 }
 
@@ -613,11 +627,28 @@ template <int shift> SIMDLIB_FORCE_INLINE constexpr __m128i VECTORCALL _ext128_s
 
 #pragma region 128bit float Extensions
 
-SIMDLIB_FORCE_INLINE __m128 VECTORCALL _ext_abs_ps(__m128 lhs, __m128) noexcept
+/**
+ * @brief Clears the sign bit of each 32-bit floating-point lane.
+ *
+ * @param lhs The floating-point lanes.
+ * @return The per-lane absolute values.
+ */
+SIMDLIB_FORCE_INLINE __m128 VECTORCALL _ext_abs_ps(const __m128 lhs) noexcept
 {
 	return _mm_and_ps(lhs, _mm_castsi128_ps(_mm_set1_epi32(0x7FFFFFFF)));
 }
 
+
+/**
+ * @brief Clears the sign bit of each 64-bit floating-point lane.
+ *
+ * @param lhs The floating-point lanes.
+ * @return The per-lane absolute values.
+ */
+SIMDLIB_FORCE_INLINE __m128d VECTORCALL _ext_abs_pd(const __m128d lhs) noexcept
+{
+	return _mm_and_pd(lhs, _mm_castsi128_pd(_mm_set1_epi64x(0x7FFF'FFFF'FFFF'FFFFLL)));
+}
 #pragma endregion
 
 #endif // SIMDLIB_HAS_SSE42
@@ -626,11 +657,18 @@ SIMDLIB_FORCE_INLINE __m128 VECTORCALL _ext_abs_ps(__m128 lhs, __m128) noexcept
 
 #pragma region 256bit int8_t Extensions
 
+/**
+ * @brief Multiplies corresponding 8-bit lanes modulo 256. [eg: 0x81 * 0x02 => 0x02]
+ *
+ * @param lhs The first byte-lane register.
+ * @param rhs The second byte-lane register.
+ * @return The low byte of each lane product.
+ */
 SIMDLIB_FORCE_INLINE __m256i VECTORCALL _ext256_mul_epi8(__m256i lhs, __m256i rhs) noexcept
 {
 	// unpack and multiply
 	const auto dst_even = _mm256_mullo_epi16(lhs, rhs);
-	const auto dst_odd = _mm256_mullo_epi16(_mm256_srli_epi16(lhs, 8), _mm256_srli_epi16(rhs, 8));
+	const auto dst_odd = _mm256_slli_epi16(_mm256_mullo_epi16(_mm256_srli_epi16(lhs, 8), _mm256_srli_epi16(rhs, 8)), 8);
 	// repack
 	const auto mask = _mm256_set1_epi32(0x00FF00FF); // mask for even positions
 	return _mm256_blendv_epi8(dst_odd, dst_even, mask);
@@ -654,13 +692,20 @@ SIMDLIB_FORCE_INLINE __m256i VECTORCALL _ext256_srli_epx8(__m256i lhs, const int
 	return _mm256_and_si256(_mm256_srli_epi16(lhs, count), mask);
 }
 
+/**
+ * @brief Arithmetic-right-shifts each signed 8-bit lane. [eg: 0x82 >> 1 => 0xC1]
+ *
+ * @param lhs The signed byte-lane register.
+ * @param count The per-lane shift count.
+ * @return The arithmetic-right-shifted byte lanes.
+ */
 SIMDLIB_FORCE_INLINE __m256i VECTORCALL _ext256_srai_epx8(__m256i lhs, const int count) noexcept
 {
 	__m256i aeven = _mm256_slli_epi16(lhs, 8);						// even numbered elements get sign bit in position
 	aeven = _mm256_sra_epi16(aeven, _mm_cvtsi32_si128(count + 8));	// shift arithmetic, back to position
 	__m256i aodd = _mm256_sra_epi16(lhs, _mm_cvtsi32_si128(count)); // shift odd numbered elements arithmetic
 	__m256i mask = _mm256_set1_epi32(0x00FF00FF);					// mask for even positions
-	__m256i res = _mm256_blendv_epi8(mask, aodd, aeven);			// interleave even and odd
+	__m256i res = _mm256_blendv_epi8(aodd, aeven, mask);			// interleave even and odd
 	return res;
 }
 
@@ -811,9 +856,26 @@ SIMDLIB_FORCE_INLINE __m256i VECTORCALL _ext256_rem_epi64(__m256i lhs, __m256i r
 
 #pragma region 256bit float Extensions
 
-SIMDLIB_FORCE_INLINE __m256 VECTORCALL _ext256_abs_ps(__m256 lhs, __m256) noexcept
+/**
+ * @brief Clears the sign bit of each 32-bit floating-point lane.
+ *
+ * @param lhs The floating-point lanes.
+ * @return The per-lane absolute values.
+ */
+SIMDLIB_FORCE_INLINE __m256 VECTORCALL _ext256_abs_ps(const __m256 lhs) noexcept
 {
 	return _mm256_and_ps(lhs, _mm256_castsi256_ps(_mm256_set1_epi32(0x7FFFFFFF)));
+}
+
+/**
+ * @brief Clears the sign bit of each 64-bit floating-point lane.
+ *
+ * @param lhs The floating-point lanes.
+ * @return The per-lane absolute values.
+ */
+SIMDLIB_FORCE_INLINE __m256d VECTORCALL _ext256_abs_pd(const __m256d lhs) noexcept
+{
+	return _mm256_and_pd(lhs, _mm256_castsi256_pd(_mm256_set1_epi64x(0x7FFF'FFFF'FFFF'FFFFLL)));
 }
 
 SIMDLIB_FORCE_INLINE __m256 VECTORCALL _ext256_cmpeq_ps(__m256 lhs, __m256 rhs) noexcept
@@ -824,6 +886,29 @@ SIMDLIB_FORCE_INLINE __m256 VECTORCALL _ext256_cmpeq_ps(__m256 lhs, __m256 rhs) 
 SIMDLIB_FORCE_INLINE __m256 VECTORCALL _ext256_cmpgt_ps(__m256 lhs, __m256 rhs) noexcept
 {
 	return _mm256_cmp_ps(lhs, rhs, _CMP_GT_OQ);
+}
+/**
+ * @brief Compares 64-bit floating-point lanes for ordered equality.
+ *
+ * @param lhs The first floating-point register.
+ * @param rhs The second floating-point register.
+ * @return An all-ones lane mask where corresponding lanes are equal.
+ */
+SIMDLIB_FORCE_INLINE __m256d VECTORCALL _ext256_cmpeq_pd(const __m256d lhs, const __m256d rhs) noexcept
+{
+	return _mm256_cmp_pd(lhs, rhs, _CMP_EQ_OQ);
+}
+
+/**
+ * @brief Compares 64-bit floating-point lanes for ordered greater-than.
+ *
+ * @param lhs The first floating-point register.
+ * @param rhs The second floating-point register.
+ * @return An all-ones lane mask where lhs is greater than rhs.
+ */
+SIMDLIB_FORCE_INLINE __m256d VECTORCALL _ext256_cmpgt_pd(const __m256d lhs, const __m256d rhs) noexcept
+{
+	return _mm256_cmp_pd(lhs, rhs, _CMP_GT_OQ);
 }
 
 SIMDLIB_FORCE_INLINE __m256 VECTORCALL _ext256_extract_ps(__m256 lhs, const int imm8) noexcept

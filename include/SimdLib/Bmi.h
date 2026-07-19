@@ -338,7 +338,7 @@ template <integer_like int_t> [[nodiscard]] [[msvc::flatten]] SIMDLIB_FORCE_INLI
 template <integer_like int_t> [[nodiscard]] [[msvc::flatten]] SIMDLIB_FORCE_INLINE constexpr static std::tuple<int_t, int_t> blse(const int_t source) noexcept
 {
 	const int_t out_lsb = blsi(source);
-	return {source ^ out_lsb, out_lsb};
+	return {static_cast<int_t>(source ^ out_lsb), out_lsb};
 }
 static_assert(blse<std::uint32_t>(0b10111) == std::make_tuple(std::uint32_t{0b10110}, std::uint32_t{0b1}));
 
@@ -583,7 +583,7 @@ template <integer_like int_t> [[nodiscard]] [[msvc::flatten]] SIMDLIB_FORCE_INLI
 {
 	using std::bit_floor;
 	const int_t msb = bit_floor(value);
-	return {value ^ msb, msb};
+	return {static_cast<int_t>(value ^ msb), msb};
 }
 static_assert(bmse<std::uint32_t>(0b10111) == std::make_tuple(std::uint32_t{0b00111}, std::uint32_t{0b10000}));
 
@@ -785,7 +785,7 @@ template <integer_like int_t>
 [[nodiscard]] SIMDLIB_FORCE_INLINE constexpr static std::tuple<int_t, int_t> consume_bit_sequence_right(const int_t value) noexcept
 {
 	const int_t mask = ((value | (value - int_t{1})) + int_t{1});
-	return {value & mask, value & ~mask};
+	return {static_cast<int_t>(value & mask), static_cast<int_t>(value & ~mask)};
 }
 static_assert(consume_bit_sequence_right<std::uint32_t>(0b1011) == std::make_tuple(std::uint32_t{0b1000}, std::uint32_t{0b0011}));
 static_assert(consume_bit_sequence_right<std::uint32_t>(0b10110) == std::make_tuple(std::uint32_t{0b10000}, std::uint32_t{0b00110}));
@@ -798,7 +798,7 @@ template <integer_like int_t> [[nodiscard]] SIMDLIB_FORCE_INLINE constexpr stati
 	using Bmi::andn;
 	const int_t thresholds = ps_andn(value);
 	const int_t seq_mask = Bmi::bmsi(thresholds) - 1; // convert the thresholds msb to a mask over all the bits to the left (low-bits) of it.
-	return {value & seq_mask, andn(seq_mask, value)};
+	return {static_cast<int_t>(value & seq_mask), andn<int_t>(seq_mask, value)};
 }
 static_assert(consume_bit_sequence_left<std::uint32_t>(0b0110111) == std::make_tuple(std::uint32_t{0b0000111}, std::uint32_t{0b0110000}));
 static_assert(consume_bit_sequence_left<std::uint32_t>(0b01101110) == std::make_tuple(std::uint32_t{0b00001110}, std::uint32_t{0b01100000}));

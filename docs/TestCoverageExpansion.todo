@@ -49,25 +49,25 @@ SimdLib Test Coverage Expansion:
     ☒ End Phase 1 only when every retained public BMI helper has either a direct runtime contract test or a written justification for compile-time-only coverage.
 
   Phase 2 - Expand `Api` and Backend Specialization Coverage:
-    ☐ Build a public-operation/type matrix for 128- and 256-bit `Api` over `int8_t`, `uint8_t`, `int16_t`, `uint16_t`, `int32_t`, `uint32_t`, `int64_t`, `uint64_t`, `float`, and `double`.
-    ☐ Mark each operation/type cell as supported-and-tested, intentionally unavailable, compile-time-only, or awaiting a clarified contract.
-    ☐ Audit all existing test sources and shared test support for direct `SimdLib::Detail` usage or indirect routing through backend implementation types.
-    ☐ Replace each existing backend-routed test with the corresponding public `Api`, `SimdVector`, `SimdAlgo`, `SimdResample`, `Bmi`, or `uint128_t` entry point so the test proves the supported caller contract and its dispatch path.
-    ☐ Retain direct `Detail` testing only when no public entry point can exercise the behavior and a written justification identifies the helper as an intentionally supported test seam rather than an accidental API contract.
-    ☐ Record every retained direct `Detail` test, its justification, and the public behavior it protects in the operation/type matrix.
-    ☐ Add public `Api` tests that exercise byte multiplication plus logical-left, logical-right, and arithmetic-right byte shifts.
-    ☐ Add public tests for unsigned byte and word comparison, minimum, and maximum behavior, especially values with the sign bit set.
-    ☐ Add public tests for unsigned 32-bit conversion and division with exact, truncating, high-bit, and boundary inputs.
-    ☐ Add public tests for signed and unsigned 64-bit multiply, divide, remainder, absolute value, minimum, maximum, and arithmetic shifts.
-    ☐ Add public tests for 128/256-bit floating absolute value, equality/ordering helpers, and element extraction.
-    ☐ Add byte-shift boundary tests for negative/zero counts where supported, the final in-register byte, the register width, and counts beyond the register width.
-    ☐ Add a 128/256-bit `min_position` and `max_position` matrix for every supported integer lane type.
-    ☐ Cover first/last extrema, duplicate extrema, signed minima/maxima, unsigned high-bit values, and first-position tie semantics.
-    ☐ Add public coverage for `uint64_t::multiply_add_adjacent` and verify its exact lane ordering and overflow contract.
-    ☐ Add missing public tests for floating `set1`, floating bitwise operations, and 128/256-bit `get_element`/`set_element` behavior.
-    ☐ Add exact 64-bit-result and native-word-boundary-crossing cases for `transform_pack`, including a final partial output word and canary-protected destination storage.
-    ☐ Avoid direct `Detail/Extensions.h` or `Detail/Implementations.h` tests when a public call can provide the same proof.
-    ☐ End Phase 2 only when every supported public specialization is represented in the operation/type matrix and the previously uncovered backend families are reached through that matrix or explicitly justified.
+    ☒ Build a public-operation/type matrix for 128- and 256-bit `Api` over `int8_t`, `uint8_t`, `int16_t`, `uint16_t`, `int32_t`, `uint32_t`, `int64_t`, `uint64_t`, `float`, and `double`.
+    ☒ Mark each operation/type cell as supported-and-tested, intentionally unavailable, compile-time-only, or awaiting a clarified contract.
+    ☒ Audit all existing test sources and shared test support for direct `SimdLib::Detail` usage or indirect routing through backend implementation types.
+    ☒ Replace each existing backend-routed test with the corresponding public `Api`, `SimdVector`, `SimdAlgo`, `SimdResample`, `Bmi`, or `uint128_t` entry point so the test proves the supported caller contract and its dispatch path.
+    ☒ Retain direct `Detail` testing only when no public entry point can exercise the behavior and a written justification identifies the helper as an intentionally supported test seam rather than an accidental API contract.
+    ☒ Record every retained direct `Detail` test, its justification, and the public behavior it protects in the operation/type matrix.
+    ☒ Add public `Api` tests that exercise byte multiplication plus logical-left, logical-right, and arithmetic-right byte shifts.
+    ☒ Add public tests for unsigned byte and word comparison, minimum, and maximum behavior, especially values with the sign bit set.
+    ☒ Add public tests for unsigned 32-bit conversion and division with exact, truncating, high-bit, and boundary inputs.
+    ☒ Add public tests for signed and unsigned 64-bit multiply, divide, remainder, absolute value, minimum, maximum, and arithmetic shifts.
+    ☒ Add public tests for 128/256-bit floating absolute value, equality/ordering helpers, and element extraction.
+    ☒ Add byte-shift boundary tests for negative/zero counts where supported, the final in-register byte, the register width, and counts beyond the register width.
+    ☒ Add a 128/256-bit `min_position` and `max_position` matrix for every supported integer lane type.
+    ☒ Cover first/last extrema, duplicate extrema, signed minima/maxima, unsigned high-bit values, and first-position tie semantics.
+    ☒ Add public coverage for `uint64_t::multiply_add_adjacent` and verify its exact lane ordering and overflow contract.
+    ☒ Add missing public tests for floating `set1`, floating bitwise operations, and 128/256-bit `get_element`/`set_element` behavior.
+    ☒ Add exact 64-bit-result and native-word-boundary-crossing cases for `transform_pack`, including a final partial output word and canary-protected destination storage.
+    ☒ Avoid direct `Detail/Extensions.h` or `Detail/Implementations.h` tests when a public call can provide the same proof.
+    ☒ End Phase 2 only when every supported public specialization is represented in the operation/type matrix and the previously uncovered backend families are reached through that matrix or explicitly justified.
 
   Phase 3 - Extract Header Self-Tests and Expand Constexpr/Compiler Proof:
     ☐ Inventory every namespace-scope or function-adjacent `static_assert` in public headers and classify it as a test example, ABI/layout invariant, template constraint, unsupported-instantiation diagnostic, or implementation safety invariant.
@@ -178,7 +178,7 @@ SimdLib Test Coverage Expansion:
   Execution Evidence:
     ☒ Phase 0 corrected coverage pipeline, clean warning output, object/profile provenance, and corrected baseline totals recorded.
     ☒ Phase 1 BMI contract decisions, helper matrix, deterministic inputs, and portable/intrinsic equivalence results recorded.
-    ☐ Phase 2 public `Api` operation/type matrix and backend-family reachability results recorded.
+    ☒ Phase 2 public `Api` operation/type matrix and backend-family reachability results recorded: no direct `Detail` test routes remain; focused MSVC Release and Clang coverage runs pass 33/33 tests, and the complete MSVC Release suite passes 137/137 tests.
     ☐ Phase 3 migrated-header assertion inventory, retained-invariant justifications, dedicated constexpr-target matrix, consumer compile-time measurements, and separate MSVC/Clang/compiler-path evidence recorded.
     ☐ Phase 4 `SimdAlgo` full-register/tail outcome matrix recorded.
     ☐ Phase 5 accepted/rejected formatter grammar matrix recorded.

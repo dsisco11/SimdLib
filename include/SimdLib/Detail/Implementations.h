@@ -1168,6 +1168,16 @@ template <> struct SimdImpl128<uint32_t>
 	{
 		return _mm_add_epi32(lhs, rhs);
 	}
+	/**
+	 * @brief Converts unsigned 32-bit lanes to floating-point lanes.
+	 *
+	 * @param lhs The unsigned integer lanes.
+	 * @return The converted floating-point lanes.
+	 */
+	SIMDLIB_FORCE_INLINE static auto VECTORCALL convert_to_float(const __m128i lhs) noexcept
+	{
+		return _ext_cvtepu32_ps(lhs);
+	}
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL multiply_add_adjacent(auto lhs, auto rhs) noexcept
 	{
 		const __m128i evenProducts = _mm_mul_epu32(lhs, rhs);
@@ -1186,9 +1196,16 @@ template <> struct SimdImpl128<uint32_t>
 	{
 		return _mm_mullo_epi32(lhs, rhs);
 	}
+	/**
+	 * @brief Divides corresponding unsigned 32-bit lanes exactly.
+	 *
+	 * @param lhs The dividend lanes.
+	 * @param rhs The nonzero divisor lanes.
+	 * @return The truncating integer quotients.
+	 */
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL divide(auto lhs, auto rhs) noexcept
 	{
-		return _ext_div_epu32(lhs, rhs);
+		return register_transform_binary<std::uint32_t>(lhs, rhs, [](auto left, auto right) noexcept { return left / right; });
 	}
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL modulus(auto lhs, auto rhs) noexcept
 	{
@@ -2157,40 +2174,84 @@ template <class element_t> struct SimdMappings<128, element_t> : public SimdImpl
 #pragma endregion
 
 #pragma region Bitwise Operations
+	/**
+	 * @brief Computes the bitwise AND of two mapped registers.
+	 *
+	 * @param lhs The first register.
+	 * @param rhs The second register.
+	 * @return The resulting mapped register.
+	 */
 	SIMDLIB_FORCE_INLINE static vector_t VECTORCALL bitwise_and(vector_t lhs, vector_t rhs) noexcept
 	{
 		if constexpr (std::is_integral_v<element_t>)
 			return _mm_and_si128(lhs, rhs);
-		else if constexpr (std::is_floating_point_v<element_t>)
+		else if constexpr (std::same_as<element_t, float>)
 			return _mm_and_ps(lhs, rhs);
+		else
+			return _mm_and_pd(lhs, rhs);
 	}
+	/**
+	 * @brief Computes the bitwise OR of two mapped registers.
+	 *
+	 * @param lhs The first register.
+	 * @param rhs The second register.
+	 * @return The resulting mapped register.
+	 */
 	SIMDLIB_FORCE_INLINE static vector_t VECTORCALL bitwise_or(vector_t lhs, vector_t rhs) noexcept
 	{
 		if constexpr (std::is_integral_v<element_t>)
 			return _mm_or_si128(lhs, rhs);
-		else if constexpr (std::is_floating_point_v<element_t>)
+		else if constexpr (std::same_as<element_t, float>)
 			return _mm_or_ps(lhs, rhs);
+		else
+			return _mm_or_pd(lhs, rhs);
 	}
+	/**
+	 * @brief Computes the bitwise XOR of two mapped registers.
+	 *
+	 * @param lhs The first register.
+	 * @param rhs The second register.
+	 * @return The resulting mapped register.
+	 */
 	SIMDLIB_FORCE_INLINE static vector_t VECTORCALL bitwise_xor(vector_t lhs, vector_t rhs) noexcept
 	{
 		if constexpr (std::is_integral_v<element_t>)
 			return _mm_xor_si128(lhs, rhs);
-		else if constexpr (std::is_floating_point_v<element_t>)
+		else if constexpr (std::same_as<element_t, float>)
 			return _mm_xor_ps(lhs, rhs);
+		else
+			return _mm_xor_pd(lhs, rhs);
 	}
+	/**
+	 * @brief Computes the bitwise complement of a mapped register.
+	 *
+	 * @param lhs The source register.
+	 * @return The resulting mapped register.
+	 */
 	SIMDLIB_FORCE_INLINE static vector_t VECTORCALL bitwise_not(vector_t lhs) noexcept
 	{
 		if constexpr (std::is_integral_v<element_t>)
 			return _mm_xor_si128(lhs, _mm_cmpeq_epi32(_mm_setzero_si128(), _mm_setzero_si128()));
-		else if constexpr (std::is_floating_point_v<element_t>)
+		else if constexpr (std::same_as<element_t, float>)
 			return _mm_xor_ps(lhs, _mm_cmpeq_ps(_mm_setzero_ps(), _mm_setzero_ps()));
+		else
+			return _mm_xor_pd(lhs, _mm_castsi128_pd(_mm_cmpeq_epi32(_mm_setzero_si128(), _mm_setzero_si128())));
 	}
+	/**
+	 * @brief Computes the bitwise AND of the complemented first register and the second register.
+	 *
+	 * @param lhs The register to complement.
+	 * @param rhs The register to combine with the complement.
+	 * @return The resulting mapped register.
+	 */
 	SIMDLIB_FORCE_INLINE static vector_t VECTORCALL bitwise_andnot(vector_t lhs, vector_t rhs) noexcept
 	{
 		if constexpr (std::is_integral_v<element_t>)
 			return _mm_andnot_si128(lhs, rhs);
-		else if constexpr (std::is_floating_point_v<element_t>)
+		else if constexpr (std::same_as<element_t, float>)
 			return _mm_andnot_ps(lhs, rhs);
+		else
+			return _mm_andnot_pd(lhs, rhs);
 	}
 #pragma endregion
 
@@ -3409,6 +3470,16 @@ template <> struct SimdImpl256<uint32_t>
 	{
 		return _mm256_add_epi32(lhs, rhs);
 	}
+	/**
+	 * @brief Converts unsigned 32-bit lanes to floating-point lanes.
+	 *
+	 * @param lhs The unsigned integer lanes.
+	 * @return The converted floating-point lanes.
+	 */
+	SIMDLIB_FORCE_INLINE static auto VECTORCALL convert_to_float(const __m256i lhs) noexcept
+	{
+		return _ext256_cvtepu32_ps(lhs);
+	}
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL multiply_add_adjacent(auto lhs, auto rhs) noexcept
 	{
 		const __m256i evenProducts = _mm256_mul_epu32(lhs, rhs);
@@ -4413,40 +4484,84 @@ template <class element_t> struct SimdMappings<256, element_t> : public SimdImpl
 #pragma endregion
 
 #pragma region Bitwise Operations
+	/**
+	 * @brief Computes the bitwise AND of two mapped registers.
+	 *
+	 * @param lhs The first register.
+	 * @param rhs The second register.
+	 * @return The resulting mapped register.
+	 */
 	SIMDLIB_FORCE_INLINE static vector_t VECTORCALL bitwise_and(vector_t lhs, vector_t rhs) noexcept
 	{
 		if constexpr (std::is_integral_v<element_t>)
 			return _mm256_and_si256(lhs, rhs);
-		else
+		else if constexpr (std::same_as<element_t, float>)
 			return _mm256_and_ps(lhs, rhs);
+		else
+			return _mm256_and_pd(lhs, rhs);
 	}
+	/**
+	 * @brief Computes the bitwise OR of two mapped registers.
+	 *
+	 * @param lhs The first register.
+	 * @param rhs The second register.
+	 * @return The resulting mapped register.
+	 */
 	SIMDLIB_FORCE_INLINE static vector_t VECTORCALL bitwise_or(vector_t lhs, vector_t rhs) noexcept
 	{
 		if constexpr (std::is_integral_v<element_t>)
 			return _mm256_or_si256(lhs, rhs);
-		else
+		else if constexpr (std::same_as<element_t, float>)
 			return _mm256_or_ps(lhs, rhs);
+		else
+			return _mm256_or_pd(lhs, rhs);
 	}
+	/**
+	 * @brief Computes the bitwise XOR of two mapped registers.
+	 *
+	 * @param lhs The first register.
+	 * @param rhs The second register.
+	 * @return The resulting mapped register.
+	 */
 	SIMDLIB_FORCE_INLINE static vector_t VECTORCALL bitwise_xor(vector_t lhs, vector_t rhs) noexcept
 	{
 		if constexpr (std::is_integral_v<element_t>)
 			return _mm256_xor_si256(lhs, rhs);
-		else
+		else if constexpr (std::same_as<element_t, float>)
 			return _mm256_xor_ps(lhs, rhs);
+		else
+			return _mm256_xor_pd(lhs, rhs);
 	}
+	/**
+	 * @brief Computes the bitwise AND of the complemented first register and the second register.
+	 *
+	 * @param lhs The register to complement.
+	 * @param rhs The register to combine with the complement.
+	 * @return The resulting mapped register.
+	 */
 	SIMDLIB_FORCE_INLINE static vector_t VECTORCALL bitwise_andnot(vector_t lhs, vector_t rhs) noexcept
 	{
 		if constexpr (std::is_integral_v<element_t>)
 			return _mm256_andnot_si256(lhs, rhs);
-		else
+		else if constexpr (std::same_as<element_t, float>)
 			return _mm256_andnot_ps(lhs, rhs);
+		else
+			return _mm256_andnot_pd(lhs, rhs);
 	}
+	/**
+	 * @brief Computes the bitwise complement of a mapped register.
+	 *
+	 * @param lhs The source register.
+	 * @return The resulting mapped register.
+	 */
 	SIMDLIB_FORCE_INLINE static vector_t VECTORCALL bitwise_not(vector_t lhs) noexcept
 	{
 		if constexpr (std::is_integral_v<element_t>)
 			return _mm256_xor_si256(lhs, _mm256_cmpeq_epi32(_mm256_setzero_si256(), _mm256_setzero_si256()));
-		else
+		else if constexpr (std::same_as<element_t, float>)
 			return _mm256_xor_ps(lhs, _ext256_cmpeq_ps(_mm256_setzero_ps(), _mm256_setzero_ps()));
+		else
+			return _mm256_xor_pd(lhs, _mm256_castsi256_pd(_mm256_cmpeq_epi32(_mm256_setzero_si256(), _mm256_setzero_si256())));
 	}
 #pragma endregion
 

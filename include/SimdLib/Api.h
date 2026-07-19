@@ -792,13 +792,12 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 		}
 	}
 
-	/** @brief Computes an equality comparison mask for two integer registers.
+	/** @brief Computes an equality comparison mask for two registers.
 	 *  @param lhs Left-hand input register.
 	 *  @param rhs Right-hand input register.
 	 *  @return Mask with bits set where corresponding elements are equal.
 	 */
-	SIMDLIB_FORCE_INLINE constexpr static mask_t VECTORCALL cmp_eq(const int_vector_t lhs, const int_vector_t rhs) noexcept
-		requires(using_int)
+	SIMDLIB_FORCE_INLINE constexpr static mask_t VECTORCALL cmp_eq(const vector_t lhs, const vector_t rhs) noexcept
 	{
 		if (std::is_constant_evaluated())
 		{
@@ -841,17 +840,23 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 		}
 	}
 
-	/** @brief Computes a greater-than comparison mask for two integer registers.
+	/** @brief Computes a greater-than comparison mask for two registers.
 	 *  @param lhs Left-hand input register.
 	 *  @param rhs Right-hand input register.
 	 *  @return Mask with bits set where lhs elements are greater than rhs elements.
 	 */
-	SIMDLIB_FORCE_INLINE constexpr static mask_t VECTORCALL cmp_gt(const int_vector_t lhs, const int_vector_t rhs) noexcept
-		requires(using_int)
+	SIMDLIB_FORCE_INLINE constexpr static mask_t VECTORCALL cmp_gt(const vector_t lhs, const vector_t rhs) noexcept
 	{
 		if (std::is_constant_evaluated())
 		{
-			return movemask(compare_each_element<Detail::comparison_operation::greater>(lhs, rhs));
+			const auto lhsValues = to_array(lhs);
+			const auto rhsValues = to_array(rhs);
+			mask_t result = 0;
+			constexpr mask_t laneMask = static_cast<mask_t>((mask_t{1} << sizeof(element_t)) - 1);
+			for (std::size_t index = 0; index < element_count; ++index)
+				if (lhsValues[index] > rhsValues[index])
+					result |= laneMask << (index * sizeof(element_t));
+			return result;
 		}
 		else
 		{
@@ -859,28 +864,33 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 		}
 	}
 
-	/** @brief Computes a greater-than-or-equal comparison mask for two integer registers.
+	/** @brief Computes a greater-than-or-equal comparison mask for two registers.
 	 *  @param lhs Left-hand input register.
 	 *  @param rhs Right-hand input register.
 	 *  @return Mask with bits set where lhs elements are greater than or equal to rhs elements.
 	 */
-	SIMDLIB_FORCE_INLINE constexpr static mask_t VECTORCALL cmp_ge(const int_vector_t lhs, const int_vector_t rhs) noexcept
-		requires(using_int)
+	SIMDLIB_FORCE_INLINE constexpr static mask_t VECTORCALL cmp_ge(const vector_t lhs, const vector_t rhs) noexcept
 	{
 		return cmp_eq(lhs, rhs) | cmp_gt(lhs, rhs);
 	}
 
-	/** @brief Computes a less-than comparison mask for two integer registers.
+	/** @brief Computes a less-than comparison mask for two registers.
 	 *  @param lhs Left-hand input register.
 	 *  @param rhs Right-hand input register.
 	 *  @return Mask with bits set where lhs elements are less than rhs elements.
 	 */
-	SIMDLIB_FORCE_INLINE constexpr static mask_t VECTORCALL cmp_lt(const int_vector_t lhs, const int_vector_t rhs) noexcept
-		requires(using_int)
+	SIMDLIB_FORCE_INLINE constexpr static mask_t VECTORCALL cmp_lt(const vector_t lhs, const vector_t rhs) noexcept
 	{
 		if (std::is_constant_evaluated())
 		{
-			return movemask(compare_each_element<Detail::comparison_operation::less>(lhs, rhs));
+			const auto lhsValues = to_array(lhs);
+			const auto rhsValues = to_array(rhs);
+			mask_t result = 0;
+			constexpr mask_t laneMask = static_cast<mask_t>((mask_t{1} << sizeof(element_t)) - 1);
+			for (std::size_t index = 0; index < element_count; ++index)
+				if (lhsValues[index] < rhsValues[index])
+					result |= laneMask << (index * sizeof(element_t));
+			return result;
 		}
 		else
 		{
@@ -888,13 +898,12 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 		}
 	}
 
-	/** @brief Computes a less-than-or-equal comparison mask for two integer registers.
+	/** @brief Computes a less-than-or-equal comparison mask for two registers.
 	 *  @param lhs Left-hand input register.
 	 *  @param rhs Right-hand input register.
 	 *  @return Mask with bits set where lhs elements are less than or equal to rhs elements.
 	 */
-	SIMDLIB_FORCE_INLINE constexpr static mask_t VECTORCALL cmp_le(const int_vector_t lhs, const int_vector_t rhs) noexcept
-		requires(using_int)
+	SIMDLIB_FORCE_INLINE constexpr static mask_t VECTORCALL cmp_le(const vector_t lhs, const vector_t rhs) noexcept
 	{
 		return cmp_eq(lhs, rhs) | cmp_lt(lhs, rhs);
 	}
@@ -1114,12 +1123,46 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 			std::array<element_t, element_count> results{};
 			for (std::size_t index = 0; index < element_count; ++index)
 			{
-				results[index] = static_cast<element_t>(impl::get_element(lhs, index) >> shift);
+				results[index] = static_cast<element_t>(impl::get_element(lhs, static_cast<int>(index)) >> shift);
 			}
 			return impl::construct(results);
 		}
 
 		return impl::shift_right_arithmetic(lhs, shift);
+	}
+
+	/**
+	 * @brief Shifts every byte in a 128-bit register toward higher byte indices.
+	 *
+	 * A zero or negative count returns the input unchanged. A count greater than
+	 * or equal to the register byte width returns zero. [eg: byte_shift_left(
+	 * {0x01, 0x02, ...}, 1) => {0x00, 0x01, 0x02, ...}]
+	 *
+	 * @param lhs The source register.
+	 * @param shift The runtime byte count.
+	 * @return The byte-shifted register.
+	 */
+	SIMDLIB_FORCE_INLINE constexpr static int_vector_t VECTORCALL byte_shift_left(const int_vector_t lhs, const int shift) noexcept
+		requires(using_int && register_width == 128)
+	{
+		return impl::byte_shift_left(lhs, shift);
+	}
+
+	/**
+	 * @brief Shifts every byte in a 128-bit register toward lower byte indices.
+	 *
+	 * A zero or negative count returns the input unchanged. A count greater than
+	 * or equal to the register byte width returns zero. [eg: byte_shift_right(
+	 * {0x01, 0x02, ...}, 1) => {0x02, ..., 0x00}]
+	 *
+	 * @param lhs The source register.
+	 * @param shift The runtime byte count.
+	 * @return The byte-shifted register.
+	 */
+	SIMDLIB_FORCE_INLINE constexpr static int_vector_t VECTORCALL byte_shift_right(const int_vector_t lhs, const int shift) noexcept
+		requires(using_int && register_width == 128)
+	{
+		return impl::byte_shift_right(lhs, shift);
 	}
 
 	/** @brief Shifts the complete 128-bit register left, carrying bits across lane boundaries.
@@ -1176,11 +1219,17 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 		static_assert(element_width == 32, "Only 32 bit integers can be converted to floats");
 		if constexpr (register_width == 128)
 		{
-			return _mm_cvtepi32_ps(vector);
+			if constexpr (using_unsigned)
+				return impl::convert_to_float(vector);
+			else
+				return _mm_cvtepi32_ps(vector);
 		}
 		else if constexpr (register_width == 256)
 		{
-			return _mm256_cvtepi32_ps(vector);
+			if constexpr (using_unsigned)
+				return impl::convert_to_float(vector);
+			else
+				return _mm256_cvtepi32_ps(vector);
 		}
 	}
 
