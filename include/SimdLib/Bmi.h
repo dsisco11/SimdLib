@@ -342,7 +342,16 @@ template <integer_like int_t> [[nodiscard]] [[msvc::flatten]] SIMDLIB_FORCE_INLI
 }
 static_assert(blse<std::uint32_t>(0b10111) == std::make_tuple(std::uint32_t{0b10110}, std::uint32_t{0b1}));
 
-/// @brief Extract the lowest set bit, after the given starting-bit, from source integer and return the corresponding.
+/**
+ * @brief Extracts the first source bit at or above an inclusive one-hot boundary. [eg: blsioff(0b10100, 0b01000) => 0b10000]
+ *
+ * Searches from starting_bit toward the right (high-bits) and returns the first set source bit encountered. Returns zero when starting_bit is zero or no set
+ * source bit exists within the searched range.
+ *
+ * @param source The bit pattern to search.
+ * @param starting_bit A one-hot bit defining the inclusive lower boundary.
+ * @return The matching bit as a one-hot value, or zero if none exists.
+ */
 template <integer_like int_t> [[nodiscard]] SIMDLIB_FORCE_INLINE constexpr static int_t blsioff(const int_t source, const int_t starting_bit) noexcept
 {
 	return source & static_cast<int_t>(~source + starting_bit);
@@ -375,7 +384,17 @@ template <integer_like int_t> [[nodiscard]] SIMDLIB_FORCE_INLINE constexpr stati
 		return source ^ (source - int_t{1});
 }
 
-/// @brief Multiply integers LHS and RHS, return the low bits of the result, and store the high bits in hi. This does not read or write arithmetic flags.
+/**
+ * @brief Multiplies the unsigned object-representation values of two integers. [eg: mulx<uint8_t>(0xFF, 0x02, hi) => 0xFE, hi = 0x01]
+ *
+ * Computes the full double-width product, returns its low word, and stores its high word in hi. Signed inputs are interpreted by their bit patterns, not as
+ * signed mathematical values. This does not read or write arithmetic flags.
+ *
+ * @param lhs The first word-sized operand.
+ * @param rhs The second word-sized operand.
+ * @param hi Receives the high word of the full product.
+ * @return The low word of the full product.
+ */
 template <std::integral int_t>
 [[nodiscard]] SIMDLIB_FORCE_INLINE constexpr static int_t mulx(const int_t lhs, const int_t rhs, int_t &hi) noexcept
 	requires(!std::same_as<std::remove_cv_t<int_t>, bool>)
@@ -570,7 +589,16 @@ template <integer_like int_t> [[nodiscard]] [[msvc::flatten]] SIMDLIB_FORCE_INLI
 }
 static_assert(bmse<std::uint32_t>(0b10111) == std::make_tuple(std::uint32_t{0b00111}, std::uint32_t{0b10000}));
 
-/// @brief Copy all bits from source integer, and reset (set to 0) the leftmost (low-bits) bits in output ending at index.
+/**
+ * @brief Clears every source bit whose bit index is less than index. [eg: bzlo(0b11111, 3) => 0b11000]
+ *
+ * Clears the index least-significant bits on the left (low-bits), while retaining the bit at index. An index of zero returns source unchanged; an index greater
+ * than or equal to the word width returns zero.
+ *
+ * @param source The bit pattern to modify.
+ * @param index The exclusive upper bound of the cleared bit-index range.
+ * @return The source value with bits in [0, index) cleared.
+ */
 template <integer_like int_t> [[nodiscard]] SIMDLIB_FORCE_INLINE constexpr static int_t bzlo(const int_t source, unsigned index) noexcept
 {
 	return andn(bzhi(~int_t{0}, index), source);
@@ -892,7 +920,16 @@ template <std::integral int_t, std::size_t start, std::size_t len> [[nodiscard]]
 #pragma endregion
 
 #pragma region PDEP
-/// @brief Emulated version of the _pdep_u64 intrinsic.
+/**
+ * @brief Performs a software-emulated parallel bit deposit for the width of int_t. [eg: _pdep_emulator<uint8_t>(0b101, 0b01010100) => 0b01000100]
+ *
+ * Deposits the lowest popcount(mask) source bits into the set-bit positions of mask in ascending bit-index order. All unselected result bits are zero.
+ *
+ * @tparam int_t The integral source, mask, and result type.
+ * @param source The packed source bits.
+ * @param mask The destination bit positions.
+ * @return The deposited bit pattern.
+ */
 template <std::integral int_t> SIMDLIB_FORCE_INLINE constexpr static int_t _pdep_emulator(int_t source, int_t mask) noexcept
 {
 	using unsigned_type = std::make_unsigned_t<int_t>;
