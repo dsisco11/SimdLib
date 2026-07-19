@@ -1,0 +1,168 @@
+{
+    "cmake.sourceDirectory": "${workspaceFolder}",
+    "cmake.buildDirectory": "${workspaceFolder}/build",
+    "testMate.cpp.test.advancedExecutables": [
+        {
+            "pattern": "build/Release/SimdLibTests128.exe",
+            "name": "API - SSE 4.2",
+            "description": "MSVC Release"
+        },
+        {
+            "pattern": "build/Release/SimdLibTests256.exe",
+            "name": "API - AVX2",
+            "description": "MSVC Release"
+        },
+        {
+            "pattern": "build/Release/SimdLibTestsBmiBmi1AndBmi2.exe",
+            "name": "BMI - BMI1 + BMI2",
+            "description": "MSVC Release"
+        },
+        {
+            "pattern": "build/Release/SimdLibTestsBmiBmi1Only.exe",
+            "name": "BMI - BMI1 only",
+            "description": "MSVC Release"
+        },
+        {
+            "pattern": "build/Release/SimdLibTestsBmiBmi2Only.exe",
+            "name": "BMI - BMI2 only",
+            "description": "MSVC Release"
+        },
+        {
+            "pattern": "build/Release/SimdLibTestsBmiPortable.exe",
+            "name": "BMI - portable",
+            "description": "MSVC Release"
+        },
+        {
+            "pattern": "build/Release/SimdLibTestsFmaDisabled.exe",
+            "name": "FMA - disabled",
+            "description": "MSVC Release"
+        },
+        {
+            "pattern": "build/Release/SimdLibTestsFmaEnabled.exe",
+            "name": "FMA - enabled",
+            "description": "MSVC Release"
+        },
+        {
+            "pattern": "build/Release/SimdLibTestsFormat.exe",
+            "name": "Formatting",
+            "description": "MSVC Release"
+        },
+        {
+            "pattern": "build/Release/SimdLibTestsResampleScalar.exe",
+            "name": "Resampling - scalar",
+            "description": "MSVC Release"
+        },
+        {
+            "pattern": "build/Release/SimdLibTestsUInt128Optimized.exe",
+            "name": "UInt128 - optimized",
+            "description": "MSVC Release"
+        },
+        {
+            "pattern": "build/Release/SimdLibTestsUInt128Portable.exe",
+            "name": "UInt128 - portable carry",
+            "description": "MSVC Release"
+        },
+        {
+            "pattern": "build/Release/SimdLibTestsUInt128Scalar.exe",
+            "name": "UInt128 - scalar",
+            "description": "MSVC Release"
+        },
+        {
+            "pattern": "build/Release/SimdLibTestsVectorAlgorithms.exe",
+            "name": "Vector algorithms - AVX2",
+            "description": "MSVC Release"
+        },
+        {
+            "pattern": "build-coverage/SimdLibTests128.exe",
+            "name": "API - SSE 4.2",
+            "description": "Clang LLVM coverage",
+            "testTags": ["coverage"]
+        },
+        {
+            "pattern": "build-coverage/SimdLibTests256.exe",
+            "name": "API - AVX2",
+            "description": "Clang LLVM coverage",
+            "testTags": ["coverage"]
+        },
+        {
+            "pattern": "build-coverage/SimdLibTestsBmiBmi1AndBmi2.exe",
+            "name": "BMI - BMI1 + BMI2",
+            "description": "Clang LLVM coverage",
+            "testTags": ["coverage"]
+        },
+        {
+            "pattern": "build-coverage/SimdLibTestsBmiBmi1Only.exe",
+            "name": "BMI - BMI1 only",
+            "description": "Clang LLVM coverage",
+            "testTags": ["coverage"]
+        },
+        {
+            "pattern": "build-coverage/SimdLibTestsBmiBmi2Only.exe",
+            "name": "BMI - BMI2 only",
+            "description": "Clang LLVM coverage",
+            "testTags": ["coverage"]
+        },
+        {
+            "pattern": "build-coverage/SimdLibTestsBmiPortable.exe",
+            "name": "BMI - portable",
+            "description": "Clang LLVM coverage",
+            "testTags": ["coverage"]
+        },
+        {
+            "pattern": "build-coverage/SimdLibTestsFmaDisabled.exe",
+            "name": "FMA - disabled",
+            "description": "Clang LLVM coverage",
+            "testTags": ["coverage"]
+        },
+        {
+            "pattern": "build-coverage/SimdLibTestsFmaEnabled.exe",
+            "name": "FMA - enabled",
+            "description": "Clang LLVM coverage",
+            "testTags": ["coverage"]
+        },
+        {
+            "pattern": "build-coverage/SimdLibTestsFormat.exe",
+            "name": "Formatting",
+            "description": "Clang LLVM coverage",
+            "testTags": ["coverage"]
+        },
+        {
+            "pattern": "build-coverage/SimdLibTestsResampleScalar.exe",
+            "name": "Resampling - scalar",
+            "description": "Clang LLVM coverage",
+            "testTags": ["coverage"]
+        },
+        {
+            "pattern": "build-coverage/SimdLibTestsUInt128Optimized.exe",
+            "name": "UInt128 - optimized",
+            "description": "Clang LLVM coverage",
+            "testTags": ["coverage"]
+        },
+        {
+            "pattern": "build-coverage/SimdLibTestsUInt128Portable.exe",
+            "name": "UInt128 - portable carry",
+            "description": "Clang LLVM coverage",
+            "testTags": ["coverage"]
+        },
+        {
+            "pattern": "build-coverage/SimdLibTestsUInt128Scalar.exe",
+            "name": "UInt128 - scalar",
+            "description": "Clang LLVM coverage",
+            "testTags": ["coverage"]
+        },
+        {
+            "pattern": "build-coverage/SimdLibTestsVectorAlgorithms.exe",
+            "name": "Vector algorithms - AVX2",
+            "description": "Clang LLVM coverage",
+            "testTags": ["coverage"]
+        }
+    ],
+    "testMate.cpp.discovery.loadOnStartup": true,
+    "testMate.cpp.experimental.llvm-cov": {
+        "enabled": true,
+        "logpanel": true,
+        "tag": "coverage",
+        "allowExecutableConcurrentInvocations": false
+    },
+    "testMate.cpp.coverage.profile.default": "llvm-cov by TestMate C++"
+}
