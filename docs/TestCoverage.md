@@ -155,13 +155,84 @@ and imports `build-coverage/coverage.info` into VS Code's native Test Coverage
 view. Restart VS Code after installing CMake or adding LLVM's `bin` directory
 to `PATH` so the extension sees the tools.
 
-`llvm-cov report` was run over all CTest executables with the merged profile.
-Because the same header templates are compiled under mutually exclusive
-feature definitions, LLVM reports some mismatched-function warnings when all
-profiles are merged. The aggregate numbers are therefore directional. The
-per-profile behavior/equivalence tests above are authoritative.
+Coverage report generation does not merge differently configured executables
+into one `llvm-profdata` database. CMake generates
+`build-coverage/coverage-targets-Debug.txt`, which records each instrumented
+executable, its object path, and its CTest profile prefix. The report target
+also reads the embedded platform binary identity (COFF/PDB on this baseline)
+from every executable and profile. This identity maps CTest-created
+`.profdata` files and retained generic `.profraw` files to their one producing
+executable. Filename prefixes
+are a second consistency check for CTest-named profiles.
 
-### Before and after
+Profiles are merged only within one executable. `llvm-cov export` then emits
+one LCOV trace per executable, and `cmake/MergeLcov.cmake` deterministically
+accumulates repeated source records. Line and function execution counts are
+summed. Function identities are unioned by source line and symbol. Branch
+records from mutually exclusive configurations remain distinct instead of
+colliding by LLVM instrumentation index. Multi-executable equivalence-test
+profiles are excluded because their constituent executables already have
+single-object profiles. The report fails on an unknown binary identity, a
+filename/identity disagreement, a missing executable profile, any LLVM export
+diagnostic, or an export with no SimdLib source records.
+
+### Corrected Phase 0 baseline
+
+Before Phase 0, VS Code displayed 2,293/3,348 lines (68.5%), 361/433
+branches (83.4%), and 442/558 functions (79.2%). That report also emitted
+`621 functions have mismatched data` after combining 16 differently
+configured executables into one incompatible profile database. Those values
+are preserved only as the pre-correction baseline.
+
+The trustworthy baseline below was reproduced on 2026-07-18 with CMake/CTest
+4.4.0 and Clang/LLVM 22.1.8. A clean reset followed by all 113 CTest entries
+produced 111 per-test `.profdata` files and two CTest-retained `.profraw`
+files. The report mapped 108 single-executable profiles to 16 instrumented
+executables and excluded five multi-executable equivalence profiles. LLVM
+emitted no mismatched-function warning or other export diagnostic.
+
+| Header | Lines | Branches | Functions |
+| --- | ---: | ---: | ---: |
+| `Api.h` | 324/425 (76.24%) | 63/160 (39.38%) | 583/618 (94.34%) |
+| `Bmi.h` | 266/517 (51.45%) | 116/144 (80.56%) | 109/473 (23.04%) |
+| `Config.h` | 1/1 (100.00%) | 0/0 | 0/0 |
+| `Detail/Extensions.h` | 134/495 (27.07%) | 80/88 (90.91%) | 61/166 (36.75%) |
+| `Detail/Implementations.h` | 618/812 (76.11%) | 39/60 (65.00%) | 387/432 (89.58%) |
+| `Format.h` | 212/224 (94.64%) | 200/332 (60.24%) | 18/18 (100.00%) |
+| `SimdAlgo.h` | 174/180 (96.67%) | 10/20 (50.00%) | 48/48 (100.00%) |
+| `SimdResample.h` | 128/128 (100.00%) | 60/60 (100.00%) | 6/6 (100.00%) |
+| `SimdVector.h` | 267/275 (97.09%) | 10/14 (71.43%) | 144/177 (81.36%) |
+| `UInt128.h` | 342/409 (83.62%) | 187/264 (70.83%) | 82/95 (86.32%) |
+| **Aggregate** | **2,466/3,466 (71.15%)** | **765/1,142 (66.99%)** | **1,438/2,033 (70.73%)** |
+
+The larger corrected function and branch denominators are intentional. The
+old incompatible database discarded or collided mutually exclusive template
+and branch records. The corrected LCOV file preserves their union, so these
+totals are not directly comparable with the legacy aggregate percentages.
+
+Direct single-executable `llvm-cov report` checks provided an independent
+comparison for the required headers:
+
+| Header | Executable/profile | Regions | Functions | Lines | Branches |
+| --- | --- | ---: | ---: | ---: | ---: |
+| `Bmi.h` | `SimdLibTestsBmiPortable` | 67/111 (60.36%) | 23/67 (34.33%) | 173/362 (47.79%) | 28/28 (100.00%) |
+| `Api.h` | `SimdLibTests128` | 89/127 (70.08%) | 40/41 (97.56%) | 256/349 (73.35%) | 19/39 (48.72%) |
+| `UInt128.h` | `SimdLibTestsUInt128Optimized` | 162/197 (82.23%) | 62/74 (83.78%) | 300/378 (79.37%) | 61/84 (72.62%) |
+| `Detail/Implementations.h` | `SimdLibTests128` | 100/104 (96.15%) | 69/70 (98.57%) | 234/248 (94.35%) | 7/7 (100.00%) |
+
+The final `coverage.info` contains one accumulated record per header and has
+SHA-256
+`B70877D263760CA5AF5602AA413A23C7D38D78669326748B334858241E869359`.
+Regenerating it from unchanged profiles produced the same hash. A separate
+clean-reset run containing only `SimdLib.HeaderOnlySmoke` made the report
+fail on the missing `SimdLibTestsBmiPortable` profile, proving that partial
+runs cannot inherit stale profiles.
+
+### Historical audit totals (legacy incompatible merge)
+
+The following before/after table belongs to the original audit. It used the
+single incompatible profile database that produced `621 functions have
+mismatched data`; retain it as historical directional evidence only.
 
 | Header | Regions before | Regions after | Functions before | Functions after | Lines before | Lines after | Branches before | Branches after |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |

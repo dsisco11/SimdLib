@@ -92,6 +92,17 @@ function(simdlib_enable_development_warnings target)
     endif()
 endfunction()
 
+# @brief Associates an instrumented executable with the prefix CTest uses for
+#        the profiles produced by that executable.
+# @param target Instrumented executable target.
+# @param profile_prefix Prefix shared by every CTest profile for the target.
+function(simdlib_set_coverage_profile_prefix target profile_prefix)
+    if(SIMDLIB_ENABLE_COVERAGE)
+        set_property(TARGET ${target} PROPERTY
+            SIMDLIB_COVERAGE_PROFILE_PREFIX "${profile_prefix}")
+    endif()
+endfunction()
+
 if(SIMDLIB_BUILD_CONFIGURATION_TESTS)
     foreach(config_probe IN ITEMS
         ConfigDefaultProbe
@@ -149,6 +160,8 @@ if(SIMDLIB_BUILD_SMOKE_TESTS)
     target_link_libraries(SimdLibHeaderOnlySmoke PRIVATE SimdLib::SimdLib)
     simdlib_enable_development_warnings(SimdLibHeaderOnlySmoke)
     add_test(NAME SimdLib.HeaderOnlySmoke COMMAND SimdLibHeaderOnlySmoke)
+    simdlib_set_coverage_profile_prefix(SimdLibHeaderOnlySmoke
+        "SimdLib.HeaderOnlySmoke")
 endif()
 
 if(SIMDLIB_BUILD_TESTS)
@@ -179,6 +192,7 @@ if(SIMDLIB_BUILD_TESTS)
         add_executable(${target} ${source})
         target_link_libraries(${target} PRIVATE SimdLib::SimdLib Catch2::Catch2WithMain)
         simdlib_enable_development_warnings(${target})
+        simdlib_set_coverage_profile_prefix(${target} "${test_prefix}")
         set(test_list_variable "${target}_DISCOVERED_TESTS")
         catch_discover_tests(${target}
             TEST_PREFIX "${test_prefix}."
@@ -204,6 +218,7 @@ if(SIMDLIB_BUILD_TESTS)
 	simdlib_enable_development_warnings(SimdLibFormatOdr)
 	add_test(NAME SimdLib.FormatOdr COMMAND SimdLibFormatOdr)
 	set_tests_properties(SimdLib.FormatOdr PROPERTIES LABELS "FORMAT;ODR")
+	simdlib_set_coverage_profile_prefix(SimdLibFormatOdr "SimdLib.FormatOdr")
 	if(SIMDLIB_MSVC_STYLE_DRIVER)
 		target_compile_definitions(SimdLibTestsFormat PRIVATE
 			SIMDLIB_HAS_SSE3=1 SIMDLIB_HAS_SSSE3=1 SIMDLIB_HAS_SSE41=1 SIMDLIB_HAS_SSE42=1)
@@ -339,6 +354,8 @@ if(SIMDLIB_BUILD_TESTS)
             tests/SimdResample.tests.cpp)
         target_link_libraries(SimdLibTestsVectorAlgorithms PRIVATE SimdLib::SimdLib Catch2::Catch2WithMain)
         simdlib_enable_development_warnings(SimdLibTestsVectorAlgorithms)
+        simdlib_set_coverage_profile_prefix(SimdLibTestsVectorAlgorithms
+            "SimdLib.Tests.VectorAlgorithms")
         catch_discover_tests(SimdLibTestsVectorAlgorithms
             TEST_PREFIX "SimdLib.Tests.VectorAlgorithms."
             TEST_LIST SimdLibTestsVectorAlgorithms_DISCOVERED_TESTS)
@@ -353,6 +370,8 @@ if(SIMDLIB_BUILD_TESTS)
         add_executable(SimdLibTestsResampleScalar tests/SimdResample.tests.cpp)
         target_link_libraries(SimdLibTestsResampleScalar PRIVATE SimdLib::SimdLib Catch2::Catch2WithMain)
         simdlib_enable_development_warnings(SimdLibTestsResampleScalar)
+        simdlib_set_coverage_profile_prefix(SimdLibTestsResampleScalar
+            "SimdLib.Tests.ResampleScalar")
         target_compile_definitions(SimdLibTestsResampleScalar PRIVATE
             SIMDLIB_HAS_SSE3=0 SIMDLIB_HAS_SSSE3=0 SIMDLIB_HAS_SSE41=0 SIMDLIB_HAS_SSE42=0
             SIMDLIB_HAS_AVX=0 SIMDLIB_HAS_AVX2=0 SIMDLIB_HAS_FMA=0)
@@ -401,6 +420,7 @@ if(SIMDLIB_BUILD_EXAMPLES)
     endif()
     add_test(NAME SimdLib.ApiExamples COMMAND SimdLibApiExamples)
     set_tests_properties(SimdLib.ApiExamples PROPERTIES LABELS "EXAMPLES;AVX2;FMA;BMI")
+    simdlib_set_coverage_profile_prefix(SimdLibApiExamples "SimdLib.ApiExamples")
 endif()
 
 if(SIMDLIB_ENABLE_COVERAGE)
@@ -413,6 +433,10 @@ if(SIMDLIB_ENABLE_COVERAGE)
         NAMES llvm-cov
         HINTS "${simdlib_compiler_directory}"
         REQUIRED)
+    find_program(SIMDLIB_LLVM_READOBJ
+        NAMES llvm-readobj
+        HINTS "${simdlib_compiler_directory}"
+        REQUIRED)
 
     get_property(simdlib_coverage_targets GLOBAL PROPERTY SIMDLIB_COVERAGE_TARGETS)
     list(REMOVE_DUPLICATES simdlib_coverage_targets)
@@ -420,15 +444,22 @@ if(SIMDLIB_ENABLE_COVERAGE)
         message(FATAL_ERROR "SIMDLIB_ENABLE_COVERAGE requires at least one executable target")
     endif()
 
-    set(simdlib_coverage_objects "")
+    set(simdlib_coverage_manifest "")
     foreach(coverage_target IN LISTS simdlib_coverage_targets)
-        string(APPEND simdlib_coverage_objects "$<TARGET_FILE:${coverage_target}>\n")
+        get_target_property(coverage_profile_prefix ${coverage_target}
+            SIMDLIB_COVERAGE_PROFILE_PREFIX)
+        if(NOT coverage_profile_prefix)
+            message(FATAL_ERROR
+                "Coverage target ${coverage_target} has no CTest profile prefix")
+        endif()
+        string(APPEND simdlib_coverage_manifest
+            "${coverage_target}|$<TARGET_FILE:${coverage_target}>|${coverage_profile_prefix}\n")
     endforeach()
-    set(simdlib_coverage_objects_file
-        "${CMAKE_CURRENT_BINARY_DIR}/coverage-objects-$<CONFIG>.txt")
+    set(simdlib_coverage_manifest_file
+        "${CMAKE_CURRENT_BINARY_DIR}/coverage-targets-$<CONFIG>.txt")
     file(GENERATE
-        OUTPUT "${simdlib_coverage_objects_file}"
-        CONTENT "${simdlib_coverage_objects}")
+        OUTPUT "${simdlib_coverage_manifest_file}"
+        CONTENT "${simdlib_coverage_manifest}")
 
     add_custom_target(SimdLibCoverageReset
         COMMAND ${CMAKE_COMMAND}
@@ -441,9 +472,10 @@ if(SIMDLIB_ENABLE_COVERAGE)
         COMMAND ${CMAKE_COMMAND}
             -DBINARY_DIRECTORY=${CMAKE_CURRENT_BINARY_DIR}
             -DSOURCE_DIRECTORY=${CMAKE_CURRENT_SOURCE_DIR}
-            -DOBJECTS_FILE=${simdlib_coverage_objects_file}
+            -DCOVERAGE_MANIFEST=${simdlib_coverage_manifest_file}
             -DLLVM_PROFDATA=${SIMDLIB_LLVM_PROFDATA}
             -DLLVM_COV=${SIMDLIB_LLVM_COV}
+            -DLLVM_READOBJ=${SIMDLIB_LLVM_READOBJ}
             -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/GenerateCoverageReport.cmake
         DEPENDS ${simdlib_coverage_targets}
         COMMENT "Generating SimdLib LCOV coverage report"

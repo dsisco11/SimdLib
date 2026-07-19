@@ -6,10 +6,10 @@ SimdLib Test Coverage Expansion:
     ☐ Keep tests at the public `SimdLib` surface wherever possible. Test `Detail` helpers directly only after documenting why no public entry point can exercise a behavior and why the helper itself is a supported contract.
 
   Baseline Evidence:
-    ☐ Preserve the current clean baseline before implementation: 113/113 CTest entries pass under the `clang-coverage` preset.
-    ☐ Record the current VS Code LCOV totals from `build-coverage/coverage.info`: 2,293/3,348 lines (68.5%), 361/433 branches (83.4%), and 442/558 functions (79.2%).
-    ☐ Record the current report warning: `621 functions have mismatched data` while profiles from 16 differently configured coverage executables are merged.
-    ☐ Record that the aggregate report is directional until Phase 0 is complete; mutually exclusive feature builds, constexpr-only paths, preprocessor lines, and uninstantiated templates can otherwise produce misleading red or green gutters.
+    ☒ Preserve the current clean baseline before implementation: 113/113 CTest entries pass under the `clang-coverage` preset.
+    ☒ Record the current VS Code LCOV totals from `build-coverage/coverage.info`: 2,293/3,348 lines (68.5%), 361/433 branches (83.4%), and 442/558 functions (79.2%).
+    ☒ Record the current report warning: `621 functions have mismatched data` while profiles from 16 differently configured coverage executables are merged.
+    ☒ Record that the aggregate report is directional until Phase 0 is complete; mutually exclusive feature builds, constexpr-only paths, preprocessor lines, and uninstantiated templates can otherwise produce misleading red or green gutters.
 
   Non-Goals:
     ☐ Do not chase 100% by adding assertions that merely execute comments, closing preprocessor directives, compiler-generated functions, or unreachable defensive code.
@@ -19,18 +19,18 @@ SimdLib Test Coverage Expansion:
     ☐ If a new test exposes a production defect or an unclear contract, document the finding and decide the contract before changing production behavior.
 
   Phase 0 - Make Coverage Evidence Trustworthy:
-    ☐ Map every coverage executable to only the raw/per-test profiles produced by that executable.
-    ☐ Change coverage generation so each executable is exported with its matching profile data before LCOV records are combined.
-    ☐ Ensure same-name header templates compiled under different feature macros are never merged into one incompatible `llvm-profdata` database.
-    ☐ Preserve the CTest-driven VS Code workflow: `SimdLibCoverageReset`, Run with Coverage, `SimdLibCoverageReport`, and import of `build-coverage/coverage.info`.
-    ☐ Preserve support for CTest-retained `.profraw` files when CTest cannot produce a per-test `.profdata` file.
-    ☐ Make report generation fail with a clear diagnostic when an object has no matching profile, a profile is assigned to the wrong object, or no usable source records are produced.
-    ☐ Add a deterministic LCOV merge step that accumulates repeated source records and preserves line, branch, and function data without last-record-wins behavior.
-    ☐ Verify a full coverage run no longer emits mismatched-function warnings.
-    ☐ Verify partial test runs cannot inherit stale profiles from unrelated executables.
-    ☐ Compare VS Code gutter results with direct per-executable `llvm-cov` output for at least `Bmi.h`, `Api.h`, `UInt128.h`, and `Detail/Implementations.h`.
-    ☐ Record the corrected baseline totals and per-header totals in `docs/TestCoverage.md` before adding behavioral tests.
-    ☐ End Phase 0 only when the displayed report is reproducible from a clean reset and every included counter has a known object/profile provenance.
+    ☒ Map every coverage executable to only the raw/per-test profiles produced by that executable.
+    ☒ Change coverage generation so each executable is exported with its matching profile data before LCOV records are combined.
+    ☒ Ensure same-name header templates compiled under different feature macros are never merged into one incompatible `llvm-profdata` database.
+    ☒ Preserve the CTest-driven VS Code workflow: `SimdLibCoverageReset`, Run with Coverage, `SimdLibCoverageReport`, and import of `build-coverage/coverage.info`.
+    ☒ Preserve support for CTest-retained `.profraw` files when CTest cannot produce a per-test `.profdata` file.
+    ☒ Make report generation fail with a clear diagnostic when an object has no matching profile, a profile is assigned to the wrong object, or no usable source records are produced.
+    ☒ Add a deterministic LCOV merge step that accumulates repeated source records and preserves line, branch, and function data without last-record-wins behavior.
+    ☒ Verify a full coverage run no longer emits mismatched-function warnings.
+    ☒ Verify partial test runs cannot inherit stale profiles from unrelated executables.
+    ☒ Compare VS Code gutter results with direct per-executable `llvm-cov` output for at least `Bmi.h`, `Api.h`, `UInt128.h`, and `Detail/Implementations.h`.
+    ☒ Record the corrected baseline totals and per-header totals in `docs/TestCoverage.md` before adding behavioral tests.
+    ☒ End Phase 0 only when the displayed report is reproducible from a clean reset and every included counter has a known object/profile provenance.
 
   Phase 1 - Specify and Exercise the BMI Helper Surface:
     ☐ Review the derived helper family in `Bmi.h` and classify each function as supported public contract, compatibility surface, internal implementation aid, deprecated surface, or removal candidate.
@@ -176,7 +176,7 @@ SimdLib Test Coverage Expansion:
     ☐ End Phase 9 only when all earlier phase gates are checked, every supported public contract has direct proof or a reviewed justification, all validation configurations are green, and the coverage report is reproducible.
 
   Execution Evidence:
-    ☐ Phase 0 corrected coverage pipeline, clean warning output, object/profile provenance, and corrected baseline totals recorded.
+    ☒ Phase 0 corrected coverage pipeline, clean warning output, object/profile provenance, and corrected baseline totals recorded.
     ☐ Phase 1 BMI contract decisions, helper matrix, deterministic inputs, and portable/intrinsic equivalence results recorded.
     ☐ Phase 2 public `Api` operation/type matrix and backend-family reachability results recorded.
     ☐ Phase 3 migrated-header assertion inventory, retained-invariant justifications, dedicated constexpr-target matrix, consumer compile-time measurements, and separate MSVC/Clang/compiler-path evidence recorded.

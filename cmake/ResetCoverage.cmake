@@ -14,3 +14,4 @@ endif()
 file(REMOVE
     "${BINARY_DIRECTORY}/coverage.info"
     "${BINARY_DIRECTORY}/coverage-profiles.rsp")
+file(REMOVE_RECURSE "${BINARY_DIRECTORY}/coverage-work")
