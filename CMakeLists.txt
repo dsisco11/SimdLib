@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.20)
+cmake_minimum_required(VERSION 4.4)
 
 project(SimdLib VERSION 0.2.0 LANGUAGES CXX)
 
@@ -16,6 +16,13 @@ option(SIMDLIB_BUILD_HEADER_TESTS "Build first-and-only public-header probes" ON
 option(SIMDLIB_FETCH_TEST_DEPENDENCIES "Fetch missing test-only dependencies" ON)
 option(SIMDLIB_STRICT_WARNINGS "Treat warnings in SimdLib-owned targets as errors" OFF)
 option(SIMDLIB_ENABLE_COVERAGE "Instrument SimdLib-owned targets for source coverage" OFF)
+
+# CTest 4.4 uses this setting during its dashboard Test step to assign a
+# collision-free LLVM_PROFILE_FILE to every discovered test invocation.
+if(SIMDLIB_ENABLE_COVERAGE)
+	set(CTEST_TEST_COVERAGE_TOOL "LLVM-COV")
+endif()
+include(CTest)
 
 add_library(SimdLib INTERFACE)
 add_library(SimdLib::SimdLib ALIAS SimdLib)
@@ -77,6 +84,12 @@ endif()
 
 function(simdlib_enable_development_warnings target)
     target_link_libraries(${target} PRIVATE SimdLibDevelopmentWarnings)
+    if(SIMDLIB_ENABLE_COVERAGE)
+        get_target_property(target_type ${target} TYPE)
+        if(target_type STREQUAL "EXECUTABLE")
+            set_property(GLOBAL APPEND PROPERTY SIMDLIB_COVERAGE_TARGETS ${target})
+        endif()
+    endif()
 endfunction()
 
 if(SIMDLIB_BUILD_CONFIGURATION_TESTS)
@@ -130,7 +143,6 @@ else()
 endif()
 
 if(SIMDLIB_BUILD_SMOKE_TESTS)
-    enable_testing()
     add_executable(SimdLibHeaderOnlySmoke
         tests/smoke/main.cpp
         tests/smoke/second_translation_unit.cpp)
@@ -140,7 +152,6 @@ if(SIMDLIB_BUILD_SMOKE_TESTS)
 endif()
 
 if(SIMDLIB_BUILD_TESTS)
-    enable_testing()
     find_package(Catch2 3 CONFIG QUIET)
     if(NOT Catch2_FOUND AND SIMDLIB_FETCH_TEST_DEPENDENCIES)
         include(FetchContent)
@@ -153,24 +164,39 @@ if(SIMDLIB_BUILD_TESTS)
     if(NOT TARGET Catch2::Catch2WithMain)
         message(FATAL_ERROR "Catch2 3 is required; install it or enable SIMDLIB_FETCH_TEST_DEPENDENCIES")
     endif()
-    function(simdlib_add_catch_test target source test_name)
+    include(Catch)
+
+    function(simdlib_label_discovered_tests test_list_variable labels)
+        set(label_file "${CMAKE_CURRENT_BINARY_DIR}/${test_list_variable}-labels.cmake")
+        file(WRITE "${label_file}"
+            "foreach(discovered_test IN LISTS ${test_list_variable})\n"
+            "    set_tests_properties(\"\${discovered_test}\" PROPERTIES LABELS \"${labels}\")\n"
+            "endforeach()\n")
+        set_property(DIRECTORY APPEND PROPERTY TEST_INCLUDE_FILES "${label_file}")
+    endfunction()
+
+    function(simdlib_add_catch_test target source test_prefix labels)
         add_executable(${target} ${source})
         target_link_libraries(${target} PRIVATE SimdLib::SimdLib Catch2::Catch2WithMain)
         simdlib_enable_development_warnings(${target})
-        add_test(NAME ${test_name} COMMAND ${target})
+        set(test_list_variable "${target}_DISCOVERED_TESTS")
+        catch_discover_tests(${target}
+            TEST_PREFIX "${test_prefix}."
+            TEST_LIST ${test_list_variable})
+        simdlib_label_discovered_tests(${test_list_variable} "${labels}")
     endfunction()
 
-    simdlib_add_catch_test(SimdLibTestsBmiPortable tests/Bmi.tests.cpp SimdLib.Tests.BmiPortable)
+    simdlib_add_catch_test(SimdLibTestsBmiPortable tests/Bmi.tests.cpp
+        SimdLib.Tests.BmiPortable "BMI;PORTABLE")
     target_compile_definitions(SimdLibTestsBmiPortable PRIVATE
         SIMDLIB_HAS_BMI1=0 SIMDLIB_HAS_BMI2=0
         SIMDLIB_BMI_EXPECT_BMI1=0 SIMDLIB_BMI_EXPECT_BMI2=0)
 	if(NOT SIMDLIB_MSVC_STYLE_DRIVER)
         target_compile_options(SimdLibTestsBmiPortable PRIVATE -mno-bmi -mno-bmi2)
     endif()
-    set_tests_properties(SimdLib.Tests.BmiPortable PROPERTIES LABELS "BMI;PORTABLE")
 
-    simdlib_add_catch_test(SimdLibTestsFormat tests/Format.tests.cpp SimdLib.Tests.Format)
-    set_tests_properties(SimdLib.Tests.Format PROPERTIES LABELS "FORMAT;SSE42")
+    simdlib_add_catch_test(SimdLibTestsFormat tests/Format.tests.cpp
+        SimdLib.Tests.Format "FORMAT;SSE42")
 	add_executable(SimdLibFormatOdr
 		tests/format_odr/main.cpp
 		tests/format_odr/second_translation_unit.cpp)
@@ -193,8 +219,8 @@ if(SIMDLIB_BUILD_TESTS)
     endif()
 
     if(SIMDLIB_BUILD_TESTS_128)
-        simdlib_add_catch_test(SimdLibTests128 tests/Api128.tests.cpp SimdLib.Tests.SSE42)
-        set_tests_properties(SimdLib.Tests.SSE42 PROPERTIES LABELS "SSE42")
+        simdlib_add_catch_test(SimdLibTests128 tests/Api128.tests.cpp
+            SimdLib.Tests.SSE42 "SSE42")
 		if(SIMDLIB_MSVC_STYLE_DRIVER)
 			target_compile_definitions(SimdLibTests128 PRIVATE
 				SIMDLIB_HAS_SSE3=1 SIMDLIB_HAS_SSSE3=1 SIMDLIB_HAS_SSE41=1 SIMDLIB_HAS_SSE42=1)
@@ -205,9 +231,12 @@ if(SIMDLIB_BUILD_TESTS)
             target_compile_options(SimdLibTests128 PRIVATE -msse4.2)
         endif()
 
-        simdlib_add_catch_test(SimdLibTestsUInt128Optimized tests/UInt128.tests.cpp SimdLib.Tests.UInt128Optimized)
-        simdlib_add_catch_test(SimdLibTestsUInt128Portable tests/UInt128.tests.cpp SimdLib.Tests.UInt128Portable)
-        simdlib_add_catch_test(SimdLibTestsUInt128Scalar tests/UInt128.tests.cpp SimdLib.Tests.UInt128Scalar)
+        simdlib_add_catch_test(SimdLibTestsUInt128Optimized tests/UInt128.tests.cpp
+            SimdLib.Tests.UInt128Optimized "UINT128;OPTIMIZED;SSE42")
+        simdlib_add_catch_test(SimdLibTestsUInt128Portable tests/UInt128.tests.cpp
+            SimdLib.Tests.UInt128Portable "UINT128;PORTABLE;SSE42")
+        simdlib_add_catch_test(SimdLibTestsUInt128Scalar tests/UInt128.tests.cpp
+            SimdLib.Tests.UInt128Scalar "UINT128;PORTABLE;SCALAR")
         target_compile_definitions(SimdLibTestsUInt128Portable PRIVATE
             SIMDLIB_USE_COMPILER_CARRY_INTRINSICS=0)
 		target_compile_definitions(SimdLibTestsUInt128Scalar PRIVATE
@@ -228,10 +257,6 @@ if(SIMDLIB_BUILD_TESTS)
             target_compile_options(SimdLibTestsUInt128Optimized PRIVATE -msse4.2)
             target_compile_options(SimdLibTestsUInt128Portable PRIVATE -msse4.2)
         endif()
-        set_tests_properties(SimdLib.Tests.UInt128Optimized PROPERTIES LABELS "UINT128;OPTIMIZED;SSE42")
-        set_tests_properties(SimdLib.Tests.UInt128Portable PROPERTIES LABELS "UINT128;PORTABLE;SSE42")
-		set_tests_properties(SimdLib.Tests.UInt128Scalar PROPERTIES LABELS "UINT128;PORTABLE;SCALAR")
-
         add_test(NAME SimdLib.Tests.UInt128ResultSetEquivalence
             COMMAND ${CMAKE_COMMAND}
                 -DPORTABLE_EXECUTABLE=$<TARGET_FILE:SimdLibTestsUInt128Portable>
@@ -248,8 +273,8 @@ if(SIMDLIB_BUILD_TESTS)
     endif()
 
     if(SIMDLIB_BUILD_TESTS_256)
-        simdlib_add_catch_test(SimdLibTests256 tests/Api256.tests.cpp SimdLib.Tests.AVX2)
-        set_tests_properties(SimdLib.Tests.AVX2 PROPERTIES LABELS "AVX2")
+        simdlib_add_catch_test(SimdLibTests256 tests/Api256.tests.cpp
+            SimdLib.Tests.AVX2 "AVX2")
 		if(SIMDLIB_MSVC_STYLE_DRIVER)
             target_compile_options(SimdLibTests256 PRIVATE /arch:AVX2)
         else()
@@ -258,12 +283,12 @@ if(SIMDLIB_BUILD_TESTS)
     endif()
 
     if(SIMDLIB_BUILD_TESTS_FMA)
-        simdlib_add_catch_test(SimdLibTestsFmaEnabled tests/SimdFma.tests.cpp SimdLib.Tests.FMA.Enabled)
-        simdlib_add_catch_test(SimdLibTestsFmaDisabled tests/SimdFma.tests.cpp SimdLib.Tests.FMA.Disabled)
+        simdlib_add_catch_test(SimdLibTestsFmaEnabled tests/SimdFma.tests.cpp
+            SimdLib.Tests.FMA.Enabled "FMA;ENABLED")
+        simdlib_add_catch_test(SimdLibTestsFmaDisabled tests/SimdFma.tests.cpp
+            SimdLib.Tests.FMA.Disabled "FMA;DISABLED")
 		target_compile_definitions(SimdLibTestsFmaEnabled PRIVATE SIMDLIB_HAS_FMA=1 SIMDLIB_EXPECT_FMA=1)
         target_compile_definitions(SimdLibTestsFmaDisabled PRIVATE SIMDLIB_HAS_FMA=0 SIMDLIB_EXPECT_FMA=0)
-        set_tests_properties(SimdLib.Tests.FMA.Enabled PROPERTIES LABELS "FMA;ENABLED")
-        set_tests_properties(SimdLib.Tests.FMA.Disabled PROPERTIES LABELS "FMA;DISABLED")
 		if(SIMDLIB_MSVC_STYLE_DRIVER)
             target_compile_options(SimdLibTestsFmaEnabled PRIVATE /arch:AVX2)
             target_compile_options(SimdLibTestsFmaDisabled PRIVATE /arch:AVX2)
@@ -277,7 +302,8 @@ if(SIMDLIB_BUILD_TESTS)
         function(simdlib_add_bmi_profile profile_name bmi1 bmi2)
             set(target SimdLibTestsBmi${profile_name})
             set(test_name SimdLib.Tests.Bmi.${profile_name})
-            simdlib_add_catch_test(${target} tests/Bmi.tests.cpp ${test_name})
+            simdlib_add_catch_test(${target} tests/Bmi.tests.cpp ${test_name}
+                "BMI;${profile_name};OPTIONAL")
             target_compile_definitions(${target} PRIVATE
                 SIMDLIB_HAS_BMI1=${bmi1} SIMDLIB_HAS_BMI2=${bmi2}
                 SIMDLIB_BMI_EXPECT_BMI1=${bmi1} SIMDLIB_BMI_EXPECT_BMI2=${bmi2})
@@ -292,8 +318,6 @@ if(SIMDLIB_BUILD_TESTS)
                     target_compile_options(${target} PRIVATE -mbmi2)
                 endif()
             endif()
-            set_tests_properties(${test_name} PROPERTIES LABELS "BMI;${profile_name};OPTIONAL")
-
             set(equivalence_name SimdLib.Tests.Bmi.${profile_name}.Equivalence)
             add_test(NAME ${equivalence_name}
                 COMMAND ${CMAKE_COMMAND}
@@ -315,8 +339,11 @@ if(SIMDLIB_BUILD_TESTS)
             tests/SimdResample.tests.cpp)
         target_link_libraries(SimdLibTestsVectorAlgorithms PRIVATE SimdLib::SimdLib Catch2::Catch2WithMain)
         simdlib_enable_development_warnings(SimdLibTestsVectorAlgorithms)
-        add_test(NAME SimdLib.Tests.VectorAlgorithms COMMAND SimdLibTestsVectorAlgorithms)
-        set_tests_properties(SimdLib.Tests.VectorAlgorithms PROPERTIES LABELS "VECTOR_ALGORITHMS;AVX2")
+        catch_discover_tests(SimdLibTestsVectorAlgorithms
+            TEST_PREFIX "SimdLib.Tests.VectorAlgorithms."
+            TEST_LIST SimdLibTestsVectorAlgorithms_DISCOVERED_TESTS)
+        simdlib_label_discovered_tests(SimdLibTestsVectorAlgorithms_DISCOVERED_TESTS
+            "VECTOR_ALGORITHMS;AVX2")
 		if(SIMDLIB_MSVC_STYLE_DRIVER)
             target_compile_options(SimdLibTestsVectorAlgorithms PRIVATE /arch:AVX2)
         else()
@@ -329,8 +356,11 @@ if(SIMDLIB_BUILD_TESTS)
         target_compile_definitions(SimdLibTestsResampleScalar PRIVATE
             SIMDLIB_HAS_SSE3=0 SIMDLIB_HAS_SSSE3=0 SIMDLIB_HAS_SSE41=0 SIMDLIB_HAS_SSE42=0
             SIMDLIB_HAS_AVX=0 SIMDLIB_HAS_AVX2=0 SIMDLIB_HAS_FMA=0)
-        add_test(NAME SimdLib.Tests.ResampleScalar COMMAND SimdLibTestsResampleScalar)
-        set_tests_properties(SimdLib.Tests.ResampleScalar PROPERTIES LABELS "VECTOR_ALGORITHMS;SCALAR")
+        catch_discover_tests(SimdLibTestsResampleScalar
+            TEST_PREFIX "SimdLib.Tests.ResampleScalar."
+            TEST_LIST SimdLibTestsResampleScalar_DISCOVERED_TESTS)
+        simdlib_label_discovered_tests(SimdLibTestsResampleScalar_DISCOVERED_TESTS
+            "VECTOR_ALGORITHMS;SCALAR")
     endif()
 endif()
 
@@ -361,7 +391,6 @@ if(SIMDLIB_BUILD_BENCHMARKS)
 endif()
 
 if(SIMDLIB_BUILD_EXAMPLES)
-    enable_testing()
     add_executable(SimdLibApiExamples examples/ApiExamples.cpp)
     target_link_libraries(SimdLibApiExamples PRIVATE SimdLib::SimdLib)
     simdlib_enable_development_warnings(SimdLibApiExamples)
@@ -372,4 +401,51 @@ if(SIMDLIB_BUILD_EXAMPLES)
     endif()
     add_test(NAME SimdLib.ApiExamples COMMAND SimdLibApiExamples)
     set_tests_properties(SimdLib.ApiExamples PROPERTIES LABELS "EXAMPLES;AVX2;FMA;BMI")
+endif()
+
+if(SIMDLIB_ENABLE_COVERAGE)
+    get_filename_component(simdlib_compiler_directory "${CMAKE_CXX_COMPILER}" DIRECTORY)
+    find_program(SIMDLIB_LLVM_PROFDATA
+        NAMES llvm-profdata
+        HINTS "${simdlib_compiler_directory}"
+        REQUIRED)
+    find_program(SIMDLIB_LLVM_COV
+        NAMES llvm-cov
+        HINTS "${simdlib_compiler_directory}"
+        REQUIRED)
+
+    get_property(simdlib_coverage_targets GLOBAL PROPERTY SIMDLIB_COVERAGE_TARGETS)
+    list(REMOVE_DUPLICATES simdlib_coverage_targets)
+    if(NOT simdlib_coverage_targets)
+        message(FATAL_ERROR "SIMDLIB_ENABLE_COVERAGE requires at least one executable target")
+    endif()
+
+    set(simdlib_coverage_objects "")
+    foreach(coverage_target IN LISTS simdlib_coverage_targets)
+        string(APPEND simdlib_coverage_objects "$<TARGET_FILE:${coverage_target}>\n")
+    endforeach()
+    set(simdlib_coverage_objects_file
+        "${CMAKE_CURRENT_BINARY_DIR}/coverage-objects-$<CONFIG>.txt")
+    file(GENERATE
+        OUTPUT "${simdlib_coverage_objects_file}"
+        CONTENT "${simdlib_coverage_objects}")
+
+    add_custom_target(SimdLibCoverageReset
+        COMMAND ${CMAKE_COMMAND}
+            -DBINARY_DIRECTORY=${CMAKE_CURRENT_BINARY_DIR}
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/ResetCoverage.cmake
+        COMMENT "Removing previous SimdLib coverage data"
+        VERBATIM)
+
+    add_custom_target(SimdLibCoverageReport
+        COMMAND ${CMAKE_COMMAND}
+            -DBINARY_DIRECTORY=${CMAKE_CURRENT_BINARY_DIR}
+            -DSOURCE_DIRECTORY=${CMAKE_CURRENT_SOURCE_DIR}
+            -DOBJECTS_FILE=${simdlib_coverage_objects_file}
+            -DLLVM_PROFDATA=${SIMDLIB_LLVM_PROFDATA}
+            -DLLVM_COV=${SIMDLIB_LLVM_COV}
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/GenerateCoverageReport.cmake
+        DEPENDS ${simdlib_coverage_targets}
+        COMMENT "Generating SimdLib LCOV coverage report"
+        VERBATIM)
 endif()

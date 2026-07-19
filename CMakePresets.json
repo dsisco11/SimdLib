@@ -1,0 +1,85 @@
+{
+    "version": 11,
+    "cmakeMinimumRequired": {
+        "major": 4,
+        "minor": 4,
+        "patch": 0
+    },
+    "configurePresets": [
+        {
+            "name": "msvc",
+            "displayName": "MSVC development",
+            "description": "Release-capable MSVC build with the complete test matrix",
+            "generator": "Visual Studio 17 2022",
+            "architecture": "x64",
+            "binaryDir": "${sourceDir}/build",
+            "cacheVariables": {
+                "SIMDLIB_BUILD_TESTS": "ON",
+                "SIMDLIB_BUILD_TESTS_OPTIONAL": "ON",
+                "SIMDLIB_BUILD_BENCHMARKS": "OFF",
+                "SIMDLIB_STRICT_WARNINGS": "ON",
+                "SIMDLIB_ENABLE_COVERAGE": "OFF"
+            }
+        },
+        {
+            "name": "clang-coverage",
+            "displayName": "Clang LLVM coverage",
+            "description": "Debug Clang build instrumented for CTest LLVM coverage",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build-coverage",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "CMAKE_CXX_COMPILER": "clang++",
+                "SIMDLIB_BUILD_TESTS": "ON",
+                "SIMDLIB_BUILD_TESTS_OPTIONAL": "ON",
+                "SIMDLIB_BUILD_BENCHMARKS": "OFF",
+                "SIMDLIB_STRICT_WARNINGS": "ON",
+                "SIMDLIB_ENABLE_COVERAGE": "ON"
+            }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "msvc-release",
+            "displayName": "MSVC Release",
+            "configurePreset": "msvc",
+            "configuration": "Release",
+            "jobs": 0
+        },
+        {
+            "name": "coverage",
+            "displayName": "Clang LLVM coverage",
+            "configurePreset": "clang-coverage",
+            "jobs": 0
+        }
+    ],
+    "testPresets": [
+        {
+            "name": "msvc-release",
+            "displayName": "MSVC Release",
+            "configurePreset": "msvc",
+            "configuration": "Release",
+            "output": {
+                "outputOnFailure": true
+            },
+            "execution": {
+                "jobs": 0
+            }
+        },
+        {
+            "name": "coverage",
+            "displayName": "Clang LLVM coverage",
+            "configurePreset": "clang-coverage",
+            "inheritConfigureEnvironment": true,
+            "environment": {
+                "LLVM_PROFILE_FILE": "${sourceDir}/build-coverage/ctest-%p-%m.profraw"
+            },
+            "output": {
+                "outputOnFailure": true
+            },
+            "execution": {
+                "jobs": 0
+            }
+        }
+    ]
+}

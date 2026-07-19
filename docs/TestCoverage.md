@@ -23,31 +23,34 @@ acceptance rules.
 
 ## Test inventory
 
-The full configuration contributes these 22 CTest entries:
+The standard Clang coverage preset contributes 113 CTest entries: 106
+individual Catch2 test cases discovered by `catch_discover_tests()` and seven
+direct CTest integration/equivalence tests. Catch2 executables remain grouped
+by these stable name prefixes:
 
 | Entry | Coverage role |
 | --- | --- |
 | `SimdLib.HeaderOnlySmoke` | Multi-translation-unit umbrella-header use and header-only linkage |
-| `SimdLib.Tests.BmiPortable` | Portable BMI behavior, constexpr checks, boundaries, signed bit patterns, and deterministic randomized oracles |
-| `SimdLib.Tests.Format` | UInt128 and vector formatter behavior plus standard scalar parity |
+| `SimdLib.Tests.BmiPortable.*` | Portable BMI behavior, constexpr checks, boundaries, signed bit patterns, and deterministic randomized oracles |
+| `SimdLib.Tests.Format.*` | UInt128 and vector formatter behavior plus standard scalar parity |
 | `SimdLib.FormatOdr` | Formatter specialization linkage across two translation units |
-| `SimdLib.Tests.SSE42` | 128-bit `Api`, partial transfers, comparisons, conversion, movemask, and register metadata |
-| `SimdLib.Tests.UInt128Optimized` | UInt128 with compiler carry primitives and available SIMD support |
-| `SimdLib.Tests.UInt128Portable` | UInt128 with portable carry/borrow |
-| `SimdLib.Tests.UInt128Scalar` | UInt128 with all SIMD, BMI, FMA, and compiler-carry features disabled |
+| `SimdLib.Tests.SSE42.*` | 128-bit `Api`, partial transfers, comparisons, conversion, movemask, and register metadata |
+| `SimdLib.Tests.UInt128Optimized.*` | UInt128 with compiler carry primitives and available SIMD support |
+| `SimdLib.Tests.UInt128Portable.*` | UInt128 with portable carry/borrow |
+| `SimdLib.Tests.UInt128Scalar.*` | UInt128 with all SIMD, BMI, FMA, and compiler-carry features disabled |
 | `SimdLib.Tests.UInt128ResultSetEquivalence` | Optimized-versus-portable deterministic result digest |
 | `SimdLib.Tests.UInt128ScalarResultSetEquivalence` | Optimized-versus-scalar deterministic result digest |
-| `SimdLib.Tests.AVX2` | 256-bit `Api`, partial transfers, comparisons, movemask, and register metadata |
-| `SimdLib.Tests.FMA.Enabled` | FMA-enabled dispatch and expected result |
-| `SimdLib.Tests.FMA.Disabled` | Non-FMA fallback dispatch and expected result |
-| `SimdLib.Tests.Bmi.Bmi1Only` | BMI1 intrinsic profile |
+| `SimdLib.Tests.AVX2.*` | 256-bit `Api`, partial transfers, comparisons, movemask, and register metadata |
+| `SimdLib.Tests.FMA.Enabled.*` | FMA-enabled dispatch and expected result |
+| `SimdLib.Tests.FMA.Disabled.*` | Non-FMA fallback dispatch and expected result |
+| `SimdLib.Tests.Bmi.Bmi1Only.*` | BMI1 intrinsic profile |
 | `SimdLib.Tests.Bmi.Bmi1Only.Equivalence` | BMI1-versus-portable deterministic result digest |
-| `SimdLib.Tests.Bmi.Bmi2Only` | BMI2 intrinsic profile |
+| `SimdLib.Tests.Bmi.Bmi2Only.*` | BMI2 intrinsic profile |
 | `SimdLib.Tests.Bmi.Bmi2Only.Equivalence` | BMI2-versus-portable deterministic result digest |
-| `SimdLib.Tests.Bmi.Bmi1AndBmi2` | Combined BMI1/BMI2 intrinsic profile |
+| `SimdLib.Tests.Bmi.Bmi1AndBmi2.*` | Combined BMI1/BMI2 intrinsic profile |
 | `SimdLib.Tests.Bmi.Bmi1AndBmi2.Equivalence` | Combined-profile-versus-portable deterministic result digest |
-| `SimdLib.Tests.VectorAlgorithms` | `SimdVector`, `SimdAlgo`, and SIMD `SimdResample` behavior |
-| `SimdLib.Tests.ResampleScalar` | Scalar-only `SimdResample` behavior and oracle parity |
+| `SimdLib.Tests.VectorAlgorithms.*` | `SimdVector`, `SimdAlgo`, and SIMD `SimdResample` behavior |
+| `SimdLib.Tests.ResampleScalar.*` | Scalar-only `SimdResample` behavior and oracle parity |
 | `SimdLib.ApiExamples` | Public documented call sites compiled and run together |
 
 Compile-only targets cover:
@@ -128,33 +131,29 @@ register width, active count, and failing values through Catch2 captures.
 ## Source-based coverage
 
 Clang's LLVM instrumentation is available through
-`SIMDLIB_ENABLE_COVERAGE`. It intentionally fails configuration for unsupported
-compiler drivers rather than silently producing misleading data.
+`SIMDLIB_ENABLE_COVERAGE`. CMake 4.4 or newer is required because CTest 4.4 is
+the first release with native `LLVM-COV` dashboard coverage support. Coverage
+configuration intentionally fails for unsupported compiler drivers rather
+than silently producing misleading data.
 
-Representative commands from the repository root are:
+The checked-in presets make CTest the authoritative runner. From the SimdLib
+repository root:
 
 ```powershell
-cmake -S SimdLib -B SimdLib/build-coverage -G Ninja `
-  -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_BUILD_TYPE=Debug `
-  -DSIMDLIB_ENABLE_COVERAGE=ON -DSIMDLIB_STRICT_WARNINGS=ON `
-  -DSIMDLIB_BUILD_BENCHMARKS=OFF
-cmake --build SimdLib/build-coverage --parallel
-$env:LLVM_PROFILE_FILE='SimdLib/build-coverage/profiles/%p-%m.profraw'
-ctest --test-dir SimdLib/build-coverage --output-on-failure
-llvm-profdata merge -sparse SimdLib/build-coverage/profiles/*.profraw `
-  -o SimdLib/build-coverage/coverage.profdata
+cmake --preset clang-coverage
+cmake --build --preset coverage
+cmake --build build-coverage --target SimdLibCoverageReset
+ctest --test-dir build-coverage -T Test --output-on-failure
+cmake --build build-coverage --target SimdLibCoverageReport
 ```
 
-The workspace TestMate configuration keeps the normal MSVC executables and the
-instrumented Clang executables in separate tagged groups. Its `llvm-cov`
-coverage profile runs only the `coverage` group and publishes the resulting
-line, branch, and function data to VS Code's native Test Coverage view. The VS
-Code process must be restarted after adding `C:\Program Files\LLVM\bin` to the
-user `PATH` so TestMate can invoke `llvm-profdata` and `llvm-cov`.
-
-TestMate's experimental adapter deletes its temporary raw and merged profiles
-after publishing them to VS Code. Use the commands above when a persistent
-`coverage.profdata` artifact is required.
+The CMake Tools extension is the workspace's VS Code test and coverage
+provider. Select the `clang-coverage` configure preset and `coverage` build and
+test presets, then use **Run with Coverage** in VS Code's Testing view. CMake
+Tools runs the configured reset target, invokes CTest, runs the report target,
+and imports `build-coverage/coverage.info` into VS Code's native Test Coverage
+view. Restart VS Code after installing CMake or adding LLVM's `bin` directory
+to `PATH` so the extension sees the tools.
 
 `llvm-cov report` was run over all CTest executables with the merged profile.
 Because the same header templates are compiled under mutually exclusive
@@ -183,15 +182,17 @@ min/max-position, pair-product, floating equality, and hashing branches are
 directly exercised. UInt128's aggregate branch percentage is similarly
 affected by merging mutually exclusive optimized and scalar profiles.
 
-The raw profiles and merged `coverage.profdata` are generated artifacts under
-`build-coverage` and are intentionally not source-controlled. The historical
+The raw profiles, merged `coverage.profdata`, and exported `coverage.info` are
+generated artifacts under `build-coverage` and are intentionally not
+source-controlled. The historical
 `baseline.profdata` and `final.profdata` used for the table above were likewise
 generated artifacts rather than source-controlled inputs.
 
 ## Validation record
 
-The final standalone suite contains 22 CTest entries. Direct MSVC Catch2 runs
-contain 103 test cases and 4,254,178 assertions across the API, BMI profiles,
+The standard Clang coverage preset contains 113 CTest entries, including 106
+individually addressable Catch2 cases. The earlier MSVC audit recorded 103
+Catch2 test cases and 4,254,178 assertions across the API, BMI profiles,
 UInt128 profiles, formatting, vector algorithms, and scalar resampling.
 
 ```powershell
@@ -220,7 +221,8 @@ ctest --test-dir SimdLib/build-m1-clang-sanitize --output-on-failure
   before executing SimdLib code. The restricted validation environment reused
   the Catch2 source from an existing local build because network access was
   unavailable.
-- Clang 22.1.8 source-coverage Debug: 22/22 passed.
+- Clang 22.1.8 source-coverage Debug audit: 22 aggregate executable entries
+  passed before individual Catch2 discovery was enabled.
 
 ## Remaining work
 

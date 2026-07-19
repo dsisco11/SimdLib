@@ -166,6 +166,19 @@ presentation types are rejected with `std::format_error`.
 
 ## Development switches
 
+Development builds require CMake 4.4 or newer. The checked-in CMake presets
+provide the normal MSVC build and the Clang/LLVM coverage build:
+
+```powershell
+cmake --preset msvc
+cmake --build --preset msvc-release
+ctest --preset msvc-release
+
+cmake --preset clang-coverage
+cmake --build --preset coverage
+ctest --preset coverage
+```
+
 - `SIMDLIB_BUILD_SMOKE_TESTS=ON` builds the two-translation-unit ODR smoke
   executable (default).
 - `SIMDLIB_BUILD_HEADER_TESTS=ON` compiles each public header as the first and
@@ -188,6 +201,10 @@ presentation types are rejected with `std::format_error`.
 - `SIMDLIB_BUILD_EXAMPLES=ON` builds and registers the complete API example.
 - `SIMDLIB_STRICT_WARNINGS=ON` enables the compiler-specific strict warning
   policy and treats warnings as errors for SimdLib-owned targets.
+- `SIMDLIB_ENABLE_COVERAGE=ON` instruments Clang targets and configures CTest's
+  LLVM coverage support. The `SimdLibCoverageReset` and
+  `SimdLibCoverageReport` targets produce `build-coverage/coverage.info` for
+  command-line use and VS Code CMake Tools.
 
 ## Continuous validation
 
