@@ -1,0 +1,188 @@
+SimdLib Test Coverage Expansion:
+
+  Purpose:
+    ☐ Turn the 2026-07-18 VS Code/LLVM coverage review into an implementation and validation checklist.
+    ☐ Treat behavioral contracts, independent oracles, constexpr probes, and compiler/configuration profiles as the acceptance criteria; do not use a single aggregate percentage as a substitute for them.
+    ☐ Keep tests at the public `SimdLib` surface wherever possible. Test `Detail` helpers directly only after documenting why no public entry point can exercise a behavior and why the helper itself is a supported contract.
+
+  Baseline Evidence:
+    ☐ Preserve the current clean baseline before implementation: 113/113 CTest entries pass under the `clang-coverage` preset.
+    ☐ Record the current VS Code LCOV totals from `build-coverage/coverage.info`: 2,293/3,348 lines (68.5%), 361/433 branches (83.4%), and 442/558 functions (79.2%).
+    ☐ Record the current report warning: `621 functions have mismatched data` while profiles from 16 differently configured coverage executables are merged.
+    ☐ Record that the aggregate report is directional until Phase 0 is complete; mutually exclusive feature builds, constexpr-only paths, preprocessor lines, and uninstantiated templates can otherwise produce misleading red or green gutters.
+
+  Non-Goals:
+    ☐ Do not chase 100% by adding assertions that merely execute comments, closing preprocessor directives, compiler-generated functions, or unreachable defensive code.
+    ☐ Do not canonize every inherited backend helper as public API solely because instrumentation exposes it.
+    ☐ Do not weaken assertions, remove feature profiles, or consolidate tests in a way that loses portable-versus-intrinsic equivalence proof.
+    ☐ Do not mix benchmark success with correctness evidence.
+    ☐ If a new test exposes a production defect or an unclear contract, document the finding and decide the contract before changing production behavior.
+
+  Phase 0 - Make Coverage Evidence Trustworthy:
+    ☐ Map every coverage executable to only the raw/per-test profiles produced by that executable.
+    ☐ Change coverage generation so each executable is exported with its matching profile data before LCOV records are combined.
+    ☐ Ensure same-name header templates compiled under different feature macros are never merged into one incompatible `llvm-profdata` database.
+    ☐ Preserve the CTest-driven VS Code workflow: `SimdLibCoverageReset`, Run with Coverage, `SimdLibCoverageReport`, and import of `build-coverage/coverage.info`.
+    ☐ Preserve support for CTest-retained `.profraw` files when CTest cannot produce a per-test `.profdata` file.
+    ☐ Make report generation fail with a clear diagnostic when an object has no matching profile, a profile is assigned to the wrong object, or no usable source records are produced.
+    ☐ Add a deterministic LCOV merge step that accumulates repeated source records and preserves line, branch, and function data without last-record-wins behavior.
+    ☐ Verify a full coverage run no longer emits mismatched-function warnings.
+    ☐ Verify partial test runs cannot inherit stale profiles from unrelated executables.
+    ☐ Compare VS Code gutter results with direct per-executable `llvm-cov` output for at least `Bmi.h`, `Api.h`, `UInt128.h`, and `Detail/Implementations.h`.
+    ☐ Record the corrected baseline totals and per-header totals in `docs/TestCoverage.md` before adding behavioral tests.
+    ☐ End Phase 0 only when the displayed report is reproducible from a clean reset and every included counter has a known object/profile provenance.
+
+  Phase 1 - Specify and Exercise the BMI Helper Surface:
+    ☐ Review the derived helper family in `Bmi.h` and classify each function as supported public contract, compatibility surface, internal implementation aid, deprecated surface, or removal candidate.
+    ☐ Document zero, all-ones, signed-value, bit-index, and out-parameter semantics for every helper retained as public API.
+    ☐ Add runtime table-driven tests for `boolmask`, `select`, `min`, `max`, and both the signed and unsigned branches of `abs`.
+    ☐ Add runtime tests for `blse` (out-parameter and tuple overloads), `blsioff`, `bmsi`, both `bmsr` overloads, both `bmse` overloads, `bzlo`, and `bmsmsk`.
+    ☐ Add scalar-reference tests for `pp_xor`, `ps_xor`, `pp_or`, `ps_or`, `pp_lsor`, `pp_and`, `ps_and`, `pp_nand`, `ps_nand`, `pp_nandi`, and `ps_nandi`.
+    ☐ Add tests for `PartialSumBLSI`, `PartialSumBLSMSK`, `flipr_unset`, `maskr_unset`, and `maskl_trailing_one`.
+    ☐ Add tests for trailing/leading mask operations: `clear_trailing_ones`, `flip_trailing_zeros`, `mask_trailing_zeros`, `mask_trailing_zeros_or_zero`, both lower-than-LSB masks, `mask_trailing_ones`, `mask_leading_zeros`, `mask_leading_ones`, and `clear_leading_ones`.
+    ☐ Add tests for contiguous-sequence operations: both `clear_lowest_set_bits` overloads, `consume_bit_sequence_right`, `consume_bit_sequence_left`, and `left_collapse_trailing_bits`.
+    ☐ Add tests for `clear_bits_lower_than`, `clear_bits_higher_than`, `extract_bits_lower_than`, and `extract_bits_higher_than`.
+    ☐ Add scalar-reference tests for `pdepl_u32` and `pdepl_u64`.
+    ☐ Exercise retained generic helpers over representative 8-, 16-, 32-, 64-, and 128-bit integer-like types, including signed object-representation checks where supported.
+    ☐ Use exhaustive domains for 8-bit inputs, boundary tables for 16-bit inputs, and deterministic randomized inputs for 32-, 64-, and 128-bit inputs.
+    ☐ Run the portable, BMI1-only, BMI2-only, and BMI1+BMI2 profiles and preserve deterministic result-set equivalence between them.
+    ☐ End Phase 1 only when every retained public BMI helper has either a direct runtime contract test or a written justification for compile-time-only coverage.
+
+  Phase 2 - Expand `Api` and Backend Specialization Coverage:
+    ☐ Build a public-operation/type matrix for 128- and 256-bit `Api` over `int8_t`, `uint8_t`, `int16_t`, `uint16_t`, `int32_t`, `uint32_t`, `int64_t`, `uint64_t`, `float`, and `double`.
+    ☐ Mark each operation/type cell as supported-and-tested, intentionally unavailable, compile-time-only, or awaiting a clarified contract.
+    ☐ Audit all existing test sources and shared test support for direct `SimdLib::Detail` usage or indirect routing through backend implementation types.
+    ☐ Replace each existing backend-routed test with the corresponding public `Api`, `SimdVector`, `SimdAlgo`, `SimdResample`, `Bmi`, or `uint128_t` entry point so the test proves the supported caller contract and its dispatch path.
+    ☐ Retain direct `Detail` testing only when no public entry point can exercise the behavior and a written justification identifies the helper as an intentionally supported test seam rather than an accidental API contract.
+    ☐ Record every retained direct `Detail` test, its justification, and the public behavior it protects in the operation/type matrix.
+    ☐ Add public `Api` tests that exercise byte multiplication plus logical-left, logical-right, and arithmetic-right byte shifts.
+    ☐ Add public tests for unsigned byte and word comparison, minimum, and maximum behavior, especially values with the sign bit set.
+    ☐ Add public tests for unsigned 32-bit conversion and division with exact, truncating, high-bit, and boundary inputs.
+    ☐ Add public tests for signed and unsigned 64-bit multiply, divide, remainder, absolute value, minimum, maximum, and arithmetic shifts.
+    ☐ Add public tests for 128/256-bit floating absolute value, equality/ordering helpers, and element extraction.
+    ☐ Add byte-shift boundary tests for negative/zero counts where supported, the final in-register byte, the register width, and counts beyond the register width.
+    ☐ Add a 128/256-bit `min_position` and `max_position` matrix for every supported integer lane type.
+    ☐ Cover first/last extrema, duplicate extrema, signed minima/maxima, unsigned high-bit values, and first-position tie semantics.
+    ☐ Add public coverage for `uint64_t::multiply_add_adjacent` and verify its exact lane ordering and overflow contract.
+    ☐ Add missing public tests for floating `set1`, floating bitwise operations, and 128/256-bit `get_element`/`set_element` behavior.
+    ☐ Add exact 64-bit-result and native-word-boundary-crossing cases for `transform_pack`, including a final partial output word and canary-protected destination storage.
+    ☐ Avoid direct `Detail/Extensions.h` or `Detail/Implementations.h` tests when a public call can provide the same proof.
+    ☐ End Phase 2 only when every supported public specialization is represented in the operation/type matrix and the previously uncovered backend families are reached through that matrix or explicitly justified.
+
+  Phase 3 - Extract Header Self-Tests and Expand Constexpr/Compiler Proof:
+    ☐ Inventory every namespace-scope or function-adjacent `static_assert` in public headers and classify it as a test example, ABI/layout invariant, template constraint, unsupported-instantiation diagnostic, or implementation safety invariant.
+    ☐ Move test-example assertions out of public headers so ordinary consumers do not repeatedly evaluate the library test suite in every translation unit.
+    ☐ Move the `Bmi.h` `#pragma region Tests` block and all scattered result-example assertions into dedicated compile-time test translation units under `tests/constexpr/`.
+    ☐ Move the namespace-scope `UInt128.h` layout, arithmetic, shift, and bit-helper examples into dedicated compile-time test translation units under `tests/constexpr/`.
+    ☐ Audit the remaining public headers for test-only assertions and migrate them to the matching dedicated compile-time test file.
+    ☐ Preserve template constraints and dependent diagnostics that must reject invalid caller instantiations, including width/range restrictions, supported conversion shapes, result-width limits, immediate-shift constraints, and `dependent_false_v` unsupported mappings.
+    ☐ Preserve only true ABI or implementation invariants in production headers, and document why each retained namespace-scope assertion must be evaluated by consumers.
+    ☐ Keep migrated assertions semantically identical during extraction, then expand their matrices separately so the move cannot silently weaken existing constexpr proof.
+    ☐ Add the dedicated constexpr sources to CMake as compile-only test targets or probes that are built by the normal test matrix without adding runtime-only placeholder tests.
+    ☐ Compile the dedicated BMI constexpr sources under portable, BMI1-only, BMI2-only, and BMI1+BMI2 configurations where feature macros affect available code.
+    ☐ Compile the dedicated UInt128 constexpr sources under optimized carry, portable carry, and scalar-only configurations.
+    ☐ Compile the dedicated `Api`/vector constexpr sources under the supported SSE/AVX and disabled-feature profiles.
+    ☐ Ensure compile-time test failures are visible through CTest/CMake target output with the source file and assertion expression that failed.
+    ☐ Add a mechanical audit that rejects new test-example `static_assert` blocks in public headers unless the assertion is allowlisted with an invariant/constraint justification.
+    ☐ Measure clean compile time for minimal translation units including `Bmi.h`, `UInt128.h`, and `SimdLib.h` before and after extraction using the same compiler, flags, and repeated-run method.
+    ☐ Record preprocessing size and compiler front-end timing where supported, and verify the extraction does not increase consumer compile time or introduce additional emitted code.
+    ☐ Verify the move does not change public declarations, constraints, diagnostics for invalid instantiations, ABI/layout, or runtime behavior.
+    ☐ Create constexpr contract helpers that can be reused by compile-only probes and runtime parity tests without relying on runtime coverage counters for constant evaluation.
+    ☐ Expand `Api` `static_assert`/`consteval` coverage for `setzero`, `setr`, `construct`, `set1`, `to_array`, `get_element`, and `set_element` at 128 and 256 bits.
+    ☐ Expand constexpr comparison coverage for `cmp_eq`, `cmp_eq_mask`, `cmp_gt`, `cmp_ge`, `cmp_lt`, `cmp_le`, and the internal comparison operation choices reached by them.
+    ☐ Expand constexpr `movemask` and `movemask_slim` beyond the current representative types to signed, unsigned, float, and double lane families at both widths.
+    ☐ Add constexpr `min_position`, `max_position`, lane-shift, and whole-register-shift boundary checks.
+    ☐ Add runtime parity checks constructed from volatile inputs so optimized runtime paths cannot be satisfied solely by compile-time folding.
+    ☐ Add MSVC validation that directly executes `_addcarry_u64` and `_subborrow_u64` paths.
+    ☐ Keep clang-cl/Clang validation for builtin carry/borrow paths and retain portable-carry and scalar-only profiles.
+    ☐ Record compiler-specific paths that cannot appear in the Clang coverage report and cite their separate MSVC test evidence instead of treating them as uncovered defects.
+    ☐ End Phase 3 only when test-example assertions have left public headers, every retained production-header assertion is justified as a real constraint/invariant, consumer compile-time evidence is recorded, every constant-evaluation branch has compile-time proof, and every supported runtime/compiler branch has a matching configuration run.
+
+  Phase 4 - Close `SimdAlgo` Outcome and Boundary Gaps:
+    ☐ Add `AnyEqual` tests that return false after an exact full-register traversal with no tail.
+    ☐ Add `AnyEqual` tests that find a match in the first, middle, and final full register of a multi-register input.
+    ☐ Add `AnyEqual` tests for a tail-only match and a tail with no match.
+    ☐ Add `AllEqual` tests that return false from the first, middle, and final full register.
+    ☐ Add `AllEqual` tests for a full-register success, tail success, and tail failure.
+    ☐ Exercise the `LowBits` zero-count and 32-or-more-count boundaries through supported public calls, or document why a boundary is unreachable for valid template extents.
+    ☐ Cover single-element, exact-lane, multi-lane, and non-lane-multiple static extents across representative read widths.
+    ☐ Preserve scalar-reference parity and destination canaries for packed comparisons and bitwise transforms.
+    ☐ End Phase 4 only when both true and false exits of the full-register and tail paths are directly asserted.
+
+  Phase 5 - Complete Formatter Validation:
+    ☐ Add runtime parsing tests for `{` and `}` as invalid two-character fill/alignment specifications for `SimdVector` and `uint128_t`.
+    ☐ Add a `uint128_t` width-overflow test that deterministically reaches the overflow guard without depending on implementation-specific allocation failure.
+    ☐ Add invalid trailing-specification tests where a valid presentation is followed by extra characters, such as `dx`.
+    ☐ Expand invalid-specification tables for precision, dynamic width, locale, nested replacement fields, unsupported presentation types, and extra trailing input.
+    ☐ Add alternate-octal zero/nonzero coverage and complete the branch combinations between alternate form, explicit alignment, default alignment, zero padding, and insufficient width.
+    ☐ Add locale tests only after documenting whether SimdLib rejects locale-specific formatting or deliberately inherits standard formatter behavior.
+    ☐ Preserve scalar `uint64_t` parity for every format that is shared with the standard unsigned formatter.
+    ☐ Preserve `Format.h` first-include and multi-translation-unit ODR validation.
+    ☐ End Phase 5 only when every documented accepted grammar component and every explicit rejection category has a direct test.
+
+  Phase 6 - Close `uint128_t` Edge and Compatibility Gaps:
+    ☐ Add a heterogeneous equality/ordering table covering negative signed inputs, zero, matching/mismatching positive lows, nonzero high words, and each ordering result.
+    ☐ Add runtime tests for the deprecated dynamic member `extract`: zero length, start 127, start 128 or greater, a range crossing bit 64, and truncation at bit 127.
+    ☐ Decide whether deprecated `extract` remains a compatibility contract; remove its coverage requirement only if the API itself is intentionally removed.
+    ☐ Add `create_mask<Width>(offset)` cases for negative/zero offsets, offsets 63/64/127, and offsets 128 or greater.
+    ☐ Add boolean shift-count tests and retain negative, zero, 63/64/65, 127/128, and oversized integral-count coverage.
+    ☐ Add runtime checks for `numeric_limits<uint128_t>::epsilon`, `round_error`, `infinity`, `quiet_NaN`, `signaling_NaN`, and `denorm_min`.
+    ☐ Add `Bmi::bextr(uint128_t)` cases for zero length, out-of-range start, a range truncated at bit 127, and a range crossing the word boundary.
+    ☐ Add `bit_ceil(0)`, `bit_ceil(1)`, ordinary low/high-word values, the largest non-overflowing result, and overflow-to-zero.
+    ☐ Ensure runtime tests use volatile-derived values where necessary to exercise portable, SIMD, and compiler-carry implementations instead of only the constexpr oracle.
+    ☐ Preserve optimized-versus-portable, optimized-versus-scalar, and compiler-native randomized equivalence tests.
+    ☐ End Phase 6 only when each boundary branch is covered in the appropriate runtime or constexpr profile and compatibility-only behavior is explicitly labeled.
+
+  Phase 7 - Close `SimdVector` Partial and Wide-Vector Gaps:
+    ☐ Add partial-vector divide and modulus tests that prove inactive lanes are filled with multiplicative identity before the operation and restored to zero afterward.
+    ☐ Add partial-vector clamp tests with lower/upper bounds that would expose accidental inactive-lane participation.
+    ☐ Add integer pair-product/magnitude tests for odd active counts and for active counts crossing a 128-bit lane boundary.
+    ☐ Exercise the pair-product partner shuffle for signed and unsigned lane types whose byte widths differ.
+    ☐ Add 256-bit float dot-product tests with five through eight active elements so the high 128-bit lane contributes to the scalar result.
+    ☐ Add representative 128/256-bit double dot-product tests, including partial extents.
+    ☐ Add nonzero floating hash tests, equal-value hash consistency, distinct logical-lane inputs, infinities, and representative NaNs without asserting that unequal NaNs must hash differently.
+    ☐ Retain `+0`/`-0` equality and hash regression coverage for both float and double.
+    ☐ Exercise inactive-lane debug checks under a checks-enabled build and verify full vectors bypass partial-lane validation.
+    ☐ End Phase 7 only when full and partial vectors have direct tests for every behavior that uses `FillInactiveLanes` or width-specific dot-product logic.
+
+  Phase 8 - Exercise Preconditions and Failure Contracts:
+    ☐ Inventory every `SIMDLIB_PRECONDITION` reachable through the public headers and classify its expected debug/release behavior.
+    ☐ Add a checks-enabled assertion/death-test harness that can validate contract failures without terminating the entire CTest run.
+    ☐ Test an undersized `load_partial` span for a nonzero active count.
+    ☐ Test misaligned inputs to aligned load/store entry points.
+    ☐ Test undersized raw-byte storage passed to `Api::store`.
+    ☐ Add failure tests for any newly documented index, extent, divisor, overlap, or alignment preconditions discovered during Phases 1-7.
+    ☐ Verify failure tests are excluded or adapted when preconditions are intentionally compiled out.
+    ☐ Run ASan/UBSan over valid boundary cases to prove no failure test is masking an out-of-bounds read, invalid shift, division by zero, alignment violation, or strict-aliasing defect.
+    ☐ End Phase 8 only when every supported runtime precondition has a checks-enabled negative test or a written explanation of why it is compile-time-only/unreachable.
+
+  Phase 9 - Full Validation, Documentation, and Close-Out:
+    ☐ Run formatting/static analysis required by the repository after all test changes.
+    ☐ Build and run the strict MSVC Release matrix.
+    ☐ Build and run the strict clang-cl Release matrix.
+    ☐ Build and run the Clang coverage preset from a clean coverage reset.
+    ☐ Build and run the Clang ASan/UBSan Debug configuration.
+    ☐ Run portable, scalar-only, FMA on/off, BMI1-only, BMI2-only, BMI1+BMI2, SSE, and AVX2 profiles.
+    ☐ Run header-isolation, configuration probes, formatter ODR, result-set equivalence, examples, and the external consumer test.
+    ☐ Record exact compiler/CMake versions, commands, test counts, assertion counts, deterministic seeds, elapsed times, and log/report paths.
+    ☐ Update `docs/TestCoverage.md` with corrected coverage-generation behavior, before/after trustworthy totals, the completed public-surface matrix, and remaining justified gaps.
+    ☐ Reconcile the old statement that no unresolved high-risk coverage gap remains with the evidence produced by this todo.
+    ☐ Record every excluded red gutter as constexpr-only, compiler-specific, unreachable, non-code, or intentionally unsupported; do not leave unexplained exclusions.
+    ☐ Verify a source audit finds no unjustified direct `SimdLib::Detail` usage or backend implementation routing in tests or shared test support.
+    ☐ Verify a source audit finds no unallowlisted test-example `static_assert` blocks in public headers and that all dedicated constexpr targets participate in the documented compiler/configuration matrix.
+    ☐ Compare the final consumer-header compile-time measurements with the Phase 3 baseline and record the result in `docs/TestCoverage.md`.
+    ☐ Verify the VS Code Test Coverage view imports the final `coverage.info` and agrees with the documented per-header totals.
+    ☐ Verify `git diff --check` passes and no generated profiles, LCOV reports, binaries, logs, or temporary analysis files are tracked.
+    ☐ End Phase 9 only when all earlier phase gates are checked, every supported public contract has direct proof or a reviewed justification, all validation configurations are green, and the coverage report is reproducible.
+
+  Execution Evidence:
+    ☐ Phase 0 corrected coverage pipeline, clean warning output, object/profile provenance, and corrected baseline totals recorded.
+    ☐ Phase 1 BMI contract decisions, helper matrix, deterministic inputs, and portable/intrinsic equivalence results recorded.
+    ☐ Phase 2 public `Api` operation/type matrix and backend-family reachability results recorded.
+    ☐ Phase 3 migrated-header assertion inventory, retained-invariant justifications, dedicated constexpr-target matrix, consumer compile-time measurements, and separate MSVC/Clang/compiler-path evidence recorded.
+    ☐ Phase 4 `SimdAlgo` full-register/tail outcome matrix recorded.
+    ☐ Phase 5 accepted/rejected formatter grammar matrix recorded.
+    ☐ Phase 6 `uint128_t` boundary and compatibility matrix recorded.
+    ☐ Phase 7 `SimdVector` full/partial/128/256-bit behavior matrix recorded.
+    ☐ Phase 8 precondition inventory, negative-test results, and sanitizer evidence recorded.
+    ☐ Phase 9 final compiler/configuration matrix, test/assertion counts, before/after coverage, remaining justifications, and clean-worktree evidence recorded.
