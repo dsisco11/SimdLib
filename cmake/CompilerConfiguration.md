@@ -55,3 +55,11 @@ Clang non-x86 configuration. The default probe compiles the same
 `__vectorcall` declaration shapes with MSVC and Clang. See the
 [MSVC `__vectorcall` reference](https://learn.microsoft.com/en-us/cpp/cpp/vectorcall?view=msvc-170)
 and [Clang vectorcall reference](https://clang.llvm.org/docs/AttributeReference.html#vectorcall).
+The compile-only constexpr matrix builds BMI under all four feature-macro
+profiles, UInt128 under compiler-carry, portable-carry, and scalar profiles,
+and the API/vector contracts under SSE4.2, AVX2, and fully disabled profiles.
+`SimdLibConstexprProbes` aggregates these targets. The production-header
+assertion audit is a build dependency and a CTest entry; any unallowlisted
+assertion or stale justification fails with its header and assertion text.
+See [`docs/ConstexprCompilerEvidence.md`](../docs/ConstexprCompilerEvidence.md)
+for compiler-specific runtime-path evidence and measurement results.

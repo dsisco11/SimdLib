@@ -6,9 +6,11 @@
 
 using namespace SimdLib::Tests;
 
-static_assert(constexpr_movemask_contract<128, std::uint32_t>());
-static_assert(constexpr_movemask_contract<128, float>());
 
+TEST_CASE("128-bit constexpr contracts match volatile runtime dispatch", "[simdlib][sse42][constexpr][runtime-parity]")
+{
+	require_constexpr_runtime_parity<128>();
+}
 TEST_CASE("128-bit Api specialization matrix", "[simdlib][sse42][availability]")
 {
     require_supported_addition_matrix<128>();

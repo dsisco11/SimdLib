@@ -585,6 +585,7 @@ class uint128_t final
 	}
 };
 
+// These assertions protect the public object-representation ABI required by SIMD register conversion.
 static_assert(sizeof(uint128_t) == 16);
 static_assert(alignof(uint128_t) == 16);
 static_assert(std::is_standard_layout_v<uint128_t>);
@@ -746,10 +747,4 @@ namespace SimdLib
 	return popcount(value) == 1;
 }
 
-static_assert(uint128_t{std::numeric_limits<std::uint64_t>::max(), 0} + uint128_t{1} == uint128_t{0, 1});
-static_assert(uint128_t{0, 1} - uint128_t{1} == uint128_t{std::numeric_limits<std::uint64_t>::max(), 0});
-static_assert((uint128_t{1} << 127) == uint128_t{0, std::uint64_t{1} << 63});
-static_assert((uint128_t{1} << 128) == uint128_t{});
-static_assert((uint128_t{0, std::uint64_t{1} << 63} >> 127) == uint128_t{1});
-static_assert(popcount(std::numeric_limits<uint128_t>::max()) == 128);
 } // namespace SimdLib

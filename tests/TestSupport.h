@@ -1,6 +1,7 @@
 #pragma once
 
 #include <SimdLib/Api.h>
+#include "constexpr/ApiConstexprContracts.h"
 
 #include <catch2/catch_test_macros.hpp>
 
@@ -355,13 +356,37 @@ void require_supported_movemask_matrix()
     require_movemask_contract<Width, double>();
 }
 
-template <std::size_t Width, class Element>
-consteval bool constexpr_movemask_contract()
+/**
+ * @brief Compares constant evaluation with optimized runtime dispatch using volatile-derived inputs.
+ * @tparam Width SIMD register width in bits.
+ */
+template <std::size_t Width>
+void require_constexpr_runtime_parity()
 {
-    using simd = Api<Width, Element>;
-    constexpr auto value = simd::construct(movemask_test_values<Width, Element>());
-    return simd::movemask(value) == expected_byte_movemask<Width, Element>() &&
-           simd::movemask_slim(value) == expected_slim_movemask<Width, Element>();
+	using simd = Api<Width, std::int32_t>;
+	constexpr auto lhsConstant = Constexpr::lane_values<Width, std::int32_t>();
+	constexpr auto rhsConstant = Constexpr::comparison_values<Width, std::int32_t>(1);
+	constexpr auto expected = Constexpr::evaluate_api_contract<Width>(lhsConstant, rhsConstant);
+	std::array<std::int32_t, simd::element_count> lhsRuntime{};
+	std::array<std::int32_t, simd::element_count> rhsRuntime{};
+	for (std::size_t index = 0; index < simd::element_count; ++index)
+	{
+		volatile std::int32_t lhsValue = lhsConstant[index];
+		volatile std::int32_t rhsValue = rhsConstant[index];
+		lhsRuntime[index] = lhsValue;
+		rhsRuntime[index] = rhsValue;
+	}
+	REQUIRE(Constexpr::evaluate_api_contract<Width>(lhsRuntime, rhsRuntime) == expected);
+
+	constexpr auto shiftSource = simd::set1(-8);
+	constexpr int laneWidth = static_cast<int>(simd::element_width);
+	constexpr auto expectedLogicalLeft = simd::to_array(simd::shift_left(shiftSource, laneWidth));
+	constexpr auto expectedLogicalRight = simd::to_array(simd::shift_right(shiftSource, laneWidth));
+	constexpr auto expectedArithmeticRight = simd::to_array(simd::shift_right_arithmetic(shiftSource, laneWidth));
+	volatile int runtimeShift = laneWidth;
+	REQUIRE(simd::to_array(simd::shift_left(shiftSource, runtimeShift)) == expectedLogicalLeft);
+	REQUIRE(simd::to_array(simd::shift_right(shiftSource, runtimeShift)) == expectedLogicalRight);
+	REQUIRE(simd::to_array(simd::shift_right_arithmetic(shiftSource, runtimeShift)) == expectedArithmeticRight);
 }
 /**
  * @brief Verifies public extrema values and first-position tie semantics for an integer Api specialization.

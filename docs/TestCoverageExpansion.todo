@@ -70,33 +70,33 @@ SimdLib Test Coverage Expansion:
     ☒ End Phase 2 only when every supported public specialization is represented in the operation/type matrix and the previously uncovered backend families are reached through that matrix or explicitly justified.
 
   Phase 3 - Extract Header Self-Tests and Expand Constexpr/Compiler Proof:
-    ☐ Inventory every namespace-scope or function-adjacent `static_assert` in public headers and classify it as a test example, ABI/layout invariant, template constraint, unsupported-instantiation diagnostic, or implementation safety invariant.
-    ☐ Move test-example assertions out of public headers so ordinary consumers do not repeatedly evaluate the library test suite in every translation unit.
-    ☐ Move the `Bmi.h` `#pragma region Tests` block and all scattered result-example assertions into dedicated compile-time test translation units under `tests/constexpr/`.
-    ☐ Move the namespace-scope `UInt128.h` layout, arithmetic, shift, and bit-helper examples into dedicated compile-time test translation units under `tests/constexpr/`.
-    ☐ Audit the remaining public headers for test-only assertions and migrate them to the matching dedicated compile-time test file.
-    ☐ Preserve template constraints and dependent diagnostics that must reject invalid caller instantiations, including width/range restrictions, supported conversion shapes, result-width limits, immediate-shift constraints, and `dependent_false_v` unsupported mappings.
-    ☐ Preserve only true ABI or implementation invariants in production headers, and document why each retained namespace-scope assertion must be evaluated by consumers.
-    ☐ Keep migrated assertions semantically identical during extraction, then expand their matrices separately so the move cannot silently weaken existing constexpr proof.
-    ☐ Add the dedicated constexpr sources to CMake as compile-only test targets or probes that are built by the normal test matrix without adding runtime-only placeholder tests.
-    ☐ Compile the dedicated BMI constexpr sources under portable, BMI1-only, BMI2-only, and BMI1+BMI2 configurations where feature macros affect available code.
-    ☐ Compile the dedicated UInt128 constexpr sources under optimized carry, portable carry, and scalar-only configurations.
-    ☐ Compile the dedicated `Api`/vector constexpr sources under the supported SSE/AVX and disabled-feature profiles.
-    ☐ Ensure compile-time test failures are visible through CTest/CMake target output with the source file and assertion expression that failed.
-    ☐ Add a mechanical audit that rejects new test-example `static_assert` blocks in public headers unless the assertion is allowlisted with an invariant/constraint justification.
-    ☐ Measure clean compile time for minimal translation units including `Bmi.h`, `UInt128.h`, and `SimdLib.h` before and after extraction using the same compiler, flags, and repeated-run method.
-    ☐ Record preprocessing size and compiler front-end timing where supported, and verify the extraction does not increase consumer compile time or introduce additional emitted code.
-    ☐ Verify the move does not change public declarations, constraints, diagnostics for invalid instantiations, ABI/layout, or runtime behavior.
-    ☐ Create constexpr contract helpers that can be reused by compile-only probes and runtime parity tests without relying on runtime coverage counters for constant evaluation.
-    ☐ Expand `Api` `static_assert`/`consteval` coverage for `setzero`, `setr`, `construct`, `set1`, `to_array`, `get_element`, and `set_element` at 128 and 256 bits.
-    ☐ Expand constexpr comparison coverage for `cmp_eq`, `cmp_eq_mask`, `cmp_gt`, `cmp_ge`, `cmp_lt`, `cmp_le`, and the internal comparison operation choices reached by them.
-    ☐ Expand constexpr `movemask` and `movemask_slim` beyond the current representative types to signed, unsigned, float, and double lane families at both widths.
-    ☐ Add constexpr `min_position`, `max_position`, lane-shift, and whole-register-shift boundary checks.
-    ☐ Add runtime parity checks constructed from volatile inputs so optimized runtime paths cannot be satisfied solely by compile-time folding.
-    ☐ Add MSVC validation that directly executes `_addcarry_u64` and `_subborrow_u64` paths.
-    ☐ Keep clang-cl/Clang validation for builtin carry/borrow paths and retain portable-carry and scalar-only profiles.
-    ☐ Record compiler-specific paths that cannot appear in the Clang coverage report and cite their separate MSVC test evidence instead of treating them as uncovered defects.
-    ☐ End Phase 3 only when test-example assertions have left public headers, every retained production-header assertion is justified as a real constraint/invariant, consumer compile-time evidence is recorded, every constant-evaluation branch has compile-time proof, and every supported runtime/compiler branch has a matching configuration run.
+    ☒ Inventory every namespace-scope or function-adjacent `static_assert` in public headers and classify it as a test example, ABI/layout invariant, template constraint, unsupported-instantiation diagnostic, or implementation safety invariant.
+    ☒ Move test-example assertions out of public headers so ordinary consumers do not repeatedly evaluate the library test suite in every translation unit.
+    ☒ Move the `Bmi.h` `#pragma region Tests` block and all scattered result-example assertions into dedicated compile-time test translation units under `tests/constexpr/`.
+    ☒ Move the namespace-scope `UInt128.h` layout, arithmetic, shift, and bit-helper examples into dedicated compile-time test translation units under `tests/constexpr/`.
+    ☒ Audit the remaining public headers for test-only assertions and migrate them to the matching dedicated compile-time test file.
+    ☒ Preserve template constraints and dependent diagnostics that must reject invalid caller instantiations, including width/range restrictions, supported conversion shapes, result-width limits, immediate-shift constraints, and `dependent_false_v` unsupported mappings.
+    ☒ Preserve only true ABI or implementation invariants in production headers, and document why each retained namespace-scope assertion must be evaluated by consumers.
+    ☒ Keep migrated assertions semantically identical during extraction, then expand their matrices separately so the move cannot silently weaken existing constexpr proof.
+    ☒ Add the dedicated constexpr sources to CMake as compile-only test targets or probes that are built by the normal test matrix without adding runtime-only placeholder tests.
+    ☒ Compile the dedicated BMI constexpr sources under portable, BMI1-only, BMI2-only, and BMI1+BMI2 configurations where feature macros affect available code.
+    ☒ Compile the dedicated UInt128 constexpr sources under optimized carry, portable carry, and scalar-only configurations.
+    ☒ Compile the dedicated `Api`/vector constexpr sources under the supported SSE/AVX and disabled-feature profiles.
+    ☒ Ensure compile-time test failures are visible through CTest/CMake target output with the source file and assertion expression that failed.
+    ☒ Add a mechanical audit that rejects new test-example `static_assert` blocks in public headers unless the assertion is allowlisted with an invariant/constraint justification.
+    ☒ Measure clean compile time for minimal translation units including `Bmi.h`, `UInt128.h`, and `SimdLib.h` before and after extraction using the same compiler, flags, and repeated-run method.
+    ☒ Record preprocessing size and compiler front-end timing where supported, and verify the extraction does not increase consumer compile time or introduce additional emitted code.
+    ☒ Verify the move does not change public declarations, constraints, diagnostics for invalid instantiations, ABI/layout, or runtime behavior.
+    ☒ Create constexpr contract helpers that can be reused by compile-only probes and runtime parity tests without relying on runtime coverage counters for constant evaluation.
+    ☒ Expand `Api` `static_assert`/`consteval` coverage for `setzero`, `setr`, `construct`, `set1`, `to_array`, `get_element`, and `set_element` at 128 and 256 bits.
+    ☒ Expand constexpr comparison coverage for `cmp_eq`, `cmp_eq_mask`, `cmp_gt`, `cmp_ge`, `cmp_lt`, `cmp_le`, and the internal comparison operation choices reached by them.
+    ☒ Expand constexpr `movemask` and `movemask_slim` beyond the current representative types to signed, unsigned, float, and double lane families at both widths.
+    ☒ Add constexpr `min_position`, `max_position`, lane-shift, and whole-register-shift boundary checks.
+    ☒ Add runtime parity checks constructed from volatile inputs so optimized runtime paths cannot be satisfied solely by compile-time folding.
+    ☒ Add MSVC validation that directly executes `_addcarry_u64` and `_subborrow_u64` paths.
+    ☒ Keep clang-cl/Clang validation for builtin carry/borrow paths and retain portable-carry and scalar-only profiles.
+    ☒ Record compiler-specific paths that cannot appear in the Clang coverage report and cite their separate MSVC test evidence instead of treating them as uncovered defects.
+    ☒ End Phase 3 only when test-example assertions have left public headers, every retained production-header assertion is justified as a real constraint/invariant, consumer compile-time evidence is recorded, every constant-evaluation branch has compile-time proof, and every supported runtime/compiler branch has a matching configuration run.
 
   Phase 4 - Close `SimdAlgo` Outcome and Boundary Gaps:
     ☐ Add `AnyEqual` tests that return false after an exact full-register traversal with no tail.
@@ -179,7 +179,7 @@ SimdLib Test Coverage Expansion:
     ☒ Phase 0 corrected coverage pipeline, clean warning output, object/profile provenance, and corrected baseline totals recorded.
     ☒ Phase 1 BMI contract decisions, helper matrix, deterministic inputs, and portable/intrinsic equivalence results recorded.
     ☒ Phase 2 public `Api` operation/type matrix and backend-family reachability results recorded: no direct `Detail` test routes remain; focused MSVC Release and Clang coverage runs pass 33/33 tests, and the complete MSVC Release suite passes 137/137 tests.
-    ☐ Phase 3 migrated-header assertion inventory, retained-invariant justifications, dedicated constexpr-target matrix, consumer compile-time measurements, and separate MSVC/Clang/compiler-path evidence recorded.
+    ☒ Phase 3 migrated-header assertion inventory, retained-invariant justifications, dedicated constexpr-target matrix, consumer compile-time measurements, and separate MSVC/Clang/compiler-path evidence recorded in `docs/StaticAssertionInventory.md` and `docs/ConstexprCompilerEvidence.md`; strict MSVC Release passes 144/144, Clang passes 147/147, and the external consumer passes 1/1.
     ☐ Phase 4 `SimdAlgo` full-register/tail outcome matrix recorded.
     ☐ Phase 5 accepted/rejected formatter grammar matrix recorded.
     ☐ Phase 6 `uint128_t` boundary and compatibility matrix recorded.

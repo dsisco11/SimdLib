@@ -78,41 +78,10 @@ template <std::integral int_t> [[nodiscard]] [[msvc::flatten]] SIMDLIB_FORCE_INL
 	}
 }
 
-#pragma region Tests
-static_assert(boolmask<std::uint8_t>(true) == 0xFF);
-static_assert(boolmask<std::uint8_t>(false) == 0x00);
-static_assert(boolmask<std::uint32_t>(true) == 0xFFFF'FFFF);
-static_assert(boolmask<std::uint32_t>(false) == 0x0000'0000);
-static_assert(boolmask<std::uint64_t>(true) == 0xFFFF'FFFF'FFFF'FFFF);
-static_assert(boolmask<std::uint64_t>(false) == 0x0000'0000'0000'0000);
 
-static_assert(select<std::int32_t>(1, 2, false) == 1);
-static_assert(select<std::int32_t>(1, 2, true) == 2);
-static_assert(select<std::int32_t>(-7, 4, false) == -7);
-static_assert(select<std::int32_t>(-7, 4, true) == 4);
-static_assert(select<std::uint32_t>(0xAAAA'AAAAu, 0x5555'5555u, false) == 0xAAAA'AAAAu);
-static_assert(select<std::uint32_t>(0xAAAA'AAAAu, 0x5555'5555u, true) == 0x5555'5555u);
 
-static_assert(max<std::int32_t>(1, 2) == 2);
-static_assert(max<std::int32_t>(2, 1) == 2);
-static_assert(max<std::int32_t>(-2, -5) == -2);
-static_assert(max<std::int32_t>(7, 7) == 7);
-static_assert(max<std::uint32_t>(3u, 9u) == 9u);
-static_assert(max<std::uint32_t>(0u, 0u) == 0u);
 
-static_assert(min<std::int32_t>(1, 2) == 1);
-static_assert(min<std::int32_t>(2, 1) == 1);
-static_assert(min<std::int32_t>(-2, -5) == -5);
-static_assert(min<std::int32_t>(7, 7) == 7);
-static_assert(min<std::uint32_t>(3u, 9u) == 3u);
-static_assert(min<std::uint32_t>(0u, 0u) == 0u);
 
-static_assert(abs<std::int32_t>(0) == 0);
-static_assert(abs<std::int32_t>(7) == 7);
-static_assert(abs<std::int32_t>(-7) == 7);
-static_assert(abs<std::uint32_t>(0u) == 0u);
-static_assert(abs<std::uint32_t>(7u) == 7u);
-#pragma endregion // Tests
 
 #pragma endregion // Common Building Blocks
 
@@ -300,7 +269,6 @@ template <integer_like int_t> [[nodiscard]] SIMDLIB_FORCE_INLINE constexpr stati
 	else
 		return source & (int_t{0} - source);
 }
-static_assert(blsi<std::uint32_t>(0b10100) == 0b00100);
 
 /// @brief Copy all bits from source to dst, and reset (set to 0) the bit in dst that corresponds to the lowest set bit in source.
 template <integer_like int_t> [[nodiscard]] SIMDLIB_FORCE_INLINE constexpr static int_t blsr(const int_t source) noexcept
@@ -324,7 +292,6 @@ template <integer_like int_t> [[nodiscard]] SIMDLIB_FORCE_INLINE constexpr stati
 	else
 		return source & (source - int_t{1});
 }
-static_assert(blsr<std::uint32_t>(0b1011) == 0b1010);
 
 /// @brief Extract and reset the lowest set bit in source.
 template <integer_like int_t> [[nodiscard]] [[msvc::flatten]] SIMDLIB_FORCE_INLINE constexpr static int_t blse(const int_t source, int_t &out_lsb) noexcept
@@ -340,7 +307,6 @@ template <integer_like int_t> [[nodiscard]] [[msvc::flatten]] SIMDLIB_FORCE_INLI
 	const int_t out_lsb = blsi(source);
 	return {static_cast<int_t>(source ^ out_lsb), out_lsb};
 }
-static_assert(blse<std::uint32_t>(0b10111) == std::make_tuple(std::uint32_t{0b10110}, std::uint32_t{0b1}));
 
 /**
  * @brief Extracts the first source bit at or above an inclusive one-hot boundary. [eg: blsioff(0b10100, 0b01000) => 0b10000]
@@ -356,10 +322,6 @@ template <integer_like int_t> [[nodiscard]] SIMDLIB_FORCE_INLINE constexpr stati
 {
 	return source & static_cast<int_t>(~source + starting_bit);
 }
-static_assert(blsioff<std::uint32_t>(0b10100, 0b00001) == 0b00100);
-static_assert(blsioff<std::uint32_t>(0b10100, 0b00010) == 0b00100);
-static_assert(blsioff<std::uint32_t>(0b10100, 0b00100) == 0b00100);
-static_assert(blsioff<std::uint32_t>(0b10100, 0b01000) == 0b10000);
 
 /// @brief Set all the lower bits of dst up to and including the lowest set bit in source.
 template <integer_like int_t> [[nodiscard]] SIMDLIB_FORCE_INLINE constexpr static int_t blsmsk(const int_t source) noexcept
@@ -435,16 +397,12 @@ template <integer_like int_t> [[nodiscard]] SIMDLIB_FORCE_INLINE constexpr stati
 {
 	return (value >> 1) ^ value;
 }
-static_assert(pp_xor<std::uint32_t>(0b01110) == 0b01001);
-static_assert(pp_xor<std::uint32_t>(0b11110) == 0b10001);
 
 /// @brief Computes a distance-1 parallel-suffix XOR stage by XORing each bit with its adjacent bit to the left (low-bits). [eg: ps_xor(0b01110) => 0b10010]
 template <integer_like int_t> [[nodiscard]] SIMDLIB_FORCE_INLINE constexpr static int_t ps_xor(const int_t value) noexcept
 {
 	return (value << 1) ^ value;
 }
-static_assert(ps_xor<std::uint32_t>(0b01110) == 0b10010);
-static_assert(ps_xor<std::uint32_t>(0b11110) == 0b100010);
 
 /// @brief Computes the parallel-prefix OR of the given value, which is the result of or'ing each bit with all bits to the left (low-bits). [eg: 10100 => 11111 ]
 template <integer_like int_t> [[nodiscard]] [[msvc::flatten]] SIMDLIB_FORCE_INLINE constexpr static int_t pp_or(const int_t value) noexcept
@@ -453,11 +411,6 @@ template <integer_like int_t> [[nodiscard]] [[msvc::flatten]] SIMDLIB_FORCE_INLI
 	using std::bit_width;
 	return bzhi(std::numeric_limits<int_t>::max(), bit_width(value));
 }
-static_assert(pp_or<std::uint8_t>(0b0100) == 0b0111);
-static_assert(pp_or<std::uint16_t>(0b0100) == 0b0111);
-static_assert(pp_or<std::uint32_t>(0b0) == 0b0);
-static_assert(pp_or<std::uint32_t>(0b0100) == 0b0111);
-static_assert(pp_or<std::uint32_t>(0b10100) == 0b11111);
 
 /// @brief Computes the parallel-suffix OR of the given value, which is the result of or'ing each bit with all bits to the right (high-bits). [eg: 010100 => 1...100 ]
 template <integer_like int_t> [[nodiscard]] SIMDLIB_FORCE_INLINE constexpr static int_t ps_or(const int_t value) noexcept
@@ -465,10 +418,6 @@ template <integer_like int_t> [[nodiscard]] SIMDLIB_FORCE_INLINE constexpr stati
 	return value | (int_t{0} - value);
 	// return value | ((~value) + 1);
 }
-static_assert(ps_or<std::int32_t>(0x0) == 0x0);
-static_assert(ps_or<std::int32_t>(0b0100) == std::int32_t{-4});
-static_assert(ps_or<std::uint32_t>(0b0100) == 0xFFFF'FFFC);
-static_assert(ps_or<std::uint32_t>(0b10100) == 0xFFFF'FFFC);
 
 /// @brief Computes the parallel-prefix-least-significant-OR of the given value, which is the result of clearing all bits to the right (high-bits) of the lsb and
 /// then or'ing each bit with all bits to the left (low-bits). [eg: 10100 => 00111 ]
@@ -479,23 +428,18 @@ template <integer_like int_t> [[nodiscard]] [[msvc::flatten]] SIMDLIB_FORCE_INLI
 	using std::bit_width;
 	return bzhi(std::numeric_limits<int_t>::max(), bit_width(blsi(value)));
 }
-static_assert(pp_lsor<std::uint32_t>(0b0) == 0b0);
-static_assert(pp_lsor<std::uint32_t>(0b0100) == 0b0111);
-static_assert(pp_lsor<std::uint32_t>(0b10100) == 0b00111);
 
 /// @brief Computes a distance-1 parallel-prefix AND stage by ANDing each bit with its adjacent bit to the right (high-bits). [eg: pp_and(0b01101110) => 0b00100110]
 template <integer_like int_t> [[nodiscard]] SIMDLIB_FORCE_INLINE constexpr static int_t pp_and(const int_t value) noexcept
 {
 	return value & (value >> 1);
 }
-static_assert(pp_and<std::uint32_t>(0b01101110) == 0b00100110);
 
 /// @brief Computes a distance-1 parallel-suffix AND stage by ANDing each bit with its adjacent bit to the left (low-bits). [eg: ps_and(0b01101110) => 0b01001100]
 template <integer_like int_t> [[nodiscard]] SIMDLIB_FORCE_INLINE constexpr static int_t ps_and(const int_t value) noexcept
 {
 	return value & (value << 1);
 }
-static_assert(ps_and<std::uint32_t>(0b01101110) == 0b01001100);
 
 /// @brief Computes a distance-1 parallel-prefix AND-NOT stage, retaining set bits whose adjacent bit to the right (high-bits) is clear. [eg: pp_andn(0b01110) => 0b01000]
 template <integer_like int_t> [[nodiscard]] SIMDLIB_FORCE_INLINE constexpr static int_t pp_andn(const int_t value) noexcept
@@ -503,7 +447,6 @@ template <integer_like int_t> [[nodiscard]] SIMDLIB_FORCE_INLINE constexpr stati
 	using Bmi::andn;
 	return andn<int_t>(value >> 1, value);
 }
-static_assert(pp_andn<std::uint32_t>(0b01110) == 0b01000);
 
 /// @brief Computes a distance-1 parallel-suffix AND-NOT stage, retaining set bits whose adjacent bit to the left (low-bits) is clear. [eg: ps_andn(0b01110) => 0b00010]
 template <integer_like int_t> [[nodiscard]] SIMDLIB_FORCE_INLINE constexpr static int_t ps_andn(const int_t value) noexcept
@@ -511,8 +454,6 @@ template <integer_like int_t> [[nodiscard]] SIMDLIB_FORCE_INLINE constexpr stati
 	using Bmi::andn;
 	return andn<int_t>(value << 1, value);
 }
-static_assert(ps_andn<std::uint32_t>(0b01110) == 0b00010);
-static_assert(ps_andn<std::uint32_t>(0b001100) == 0b0000100);
 
 /// @brief Computes an inverse distance-1 parallel-prefix AND-NOT stage, marking clear bits whose adjacent bit to the right (high-bits) is set. [eg: pp_andni(0b01110) => 0b00001]
 template <integer_like int_t> [[nodiscard]] SIMDLIB_FORCE_INLINE constexpr static int_t pp_andni(const int_t value) noexcept
@@ -520,10 +461,6 @@ template <integer_like int_t> [[nodiscard]] SIMDLIB_FORCE_INLINE constexpr stati
 	using Bmi::andn;
 	return andn<int_t>(value, value >> 1);
 }
-static_assert(pp_andni<std::uint32_t>(0b01111) == 0b00000);
-static_assert(pp_andni<std::uint32_t>(0b01110) == 0b00001);
-static_assert(pp_andni<std::uint32_t>(0b01100) == 0b00010);
-static_assert(pp_andni<std::uint32_t>(0b1011000) == 0b100100);
 
 /// @brief Computes an inverse distance-1 parallel-suffix AND-NOT stage, marking clear bits whose adjacent bit to the left (low-bits) is set. [eg: ps_andni(0b01110) => 0b10000]
 template <integer_like int_t> [[nodiscard]] SIMDLIB_FORCE_INLINE constexpr static int_t ps_andni(const int_t value) noexcept
@@ -531,9 +468,6 @@ template <integer_like int_t> [[nodiscard]] SIMDLIB_FORCE_INLINE constexpr stati
 	using Bmi::andn;
 	return andn<int_t>(value, value << 1);
 }
-static_assert(ps_andni<std::uint32_t>(0b01110) == 0b10000);
-static_assert(ps_andni<std::uint32_t>(0b001100) == 0b010000);
-static_assert(ps_andni<std::uint32_t>(0b101100) == 0b1010000);
 #pragma endregion
 
 #pragma region BMI Extended Operations
@@ -547,8 +481,6 @@ template <integer_like int_t> [[nodiscard]] [[msvc::flatten]] SIMDLIB_FORCE_INLI
 	//  return value ^ bzhi(std::numeric_limits<int_t>::max(), bit_width(value));
 	//  return !value ? int_t{0} : int_t{1} << (bit_width(value) - 1);
 }
-static_assert(bmsi<std::uint32_t>(0b10111) == 0b10000);
-static_assert(bmsi<std::uint32_t>(0b0) == 0b0);
 
 /// @brief Copy all bits from source to dst, and reset (set to 0) the bit in dst that corresponds to the highest set bit in source.
 template <integer_like int_t> [[nodiscard]] [[msvc::flatten]] SIMDLIB_FORCE_INLINE constexpr static int_t bmsr(const int_t value) noexcept
@@ -558,8 +490,6 @@ template <integer_like int_t> [[nodiscard]] [[msvc::flatten]] SIMDLIB_FORCE_INLI
 	// return value ^ (int_t(1) << (bit_width(value) - 1));
 	return bzhi(value, bit_width(value) - 1);
 }
-static_assert(bmsr<std::uint32_t>(0b1011) == 0b0011);
-static_assert(bmsr<std::uint32_t>(0b1000) == 0b0000);
 
 /// @brief Copy all bits from source to dst, and reset (set to 0) the bit in dst that corresponds to the highest set bit in source.
 template <integer_like int_t> [[nodiscard]] [[msvc::flatten]] SIMDLIB_FORCE_INLINE constexpr static int_t bmsr(const int_t value, int &out_msb_index) noexcept
@@ -585,7 +515,6 @@ template <integer_like int_t> [[nodiscard]] [[msvc::flatten]] SIMDLIB_FORCE_INLI
 	const int_t msb = bit_floor(value);
 	return {static_cast<int_t>(value ^ msb), msb};
 }
-static_assert(bmse<std::uint32_t>(0b10111) == std::make_tuple(std::uint32_t{0b00111}, std::uint32_t{0b10000}));
 
 /**
  * @brief Clears every source bit whose bit index is less than index. [eg: bzlo(0b11111, 3) => 0b11000]
@@ -601,10 +530,6 @@ template <integer_like int_t> [[nodiscard]] SIMDLIB_FORCE_INLINE constexpr stati
 {
 	return andn(bzhi(~int_t{0}, index), source);
 }
-static_assert(bzlo<std::uint32_t>(0b10111, 0) == 0b10111);
-static_assert(bzlo<std::uint32_t>(0b10111, 1) == 0b10110);
-static_assert(bzlo<std::uint32_t>(0b10111, 2) == 0b10100);
-static_assert(bzlo<std::uint32_t>(0b10111, 3) == 0b10000);
 
 /// @brief Set all the lower bits of dst up to and including the highest set bit in source.
 template <std::integral int_t> [[nodiscard]] SIMDLIB_FORCE_INLINE constexpr static int_t bmsmsk(const int_t source) noexcept
@@ -635,17 +560,12 @@ template <integer_like int_t> [[nodiscard]] SIMDLIB_FORCE_INLINE constexpr stati
 	sum += (n & 0xFFFF0000) << 3;
 	return sum;
 }
-static_assert(PartialSumBLSI<std::uint32_t>(0b1011) == 24);
-static_assert(PartialSumBLSI<std::uint32_t>(0b1100) == 28);
-static_assert(PartialSumBLSI<std::uint32_t>(0b1110) == 31);
-static_assert(PartialSumBLSI<std::uint32_t>(0b1111) == 32);
 
 /// @brief Sets the least significant, leftmost (low-bits) unset bit. [eg: 01011 => 01111]
 template <integer_like int_t> [[nodiscard]] SIMDLIB_FORCE_INLINE constexpr static int_t flipr_unset(const int_t value) noexcept
 {
 	return value | (value + 1);
 }
-static_assert(flipr_unset<std::uint32_t>(0b01011) == 0b01111);
 
 /// @brief Returns a single 1-bit at the position of the leftmost (low-bits) 0-bit, producing 0 if none. [eg: 01011 => 00100]
 template <integer_like int_t> [[nodiscard]] SIMDLIB_FORCE_INLINE constexpr static int_t maskr_unset(const int_t value) noexcept
@@ -653,7 +573,6 @@ template <integer_like int_t> [[nodiscard]] SIMDLIB_FORCE_INLINE constexpr stati
 	using Bmi::blsi;
 	return blsi<int_t>(~value);
 }
-static_assert(maskr_unset<std::uint32_t>(0b01011) == 0b00100);
 
 /// @brief Returns a single 1-bit at the position of the rightmost (high-bits) trailing 1-bit, producing 0 if none. [eg: 010111 => 00100]
 template <integer_like int_t> [[nodiscard]] SIMDLIB_FORCE_INLINE constexpr static int_t maskl_trailing_one(const int_t value) noexcept
@@ -661,22 +580,18 @@ template <integer_like int_t> [[nodiscard]] SIMDLIB_FORCE_INLINE constexpr stati
 	using Bmi::blsi;
 	return blsi<int_t>(~value) >> 1;
 }
-static_assert(maskl_trailing_one<std::uint32_t>(0b010111) == 0b00100);
-static_assert(maskl_trailing_one<std::uint32_t>(0b010110) == 0b0);
 
 /// @brief Clears all least significant, leftmost (low-bits) trailing set bits. [eg: 1011 => 1000]
 template <integer_like int_t> [[nodiscard]] SIMDLIB_FORCE_INLINE constexpr static int_t clear_trailing_ones(const int_t value) noexcept
 {
 	return value & (value + 1);
 }
-static_assert(clear_trailing_ones<std::uint32_t>(0b1011) == 0b1000);
 
 /// @brief Sets all least significant, leftmost (low-bits) trailing unset bits. [eg: 10100 => 10111]
 template <integer_like int_t> [[nodiscard]] SIMDLIB_FORCE_INLINE constexpr static int_t flip_trailing_zeros(const int_t value) noexcept
 {
 	return value | (value - 1);
 }
-static_assert(flip_trailing_zeros<std::uint32_t>(0b10100) == 0b10111);
 
 /// @brief Returns a mask over the trailing 0-bits in the source integer. [eg: 10100 => 011]
 template <integer_like int_t> [[nodiscard]] SIMDLIB_FORCE_INLINE constexpr static int_t mask_trailing_zeros(const int_t value) noexcept
@@ -684,7 +599,6 @@ template <integer_like int_t> [[nodiscard]] SIMDLIB_FORCE_INLINE constexpr stati
 	using Bmi::blsi;
 	return blsi(value) - 1;
 }
-static_assert(mask_trailing_zeros<std::uint32_t>(0b101000) == 0b0111);
 
 /// @brief Returns a mask over the trailing 0-bits in the source integer.
 /// For value==0, returns 0 ("safe" variant; avoids the wraparound/all-ones behavior).
@@ -693,8 +607,6 @@ template <integer_like int_t> [[nodiscard]] SIMDLIB_FORCE_INLINE constexpr stati
 {
 	return boolmask<int_t>(value != 0) & mask_trailing_zeros(value);
 }
-static_assert(mask_trailing_zeros_or_zero<std::uint32_t>(0b101000) == 0b0111);
-static_assert(mask_trailing_zeros_or_zero<std::uint32_t>(0) == 0u);
 
 /// @brief Returns a mask of all bits strictly lower than the least-significant set bit (LSB).
 /// For value==0, returns 0.
@@ -705,8 +617,6 @@ template <integer_like int_t> [[nodiscard]] SIMDLIB_FORCE_INLINE constexpr stati
 	// For value==0, ps_or(0)==0, so ~ps_or(0) would be all-ones; mask it out.
 	return boolmask<int_t>(value != 0) & ~ps_or(value);
 }
-static_assert(mask_bits_lower_than_lsb<std::uint32_t>(0b101000) == 0b0111);
-static_assert(mask_bits_lower_than_lsb<std::uint32_t>(0) == 0u);
 
 /// @brief Returns a mask of all bits strictly lower than the least-significant set bit (LSB).
 /// For value==0, returns all-ones (useful as a "no constraint" mask).
@@ -715,8 +625,6 @@ template <integer_like int_t> [[nodiscard]] SIMDLIB_FORCE_INLINE constexpr stati
 {
 	return ~ps_or(value);
 }
-static_assert(mask_bits_lower_than_lsb_or_all_ones<std::uint32_t>(0b101000) == 0b0111);
-static_assert(mask_bits_lower_than_lsb_or_all_ones<std::uint32_t>(0) == 0xFFFF'FFFFu);
 
 /// @brief Returns a mask over the trailing 1-bits in the source integer, producing 0 if none. [eg: 10111 => 00111]
 template <integer_like int_t> [[nodiscard]] SIMDLIB_FORCE_INLINE constexpr static int_t mask_trailing_ones(const int_t value) noexcept
@@ -724,8 +632,6 @@ template <integer_like int_t> [[nodiscard]] SIMDLIB_FORCE_INLINE constexpr stati
 	using Bmi::blsi;
 	return blsi<int_t>(~value) - int_t{1};
 }
-static_assert(mask_trailing_ones<std::uint32_t>(0b10111) == 0b00111);
-static_assert(mask_trailing_ones<std::uint32_t>(0b10110) == 0b0);
 
 /// @brief Returns a mask over the leading zeros in the source integer. [eg: 000101 => 111000]
 template <integer_like int_t> [[nodiscard]] SIMDLIB_FORCE_INLINE constexpr static int_t mask_leading_zeros(const int_t value) noexcept
@@ -735,40 +641,24 @@ template <integer_like int_t> [[nodiscard]] SIMDLIB_FORCE_INLINE constexpr stati
 	return ~bzhi(std::numeric_limits<int_t>::max(), bit_width(value));*/
 	return ~pp_or(value);
 }
-static_assert(mask_leading_zeros<std::uint8_t>(0b000101) == 0xF8);
-static_assert(mask_leading_zeros<std::uint16_t>(0b000101) == 0xFFF8);
-static_assert(mask_leading_zeros<std::uint32_t>(0b000101) == 0xFFFFFFF8);
 
 /// @brief Returns a mask over the leading ones in the source integer. [eg: 111011 => 111000]
 template <integer_like int_t> [[nodiscard]] SIMDLIB_FORCE_INLINE constexpr static int_t mask_leading_ones(const int_t value) noexcept
 {
 	return ~pp_or(static_cast<int_t>(~value));
 }
-static_assert(mask_leading_ones<std::uint8_t>(0b11100000) == 0b11100000);
-static_assert(mask_leading_ones<std::uint8_t>(0b11110101) == 0b11110000);
-static_assert(mask_leading_ones<std::uint16_t>(0xFFF5) == 0xFFF0);
-static_assert(mask_leading_ones<std::uint32_t>(0xFFFFFFFFU) == 0xFFFFFFFFU);
-static_assert(mask_leading_ones<std::uint32_t>(0xFFFFFFF5U) == 0xFFFFFFF0U);
 
 /// @brief Clears all most significant, rightmost (high-bits) leading set bits. [eg: 110101 => 000101]
 template <integer_like int_t> [[nodiscard]] SIMDLIB_FORCE_INLINE constexpr static int_t clear_leading_ones(const int_t value) noexcept
 {
 	return pp_or(static_cast<int_t>(~value)) & value;
 }
-static_assert(clear_leading_ones<std::uint8_t>(0b11110000) == 0b00000000);
-static_assert(clear_leading_ones<std::uint8_t>(0b11110101) == 0b00000101);
-static_assert(clear_leading_ones<std::uint8_t>(0b11101011) == 0b00001011);
-static_assert(clear_leading_ones<std::uint8_t>(0b10101111) == 0b00101111);
-static_assert(clear_leading_ones<std::uint16_t>(0xFFF5) == 0b101);
-static_assert(clear_leading_ones<std::uint32_t>(0xFFFFFFF5) == 0b101);
 
 /// @brief Copy all bits from the source integer, and reset (set to 0) the leftmost (low-bits) string of contiguous set bits. [eg: 1011 => 1000]
 template <integer_like int_t> [[nodiscard]] SIMDLIB_FORCE_INLINE constexpr static int_t clear_lowest_set_bits(const int_t value) noexcept
 {
 	return value & ((value | (value - int_t{1})) + int_t{1});
 }
-static_assert(clear_lowest_set_bits<std::uint32_t>(0b1011) == 0b1000);
-static_assert(clear_lowest_set_bits<std::uint32_t>(0b10110) == 0b10000);
 
 /// @brief Copy all bits from the source integer, and reset (set to 0) the leftmost (low-bits) string of contiguous set bits after copying said bits into the provided
 /// integer address. [eg: 1011 => 1000]
@@ -787,8 +677,6 @@ template <integer_like int_t>
 	const int_t mask = ((value | (value - int_t{1})) + int_t{1});
 	return {static_cast<int_t>(value & mask), static_cast<int_t>(value & ~mask)};
 }
-static_assert(consume_bit_sequence_right<std::uint32_t>(0b1011) == std::make_tuple(std::uint32_t{0b1000}, std::uint32_t{0b0011}));
-static_assert(consume_bit_sequence_right<std::uint32_t>(0b10110) == std::make_tuple(std::uint32_t{0b10000}, std::uint32_t{0b00110}));
 
 /// @brief Extracts and returns the rightmost (high-bits) string of contiguous set bits, said bits are also reset (set to 0) within the source integer. [eg: 0110111 =>
 /// 0110000]
@@ -800,8 +688,6 @@ template <integer_like int_t> [[nodiscard]] SIMDLIB_FORCE_INLINE constexpr stati
 	const int_t seq_mask = Bmi::bmsi(thresholds) - 1; // convert the thresholds msb to a mask over all the bits to the left (low-bits) of it.
 	return {static_cast<int_t>(value & seq_mask), andn<int_t>(seq_mask, value)};
 }
-static_assert(consume_bit_sequence_left<std::uint32_t>(0b0110111) == std::make_tuple(std::uint32_t{0b0000111}, std::uint32_t{0b0110000}));
-static_assert(consume_bit_sequence_left<std::uint32_t>(0b01101110) == std::make_tuple(std::uint32_t{0b00001110}, std::uint32_t{0b01100000}));
 
 /// @brief Copy all bits from the source integer, and reset (set to 0) the trailing bits up-to but excluding the rightmost (high-bits) trailing set bit. [eg: 10111 => 10100]
 template <integer_like int_t> [[nodiscard]] SIMDLIB_FORCE_INLINE constexpr static int_t left_collapse_trailing_bits(const int_t value) noexcept
@@ -809,8 +695,6 @@ template <integer_like int_t> [[nodiscard]] SIMDLIB_FORCE_INLINE constexpr stati
 	using Bmi::andn;
 	return andn(mask_trailing_ones(value) >> 1, value);
 }
-static_assert(left_collapse_trailing_bits<std::uint32_t>(0b10111) == 0b10100);
-static_assert(left_collapse_trailing_bits<std::uint32_t>(0b10110) == 0b10110);
 
 /// @brief Clears all bits lower than (not including) the given target-bit from the source integer. [eg: (10111, 100) => 10100]
 template <integer_like int_t>
@@ -819,8 +703,6 @@ template <integer_like int_t>
 	using Bmi::andn;
 	return andn(target_bit - int_t{1}, value);
 }
-static_assert(clear_bits_lower_than<std::uint32_t>(0b10111, 0b00100) == 0b10100);
-static_assert(clear_bits_lower_than<std::uint32_t>(0b10111, 0b00010) == 0b10110);
 
 /// @brief Clears all bits higher than (not including) the given target-bit from the source integer. [eg: (10111, 100) => 00111]
 template <integer_like int_t>
@@ -836,8 +718,6 @@ template <integer_like int_t>
 {
 	return value & (target_bit - int_t{1});
 }
-static_assert(extract_bits_lower_than<std::uint32_t>(0b10111, 0b00100) == 0b00011);
-static_assert(extract_bits_lower_than<std::uint32_t>(0b10111, 0b00010) == 0b00001);
 
 /// @brief Extracts all bits higher than (not including) the given target-bit from the source integer. [eg: (10111, 001) => 10110]
 template <integer_like int_t>
@@ -847,9 +727,6 @@ template <integer_like int_t>
 	using Bmi::blsmsk;
 	return andn(blsmsk(target_bit), value);
 }
-static_assert(extract_bits_higher_than<std::uint32_t>(0b10111, 0b00100) == 0b10000);
-static_assert(extract_bits_higher_than<std::uint32_t>(0b10111, 0b00010) == 0b10100);
-static_assert(extract_bits_higher_than<std::uint32_t>(0b10111, 0b00001) == 0b10110);
 
 #pragma endregion
 

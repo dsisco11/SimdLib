@@ -67,7 +67,15 @@ Compile-only targets cover:
   `SimdAlgo.h`, the deprecated `SimdApi.h` compatibility include, `SimdLib.h`,
   `SimdResample.h`, `SimdVector.h`, `TemplateTools.h`, and `UInt128.h`; and
 - `PublicSurfaceHeaderProbe` for the supported umbrella/focused-header boundary
-  and the guard against public `Detail` dependencies.
+  and the guard against public `Detail` dependencies; and
+- dedicated BMI, UInt128, 128/256-bit API/vector, and disabled-feature constexpr
+  targets aggregated by `SimdLibConstexprProbes`.
+
+The retained-assertion classifications and mechanical allowlist are recorded in
+[`StaticAssertionInventory.md`](StaticAssertionInventory.md). The complete
+constexpr/compiler matrix, runtime-path evidence, and consumer compile-time
+measurements are recorded in
+[`ConstexprCompilerEvidence.md`](ConstexprCompilerEvidence.md).
 
 `tests/consumer` separately imports the source tree through
 `add_subdirectory`, verifies that `SimdLib::SimdLib` is an interface target,

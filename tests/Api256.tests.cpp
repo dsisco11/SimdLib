@@ -7,9 +7,11 @@
 
 using namespace SimdLib::Tests;
 
-static_assert(constexpr_movemask_contract<256, std::uint64_t>());
-static_assert(constexpr_movemask_contract<256, double>());
 
+TEST_CASE("256-bit constexpr contracts match volatile runtime dispatch", "[simdlib][avx2][constexpr][runtime-parity]")
+{
+	require_constexpr_runtime_parity<256>();
+}
 TEST_CASE("256-bit Api specialization matrix", "[simdlib][avx2][availability]")
 {
     require_supported_addition_matrix<256>();

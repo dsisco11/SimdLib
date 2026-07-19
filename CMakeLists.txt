@@ -120,6 +120,105 @@ if(SIMDLIB_BUILD_CONFIGURATION_TESTS)
     endforeach()
 endif()
 
+# @brief Adds a compile-only constexpr contract probe.
+# @param target Target name used in compiler diagnostics.
+# @param source Translation unit containing static assertions.
+function(simdlib_add_constexpr_probe target source)
+	add_library(${target} OBJECT ${source})
+	target_link_libraries(${target} PRIVATE SimdLib::SimdLib)
+	simdlib_enable_development_warnings(${target})
+endfunction()
+
+if(SIMDLIB_BUILD_CONFIGURATION_TESTS)
+	set(simdlib_constexpr_targets "")
+
+	# @brief Adds one BMI feature-macro compile profile.
+	# @param profile_name Profile suffix used in the target name.
+	# @param bmi1 Whether BMI1 declarations are enabled.
+	# @param bmi2 Whether BMI2 declarations are enabled.
+	function(simdlib_add_bmi_constexpr_profile profile_name bmi1 bmi2)
+		set(target SimdLibConstexprBmi${profile_name})
+		simdlib_add_constexpr_probe(${target} tests/constexpr/BmiConstexpr.tests.cpp)
+		target_compile_definitions(${target} PRIVATE SIMDLIB_HAS_BMI1=${bmi1} SIMDLIB_HAS_BMI2=${bmi2})
+		if(SIMDLIB_MSVC_STYLE_DRIVER)
+			target_compile_options(${target} PRIVATE /arch:AVX2)
+		else()
+			target_compile_options(${target} PRIVATE -mno-bmi -mno-bmi2)
+			if(bmi1)
+				target_compile_options(${target} PRIVATE -mbmi)
+			endif()
+			if(bmi2)
+				target_compile_options(${target} PRIVATE -mbmi2)
+			endif()
+		endif()
+		set(simdlib_constexpr_targets ${simdlib_constexpr_targets} ${target} PARENT_SCOPE)
+	endfunction()
+
+	simdlib_add_bmi_constexpr_profile(Portable 0 0)
+	simdlib_add_bmi_constexpr_profile(Bmi1Only 1 0)
+	simdlib_add_bmi_constexpr_profile(Bmi2Only 0 1)
+	simdlib_add_bmi_constexpr_profile(Bmi1AndBmi2 1 1)
+
+	foreach(uint128_profile IN ITEMS Optimized Portable Scalar)
+		set(target SimdLibConstexprUInt128${uint128_profile})
+		simdlib_add_constexpr_probe(${target} tests/constexpr/UInt128Constexpr.tests.cpp)
+		list(APPEND simdlib_constexpr_targets ${target})
+		if(uint128_profile STREQUAL "Portable" OR uint128_profile STREQUAL "Scalar")
+			target_compile_definitions(${target} PRIVATE SIMDLIB_USE_COMPILER_CARRY_INTRINSICS=0)
+		endif()
+		if(uint128_profile STREQUAL "Scalar")
+			target_compile_definitions(${target} PRIVATE
+				SIMDLIB_HAS_SSE=0 SIMDLIB_HAS_SSE2=0 SIMDLIB_HAS_SSE3=0 SIMDLIB_HAS_SSSE3=0
+				SIMDLIB_HAS_SSE41=0 SIMDLIB_HAS_SSE42=0 SIMDLIB_HAS_AVX=0 SIMDLIB_HAS_AVX2=0
+				SIMDLIB_HAS_FMA=0 SIMDLIB_HAS_BMI1=0 SIMDLIB_HAS_BMI2=0)
+		elseif(SIMDLIB_MSVC_STYLE_DRIVER)
+			target_compile_definitions(${target} PRIVATE
+				SIMDLIB_HAS_SSE3=1 SIMDLIB_HAS_SSSE3=1 SIMDLIB_HAS_SSE41=1 SIMDLIB_HAS_SSE42=1)
+		else()
+			target_compile_options(${target} PRIVATE -msse4.2)
+		endif()
+	endforeach()
+
+	simdlib_add_constexpr_probe(SimdLibConstexprApi128 tests/constexpr/Api128Constexpr.tests.cpp)
+	list(APPEND simdlib_constexpr_targets SimdLibConstexprApi128)
+	if(SIMDLIB_MSVC_STYLE_DRIVER)
+		target_compile_definitions(SimdLibConstexprApi128 PRIVATE
+			SIMDLIB_HAS_SSE3=1 SIMDLIB_HAS_SSSE3=1 SIMDLIB_HAS_SSE41=1 SIMDLIB_HAS_SSE42=1)
+		if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+			target_compile_options(SimdLibConstexprApi128 PRIVATE /arch:AVX2)
+		endif()
+	else()
+		target_compile_options(SimdLibConstexprApi128 PRIVATE -msse4.2)
+	endif()
+
+	simdlib_add_constexpr_probe(SimdLibConstexprApi256 tests/constexpr/Api256Constexpr.tests.cpp)
+	list(APPEND simdlib_constexpr_targets SimdLibConstexprApi256)
+	if(SIMDLIB_MSVC_STYLE_DRIVER)
+		target_compile_options(SimdLibConstexprApi256 PRIVATE /arch:AVX2)
+	else()
+		target_compile_options(SimdLibConstexprApi256 PRIVATE -mavx2)
+	endif()
+
+	simdlib_add_constexpr_probe(SimdLibConstexprApiDisabled tests/constexpr/ApiDisabledConstexpr.tests.cpp)
+	list(APPEND simdlib_constexpr_targets SimdLibConstexprApiDisabled)
+
+	add_custom_target(SimdLibPublicHeaderAssertionAudit
+		COMMAND ${CMAKE_COMMAND}
+			-DSOURCE_DIRECTORY=${CMAKE_CURRENT_SOURCE_DIR}
+			-P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/AuditPublicHeaderAssertions.cmake
+		COMMENT "Auditing production-header static assertions"
+		VERBATIM)
+	add_custom_target(SimdLibConstexprProbes ALL DEPENDS ${simdlib_constexpr_targets})
+	add_dependencies(SimdLibConstexprProbes SimdLibPublicHeaderAssertionAudit)
+	add_test(NAME SimdLib.PublicHeaderStaticAssertAudit
+		COMMAND ${CMAKE_COMMAND}
+			-DSOURCE_DIRECTORY=${CMAKE_CURRENT_SOURCE_DIR}
+			-P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/AuditPublicHeaderAssertions.cmake)
+	set_tests_properties(SimdLib.PublicHeaderStaticAssertAudit PROPERTIES LABELS "CONSTEXPR;AUDIT")
+	add_test(NAME SimdLib.ConstexprProbes.Build
+		COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --config $<CONFIG> --target SimdLibConstexprProbes)
+	set_tests_properties(SimdLib.ConstexprProbes.Build PROPERTIES LABELS "CONSTEXPR;COMPILE_ONLY" RUN_SERIAL TRUE)
+endif()
 if(SIMDLIB_BUILD_HEADER_TESTS)
     foreach(header_probe IN ITEMS
         Config
@@ -253,7 +352,13 @@ if(SIMDLIB_BUILD_TESTS)
         simdlib_add_catch_test(SimdLibTestsUInt128Scalar tests/UInt128.tests.cpp
             SimdLib.Tests.UInt128Scalar "UINT128;PORTABLE;SCALAR")
         target_compile_definitions(SimdLibTestsUInt128Portable PRIVATE
-            SIMDLIB_USE_COMPILER_CARRY_INTRINSICS=0)
+            SIMDLIB_USE_COMPILER_CARRY_INTRINSICS=0 SIMDLIB_EXPECT_CARRY_PATH=0)
+		target_compile_definitions(SimdLibTestsUInt128Scalar PRIVATE SIMDLIB_EXPECT_CARRY_PATH=0)
+		if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+			target_compile_definitions(SimdLibTestsUInt128Optimized PRIVATE SIMDLIB_EXPECT_CARRY_PATH=1)
+		elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
+			target_compile_definitions(SimdLibTestsUInt128Optimized PRIVATE SIMDLIB_EXPECT_CARRY_PATH=2)
+		endif()
 		target_compile_definitions(SimdLibTestsUInt128Scalar PRIVATE
 			SIMDLIB_USE_COMPILER_CARRY_INTRINSICS=0
 			SIMDLIB_HAS_SSE=0 SIMDLIB_HAS_SSE2=0 SIMDLIB_HAS_SSE3=0 SIMDLIB_HAS_SSSE3=0

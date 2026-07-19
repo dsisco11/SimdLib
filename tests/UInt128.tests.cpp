@@ -1,4 +1,21 @@
 #include <SimdLib/UInt128.h>
+#ifndef SIMDLIB_EXPECT_CARRY_PATH
+#define SIMDLIB_EXPECT_CARRY_PATH -1
+#endif
+
+#if SIMDLIB_EXPECT_CARRY_PATH == 1
+#if !SIMDLIB_USE_COMPILER_CARRY_INTRINSICS || !SIMDLIB_COMPILER_MSVC || !defined(_M_X64)
+#error "The MSVC carry-path profile must select _addcarry_u64 and _subborrow_u64."
+#endif
+#elif SIMDLIB_EXPECT_CARRY_PATH == 2
+#if !SIMDLIB_USE_COMPILER_CARRY_INTRINSICS || (!SIMDLIB_COMPILER_CLANG && !SIMDLIB_COMPILER_GCC)
+#error "The compiler-builtin carry-path profile must select overflow builtins."
+#endif
+#elif SIMDLIB_EXPECT_CARRY_PATH == 0
+#if SIMDLIB_USE_COMPILER_CARRY_INTRINSICS
+#error "The portable carry-path profile must disable compiler carry intrinsics."
+#endif
+#endif
 
 #include <catch2/catch_test_macros.hpp>
 
@@ -283,6 +300,17 @@ __extension__ typedef unsigned __int128 native_uint128;
 #endif
 } // namespace
 
+TEST_CASE("uint128 selected carry and borrow implementation executes with volatile inputs", "[simdlib][uint128][carry][compiler-path]")
+{
+	volatile std::uint64_t lhsLow = 0xFFFF'FFFF'FFFF'FFFFULL;
+	volatile std::uint64_t lhsHigh = 7;
+	volatile std::uint64_t rhsLow = 1;
+	volatile std::uint64_t rhsHigh = 3;
+	const uint128_t lhs{lhsLow, lhsHigh};
+	const uint128_t rhs{rhsLow, rhsHigh};
+	CHECK(lhs + rhs == uint128_t{0, 11});
+	CHECK(lhs - rhs == uint128_t{0xFFFF'FFFF'FFFF'FFFEULL, 4});
+}
 TEST_CASE("uint128 carry and borrow propagation matches the two-word oracle", "[simdlib][uint128][carry]")
 {
 	constexpr std::array<std::uint64_t, 8> values{

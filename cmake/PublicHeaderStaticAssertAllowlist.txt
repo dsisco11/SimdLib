@@ -1,0 +1,31 @@
+# Header|assertion-line substring|classification and justification
+UInt128.h|width >= 0 && width <= 128|template constraint: rejects masks wider than uint128_t
+UInt128.h|sizeof(uint128_t) == 16|ABI invariant: uint128_t must occupy one 128-bit register
+UInt128.h|alignof(uint128_t) == 16|ABI invariant: uint128_t must retain SIMD-compatible alignment
+UInt128.h|std::is_standard_layout_v<uint128_t>|ABI invariant: object representation must remain standard-layout
+UInt128.h|std::is_trivially_copyable_v<uint128_t>|ABI invariant: register conversion requires trivial copying
+Bmi.h|sizeof(unsigned_type) == sizeof(std::uint64_t)|implementation safety invariant: the 64-bit split product branch requires 64-bit words
+Bmi.h|start <= 255 && len <= 255|template constraint: BMI bit-extract controls must fit their fields
+Bmi.h|BMI bit-extract length must fit the intrinsic control field|template constraint: BMI bit-extract length must fit its control field
+SimdAlgo.h|WriteWidth == 1|template constraint: packed comparisons support one-bit output or the documented legacy shape
+SimdAlgo.h|count % write_data_size == 0|template constraint: packed output must contain whole destination elements
+Api.h|is_widen_target_v<target_simd>|template constraint: widening requires the destination SIMD shape
+Api.h|static_assert(using_int|template constraint: widening accepts integral source lanes only
+Api.h|std::is_integral_v<typename target_simd::element_type>|template constraint: widening accepts integral destination lanes only
+Api.h|sizeof(element_t) < sizeof(typename target_simd::element_type)|template constraint: widening must increase lane width
+Api.h|target_simd::register_width == 128|template constraint: widening supports documented register widths only
+Api.h|requires(vector_t value) { impl::template widen|unsupported-instantiation diagnostic: reports missing backend widening mappings
+Api.h|shift >= 0|template constraint: immediate whole-register shift counts cannot be negative
+Api.h|element_width == 32|template constraint: public integer-float conversions require 32-bit lanes
+Api.h|std::unsigned_integral<result_t>|template constraint: packed transforms require unsigned result storage
+Api.h|element_count * result_bit_width <= 64|template constraint: one packed register result cannot exceed 64 bits
+Api.h|element_count * result_bit_width <= std::numeric_limits<result_t>::digits|template constraint: packed result type must hold every produced bit
+Api.h|std::endian::native == std::endian::little|implementation safety invariant: packed lane order assumes little-endian storage
+Api.h|remaining_storage_byte_count <= sizeof(native_word_t)|implementation safety invariant: the final packed store fits one native word
+Api.h|std::is_invocable_r_v<vector_t, Func, vector_t>|template constraint: unary transforms must preserve the register type
+Api.h|std::is_invocable_r_v<vector_t, Func, vector_t, vector_t>|template constraint: binary transforms must preserve the register type
+Implementations.h|dependent_false_v<target_simd>|unsupported-instantiation diagnostic: unavailable widening shapes must fail dependently
+Implementations.h|SimdMappings<128>::extract index out of range|template constraint: 128-bit extraction index must name an existing lane
+Implementations.h|SimdMappings<256>::extract index out of range|template constraint: 256-bit extraction index must name an existing lane
+Implementations.h|Unsupported element size|implementation safety invariant: scalar register transforms support 1, 2, 4, or 8-byte lanes
+Extensions.h|shift >= 0|template constraint: immediate whole-register extension shifts cannot be negative

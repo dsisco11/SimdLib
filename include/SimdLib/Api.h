@@ -379,8 +379,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 		}
 		else
 		{
-			static_assert(
-				requires(vector_t value) { impl::template widen<target_simd>(value); },
+			static_assert(requires(vector_t value) { impl::template widen<target_simd>(value); },
 				"Api::widen does not yet have a backend mapping for this source/destination SIMD pair.");
 		}
 	}
@@ -1078,6 +1077,8 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	{
 		if (std::is_constant_evaluated())
 		{
+			if (shift >= static_cast<int>(element_width))
+				return impl::setzero();
 			std::array<element_t, element_count> results{};
 			for (std::size_t index = 0; index < element_count; ++index)
 			{
@@ -1099,10 +1100,12 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	{
 		if (std::is_constant_evaluated())
 		{
+			if (shift >= static_cast<int>(element_width))
+				return impl::setzero();
 			std::array<element_t, element_count> results{};
 			for (std::size_t index = 0; index < element_count; ++index)
 			{
-				results[index] = static_cast<element_t>(impl::get_element(lhs, static_cast<int>(index)) >> shift);
+				results[index] = static_cast<element_t>(static_cast<std::make_unsigned_t<element_t>>(impl::get_element(lhs, static_cast<int>(index))) >> shift);
 			}
 			return impl::construct(results);
 		}
@@ -1120,6 +1123,8 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	{
 		if (std::is_constant_evaluated())
 		{
+			if (shift >= static_cast<int>(element_width))
+				shift = static_cast<int>(element_width) - 1;
 			std::array<element_t, element_count> results{};
 			for (std::size_t index = 0; index < element_count; ++index)
 			{
@@ -1145,6 +1150,18 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	SIMDLIB_FORCE_INLINE constexpr static int_vector_t VECTORCALL byte_shift_left(const int_vector_t lhs, const int shift) noexcept
 		requires(using_int && register_width == 128)
 	{
+		if (std::is_constant_evaluated())
+		{
+			if (shift <= 0)
+				return lhs;
+			if (shift >= static_cast<int>(byte_count))
+				return impl::setzero();
+			const auto sourceBytes = std::bit_cast<std::array<std::uint8_t, byte_count>>(to_array(lhs));
+			std::array<std::uint8_t, byte_count> resultBytes{};
+			for (std::size_t index = static_cast<std::size_t>(shift); index < byte_count; ++index)
+				resultBytes[index] = sourceBytes[index - static_cast<std::size_t>(shift)];
+			return construct(std::bit_cast<std::array<element_t, element_count>>(resultBytes));
+		}
 		return impl::byte_shift_left(lhs, shift);
 	}
 
@@ -1162,6 +1179,18 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	SIMDLIB_FORCE_INLINE constexpr static int_vector_t VECTORCALL byte_shift_right(const int_vector_t lhs, const int shift) noexcept
 		requires(using_int && register_width == 128)
 	{
+		if (std::is_constant_evaluated())
+		{
+			if (shift <= 0)
+				return lhs;
+			if (shift >= static_cast<int>(byte_count))
+				return impl::setzero();
+			const auto sourceBytes = std::bit_cast<std::array<std::uint8_t, byte_count>>(to_array(lhs));
+			std::array<std::uint8_t, byte_count> resultBytes{};
+			for (std::size_t index = 0; index + static_cast<std::size_t>(shift) < byte_count; ++index)
+				resultBytes[index] = sourceBytes[index + static_cast<std::size_t>(shift)];
+			return construct(std::bit_cast<std::array<element_t, element_count>>(resultBytes));
+		}
 		return impl::byte_shift_right(lhs, shift);
 	}
 
