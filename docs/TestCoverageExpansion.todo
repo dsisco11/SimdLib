@@ -33,20 +33,20 @@ SimdLib Test Coverage Expansion:
     ☒ End Phase 0 only when the displayed report is reproducible from a clean reset and every included counter has a known object/profile provenance.
 
   Phase 1 - Specify and Exercise the BMI Helper Surface:
-    ☐ Review the derived helper family in `Bmi.h` and classify each function as supported public contract, compatibility surface, internal implementation aid, deprecated surface, or removal candidate.
-    ☐ Document zero, all-ones, signed-value, bit-index, and out-parameter semantics for every helper retained as public API.
-    ☐ Add runtime table-driven tests for `boolmask`, `select`, `min`, `max`, and both the signed and unsigned branches of `abs`.
-    ☐ Add runtime tests for `blse` (out-parameter and tuple overloads), `blsioff`, `bmsi`, both `bmsr` overloads, both `bmse` overloads, `bzlo`, and `bmsmsk`.
-    ☐ Add scalar-reference tests for `pp_xor`, `ps_xor`, `pp_or`, `ps_or`, `pp_lsor`, `pp_and`, `ps_and`, `pp_nand`, `ps_nand`, `pp_nandi`, and `ps_nandi`.
-    ☐ Add tests for `PartialSumBLSI`, `PartialSumBLSMSK`, `flipr_unset`, `maskr_unset`, and `maskl_trailing_one`.
-    ☐ Add tests for trailing/leading mask operations: `clear_trailing_ones`, `flip_trailing_zeros`, `mask_trailing_zeros`, `mask_trailing_zeros_or_zero`, both lower-than-LSB masks, `mask_trailing_ones`, `mask_leading_zeros`, `mask_leading_ones`, and `clear_leading_ones`.
-    ☐ Add tests for contiguous-sequence operations: both `clear_lowest_set_bits` overloads, `consume_bit_sequence_right`, `consume_bit_sequence_left`, and `left_collapse_trailing_bits`.
-    ☐ Add tests for `clear_bits_lower_than`, `clear_bits_higher_than`, `extract_bits_lower_than`, and `extract_bits_higher_than`.
-    ☐ Add scalar-reference tests for `pdepl_u32` and `pdepl_u64`.
-    ☐ Exercise retained generic helpers over representative 8-, 16-, 32-, 64-, and 128-bit integer-like types, including signed object-representation checks where supported.
-    ☐ Use exhaustive domains for 8-bit inputs, boundary tables for 16-bit inputs, and deterministic randomized inputs for 32-, 64-, and 128-bit inputs.
-    ☐ Run the portable, BMI1-only, BMI2-only, and BMI1+BMI2 profiles and preserve deterministic result-set equivalence between them.
-    ☐ End Phase 1 only when every retained public BMI helper has either a direct runtime contract test or a written justification for compile-time-only coverage.
+    ☒ Review the derived helper family in `Bmi.h` and classify each function as supported public contract, compatibility surface, internal implementation aid, deprecated surface, or removal candidate.
+    ☒ Document zero, all-ones, signed-value, bit-index, and out-parameter semantics for every helper retained as public API.
+    ☒ Add runtime table-driven tests for `boolmask`, `select`, `min`, `max`, and both the signed and unsigned branches of `abs`.
+    ☒ Add runtime tests for `blse` (out-parameter and tuple overloads), `blsioff`, `bmsi`, both `bmsr` overloads, both `bmse` overloads, `bzlo`, and `bmsmsk`.
+    ☒ Add scalar-reference tests for `pp_xor`, `ps_xor`, `pp_or`, `ps_or`, `pp_lsor`, `pp_and`, `ps_and`, `pp_nand`, `ps_nand`, `pp_nandi`, and `ps_nandi`.
+    ☒ Add tests for `PartialSumBLSI`, `PartialSumBLSMSK`, `flipr_unset`, `maskr_unset`, and `maskl_trailing_one`.
+    ☒ Add tests for trailing/leading mask operations: `clear_trailing_ones`, `flip_trailing_zeros`, `mask_trailing_zeros`, `mask_trailing_zeros_or_zero`, both lower-than-LSB masks, `mask_trailing_ones`, `mask_leading_zeros`, `mask_leading_ones`, and `clear_leading_ones`.
+    ☒ Add tests for contiguous-sequence operations: both `clear_lowest_set_bits` overloads, `consume_bit_sequence_right`, `consume_bit_sequence_left`, and `left_collapse_trailing_bits`.
+    ☒ Add tests for `clear_bits_lower_than`, `clear_bits_higher_than`, `extract_bits_lower_than`, and `extract_bits_higher_than`.
+    ☒ Add scalar-reference tests for `pdepl_u32` and `pdepl_u64`.
+    ☒ Exercise retained generic helpers over representative 8-, 16-, 32-, 64-, and 128-bit integer-like types, including signed object-representation checks where supported.
+    ☒ Use exhaustive domains for 8-bit inputs, boundary tables for 16-bit inputs, and deterministic randomized inputs for 32-, 64-, and 128-bit inputs.
+    ☒ Run the portable, BMI1-only, BMI2-only, and BMI1+BMI2 profiles and preserve deterministic result-set equivalence between them.
+    ☒ End Phase 1 only when every retained public BMI helper has either a direct runtime contract test or a written justification for compile-time-only coverage.
 
   Phase 2 - Expand `Api` and Backend Specialization Coverage:
     ☐ Build a public-operation/type matrix for 128- and 256-bit `Api` over `int8_t`, `uint8_t`, `int16_t`, `uint16_t`, `int32_t`, `uint32_t`, `int64_t`, `uint64_t`, `float`, and `double`.
@@ -177,7 +177,7 @@ SimdLib Test Coverage Expansion:
 
   Execution Evidence:
     ☒ Phase 0 corrected coverage pipeline, clean warning output, object/profile provenance, and corrected baseline totals recorded.
-    ☐ Phase 1 BMI contract decisions, helper matrix, deterministic inputs, and portable/intrinsic equivalence results recorded.
+    ☒ Phase 1 BMI contract decisions, helper matrix, deterministic inputs, and portable/intrinsic equivalence results recorded.
     ☐ Phase 2 public `Api` operation/type matrix and backend-family reachability results recorded.
     ☐ Phase 3 migrated-header assertion inventory, retained-invariant justifications, dedicated constexpr-target matrix, consumer compile-time measurements, and separate MSVC/Clang/compiler-path evidence recorded.
     ☐ Phase 4 `SimdAlgo` full-register/tail outcome matrix recorded.

@@ -368,6 +368,8 @@ TEST_CASE("BMI signed helpers preserve two's-complement bit patterns", "[simdlib
 
 TEST_CASE("BMI absolute value handles signed boundaries without arithmetic overflow", "[simdlib][bmi][signed][abs]")
 {
+	CHECK(Bmi::abs(std::uint32_t{0}) == 0);
+	CHECK(Bmi::abs(std::uint32_t{0xFFFF'FFFF}) == 0xFFFF'FFFF);
 	CHECK(Bmi::abs(std::int8_t{0}) == 0);
 	CHECK(Bmi::abs(std::int8_t{-127}) == 127);
 	CHECK(Bmi::abs(std::numeric_limits<std::int8_t>::min()) == std::numeric_limits<std::int8_t>::min());
@@ -376,6 +378,181 @@ TEST_CASE("BMI absolute value handles signed boundaries without arithmetic overf
 	CHECK(Bmi::abs(std::numeric_limits<std::int32_t>::max()) == std::numeric_limits<std::int32_t>::max());
 	CHECK(Bmi::abs(std::numeric_limits<std::int32_t>::min()) == std::numeric_limits<std::int32_t>::min());
 	CHECK(Bmi::abs(std::numeric_limits<std::int64_t>::min()) == std::numeric_limits<std::int64_t>::min());
+}
+
+TEST_CASE("BMI selection and ordering helpers have table-driven public contracts", "[simdlib][bmi][derived][table]")
+{
+	constexpr std::array<std::tuple<std::int32_t, std::int32_t>, 7> pairs{{
+		{-7, 4},
+		{4, -7},
+		{0, 0},
+		{1, 1},
+		{std::numeric_limits<std::int32_t>::min(), std::numeric_limits<std::int32_t>::max()},
+		{std::numeric_limits<std::int32_t>::max(), std::numeric_limits<std::int32_t>::min()},
+		{-1, 0},
+	}};
+	CHECK(Bmi::boolmask<std::uint8_t>(false) == std::uint8_t{0});
+	CHECK(Bmi::boolmask<std::uint8_t>(true) == std::uint8_t{0xFF});
+	CHECK(Bmi::boolmask<std::uint16_t>(true) == std::uint16_t{0xFFFF});
+	CHECK(Bmi::boolmask<std::uint32_t>(true) == std::uint32_t{0xFFFF'FFFF});
+	CHECK(Bmi::boolmask<std::uint64_t>(true) == std::uint64_t{0xFFFF'FFFF'FFFF'FFFF});
+	CHECK(Bmi::boolmask<uint128_t>(false) == uint128_t{});
+	CHECK(Bmi::boolmask<uint128_t>(true) == std::numeric_limits<uint128_t>::max());
+	CHECK(Bmi::select(uint128_t{1}, uint128_t{2}, false) == uint128_t{1});
+	CHECK(Bmi::select(uint128_t{1}, uint128_t{2}, true) == uint128_t{2});
+
+	for (const auto &[lhs, rhs] : pairs)
+	{
+		CHECK(Bmi::select(lhs, rhs, false) == lhs);
+		CHECK(Bmi::select(lhs, rhs, true) == rhs);
+		CHECK(Bmi::min(lhs, rhs) == (lhs < rhs ? lhs : rhs));
+		CHECK(Bmi::max(lhs, rhs) == (lhs < rhs ? rhs : lhs));
+	}
+	CHECK(Bmi::min(std::uint32_t{0x8000'0000}, std::uint32_t{7}) == 7);
+	CHECK(Bmi::max(std::uint32_t{0x8000'0000}, std::uint32_t{7}) == 0x8000'0000);
+}
+
+TEST_CASE("BMI derived unary helpers match exhaustive 8-bit scalar oracles", "[simdlib][bmi][derived][exhaustive]")
+{
+	for (unsigned source = 0; source <= 0xFF; ++source)
+	{
+		const auto value = static_cast<std::uint8_t>(source);
+		const auto complement = static_cast<std::uint8_t>(~value);
+		const auto subtract_one = static_cast<std::uint8_t>(value - 1u);
+		const auto add_one = static_cast<std::uint8_t>(value + 1u);
+		const auto lsb = static_cast<std::uint8_t>(value & static_cast<std::uint8_t>(0u - value));
+		const auto msb = value == 0 ? std::uint8_t{0} : static_cast<std::uint8_t>(std::uint8_t{1} << (std::bit_width(value) - 1));
+		const auto prefix = value == 0 ? std::uint8_t{0} : static_cast<std::uint8_t>((std::uint16_t{1} << std::bit_width(value)) - 1);
+		const auto suffix = value == 0 ? std::uint8_t{0} : static_cast<std::uint8_t>(0xFFu << std::countr_zero(value));
+		const auto lowest_prefix = value == 0 ? std::uint8_t{0} : static_cast<std::uint8_t>((std::uint16_t{1} << (std::countr_zero(value) + 1)) - 1);
+
+		CHECK(Bmi::pp_xor(value) == static_cast<std::uint8_t>(value ^ (value >> 1)));
+		CHECK(Bmi::ps_xor(value) == static_cast<std::uint8_t>(value ^ static_cast<std::uint8_t>(value << 1)));
+		CHECK(Bmi::pp_or(value) == prefix);
+		CHECK(Bmi::ps_or(value) == suffix);
+		CHECK(Bmi::pp_lsor(value) == lowest_prefix);
+		CHECK(Bmi::pp_and(value) == static_cast<std::uint8_t>(value & (value >> 1)));
+		CHECK(Bmi::ps_and(value) == static_cast<std::uint8_t>(value & static_cast<std::uint8_t>(value << 1)));
+		CHECK(Bmi::pp_nand(value) == static_cast<std::uint8_t>(value & static_cast<std::uint8_t>(~(value >> 1))));
+		CHECK(Bmi::ps_nand(value) == static_cast<std::uint8_t>(value & static_cast<std::uint8_t>(~static_cast<std::uint8_t>(value << 1))));
+		CHECK(Bmi::pp_nandi(value) == static_cast<std::uint8_t>((value >> 1) & complement));
+		CHECK(Bmi::ps_nandi(value) == static_cast<std::uint8_t>(static_cast<std::uint8_t>(value << 1) & complement));
+
+		std::uint8_t extracted_lsb = 0xA5;
+		CHECK(Bmi::blse(value, extracted_lsb) == static_cast<std::uint8_t>(value ^ lsb));
+		CHECK(extracted_lsb == lsb);
+		CHECK(Bmi::blse(value) == std::tuple{static_cast<std::uint8_t>(value ^ lsb), lsb});
+		CHECK(Bmi::bmsi(value) == msb);
+		CHECK(Bmi::bmsr(value) == static_cast<std::uint8_t>(value ^ msb));
+		int msb_index = 99;
+		CHECK(Bmi::bmsr(value, msb_index) == static_cast<std::uint8_t>(value ^ msb));
+		CHECK(msb_index == static_cast<int>(std::bit_width(value)) - 1);
+		std::uint8_t extracted_msb = 0xA5;
+		CHECK(Bmi::bmse(value, extracted_msb) == static_cast<std::uint8_t>(value ^ msb));
+		CHECK(extracted_msb == msb);
+		CHECK(Bmi::bmse(value) == std::tuple{static_cast<std::uint8_t>(value ^ msb), msb});
+		CHECK(Bmi::bmsmsk(value) == prefix);
+
+		CHECK(Bmi::flipr_unset(value) == static_cast<std::uint8_t>(value | add_one));
+		CHECK(Bmi::maskr_unset(value) == static_cast<std::uint8_t>(complement & static_cast<std::uint8_t>(0u - complement)));
+		CHECK(Bmi::maskl_trailing_one(value) == static_cast<std::uint8_t>((complement & static_cast<std::uint8_t>(0u - complement)) >> 1));
+		CHECK(Bmi::clear_trailing_ones(value) == static_cast<std::uint8_t>(value & add_one));
+		CHECK(Bmi::flip_trailing_zeros(value) == static_cast<std::uint8_t>(value | subtract_one));
+		CHECK(Bmi::mask_trailing_zeros(value) == static_cast<std::uint8_t>(lsb - 1u));
+		CHECK(Bmi::mask_trailing_zeros_or_zero(value) == (value == 0 ? 0 : static_cast<std::uint8_t>(lsb - 1u)));
+		CHECK(Bmi::mask_bits_lower_than_lsb(value) == (value == 0 ? 0 : static_cast<std::uint8_t>(lsb - 1u)));
+		CHECK(Bmi::mask_bits_lower_than_lsb_or_all_ones(value) == (value == 0 ? std::uint8_t{0xFF} : static_cast<std::uint8_t>(lsb - 1u)));
+		CHECK(Bmi::mask_trailing_ones(value) == static_cast<std::uint8_t>((complement & static_cast<std::uint8_t>(0u - complement)) - 1u));
+		CHECK(Bmi::mask_leading_zeros(value) == static_cast<std::uint8_t>(~prefix));
+		const auto complement_prefix = complement == 0 ? std::uint8_t{0} : static_cast<std::uint8_t>((std::uint16_t{1} << std::bit_width(complement)) - 1);
+		const auto leading_ones = static_cast<std::uint8_t>(~complement_prefix);
+		CHECK(Bmi::mask_leading_ones(value) == leading_ones);
+		CHECK(Bmi::clear_leading_ones(value) == static_cast<std::uint8_t>(value & static_cast<std::uint8_t>(~leading_ones)));
+	}
+
+	constexpr std::array<std::uint16_t, 10> boundaries{0, 1, 2, 3, 0x7F, 0x80, 0xFF, 0x8000, 0xFFFE, 0xFFFF};
+	for (const std::uint16_t value : boundaries)
+	{
+		CHECK(Bmi::pp_or(value) == (value == 0 ? 0 : static_cast<std::uint16_t>((std::uint32_t{1} << std::bit_width(value)) - 1)));
+		CHECK(Bmi::bmsi(value) == (value == 0 ? 0 : static_cast<std::uint16_t>(std::uint16_t{1} << (std::bit_width(value) - 1))));
+	}
+}
+
+TEST_CASE("BMI sequence, partition, partial-sum, and left-deposit helpers retain their contracts", "[simdlib][bmi][derived][sequence]")
+{
+	constexpr std::array<std::tuple<std::uint32_t, std::uint32_t>, 8> values{{
+		{0, 0},
+		{1, 3},
+		{0b1011, 0b0111},
+		{0b10110, 0b01110},
+		{0b0110111, 0b0001111},
+		{0x8000'0000, 0x8000'0000},
+		{0xFFFF'FFFE, 0xFFFF'FFFE},
+		{0xFFFF'FFFF, 0xFFFF'FFFF},
+	}};
+	for (const auto &[value, expected_out_mask] : values)
+	{
+		std::uint32_t low_sequence = 0;
+		if (value != 0)
+		{
+			std::uint32_t bit = value & (0u - value);
+			while (bit != 0 && (value & bit) != 0)
+			{
+				low_sequence |= bit;
+				bit <<= 1;
+			}
+		}
+		std::uint32_t consumed_mask = 0xDEAD'BEEF;
+		CHECK(Bmi::clear_lowest_set_bits(value) == (value & ~low_sequence));
+		CHECK(Bmi::clear_lowest_set_bits(value, consumed_mask) == (value & ~low_sequence));
+		CHECK(consumed_mask == expected_out_mask);
+		CHECK(Bmi::consume_bit_sequence_right(value) == std::tuple{value & ~low_sequence, low_sequence});
+
+		std::uint32_t high_sequence = 0;
+		if (value != 0)
+		{
+			std::uint32_t bit = std::uint32_t{1} << (std::bit_width(value) - 1);
+			while (bit != 0 && (value & bit) != 0)
+			{
+				high_sequence |= bit;
+				bit >>= 1;
+			}
+		}
+		CHECK(Bmi::consume_bit_sequence_left(value) == std::tuple{value & ~high_sequence, high_sequence});
+		const std::uint32_t trailing_sequence = (value & 1u) == 0 ? 0 : low_sequence;
+		CHECK(Bmi::left_collapse_trailing_bits(value) == (value & ~(trailing_sequence >> 1)));
+	}
+
+	CHECK(Bmi::blsioff(std::uint32_t{0b10100}, std::uint32_t{0b00001}) == 0b00100);
+	CHECK(Bmi::blsioff(std::uint32_t{0b10100}, std::uint32_t{0b00100}) == 0b00100);
+	CHECK(Bmi::blsioff(std::uint32_t{0b10100}, std::uint32_t{0b01000}) == 0b10000);
+	CHECK(Bmi::bzlo(std::uint32_t{0b10111}, 0) == 0b10111);
+	CHECK(Bmi::bzlo(std::uint32_t{0b10111}, 3) == 0b10000);
+	CHECK(Bmi::bzlo(std::uint32_t{0b10111}, 32) == 0);
+	CHECK(Bmi::PartialSumBLSI(std::uint32_t{0b1011}) == 24);
+	CHECK(Bmi::PartialSumBLSI(std::uint32_t{0b1111}) == 32);
+	CHECK(Bmi::PartialSumBLSMSK(std::uint32_t{0b1011}) == 37);
+	CHECK(Bmi::PartialSumBLSMSK(std::uint32_t{0b1111}) == 49);
+
+	constexpr std::uint32_t partition_value = 0b10111;
+	for (const std::uint32_t target : {1u, 2u, 4u, 8u, 0x8000'0000u})
+	{
+		CHECK(Bmi::clear_bits_lower_than(partition_value, target) == (partition_value & ~(target - 1u)));
+		CHECK(Bmi::clear_bits_higher_than(partition_value, target) == (partition_value & ((target << 1) - 1u)));
+		CHECK(Bmi::extract_bits_lower_than(partition_value, target) == (partition_value & (target - 1u)));
+		CHECK(Bmi::extract_bits_higher_than(partition_value, target) == (partition_value & ~((target << 1) - 1u)));
+	}
+
+	random64 random{0x4F1B'BCDC'6762'FA9DULL};
+	for (unsigned iteration = 0; iteration < 4096; ++iteration)
+	{
+		const auto source32 = static_cast<std::uint32_t>(random.next());
+		const auto mask32 = static_cast<std::uint32_t>(random.next());
+		const std::uint64_t source64 = random.next();
+		const std::uint64_t mask64 = random.next();
+		CHECK(Bmi::pdepl_u32(source32, mask32) == reference_pdep(source32 >> (std::popcount(~mask32) & 31), mask32));
+		CHECK(Bmi::pdepl_u64(source64, mask64) == reference_pdep(source64 >> (std::popcount(~mask64) & 63), mask64));
+	}
 }
 
 TEST_CASE("BMI exhaustive 8-bit domains match scalar references", "[simdlib][bmi][exhaustive]")
@@ -500,7 +677,13 @@ TEST_CASE("BMI feature paths produce the scalar-reference result digest", "[simd
 		mix_digest(actual_digest, Bmi::blsr(lhs));
 		mix_digest(actual_digest, Bmi::blsmsk(lhs));
 		mix_digest(actual_digest, Bmi::pdep_u64(lhs, rhs));
+		mix_digest(actual_digest, Bmi::pdepl_u64(lhs, rhs));
 		mix_digest(actual_digest, Bmi::pext_u64(lhs, rhs));
+		mix_digest(actual_digest, Bmi::pp_or(lhs));
+		mix_digest(actual_digest, Bmi::ps_or(lhs));
+		mix_digest(actual_digest, Bmi::clear_lowest_set_bits(lhs));
+		mix_digest(actual_digest, std::get<0>(Bmi::consume_bit_sequence_right(lhs)));
+		mix_digest(actual_digest, std::get<1>(Bmi::consume_bit_sequence_left(lhs)));
 
 		mix_digest(reference_digest, rhs & ~lhs);
 		mix_digest(reference_digest, reference_bzhi(lhs, index));
@@ -508,7 +691,13 @@ TEST_CASE("BMI feature paths produce the scalar-reference result digest", "[simd
 		mix_digest(reference_digest, lhs & (lhs - 1));
 		mix_digest(reference_digest, lhs ^ (lhs - 1));
 		mix_digest(reference_digest, reference_pdep(lhs, rhs));
+		mix_digest(reference_digest, reference_pdep(lhs >> (std::popcount(~rhs) & 63), rhs));
 		mix_digest(reference_digest, reference_pext(lhs, rhs));
+		mix_digest(reference_digest, Bmi::pp_or(lhs));
+		mix_digest(reference_digest, Bmi::ps_or(lhs));
+		mix_digest(reference_digest, Bmi::clear_lowest_set_bits(lhs));
+		mix_digest(reference_digest, std::get<0>(Bmi::consume_bit_sequence_right(lhs)));
+		mix_digest(reference_digest, std::get<1>(Bmi::consume_bit_sequence_left(lhs)));
 	}
 	CHECK(actual_digest == reference_digest);
 	std::cout << "SIMDLIB_BMI_RESULT_DIGEST=" << std::hex << actual_digest << '\n';
