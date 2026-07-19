@@ -93,8 +93,47 @@ UInt128 addition, and resampling; each operation also has a correctness test.
 | `SimdResample` | Scalar-reference parity for reductions and expansion, boundary dimensions, randomized inputs, and SIMD/scalar equivalence | SIMD enabled and scalar-only profiles | No material gap found. This remains the strongest standalone surface. |
 | `Bmi` | BMI1/BMI2 operations, portable and intrinsic equivalence, signed bit-pattern preservation, boundary indices/counts, generic 128-bit support, constexpr evaluation, and deterministic randomized scalar oracles | BMI1 only, BMI2 only, both, and portable | Several derived helpers have names whose edge semantics are not independently specified. Existing production contracts remain covered, but new tests should follow an API-contract review rather than canonizing incidental behavior. |
 | `uint128_t` | Construction, heterogeneous comparisons, arithmetic, carry/borrow, shifts, masks, bit helpers, register conversion, constexpr behavior, randomized native/scalar oracle parity, and optimized/portable/scalar digest equivalence | Optimized compiler carry, portable carry, and all SIMD/BMI/FMA disabled | Division and remainder are not public operations, so the audit item is not applicable. |
-| Formatters | UInt128 decimal/binary/octal/hex output, signs, alternate forms, width/alignment/fill/zero padding, scalar `uint64_t` parity where the value fits, integral and floating vectors, header isolation, and multi-TU ODR | Opt-in `Format.h` and umbrella include | Locale-specific output and a larger invalid-specification matrix are medium-risk follow-ups because parsing delegates to the corresponding standard scalar formatter. |
+| Formatters | UInt128 decimal/binary/octal/hex output, signs, alternate forms, width/alignment/fill/zero padding, scalar `uint64_t` parity where the value fits, accepted/rejected grammar, integral and floating vectors, header isolation, and multi-TU ODR | Opt-in `Format.h` and umbrella include | Locale-specific formatting is deliberately rejected so output remains locale-independent; no formatter-contract gap remains. |
 | `Config` and `TemplateTools` | Compiler/target detection, feature constants, caller overrides, disabled public headers, type availability, alias widths, concepts, constexpr loops, tuple iteration, and constant evaluation | Default, override, disabled, MSVC, clang-cl, and Clang | Unavailable `Api` instantiations are tested through availability concepts instead of intentional hard-error compile failures. |
+
+## Formatter grammar matrix
+
+| Formatter | Accepted grammar and direct proof |
+| --- | --- |
+| `SimdVector` | The empty specification and `[[fill]align][width]` are exercised with default, right, left, and center alignment, custom fill, sufficient width, and insufficient width. Formatting applies to the completed `{a, b, c}` container; each logical element retains its default scalar presentation. |
+| `uint128_t` | The empty specification and `[[fill]align][sign][#][0][width][type]` are exercised. Direct cases cover `+`, space, and unsigned-default `-`; decimal, hexadecimal, uppercase hexadecimal, binary, uppercase binary, and octal; alternate prefixes; default and explicit alignment; custom fill; zero padding; sufficient and insufficient widths; and full-width 128-bit boundary values. |
+
+| Rejected category | `SimdVector` proof | `uint128_t` proof |
+| --- | --- | --- |
+| Brace fill | Runtime parsing rejects `{` as a two-character fill/alignment specification; full `std::vformat` parsing rejects `}` because it terminates the replacement field before the following alignment text. | Same. |
+| Precision | `.3` is rejected. | `.2` is rejected. |
+| Dynamic width | `{}` is rejected directly and through `std::vformat`. | Same. |
+| Nested replacement field | `>{}` is rejected directly and through `std::vformat`. | Same. |
+| Locale | `L` is rejected. | `L` is rejected. |
+| Unsupported presentation | `x` is rejected because vectors expose no container presentation type. | `q` is rejected. |
+| Extra trailing input | `20x` is rejected after the otherwise valid width. | `dx` is rejected after the valid decimal presentation. |
+| Width overflow | The vector formatter delegates width representation to the standard string formatter and has no SimdLib-specific arithmetic guard. | A decimal width greater than `SIZE_MAX` reaches the checked accumulation guard and throws `std::format_error` before formatting or allocation. |
+
+Locale-specific formatting is intentionally unsupported. Both formatters reject
+`L` at their own container/integer grammar boundary; vector elements are rendered
+with the locale-independent default `{}` specification. This keeps SimdLib output
+deterministic instead of inheriting locale behavior from scalar formatters.
+
+Every accepted `uint128_t` format shared with the standard unsigned formatter is
+checked against `uint64_t` over zero, small values, a mixed high-bit pattern, and
+`UINT64_MAX`. Alternate-octal cases additionally assert exact scalar parity for
+zero and nonzero values across default alignment, explicit alignment, zero
+padding, and insufficient widths. `Format.h` remains the first include in its
+standalone header probe, and the formatter specializations remain linked and run
+from two translation units by `SimdLib.FormatOdr`.
+
+Validation on 2026-07-19 runs 267 assertions across the seven `[format]`
+cases. The focused formatter and ODR matrix passes 8/8 with MSVC Release and
+Clang Debug coverage, the `Format.h` first-include probe compiles with both
+compilers, and the complete suites pass 148/148 and 151/151 respectively. A
+dedicated Clang profile records the checked width-overflow throw once, both
+trailing-input outcomes, alternate-octal zero and nonzero outcomes, explicit
+and default alignment, and both outcomes of insufficient-width zero padding.
 
 ## SimdAlgo outcome and boundary matrix
 
