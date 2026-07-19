@@ -433,10 +433,10 @@ TEST_CASE("BMI derived unary helpers match exhaustive 8-bit scalar oracles", "[s
 		CHECK(Bmi::pp_lsor(value) == lowest_prefix);
 		CHECK(Bmi::pp_and(value) == static_cast<std::uint8_t>(value & (value >> 1)));
 		CHECK(Bmi::ps_and(value) == static_cast<std::uint8_t>(value & static_cast<std::uint8_t>(value << 1)));
-		CHECK(Bmi::pp_nand(value) == static_cast<std::uint8_t>(value & static_cast<std::uint8_t>(~(value >> 1))));
-		CHECK(Bmi::ps_nand(value) == static_cast<std::uint8_t>(value & static_cast<std::uint8_t>(~static_cast<std::uint8_t>(value << 1))));
-		CHECK(Bmi::pp_nandi(value) == static_cast<std::uint8_t>((value >> 1) & complement));
-		CHECK(Bmi::ps_nandi(value) == static_cast<std::uint8_t>(static_cast<std::uint8_t>(value << 1) & complement));
+		CHECK(Bmi::pp_andn(value) == static_cast<std::uint8_t>(value & static_cast<std::uint8_t>(~(value >> 1))));
+		CHECK(Bmi::ps_andn(value) == static_cast<std::uint8_t>(value & static_cast<std::uint8_t>(~static_cast<std::uint8_t>(value << 1))));
+		CHECK(Bmi::pp_andni(value) == static_cast<std::uint8_t>((value >> 1) & complement));
+		CHECK(Bmi::ps_andni(value) == static_cast<std::uint8_t>(static_cast<std::uint8_t>(value << 1) & complement));
 
 		std::uint8_t extracted_lsb = 0xA5;
 		CHECK(Bmi::blse(value, extracted_lsb) == static_cast<std::uint8_t>(value ^ lsb));

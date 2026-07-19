@@ -37,7 +37,7 @@ SimdLib Test Coverage Expansion:
     ☒ Document zero, all-ones, signed-value, bit-index, and out-parameter semantics for every helper retained as public API.
     ☒ Add runtime table-driven tests for `boolmask`, `select`, `min`, `max`, and both the signed and unsigned branches of `abs`.
     ☒ Add runtime tests for `blse` (out-parameter and tuple overloads), `blsioff`, `bmsi`, both `bmsr` overloads, both `bmse` overloads, `bzlo`, and `bmsmsk`.
-    ☒ Add scalar-reference tests for `pp_xor`, `ps_xor`, `pp_or`, `ps_or`, `pp_lsor`, `pp_and`, `ps_and`, `pp_nand`, `ps_nand`, `pp_nandi`, and `ps_nandi`.
+    ☒ Add scalar-reference tests for `pp_xor`, `ps_xor`, `pp_or`, `ps_or`, `pp_lsor`, `pp_and`, `ps_and`, `pp_andn`, `ps_andn`, `pp_andni`, and `ps_andni`.
     ☒ Add tests for `PartialSumBLSI`, `PartialSumBLSMSK`, `flipr_unset`, `maskr_unset`, and `maskl_trailing_one`.
     ☒ Add tests for trailing/leading mask operations: `clear_trailing_ones`, `flip_trailing_zeros`, `mask_trailing_zeros`, `mask_trailing_zeros_or_zero`, both lower-than-LSB masks, `mask_trailing_ones`, `mask_leading_zeros`, `mask_leading_ones`, and `clear_leading_ones`.
     ☒ Add tests for contiguous-sequence operations: both `clear_lowest_set_bits` overloads, `consume_bit_sequence_right`, `consume_bit_sequence_left`, and `left_collapse_trailing_bits`.

@@ -430,7 +430,7 @@ template <std::integral int_t>
 
 #pragma region Parallel Prefix/Suffix Operations
 
-/// @brief Computes the parallel-prefix XOR of the given value, which is the result of xor'ing each bit into all lower bits. [eg: 01110 => 10010].
+/// @brief Computes a distance-1 parallel-prefix XOR stage by XORing each bit with its adjacent bit to the right (high-bits). [eg: pp_xor(0b01110) => 0b01001]
 template <integer_like int_t> [[nodiscard]] SIMDLIB_FORCE_INLINE constexpr static int_t pp_xor(const int_t value) noexcept
 {
 	return (value >> 1) ^ value;
@@ -438,7 +438,7 @@ template <integer_like int_t> [[nodiscard]] SIMDLIB_FORCE_INLINE constexpr stati
 static_assert(pp_xor<std::uint32_t>(0b01110) == 0b01001);
 static_assert(pp_xor<std::uint32_t>(0b11110) == 0b10001);
 
-/// @brief Computes the parallel-suffix XOR of the given value, which is the result of xor'ing each bit into all higher bits. [eg: 01110 => 01001].
+/// @brief Computes a distance-1 parallel-suffix XOR stage by XORing each bit with its adjacent bit to the left (low-bits). [eg: ps_xor(0b01110) => 0b10010]
 template <integer_like int_t> [[nodiscard]] SIMDLIB_FORCE_INLINE constexpr static int_t ps_xor(const int_t value) noexcept
 {
 	return (value << 1) ^ value;
@@ -483,59 +483,57 @@ static_assert(pp_lsor<std::uint32_t>(0b0) == 0b0);
 static_assert(pp_lsor<std::uint32_t>(0b0100) == 0b0111);
 static_assert(pp_lsor<std::uint32_t>(0b10100) == 0b00111);
 
-/// @brief Computes the parallel-prefix AND of the given value, which is the result of and'ing each bit into all lower bits. [eg: 01101110 => 00100110].
+/// @brief Computes a distance-1 parallel-prefix AND stage by ANDing each bit with its adjacent bit to the right (high-bits). [eg: pp_and(0b01101110) => 0b00100110]
 template <integer_like int_t> [[nodiscard]] SIMDLIB_FORCE_INLINE constexpr static int_t pp_and(const int_t value) noexcept
 {
 	return value & (value >> 1);
 }
 static_assert(pp_and<std::uint32_t>(0b01101110) == 0b00100110);
 
-/// @brief Computes the parallel-suffix AND of the given value, which is the result of and'ing each bit into all higher bits. [eg: 01101110 => 01001100].
+/// @brief Computes a distance-1 parallel-suffix AND stage by ANDing each bit with its adjacent bit to the left (low-bits). [eg: ps_and(0b01101110) => 0b01001100]
 template <integer_like int_t> [[nodiscard]] SIMDLIB_FORCE_INLINE constexpr static int_t ps_and(const int_t value) noexcept
 {
 	return value & (value << 1);
 }
 static_assert(ps_and<std::uint32_t>(0b01101110) == 0b01001100);
 
-/// @brief Computes the parallel-prefix NAND of the given value, which is the result of nand'ing each bit into all lower bits. [eg: 01110 => 01000].
-template <integer_like int_t> [[nodiscard]] SIMDLIB_FORCE_INLINE constexpr static int_t pp_nand(const int_t value) noexcept
+/// @brief Computes a distance-1 parallel-prefix AND-NOT stage, retaining set bits whose adjacent bit to the right (high-bits) is clear. [eg: pp_andn(0b01110) => 0b01000]
+template <integer_like int_t> [[nodiscard]] SIMDLIB_FORCE_INLINE constexpr static int_t pp_andn(const int_t value) noexcept
 {
 	using Bmi::andn;
 	return andn<int_t>(value >> 1, value);
 }
-static_assert(pp_nand<std::uint32_t>(0b01110) == 0b01000);
+static_assert(pp_andn<std::uint32_t>(0b01110) == 0b01000);
 
-/// @brief Computes the parallel-suffix NAND of the given value, which is the result of nand'ing each bit into all higher bits. [eg: 01110 => 00010].
-template <integer_like int_t> [[nodiscard]] SIMDLIB_FORCE_INLINE constexpr static int_t ps_nand(const int_t value) noexcept
+/// @brief Computes a distance-1 parallel-suffix AND-NOT stage, retaining set bits whose adjacent bit to the left (low-bits) is clear. [eg: ps_andn(0b01110) => 0b00010]
+template <integer_like int_t> [[nodiscard]] SIMDLIB_FORCE_INLINE constexpr static int_t ps_andn(const int_t value) noexcept
 {
 	using Bmi::andn;
 	return andn<int_t>(value << 1, value);
 }
-static_assert(ps_nand<std::uint32_t>(0b01110) == 0b00010);
-static_assert(ps_nand<std::uint32_t>(0b001100) == 0b0000100);
+static_assert(ps_andn<std::uint32_t>(0b01110) == 0b00010);
+static_assert(ps_andn<std::uint32_t>(0b001100) == 0b0000100);
 
-/// @brief Computes the parallel-prefix inverse-NAND of the given value, which is the result of inverse-nand'ing each bit into all lower bits. [eg: 01110 =>
-/// 00010].
-template <integer_like int_t> [[nodiscard]] SIMDLIB_FORCE_INLINE constexpr static int_t pp_nandi(const int_t value) noexcept
+/// @brief Computes an inverse distance-1 parallel-prefix AND-NOT stage, marking clear bits whose adjacent bit to the right (high-bits) is set. [eg: pp_andni(0b01110) => 0b00001]
+template <integer_like int_t> [[nodiscard]] SIMDLIB_FORCE_INLINE constexpr static int_t pp_andni(const int_t value) noexcept
 {
 	using Bmi::andn;
 	return andn<int_t>(value, value >> 1);
 }
-static_assert(pp_nandi<std::uint32_t>(0b01111) == 0b00000);
-static_assert(pp_nandi<std::uint32_t>(0b01110) == 0b00001);
-static_assert(pp_nandi<std::uint32_t>(0b01100) == 0b00010);
-static_assert(pp_nandi<std::uint32_t>(0b1011000) == 0b100100);
+static_assert(pp_andni<std::uint32_t>(0b01111) == 0b00000);
+static_assert(pp_andni<std::uint32_t>(0b01110) == 0b00001);
+static_assert(pp_andni<std::uint32_t>(0b01100) == 0b00010);
+static_assert(pp_andni<std::uint32_t>(0b1011000) == 0b100100);
 
-/// @brief Computes the parallel-suffix inverse-NAND of the given value, which is the result of inverse-nand'ing each bit into all higher bits. [eg: 01110 =>
-/// 10000].
-template <integer_like int_t> [[nodiscard]] SIMDLIB_FORCE_INLINE constexpr static int_t ps_nandi(const int_t value) noexcept
+/// @brief Computes an inverse distance-1 parallel-suffix AND-NOT stage, marking clear bits whose adjacent bit to the left (low-bits) is set. [eg: ps_andni(0b01110) => 0b10000]
+template <integer_like int_t> [[nodiscard]] SIMDLIB_FORCE_INLINE constexpr static int_t ps_andni(const int_t value) noexcept
 {
 	using Bmi::andn;
 	return andn<int_t>(value, value << 1);
 }
-static_assert(ps_nandi<std::uint32_t>(0b01110) == 0b10000);
-static_assert(ps_nandi<std::uint32_t>(0b001100) == 0b010000);
-static_assert(ps_nandi<std::uint32_t>(0b101100) == 0b1010000);
+static_assert(ps_andni<std::uint32_t>(0b01110) == 0b10000);
+static_assert(ps_andni<std::uint32_t>(0b001100) == 0b010000);
+static_assert(ps_andni<std::uint32_t>(0b101100) == 0b1010000);
 #pragma endregion
 
 #pragma region BMI Extended Operations
@@ -798,7 +796,7 @@ static_assert(consume_bit_sequence_right<std::uint32_t>(0b10110) == std::make_tu
 template <integer_like int_t> [[nodiscard]] SIMDLIB_FORCE_INLINE constexpr static std::tuple<int_t, int_t> consume_bit_sequence_left(const int_t value) noexcept
 {
 	using Bmi::andn;
-	const int_t thresholds = ps_nand(value);
+	const int_t thresholds = ps_andn(value);
 	const int_t seq_mask = Bmi::bmsi(thresholds) - 1; // convert the thresholds msb to a mask over all the bits to the left (low-bits) of it.
 	return {value & seq_mask, andn(seq_mask, value)};
 }
