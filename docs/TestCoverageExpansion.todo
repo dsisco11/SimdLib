@@ -186,3 +186,8 @@ SimdLib Test Coverage Expansion:
     ☐ Phase 7 `SimdVector` full/partial/128/256-bit behavior matrix recorded.
     ☐ Phase 8 precondition inventory, negative-test results, and sanitizer evidence recorded.
     ☐ Phase 9 final compiler/configuration matrix, test/assertion counts, before/after coverage, remaining justifications, and clean-worktree evidence recorded.
+
+  Post-Plan API Review:
+    ☐ After this test-coverage plan is complete, revisit every operation/type cell marked `unavailable` in `docs/ApiOperationMatrix.md`.
+    ☐ Evaluate each unavailable area for API usefulness, semantic coherence, implementation feasibility, portability, and performance before deciding whether it should remain intentionally unavailable or receive a supported implementation.
+    ☐ Record the decision and rationale for every reviewed area; create separate implementation work for any cells selected for support.
