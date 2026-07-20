@@ -96,6 +96,41 @@ UInt128 addition, and resampling; each operation also has a correctness test.
 | Formatters | UInt128 decimal/binary/octal/hex output, signs, alternate forms, width/alignment/fill/zero padding, scalar `uint64_t` parity where the value fits, accepted/rejected grammar, integral and floating vectors, header isolation, and multi-TU ODR | Opt-in `Format.h` and umbrella include | Locale-specific formatting is deliberately rejected so output remains locale-independent; no formatter-contract gap remains. |
 | `Config` and `TemplateTools` | Compiler/target detection, feature constants, caller overrides, disabled public headers, type availability, alias widths, concepts, constexpr loops, tuple iteration, and constant evaluation | Default, override, disabled, MSVC, clang-cl, and Clang | Unavailable `Api` instantiations are tested through availability concepts instead of intentional hard-error compile failures. |
 
+## Runtime preconditions and failure contracts
+
+The complete call-site classification is recorded in
+[`PreconditionInventory.md`](PreconditionInventory.md). There are 13
+caller-facing runtime contracts: four `Api` transfer checks, five dynamic
+`SimdAlgo` span-shape checks, and four `SimdResample` extent checks. Each has
+an isolated negative CTest scenario. The remaining public-header call site is
+the checks-enabled `SimdVector` inactive-lane result invariant; it is not
+caller-triggerable through a supported operation, so its direct proof observes
+successful partial-vector checks and the full-vector bypass.
+
+`SimdLibPreconditionFailureProbe` overrides `SIMDLIB_PRECONDITION` and exits
+with status 73 on failure. `RunPreconditionFailureProbe.cmake` executes one
+scenario per child process and requires that exact status. An access violation,
+unrelated crash, or operation that continues past its contract therefore fails
+the CTest scenario instead of masquerading as a successful death test. This
+override remains active in Release, where the default `assert` policy is
+compiled out by `NDEBUG`.
+
+The failure matrix directly covers undersized `load_partial` and raw-byte
+`Api::store` spans, misaligned aligned load/store addresses, every dynamic
+bitwise span mismatch, and every resampling size-ratio mismatch. The audit found
+no runtime `SIMDLIB_PRECONDITION` governing an index, divisor, or overlap;
+compile-time constraints and explicitly unsafe entry points retain their
+existing classifications.
+
+Focused MSVC Release, Clang coverage, and Clang ASan/UBSan runs each pass all
+13 isolated failure scenarios. The valid-boundary selection passes 19
+assertions across three cases and covers exact aligned/raw capacities, empty
+and one-element partial loads, matching empty/one-element algorithm spans, and
+empty/minimum resampling shapes. The complete strict suites pass 178/178 with
+MSVC Release and 181/181 with Clang coverage. Clang 22.1.8 ASan/UBSan Debug
+passes 145/145 with no diagnostics. The target-aware coverage report maps 180
+profiles to 18 executables, including all 13 failure-probe profiles.
+
 ## SimdVector full, partial, and wide-vector matrix
 
 | Contract | Direct proof |

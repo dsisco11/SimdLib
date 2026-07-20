@@ -146,15 +146,15 @@ SimdLib Test Coverage Expansion:
     ☒ End Phase 7 only when full and partial vectors have direct tests for every behavior that uses `FillInactiveLanes` or width-specific dot-product logic.
 
   Phase 8 - Exercise Preconditions and Failure Contracts:
-    ☐ Inventory every `SIMDLIB_PRECONDITION` reachable through the public headers and classify its expected debug/release behavior.
-    ☐ Add a checks-enabled assertion/death-test harness that can validate contract failures without terminating the entire CTest run.
-    ☐ Test an undersized `load_partial` span for a nonzero active count.
-    ☐ Test misaligned inputs to aligned load/store entry points.
-    ☐ Test undersized raw-byte storage passed to `Api::store`.
-    ☐ Add failure tests for any newly documented index, extent, divisor, overlap, or alignment preconditions discovered during Phases 1-7.
-    ☐ Verify failure tests are excluded or adapted when preconditions are intentionally compiled out.
-    ☐ Run ASan/UBSan over valid boundary cases to prove no failure test is masking an out-of-bounds read, invalid shift, division by zero, alignment violation, or strict-aliasing defect.
-    ☐ End Phase 8 only when every supported runtime precondition has a checks-enabled negative test or a written explanation of why it is compile-time-only/unreachable.
+    ☒ Inventory every `SIMDLIB_PRECONDITION` reachable through the public headers and classify its expected debug/release behavior.
+    ☒ Add a checks-enabled assertion/death-test harness that can validate contract failures without terminating the entire CTest run.
+    ☒ Test an undersized `load_partial` span for a nonzero active count.
+    ☒ Test misaligned inputs to aligned load/store entry points.
+    ☒ Test undersized raw-byte storage passed to `Api::store`.
+    ☒ Add failure tests for any newly documented index, extent, divisor, overlap, or alignment preconditions discovered during Phases 1-7.
+    ☒ Verify failure tests are excluded or adapted when preconditions are intentionally compiled out.
+    ☒ Run ASan/UBSan over valid boundary cases to prove no failure test is masking an out-of-bounds read, invalid shift, division by zero, alignment violation, or strict-aliasing defect.
+    ☒ End Phase 8 only when every supported runtime precondition has a checks-enabled negative test or a written explanation of why it is compile-time-only/unreachable.
 
   Phase 9 - Full Validation, Documentation, and Close-Out:
     ☐ Run formatting/static analysis required by the repository after all test changes.
@@ -196,7 +196,7 @@ SimdLib Test Coverage Expansion:
     ☒ Phase 5 accepted/rejected formatter grammar matrix recorded in `docs/TestCoverage.md`: focused MSVC and Clang runs pass 8/8 tests, the formatter suite passes 267 assertions, the strict MSVC suite passes 148/148, and the Clang suite passes 151/151.
     ☒ Phase 6 `uint128_t` boundary and compatibility matrix recorded in `docs/TestCoverage.md`: focused MSVC passes 35/35, focused Clang passes 38/38, each Clang profile passes 131 assertions across six boundary cases, the strict MSVC suite passes 154/154, and the Clang suite passes 157/157.
     ☒ Phase 7 `SimdVector` full/partial/128/256-bit behavior matrix recorded in `docs/TestCoverage.md`: focused MSVC and Clang runs pass 266 assertions across 14 public cases plus 10 assertions in the checks-enabled case; separate Clang profiles prove high-lane and debug-check branches; the strict MSVC suite passes 162/162 and the Clang suite passes 165/165.
-    ☐ Phase 8 precondition inventory, negative-test results, and sanitizer evidence recorded.
+    ☒ Phase 8 precondition inventory and policy recorded in `docs/PreconditionInventory.md`: 13/13 isolated failure scenarios pass under MSVC Release, Clang coverage, and Clang ASan/UBSan; valid boundaries pass 19 assertions across three focused cases; complete suites pass 178/178 MSVC, 181/181 Clang coverage, and 145/145 ASan/UBSan with no sanitizer diagnostics.
     ☐ Phase 9 final compiler/configuration matrix, test/assertion counts, before/after coverage, remaining justifications, and clean-worktree evidence recorded.
     ☐ Phase 10 `SimdVector::area()` benchmark baseline, alternative comparisons, final implementation decision, and post-change validation evidence recorded.
 
