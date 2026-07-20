@@ -1548,4 +1548,16 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 #pragma endregion
 };
 
+/**
+ * @brief Selects the widest available SIMD API for an element type.
+ * @tparam element_t Element type stored in each SIMD lane.
+ *
+ * Resolves to `Api<256, element_t>` when the compile target enables the
+ * 256-bit facade, and otherwise resolves to `Api<128, element_t>`. The alias
+ * is available only when at least the 128-bit facade supports `element_t`.
+ */
+template <class element_t>
+	requires ApiAvailable<128, element_t>
+using NativeApi = Api<is_api_available_v<256, element_t> ? 256 : 128, element_t>;
+
 } // namespace SimdLib

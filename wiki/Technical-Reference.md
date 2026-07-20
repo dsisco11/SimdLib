@@ -13,6 +13,8 @@ implementation details that consumer code must not name.
 
 The main API families are:
 
+- `NativeApi<element_t>`, the recommended facade that selects the widest
+  available register;
 - `Api<register_width, element_t>`, a typed intrinsic facade;
 - `SimdVector<element_t, element_count>`, a fixed-size value type backed by one
   SIMD register;
@@ -82,6 +84,13 @@ binary was compiled.
 
 ## SIMD availability and instruction families
 
+For ordinary SIMD work, use `SimdLib::NativeApi<element_t>`. It resolves to
+`Api<256, element_t>` when the compile target enables AVX2 and SSE4.2, and
+otherwise resolves to `Api<128, element_t>` when SSE4.2 is enabled. This is a
+compile-time choice based on compiler flags; it is not runtime CPU detection.
+
+Use the explicit-width `Api<register_width, element_t>` form when a data
+layout, ABI, or algorithm specifically requires 128-bit or 256-bit registers.
 Use `SimdLib::is_api_available_v<width, element>` to ask whether an `Api`
 specialization is available in the current translation unit.
 
@@ -99,7 +108,7 @@ FMA-disabled paths, and all four BMI1/BMI2 combinations.
 | Header | Public entry point |
 | --- | --- |
 | `<SimdLib/Config.h>` | Version, compiler, target, instruction, assertion, and ABI configuration |
-| `<SimdLib/Api.h>` | `Api<register_width, element_t>` facade and availability query |
+| `<SimdLib/Api.h>` | Auto-sized `NativeApi<element_t>`, explicit-width `Api<register_width, element_t>`, and availability query |
 | `<SimdLib/SimdApi.h>` | Deprecated compatibility forwarding header; use `Api.h` |
 | `<SimdLib/SimdVector.h>` | `SimdVector<element_t, element_count>` value type |
 | `<SimdLib/SimdAlgo.h>` | Fixed-extent and dynamic-span `SimdAlgo` operations |

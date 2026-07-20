@@ -10,8 +10,11 @@ link the CMake interface target, and use only the pieces you need.
 
 ## What is included?
 
-- `Api` provides a typed facade over 128-bit and 256-bit SIMD registers.
-- `SimdVector` wraps a register in a fixed-size, value-like container.
+- `NativeApi<T>` provides a typed SIMD facade and automatically selects the
+  widest register supported by the compile target.
+- `Api<BitWidth, T>` remains available when an algorithm needs an explicit 128-bit or
+  256-bit register width.
+- `SimdVector<ElementCount, T>` wraps a register in a fixed-size, value-like container.
 - `SimdAlgo` applies common operations to arrays and spans.
 - `SimdResample` packs and expands byte masks, with a scalar fallback when the
   SIMD path is unavailable.
@@ -79,31 +82,31 @@ vertical range:
 #include <span>
 #include <vector>
 
-using Float4 = SimdLib::Api<128, float>;
+using FloatApi = SimdLib::NativeApi<float>;
 
 // Create a large set of example terrain heights.
 std::vector<float> localHeights(1'000'003);
 std::iota(localHeights.begin(), localHeights.end(), -500'000.0F);
 
-// Prepare values that will be reused for every group of four heights.
-const auto heightScale = Float4::set1(0.02F);
-const auto seaLevel = Float4::set1(64.0F);
-const auto minimumHeight = Float4::set1(-500.0F);
-const auto maximumHeight = Float4::set1(8'000.0F);
+// Prepare values that will be reused for every SIMD batch.
+const auto heightScale = FloatApi::set1(0.02F);
+const auto seaLevel = FloatApi::set1(64.0F);
+const auto minimumHeight = FloatApi::set1(-500.0F);
+const auto maximumHeight = FloatApi::set1(8'000.0F);
 
-// Update the entire collection in place, four heights at a time.
-Float4::transform(
+// Update the entire collection in place, one SIMD batch at a time.
+FloatApi::transform(
     std::span<float>{localHeights.data(), localHeights.size()},
     [heightScale, seaLevel, minimumHeight, maximumHeight](
-        const Float4::vector_t heights) noexcept
+        const FloatApi::vector_t heights) noexcept
     {
         // Convert local heights to world heights.
-        const auto scaled = Float4::multiply(heights, heightScale);
-        const auto worldHeights = Float4::add(scaled, seaLevel);
+        const auto scaled = FloatApi::multiply(heights, heightScale);
+        const auto worldHeights = FloatApi::add(scaled, seaLevel);
 
         // Keep every result inside the world's allowed height range.
-        const auto aboveMinimum = Float4::max(worldHeights, minimumHeight);
-        return Float4::min(aboveMinimum, maximumHeight);
+        const auto aboveMinimum = FloatApi::max(worldHeights, minimumHeight);
+        return FloatApi::min(aboveMinimum, maximumHeight);
     });
 
 // Each value is now clamp(localHeight * 0.02F + 64.0F, -500.0F, 8'000.0F).

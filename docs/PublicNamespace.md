@@ -27,6 +27,7 @@ the rename preserves the complete member API rather than selecting a subset.
 
 | Responsibility | Supported name |
 | --- | --- |
+| Automatically sized SIMD facade | `SimdLib::NativeApi<element_t>` |
 | Register-width SIMD facade | `SimdLib::Api<register_width, element_t>` |
 | Availability query and constraint | `SimdLib::is_api_available_v` and `SimdLib::ApiAvailable` |
 | Fixed logical SIMD value | `SimdLib::SimdVector<element_t, element_count>` |
@@ -41,6 +42,12 @@ the rename preserves the complete member API rather than selecting a subset.
 in `SimdLib::SimdApi` adds length without distinguishing another public API.
 The short name also reads clearly in aliases such as
 `using u32x4_api = SimdLib::Api<128, std::uint32_t>`.
+
+`NativeApi<element_t>` is the preferred entry point when consumers do not
+require a fixed register width. It selects the 256-bit facade when the compile
+target enables it and otherwise selects the 128-bit facade. Explicit
+`Api<register_width, element_t>` remains the supported form for width-specific
+algorithms and ABI contracts.
 
 `SimdResample` remains unchanged. It names a cohesive, existing operation
 family and changing it would add churn without improving the requested type

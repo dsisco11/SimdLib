@@ -10,6 +10,18 @@ consteval bool specialization_available()
     return sizeof(typename simd::vector_t) == Width / 8 && simd::element_count == Width / (sizeof(Element) * 8);
 }
 
+/**
+ * @brief Reports whether the native alias selects the 256-bit specialization.
+ * @tparam Element SIMD lane element type.
+ * @return `true` when `NativeApi<Element>` uses 256-bit registers.
+ */
+template <class Element>
+consteval bool native_api_selects_widest_register()
+{
+    using simd = SimdLib::NativeApi<Element>;
+    return simd::register_width == 256;
+}
+
 static_assert(specialization_available<128, std::int8_t>());
 static_assert(specialization_available<128, std::uint8_t>());
 static_assert(specialization_available<128, std::int16_t>());
@@ -30,6 +42,17 @@ static_assert(specialization_available<256, std::int64_t>());
 static_assert(specialization_available<256, std::uint64_t>());
 static_assert(specialization_available<256, float>());
 static_assert(specialization_available<256, double>());
+
+static_assert(native_api_selects_widest_register<std::int8_t>());
+static_assert(native_api_selects_widest_register<std::uint8_t>());
+static_assert(native_api_selects_widest_register<std::int16_t>());
+static_assert(native_api_selects_widest_register<std::uint16_t>());
+static_assert(native_api_selects_widest_register<std::int32_t>());
+static_assert(native_api_selects_widest_register<std::uint32_t>());
+static_assert(native_api_selects_widest_register<std::int64_t>());
+static_assert(native_api_selects_widest_register<std::uint64_t>());
+static_assert(native_api_selects_widest_register<float>());
+static_assert(native_api_selects_widest_register<double>());
 
 static_assert(!SimdLib::is_api_available_v<128, bool>);
 static_assert(!SimdLib::is_api_available_v<128, char>);

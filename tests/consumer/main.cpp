@@ -13,7 +13,7 @@ int main()
 	{
 		return 2;
 	}
-	using api = SimdLib::Api<128, int>;
+	using api = SimdLib::NativeApi<int>;
 	if (api::to_array(api::add(api::set1(2), api::set1(3)))[0] != 5)
 	{
 		return 3;

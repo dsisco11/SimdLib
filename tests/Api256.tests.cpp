@@ -7,6 +7,7 @@
 
 using namespace SimdLib::Tests;
 
+static_assert(SimdLib::NativeApi<float>::register_width == 256);
 
 TEST_CASE("256-bit constexpr contracts match volatile runtime dispatch", "[simdlib][avx2][constexpr][runtime-parity]")
 {
