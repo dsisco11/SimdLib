@@ -33,6 +33,7 @@ TEST_CASE("128-bit movemask contracts are byte and element granular", "[simdlib]
 
 TEST_CASE("128-bit transform_pack preserves packed lane order and exact tails", "[simdlib][sse42][transform-pack]")
 {
+	require_transform_pack_full_native_word_contract<128>();
     require_transform_pack_mask_contract<128, std::uint8_t, 24>();
     require_transform_pack_mask_contract<128, std::uint8_t, 80>();
     require_transform_pack_mask_contract<128, std::uint64_t, 8>();
@@ -42,6 +43,24 @@ TEST_CASE("128-bit transform_pack preserves packed lane order and exact tails", 
     require_transform_pack_type_matrix<128>();
 }
 
+TEST_CASE("128-bit public transform overloads preserve exact spans", "[simdlib][sse42][transform]")
+{
+	require_transform_overload_contract<128>();
+}
+
+TEST_CASE("128-bit partial construction and float dot product use public Api entry points", "[simdlib][sse42][partial][dot]")
+{
+    using integers = SimdLib::Api<128, std::uint32_t>;
+    const std::array<std::uint32_t, 2> prefix{3, 5};
+    REQUIRE(integers::to_array(integers::setr_partial(3U, 5U)) == std::array<std::uint32_t, 4>{3, 5, 0, 0});
+    REQUIRE(integers::to_array(integers::template load_partial<2>(prefix)) == std::array<std::uint32_t, 4>{3, 5, 0, 0});
+
+    using floats = SimdLib::Api<128, float>;
+    const auto dot = floats::template dot_product<0xFF>(floats::set1(1.0F), floats::set1(2.0F));
+    REQUIRE(floats::to_array(dot) == std::array<float, 4>{8.0F, 8.0F, 8.0F, 8.0F});
+    const auto partialDot = floats::template dot_product<0x11>(floats::set1(1.0F), floats::set1(2.0F));
+    REQUIRE(floats::to_array(partialDot) == std::array<float, 4>{2.0F, 0.0F, 0.0F, 0.0F});
+}
 TEST_CASE("128-bit arithmetic and int8 division match scalar results", "[simdlib][sse42][arithmetic]")
 {
     using integers = SimdLib::Api<128, std::int32_t>;

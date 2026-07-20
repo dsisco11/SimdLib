@@ -289,6 +289,138 @@ void require_transform_pack_width_contract()
     REQUIRE(guarded.back() == static_cast<write_t>(0xA5));
 }
 
+/**
+ * @brief Verifies a packed transform whose one-register result fills exactly one native output word.
+ * @tparam Width SIMD register width in bits.
+ *
+ * This is intentionally separate from the general width matrix: it documents the no-shift-by-64
+ * boundary and requires the accumulator flush that writes a complete native word.
+ */
+template <std::size_t Width>
+void require_transform_pack_full_native_word_contract()
+{
+    using simd = Api<Width, std::uint64_t>;
+    constexpr std::size_t resultBitWidth = 64 / simd::element_count;
+    require_transform_pack_width_contract<Width, std::uint64_t, simd::element_count, resultBitWidth>();
+}
+
+/**
+ * @brief Adds a fixed scalar amount to every lane of a 32-bit SIMD register.
+ * @tparam Width SIMD register width in bits.
+ */
+template <std::size_t Width>
+struct Add17Transform
+{
+    using simd = Api<Width, std::uint32_t>;
+
+    /** @brief Applies the transform to one register. */
+    [[nodiscard]] typename simd::vector_t operator()(const typename simd::vector_t value) const noexcept
+    {
+        return simd::add(value, simd::set1(17));
+    }
+};
+
+/**
+ * @brief Subtracts a fixed scalar amount from every lane of a 32-bit SIMD register.
+ * @tparam Width SIMD register width in bits.
+ */
+template <std::size_t Width>
+struct Subtract13Transform
+{
+    using simd = Api<Width, std::uint32_t>;
+
+    /** @brief Applies the transform to one register. */
+    [[nodiscard]] typename simd::vector_t operator()(const typename simd::vector_t value) const noexcept
+    {
+        return simd::subtract(value, simd::set1(13));
+    }
+};
+
+/**
+ * @brief Subtracts corresponding lanes of two 32-bit SIMD registers.
+ * @tparam Width SIMD register width in bits.
+ */
+template <std::size_t Width>
+struct SubtractTransform
+{
+    using simd = Api<Width, std::uint32_t>;
+
+    /** @brief Applies the transform to two registers. */
+    [[nodiscard]] typename simd::vector_t operator()(
+        const typename simd::vector_t lhs, const typename simd::vector_t rhs) const noexcept
+    {
+        return simd::subtract(lhs, rhs);
+    }
+};
+
+/**
+ * @brief Verifies all public unary and binary transform overloads for one span extent.
+ * @tparam Width SIMD register width in bits.
+ * @tparam Count Number of logical elements in each source and destination span.
+ */
+template <std::size_t Width, std::size_t Count>
+void require_transform_overload_case()
+{
+    using simd = Api<Width, std::uint32_t>;
+    constexpr std::uint32_t guard = 0xDEADBEEFU;
+    std::array<std::uint32_t, Count + 2> unaryStorage{};
+    std::array<std::uint32_t, Count + 2> leftStorage{};
+    std::array<std::uint32_t, Count + 2> rightStorage{};
+    std::array<std::uint32_t, Count + 2> outputStorage{};
+    unaryStorage.fill(guard);
+    leftStorage.fill(guard);
+    rightStorage.fill(guard);
+    outputStorage.fill(guard);
+
+    auto unary = std::span<std::uint32_t>(unaryStorage).subspan(1, Count);
+    auto left = std::span<std::uint32_t>(leftStorage).subspan(1, Count);
+    auto right = std::span<std::uint32_t>(rightStorage).subspan(1, Count);
+    auto output = std::span<std::uint32_t>(outputStorage).subspan(1, Count);
+    for (std::size_t index = 0; index < Count; ++index)
+    {
+        unary[index] = static_cast<std::uint32_t>(index * 7 + 5);
+        left[index] = static_cast<std::uint32_t>(index * 7 + 50);
+        right[index] = static_cast<std::uint32_t>(index + 3);
+    }
+
+    simd::transform(unary, Add17Transform<Width>{});
+
+    for (std::size_t index = 0; index < Count; ++index)
+        REQUIRE(unary[index] == static_cast<std::uint32_t>(index * 7 + 22));
+    REQUIRE(unaryStorage.front() == guard);
+    REQUIRE(unaryStorage.back() == guard);
+
+    simd::transform(std::span<const std::uint32_t>(left), output, Subtract13Transform<Width>{});
+
+    for (std::size_t index = 0; index < Count; ++index)
+        REQUIRE(output[index] == static_cast<std::uint32_t>(index * 7 + 37));
+    REQUIRE(outputStorage.front() == guard);
+    REQUIRE(outputStorage.back() == guard);
+
+    std::fill(output.begin(), output.end(), guard);
+    simd::transform(std::span<const std::uint32_t>(left), std::span<const std::uint32_t>(right), output, SubtractTransform<Width>{});
+
+    for (std::size_t index = 0; index < Count; ++index)
+        REQUIRE(output[index] == static_cast<std::uint32_t>(index * 6 + 47));
+    REQUIRE(outputStorage.front() == guard);
+    REQUIRE(outputStorage.back() == guard);
+}
+
+/**
+ * @brief Verifies public transform overloads across empty, tail, full-register, and multi-register extents.
+ * @tparam Width SIMD register width in bits.
+ */
+template <std::size_t Width>
+void require_transform_overload_contract()
+{
+    constexpr std::size_t laneCount = Api<Width, std::uint32_t>::element_count;
+    require_transform_overload_case<Width, 0>();
+    require_transform_overload_case<Width, 1>();
+    require_transform_overload_case<Width, laneCount>();
+    require_transform_overload_case<Width, laneCount + 1>();
+    require_transform_overload_case<Width, laneCount * 2>();
+}
+
 template <std::size_t Width, class Element>
 constexpr auto movemask_test_bytes()
 {

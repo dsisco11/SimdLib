@@ -21,6 +21,7 @@ cell that cannot be classified until its intended behavior is decided.
 | `uint64_t::multiply_add_adjacent` | unavailable | unavailable | unavailable | unavailable | unavailable | unavailable | unavailable | tested | unavailable | unavailable |
 | Whole-register byte shifts | 128 tested; 256 unavailable | 128 tested; 256 unavailable | 128 tested; 256 unavailable | 128 tested; 256 unavailable | 128 tested; 256 unavailable | 128 tested; 256 unavailable | 128 tested; 256 unavailable | 128 tested; 256 unavailable | unavailable | unavailable |
 | `transform_pack` | tested | tested | tested | tested | tested | tested | tested | tested | unavailable | unavailable |
+| Span transforms (in-place unary, separate-output unary, and binary) | same generic overload | same generic overload | same generic overload | same generic overload | same generic overload | tested | same generic overload | same generic overload | same generic overload | same generic overload |
 
 ## Backend-routing audit
 
@@ -36,5 +37,5 @@ supported test seam.
 The matrix is exercised by `tests/Api128.tests.cpp`,
 `tests/Api256.tests.cpp`, and the public contract helpers in
 `tests/TestSupport.h`. The focused MSVC Release and Clang coverage runs each
-contain 18 SSE4.2 tests and 15 AVX2 tests; all 33 pass in both configurations.
-The complete MSVC Release suite passes all 137 tests.
+contain 21 SSE4.2 tests and 19 AVX2 tests; all 40 pass in both configurations.
+The complete MSVC Release suite passes all 187 tests.

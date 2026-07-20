@@ -34,6 +34,7 @@ TEST_CASE("256-bit movemask contracts are byte and element granular", "[simdlib]
 
 TEST_CASE("256-bit transform_pack preserves packed lane order and exact tails", "[simdlib][avx2][transform-pack]")
 {
+	require_transform_pack_full_native_word_contract<256>();
 	require_transform_pack_mask_contract<256, std::uint8_t, 40>();
 	require_transform_pack_mask_contract<256, std::uint8_t, 80>();
 	require_transform_pack_mask_contract<256, std::uint16_t, 24>();
@@ -44,6 +45,46 @@ TEST_CASE("256-bit transform_pack preserves packed lane order and exact tails", 
 	require_transform_pack_type_matrix<256>();
 }
 
+TEST_CASE("256-bit public transform overloads preserve exact spans", "[simdlib][avx2][transform]")
+{
+	require_transform_overload_contract<256>();
+}
+
+TEST_CASE("256-bit float and double dot products use public Api entry points", "[simdlib][avx2][dot]")
+{
+    using floats = SimdLib::Api<256, float>;
+    const auto floatDot = floats::template dot_product<0xFF>(floats::set1(1.0F), floats::set1(2.0F));
+    REQUIRE(floats::to_array(floatDot) == std::array<float, 8>{8.0F, 8.0F, 8.0F, 8.0F, 8.0F, 8.0F, 8.0F, 8.0F});
+
+    using doubles = SimdLib::Api<256, double>;
+    const auto doubleDot = doubles::template dot_product<0xFF>(doubles::set1(1.0), doubles::set1(2.0));
+    REQUIRE(doubles::to_array(doubleDot) == std::array<double, 4>{4.0, 4.0, 4.0, 4.0});
+
+    const auto floatPartialDot = floats::template dot_product<0x11>(floats::set1(1.0F), floats::set1(2.0F));
+    REQUIRE(floats::to_array(floatPartialDot) == std::array<float, 8>{2.0F, 0.0F, 0.0F, 0.0F, 2.0F, 0.0F, 0.0F, 0.0F});
+    const auto doublePartialDot = doubles::template dot_product<0x11>(doubles::set1(1.0), doubles::set1(2.0));
+    REQUIRE(doubles::to_array(doublePartialDot) == std::array<double, 4>{2.0, 0.0, 2.0, 0.0});
+}
+TEST_CASE("256-bit byte function-pointer transforms use public Api entry points", "[simdlib][avx2][transform][byte]")
+{
+    using bytes = SimdLib::Api<256, std::uint8_t>;
+    std::array<std::uint8_t, 33> lhs{};
+    std::array<std::uint8_t, 33> rhs{};
+    std::array<std::uint8_t, 33> output{};
+    for (std::size_t index = 0; index < lhs.size(); ++index)
+    {
+        lhs[index] = static_cast<std::uint8_t>(index + 1);
+        rhs[index] = static_cast<std::uint8_t>(0xA0U + index);
+    }
+
+    bytes::transform(std::span<const std::uint8_t>(lhs), std::span<std::uint8_t>(output), bytes::bitwise_not);
+    for (std::size_t index = 0; index < output.size(); ++index)
+        REQUIRE(output[index] == static_cast<std::uint8_t>(~lhs[index]));
+
+    bytes::transform(std::span<const std::uint8_t>(lhs), std::span<const std::uint8_t>(rhs), std::span<std::uint8_t>(output), bytes::bitwise_xor);
+    for (std::size_t index = 0; index < output.size(); ++index)
+        REQUIRE(output[index] == static_cast<std::uint8_t>(lhs[index] ^ rhs[index]));
+}
 TEST_CASE("256-bit integer extrema and position matrix uses public Api entry points", "[simdlib][avx2][extrema][position]")
 {
 	require_integer_extrema_position_matrix<256>();

@@ -133,7 +133,7 @@ assertions across three cases and covers exact aligned/raw capacities, empty
 and one-element partial loads, matching empty/one-element algorithm spans, and
 empty/minimum resampling shapes. The complete strict suites pass 179/179 with
 MSVC Release and 182/182 with Clang coverage. Clang 22.1.8 ASan/UBSan Debug
-passes 146/146 with no diagnostics. The target-aware coverage report maps 185
+passes 151/151 with no diagnostics. The target-aware coverage report maps 190
 profiles to 19 executables, including all 13 failure-probe profiles and the
 public API example executable.
 
@@ -410,38 +410,40 @@ comparison for the required headers:
 
 ### Final trustworthy close-out totals
 
-The final clean-reset run passed 182/182 CTest entries and mapped 185 profiles
+The final clean-reset run passed 187/187 CTest entries and mapped 190 profiles
 to 19 single-executable exports. No multi-executable or tool profile was
-included in the final preset run. The final accumulated report is:
+included in the final preset run. The LCOV merger now identifies a branch by
+its source path, line, block, and branch number, and sums that identity across
+executables. This prevents one covered header-template branch from being
+reported again as an uncovered copy in every other executable. The final
+accumulated report is:
 
 | Header | Lines | Branches | Functions |
 | --- | ---: | ---: | ---: |
-| `Api.h` | 387/518 (74.71%) | 97/302 (32.12%) | 923/931 (99.14%) |
-| `Bmi.h` | 474/499 (94.99%) | 116/144 (80.56%) | 182/232 (78.45%) |
+| `Api.h` | 407/538 (75.65%) | 51/114 (44.74%) | 944/944 (100.00%) |
+| `Bmi.h` | 474/499 (94.99%) | 39/50 (78.00%) | 182/232 (78.45%) |
 | `Config.h` | 1/1 (100.00%) | 0/0 | 0/0 |
-| `Detail/Extensions.h` | 349/507 (68.84%) | 102/114 (89.47%) | 162/196 (82.65%) |
-| `Detail/Implementations.h` | 1,524/1,627 (93.67%) | 76/118 (64.41%) | 787/806 (97.64%) |
-| `Format.h` | 224/224 (100.00%) | 262/498 (52.61%) | 20/20 (100.00%) |
-| `SimdAlgo.h` | 192/195 (98.46%) | 22/36 (61.11%) | 121/126 (96.03%) |
-| `SimdResample.h` | 128/137 (93.43%) | 78/88 (88.64%) | 6/6 (100.00%) |
-| `SimdVector.h` | 282/283 (99.65%) | 14/18 (77.78%) | 208/210 (99.05%) |
-| `UInt128.h` | 371/409 (90.71%) | 254/298 (85.23%) | 96/102 (94.12%) |
-| **Aggregate** | **3,932/4,400 (89.36%)** | **1,021/1,616 (63.18%)** | **2,505/2,629 (95.28%)** |
+| `Detail/Extensions.h` | 349/507 (68.84%) | 46/50 (92.00%) | 162/196 (82.65%) |
+| `Detail/Implementations.h` | 1,524/1,627 (93.67%) | 42/58 (72.41%) | 787/806 (97.64%) |
+| `Format.h` | 224/224 (100.00%) | 152/166 (91.57%) | 20/20 (100.00%) |
+| `SimdAlgo.h` | 192/195 (98.46%) | 20/30 (66.67%) | 121/126 (96.03%) |
+| `SimdResample.h` | 128/137 (93.43%) | 46/46 (100.00%) | 6/6 (100.00%) |
+| `SimdVector.h` | 282/283 (99.65%) | 13/16 (81.25%) | 208/210 (99.05%) |
+| `UInt128.h` | 371/409 (90.71%) | 96/108 (88.89%) | 96/102 (94.12%) |
+| **Aggregate** | **3,952/4,420 (89.41%)** | **505/638 (79.15%)** | **2,532/2,645 (95.73%)** |
 
-Compared with the corrected trustworthy baseline, trustworthy line coverage rose
-from 2,466/3,466 (71.15%) and function coverage rose from 1,438/2,033
-(70.73%). Branch hits rose from 765 to 1,021 while the denominator grew from
-1,142 to 1,616 as additional type and feature profiles instantiated previously
-absent alternatives; the resulting percentage is 63.18%, so branch percentage
-alone is not used as a regression gate.
+For `Api.h`, every runtime-profiled alternative is covered: 51/51 (100.00%).
+The remaining 63 raw alternatives consist of the constant-evaluation sides of
+15 `std::is_constant_evaluated()` gates and 48 branches within their
+constant-evaluation-only bodies. The dedicated 128-bit and 256-bit constexpr
+targets prove those contracts at compile time, but LLVM runtime profiles cannot
+increment their counters. The raw 51/114 total and the classified 51/51 runtime
+total are therefore reported together; the latter is a project classification,
+not a native LLVM percentage.
 
 The final `coverage.info` has SHA-256
-`0D4E9CA6DC04BE1DE0C6F5C2D0A838F84D78C37B7F537630842F7C496E287322`.
-Running `SimdLibCoverageReport` twice over the unchanged 185 profiles produced
-the same hash. A separate clean-reset run containing only
-`SimdLib.HeaderOnlySmoke` made the report fail on the missing
-`SimdLibTestsBmiPortable` profile, proving that partial runs cannot inherit
-stale profiles.
+`9B07AFE889701BE3670504CFA28FE35CB0AA944C6697C4B952990EB77DC24A2C`.
+A clean reset before CTest ensures the report cannot inherit stale profiles.
 
 ### Reviewed red-gutter exclusions
 
