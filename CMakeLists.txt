@@ -472,6 +472,15 @@ if(SIMDLIB_BUILD_TESTS)
             target_compile_options(SimdLibTestsVectorAlgorithms PRIVATE -mavx2 -mfma)
         endif()
 
+		simdlib_add_catch_test(SimdLibTestsVectorChecks tests/SimdVectorChecks.tests.cpp
+			SimdLib.Tests.VectorChecks "VECTOR_ALGORITHMS;AVX2;CHECKS")
+		target_compile_definitions(SimdLibTestsVectorChecks PRIVATE SIMDLIB_ENABLE_CHECKS=1)
+		if(SIMDLIB_MSVC_STYLE_DRIVER)
+			target_compile_options(SimdLibTestsVectorChecks PRIVATE /arch:AVX2)
+		else()
+			target_compile_options(SimdLibTestsVectorChecks PRIVATE -mavx2 -mfma)
+		endif()
+
         add_executable(SimdLibTestsResampleScalar tests/SimdResample.tests.cpp)
         target_link_libraries(SimdLibTestsResampleScalar PRIVATE SimdLib::SimdLib Catch2::Catch2WithMain)
         simdlib_enable_development_warnings(SimdLibTestsResampleScalar)

@@ -117,33 +117,6 @@ class SimdVector final
 		}(std::make_index_sequence<element_count>{}, std::make_index_sequence<simd::element_count - element_count>{});
 	}
 
-	template <std::size_t ByteIndex> SIMDLIB_FORCE_INLINE constexpr static std::size_t PairProductPartnerByteIndex() noexcept
-	{
-		constexpr std::size_t ByteCountPer128Lane = 16;
-		constexpr std::size_t ByteIndexWithin128Lane = ByteIndex % ByteCountPer128Lane;
-		constexpr std::size_t LaneIndexWithin128Lane = ByteIndexWithin128Lane / sizeof(element_t);
-		constexpr std::size_t OddLaneIndexWithin128Lane = (LaneIndexWithin128Lane & ~std::size_t{1}) + 1;
-		return (OddLaneIndexWithin128Lane * sizeof(element_t)) + (ByteIndexWithin128Lane % sizeof(element_t));
-	}
-
-	/** @brief Builds the right-hand register used to turn multiply-add-adjacent into pairwise products.
-	 *  @param value Source register whose active lanes have already been padded with multiplicative identity values.
-	 *  @return Register shaped like `[y, 0, w, 0, ...]` so adjacent multiply-add yields pairwise products.
-	 */
-	SIMDLIB_FORCE_INLINE constexpr static vector_t BuildPairProductPartner(const vector_t value) noexcept
-	{
-		const vector_t evenLaneMask = []<std::size_t... Indices>(std::index_sequence<Indices...>) constexpr noexcept -> vector_t
-		{
-			return simd::setr(((Indices % 2) == 0
-				? std::bit_cast<element_t>(std::numeric_limits<std::make_unsigned_t<element_t>>::max())
-				: element_t{0})...);
-		}(std::make_index_sequence<simd::element_count>{});
-
-		return [&]<std::size_t... ByteIndices>(std::index_sequence<ByteIndices...>) constexpr noexcept -> vector_t
-		{
-			return simd::bitwise_and(simd::template shuffle<PairProductPartnerByteIndex<ByteIndices>()...>(value), evenLaneMask);
-		}(std::make_index_sequence<simd::byte_count>{});
-	}
 #pragma endregion
 
 #pragma region Constructors
@@ -916,15 +889,11 @@ class SimdVector final
 	}
 
 	/** @brief Computes the multiplicative product of the active logical lanes.
-	 *  @return Product of the declared logical lanes, widened to 32-bit for sub-32-bit integer vectors.
+	 *  @return Product of the declared logical lanes, widened to 32-bit for sub-32-bit integer vectors and reduced modulo the result width.
 	 */
 	SIMDLIB_FORCE_INLINE area_element_t VECTORCALL area() const noexcept
 		requires std::is_integral_v<element_t>
 	{
-		if constexpr (!std::same_as<area_element_t, element_t>)
-		{
-			return SimdVector<area_element_t, element_count>{*this}.area();
-		}
 		if constexpr (element_count == 1)
 		{
 			if constexpr (simd_width == 128)
@@ -939,13 +908,21 @@ class SimdVector final
 		}
 		else
 		{
-			const vector_t prepared = FillInactiveLanes(m_data, static_cast<element_t>(1));
-			using pair_element_t = std::conditional_t<std::is_signed_v<element_t>, typename simd::template promoted_signed_t<element_t>,
-													  typename simd::template promoted_unsigned_t<element_t>>;
-			using pair_vector_t = SimdVector<pair_element_t, (element_count + 1) / 2>;
-			const SimdVector preparedVector{prepared};
-			const pair_vector_t pairProducts{preparedVector.multiply_add_adjacent(BuildPairProductPartner(prepared))};
-			return static_cast<area_element_t>(pairProducts.area());
+			const auto lanes = simd::to_array(m_data);
+			using unsigned_area_t = std::make_unsigned_t<area_element_t>;
+			unsigned_area_t result{1};
+			for (std::size_t index = 0; index < static_cast<std::size_t>(element_count); ++index)
+			{
+				result *= static_cast<unsigned_area_t>(lanes[index]);
+			}
+			if constexpr (std::is_signed_v<area_element_t>)
+			{
+				return std::bit_cast<area_element_t>(result);
+			}
+			else
+			{
+				return result;
+			}
 		}
 	}
 

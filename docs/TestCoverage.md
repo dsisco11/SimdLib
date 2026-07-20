@@ -88,13 +88,48 @@ UInt128 addition, and resampling; each operation also has a correctness test.
 | Surface | Directly covered contracts | Profiles | Remaining gap or justification |
 | --- | --- | --- | --- |
 | `Api` | Arithmetic, signed and unsigned comparisons, equality masks, movemasks, loads/stores, unaligned and partial transfers, same-shape transforms, packed transforms with full batches and tails, conversion between signed 32-bit lanes and float, shifts, shuffles, blends, reductions, casts, extraction, and register metadata | 128-bit SSE and 256-bit AVX2; FMA on/off; availability-disabled probes | Some inherited backend helper names are implementation exposure rather than a promised public family. Exhaustively testing them would freeze an accidental contract; the inheritance boundary should be clarified before such tests are added. More conversion rounding/overflow cases are medium-risk follow-up work. |
-| `SimdVector` | Construction, lane access, arithmetic, comparisons, masks, reductions, hashing, pair products, signed partial vectors, inactive-lane min/max behavior, and floating signed-zero equality/hash consistency | Representative integral and floating lane types, full and partial extents | Convenience overloads that delegate directly to `Api` are not all tested individually. Their underlying behavior is covered; add overload-specific tests when they acquire distinct contracts. |
+| `SimdVector` | Construction, lane access, arithmetic, comparisons, masks, partial divide/modulus/clamp identity handling, direct active-lane area reduction, lane-local magnitudes, 128/256-bit float/double dot products, floating hashing, inactive-lane min/max behavior, and checks-enabled result validation | Representative signed, unsigned, float, and double lane types; full and partial 128/256-bit extents; Release and checks-enabled profiles | Convenience overloads that delegate directly to `Api` are not all tested individually. Their underlying behavior is covered; add overload-specific tests when they acquire distinct contracts. |
 | `SimdAlgo` | `AnyEqual` and `AllEqual` full-register/tail outcomes, bitwise transforms, conversions, comparison packing, scalar parity, non-register-multiple tails, and destination canaries | Read widths 8/16/32/64; empty, single, multi-element, exact-register, multi-register, and tail extents | General comparison currently supports `WriteWidth == 1`; unsupported widths are a compile-time precondition, not an untested runtime branch. |
 | `SimdResample` | Scalar-reference parity for reductions and expansion, boundary dimensions, randomized inputs, and SIMD/scalar equivalence | SIMD enabled and scalar-only profiles | No material gap found. This remains the strongest standalone surface. |
 | `Bmi` | BMI1/BMI2 operations, portable and intrinsic equivalence, signed bit-pattern preservation, boundary indices/counts, generic 128-bit support, constexpr evaluation, and deterministic randomized scalar oracles | BMI1 only, BMI2 only, both, and portable | Several derived helpers have names whose edge semantics are not independently specified. Existing production contracts remain covered, but new tests should follow an API-contract review rather than canonizing incidental behavior. |
 | `uint128_t` | Construction, signed/unsigned heterogeneous comparisons, arithmetic, carry/borrow, boolean and integral shifts, dynamic and fixed-width masks, deprecated extraction compatibility, `Bmi::bextr`, numeric-limit sentinels, bit helpers including `bit_ceil` overflow, register conversion, constexpr behavior, randomized native/scalar oracle parity, and optimized/portable/scalar digest equivalence | Optimized compiler carry, portable carry, and all SIMD/BMI/FMA disabled | Division and remainder are not public operations. Deprecated `extract` is compatibility-only; `Bmi::bextr` remains the preferred API. |
 | Formatters | UInt128 decimal/binary/octal/hex output, signs, alternate forms, width/alignment/fill/zero padding, scalar `uint64_t` parity where the value fits, accepted/rejected grammar, integral and floating vectors, header isolation, and multi-TU ODR | Opt-in `Format.h` and umbrella include | Locale-specific formatting is deliberately rejected so output remains locale-independent; no formatter-contract gap remains. |
 | `Config` and `TemplateTools` | Compiler/target detection, feature constants, caller overrides, disabled public headers, type availability, alias widths, concepts, constexpr loops, tuple iteration, and constant evaluation | Default, override, disabled, MSVC, clang-cl, and Clang | Unavailable `Api` instantiations are tested through availability concepts instead of intentional hard-error compile failures. |
+
+## SimdVector full, partial, and wide-vector matrix
+
+| Contract | Direct proof |
+| --- | --- |
+| Divide and modulus | Three-lane `int32_t` vectors pass a raw divisor register whose inactive lane is zero. Both value-returning and compound operators produce exact active quotients/remainders and restore the inactive result lane to zero, proving the divisor is filled with multiplicative identity before evaluation. Matching full four-lane cases prove the non-partial route. |
+| Clamp | A partial `int32_t` vector uses per-lane lower/upper registers with adversarial inactive bounds (`100` and `-100`); active results match their individual bounds and the inactive result is zero. A full four-lane scalar-bound case covers the direct route. |
+| `area` | Signed `int8_t[5]`, cross-128-bit-lane `int16_t[9]` and `int64_t[3]`, unsigned `uint16_t[5]`, cross-128-bit-lane `uint8_t[17]` and `uint32_t[5]`, odd signed `int32_t[3]`, full `int32_t[4]`, and `int64_t[2]` cases exercise narrow/wide types, odd counts, full/partial reductions, both register halves, and modular signed overflow. |
+| Integer magnitude | Partial 256-bit `int16_t[9]` and `uint8_t[17]` inputs produce exact lane-local magnitudes in both 128-bit halves. The first high-lane active value is isolated so omission or cross-lane mixing is observable. |
+| Min/max position | Partial `uint16_t[3]` proves inactive zero lanes cannot win; full `uint16_t[8]` proves the no-fill route and exact positions. |
+| Float dot product | A partial 128-bit three-float case remains covered. Counts four through eight cover full 128-bit, partial 256-bit, and full 256-bit vectors; counts five through eight require the high 128-bit lane to contribute to the scalar result. |
+| Double dot product | Counts one through four cover partial/full 128-bit and partial/full 256-bit vectors. The three- and four-element cases require the high 128-bit lane to contribute. |
+| Floating hash | Nonzero float and double vectors assert nonzero hashes, copy/equal-value consistency, and selected distinct logical-lane results. Infinity and two representative NaN encodings per type are evaluated with copy consistency; no assertion requires unequal NaNs to hash differently. Existing float and double `+0`/`-0` equality and equal-hash regressions remain direct. |
+| Debug result validation | `SimdLibTestsVectorChecks` forces `SIMDLIB_ENABLE_CHECKS=1` and installs an observing precondition hook. Divide, modulus, and clamp on a partial vector invoke the inactive-lane result check three times with true conditions; the same operations on a full vector invoke it zero times. |
+
+The cross-lane `area` case exposed a register-shape defect: recursive pair
+reduction could infer a narrower `SimdVector` even though its pair-product
+register retained the original 256-bit width. `area` now converts the original
+register to an array and multiplies only the compile-time-bounded active lanes.
+This removes inactive-lane reconstruction, partner shuffling, adjacent-product
+emulation, promoted-register extraction, and the width mismatch. Accumulation
+still uses the unsigned object representation so signed overflow remains
+modular. Narrow cross-lane vectors no longer require unsupported 512- or
+1024-bit widened intermediates.
+
+Focused validation on 2026-07-19 passes 266 assertions across 14 public
+`SimdVector` cases and 10 assertions in the checks-enabled case with both MSVC
+Release and Clang coverage builds. Separate Clang profiles report 100.00% branch
+coverage for both the public-vector and checks-enabled instantiations;
+counters show three partial-result checks,
+zero checks for the full-vector specializations, direct area reduction across
+8-, 16-, 32-, and 64-bit lanes, four high-lane float dot additions, and two
+high-lane double dot additions.
+The complete strict suites pass 162/162 with MSVC Release and 165/165 with
+Clang coverage.
 
 ## uint128_t boundary and compatibility matrix
 
@@ -204,13 +239,18 @@ results. The `count >= 32` return remains at zero as justified above.
 - `SimdAlgo::Compare` could read beyond a partial tail, overwrite the packed
   destination, and depend on pre-zeroed output. Tail staging, exact packing,
   output initialization, and canary regressions now cover the contract.
-- Partial signed `SimdVector` bitwise NOT and pair products used a signed
+- Partial signed `SimdVector` bitwise NOT and the former pair-product path
+  used a signed
   numeric maximum instead of an all-bits mask. Signed bit-pattern tests cover
   the corrected behavior.
 - Partial `SimdVector` min/max position could select an inactive zero lane.
   Tests now cover nonzero active lanes and inactive-lane sentinels.
 - Floating `SimdVector` hashing distinguished `+0` and `-0` even though they
   compare equal. Float and double equality/hash regressions now cover this.
+- Wide `SimdVector::area` recursively wrapped pair-product registers in
+  reduced-count vectors that could select narrower or unsupported storage
+  widths. Direct active-lane reduction removes the intermediate vector and
+  covers narrow, wide, odd, and cross-128-bit-lane active counts.
 - `Bmi::abs` used an incorrect sign shift and could invoke signed overflow.
   It now works on unsigned object representations with boundary tests,
   including signed minima.
@@ -354,7 +394,7 @@ mismatched data`; retain it as historical directional evidence only.
 
 The lower percentage for `SimdVector` is caused by instantiating previously
 unseen members, which increased the denominator; the new signed-tail,
-min/max-position, pair-product, floating equality, and hashing branches are
+min/max-position, area, floating equality, and hashing branches are
 directly exercised. UInt128's aggregate branch percentage is similarly
 affected by merging mutually exclusive optimized and scalar profiles.
 

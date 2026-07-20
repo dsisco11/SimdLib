@@ -134,16 +134,16 @@ SimdLib Test Coverage Expansion:
     ☒ End Phase 6 only when each boundary branch is covered in the appropriate runtime or constexpr profile and compatibility-only behavior is explicitly labeled.
 
   Phase 7 - Close `SimdVector` Partial and Wide-Vector Gaps:
-    ☐ Add partial-vector divide and modulus tests that prove inactive lanes are filled with multiplicative identity before the operation and restored to zero afterward.
-    ☐ Add partial-vector clamp tests with lower/upper bounds that would expose accidental inactive-lane participation.
-    ☐ Add integer pair-product/magnitude tests for odd active counts and for active counts crossing a 128-bit lane boundary.
-    ☐ Exercise the pair-product partner shuffle for signed and unsigned lane types whose byte widths differ.
-    ☐ Add 256-bit float dot-product tests with five through eight active elements so the high 128-bit lane contributes to the scalar result.
-    ☐ Add representative 128/256-bit double dot-product tests, including partial extents.
-    ☐ Add nonzero floating hash tests, equal-value hash consistency, distinct logical-lane inputs, infinities, and representative NaNs without asserting that unequal NaNs must hash differently.
-    ☐ Retain `+0`/`-0` equality and hash regression coverage for both float and double.
-    ☐ Exercise inactive-lane debug checks under a checks-enabled build and verify full vectors bypass partial-lane validation.
-    ☐ End Phase 7 only when full and partial vectors have direct tests for every behavior that uses `FillInactiveLanes` or width-specific dot-product logic.
+    ☒ Add partial-vector divide and modulus tests that prove inactive lanes are filled with multiplicative identity before the operation and restored to zero afterward.
+    ☒ Add partial-vector clamp tests with lower/upper bounds that would expose accidental inactive-lane participation.
+    ☒ Add integer area/magnitude tests for odd active counts and for active counts crossing a 128-bit lane boundary.
+    ☒ Remove the obsolete pair-product partner shuffle after direct active-lane reduction replaces it; retain area tests across signed and unsigned lane types of differing byte widths.
+    ☒ Add 256-bit float dot-product tests with five through eight active elements so the high 128-bit lane contributes to the scalar result.
+    ☒ Add representative 128/256-bit double dot-product tests, including partial extents.
+    ☒ Add nonzero floating hash tests, equal-value hash consistency, distinct logical-lane inputs, infinities, and representative NaNs without asserting that unequal NaNs must hash differently.
+    ☒ Retain `+0`/`-0` equality and hash regression coverage for both float and double.
+    ☒ Exercise inactive-lane debug checks under a checks-enabled build and verify full vectors bypass partial-lane validation.
+    ☒ End Phase 7 only when full and partial vectors have direct tests for every behavior that uses `FillInactiveLanes` or width-specific dot-product logic.
 
   Phase 8 - Exercise Preconditions and Failure Contracts:
     ☐ Inventory every `SIMDLIB_PRECONDITION` reachable through the public headers and classify its expected debug/release behavior.
@@ -183,7 +183,7 @@ SimdLib Test Coverage Expansion:
     ☒ Phase 4 `SimdAlgo` full-register/tail outcome matrix recorded in `docs/TestCoverage.md`: focused MSVC and Clang runs pass 7/7 tests with 614 assertions, the strict MSVC suite passes 147/147, and the Clang suite passes 150/150.
     ☒ Phase 5 accepted/rejected formatter grammar matrix recorded in `docs/TestCoverage.md`: focused MSVC and Clang runs pass 8/8 tests, the formatter suite passes 267 assertions, the strict MSVC suite passes 148/148, and the Clang suite passes 151/151.
     ☒ Phase 6 `uint128_t` boundary and compatibility matrix recorded in `docs/TestCoverage.md`: focused MSVC passes 35/35, focused Clang passes 38/38, each Clang profile passes 131 assertions across six boundary cases, the strict MSVC suite passes 154/154, and the Clang suite passes 157/157.
-    ☐ Phase 7 `SimdVector` full/partial/128/256-bit behavior matrix recorded.
+    ☒ Phase 7 `SimdVector` full/partial/128/256-bit behavior matrix recorded in `docs/TestCoverage.md`: focused MSVC and Clang runs pass 266 assertions across 14 public cases plus 10 assertions in the checks-enabled case; separate Clang profiles prove high-lane and debug-check branches; the strict MSVC suite passes 162/162 and the Clang suite passes 165/165.
     ☐ Phase 8 precondition inventory, negative-test results, and sanitizer evidence recorded.
     ☐ Phase 9 final compiler/configuration matrix, test/assertion counts, before/after coverage, remaining justifications, and clean-worktree evidence recorded.
 
