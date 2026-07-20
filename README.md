@@ -14,7 +14,7 @@ link the CMake interface target, and use only the pieces you need.
   widest register supported by the compile target.
 - `Api<BitWidth, T>` remains available when an algorithm needs an explicit 128-bit or
   256-bit register width.
-- `SimdVector<ElementCount, T>` wraps a register in a fixed-size, value-like container.
+- `SimdVector<T, ElementCount>` wraps a register in a fixed-size, value-like container.
 - `SimdAlgo` applies common operations to arrays and spans.
 - `SimdResample` packs and expands byte masks, with a scalar fallback when the
   SIMD path is unavailable.
@@ -118,7 +118,7 @@ formatting together in one short program.
 
 ## Learn more
 
-- The [wiki](wiki/Technical-Reference.md) contains API documentation for every
+- The [wiki](wiki/Home.md) contains API documentation for every
   public method, more examples and usage guidance, supported environments,
   configuration details, formatting, and development commands.
 - [Public namespace and compatibility](docs/PublicNamespace.md) describes the

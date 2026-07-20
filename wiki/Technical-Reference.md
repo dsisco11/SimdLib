@@ -4,6 +4,19 @@ This page collects the detailed integration, configuration, API, and
 development information for SimdLib. For a shorter introduction and first
 example, start with the [project README](../README.md).
 
+## Contents
+
+- [Library model](#library-model)
+- [Integration](#integration)
+- [Supported environments](#supported-environments)
+- [SIMD availability and instruction families](#simd-availability-and-instruction-families)
+- [Public headers](#public-headers)
+- [Configuration and ABI](#configuration-and-abi)
+- [API example](#api-example)
+- [Formatting](#formatting)
+- [Development workflow](#development-workflow)
+- [Continuous validation](#continuous-validation)
+
 ## Library model
 
 SimdLib is a C++20 header-only library. Its CMake target is an
