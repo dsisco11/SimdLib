@@ -278,11 +278,14 @@ if(SIMDLIB_BUILD_TESTS)
     endif()
     include(Catch)
 
+    # @brief Applies labels after Catch2 has populated its deferred discovery list.
+    # @param test_list_variable Name of the Catch2-generated test-list variable.
+    # @param labels Semicolon-separated labels applied to every discovered test.
     function(simdlib_label_discovered_tests test_list_variable labels)
         set(label_file "${CMAKE_CURRENT_BINARY_DIR}/${test_list_variable}-labels.cmake")
         file(WRITE "${label_file}"
             "foreach(discovered_test IN LISTS ${test_list_variable})\n"
-            "    set_tests_properties(\"${discovered_test}\" PROPERTIES LABELS \"${labels}\")\n"
+            "    set_tests_properties(\"\${discovered_test}\" PROPERTIES LABELS \"${labels}\")\n"
             "endforeach()\n")
         set_property(DIRECTORY APPEND PROPERTY TEST_INCLUDE_FILES "${label_file}")
     endfunction()
@@ -482,47 +485,25 @@ if(SIMDLIB_BUILD_TESTS)
 			target_compile_options(SimdLibTestsVectorChecks PRIVATE -mavx2 -mfma)
 		endif()
 
-		add_executable(SimdLibPreconditionFailureProbe tests/PreconditionFailureProbe.cpp)
-		target_link_libraries(SimdLibPreconditionFailureProbe PRIVATE SimdLib::SimdLib)
-		simdlib_enable_development_warnings(SimdLibPreconditionFailureProbe)
-		simdlib_set_coverage_profile_prefix(SimdLibPreconditionFailureProbe
-			"SimdLib.Tests.Preconditions")
-		target_compile_definitions(SimdLibPreconditionFailureProbe PRIVATE SIMDLIB_ENABLE_CHECKS=1)
+		add_executable(SimdLibPreconditionTests tests/PreconditionFailure.tests.cpp)
+		target_link_libraries(SimdLibPreconditionTests PRIVATE SimdLib::SimdLib Catch2::Catch2WithMain)
+		simdlib_enable_development_warnings(SimdLibPreconditionTests)
+		simdlib_set_coverage_profile_prefix(SimdLibPreconditionTests
+			"SimdLib.Tests.Preconditions.Catch2")
+		target_compile_definitions(SimdLibPreconditionTests PRIVATE SIMDLIB_ENABLE_CHECKS=1)
 		if(SIMDLIB_MSVC_STYLE_DRIVER)
-			target_compile_options(SimdLibPreconditionFailureProbe PRIVATE /arch:AVX2)
+			target_compile_options(SimdLibPreconditionTests PRIVATE /arch:AVX2)
 		else()
-			target_compile_options(SimdLibPreconditionFailureProbe PRIVATE -mavx2 -mfma)
+			target_compile_options(SimdLibPreconditionTests PRIVATE -mavx2 -mfma)
 		endif()
-
-		# @brief Adds an isolated child-process test for one public runtime precondition.
-		# @param scenario Stable scenario name understood by SimdLibPreconditionFailureProbe.
-		function(simdlib_add_precondition_failure_test scenario)
-			set(test_name "SimdLib.Tests.Preconditions.${scenario}")
-			add_test(NAME "${test_name}"
-				COMMAND ${CMAKE_COMMAND}
-					"-DPROBE_EXECUTABLE=$<TARGET_FILE:SimdLibPreconditionFailureProbe>"
-					"-DSCENARIO=${scenario}"
-					-DEXPECTED_EXIT_CODE=73
-					-P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/RunPreconditionFailureProbe.cmake)
-			set_tests_properties("${test_name}" PROPERTIES LABELS "PRECONDITIONS;CHECKS;AVX2")
-		endfunction()
-
-		foreach(precondition_scenario IN ITEMS
-			api_load_aligned
-			api_load_partial
-			api_store_aligned
-			api_store_bytes
-			algo_bitwise_and
-			algo_bitwise_or
-			algo_bitwise_xor
-			algo_bitwise_not
-			algo_bitwise_andnot
-			resample_reduce_any
-			resample_reduce_all
-			resample_reduce_parity
-			resample_expand)
-			simdlib_add_precondition_failure_test(${precondition_scenario})
-		endforeach()
+		catch_discover_tests(SimdLibPreconditionTests
+			TEST_PREFIX "SimdLib.Tests.Preconditions."
+			TEST_LIST SimdLibPreconditionTests_DISCOVERED_TESTS
+			PROPERTIES
+				PASS_REGULAR_EXPRESSION "SIMDLIB_PRECONDITION_FAILURE_EXPECTED_18A7E3"
+				TIMEOUT 10)
+		simdlib_label_discovered_tests(SimdLibPreconditionTests_DISCOVERED_TESTS
+			"PRECONDITIONS;CHECKS;AVX2")
 
         add_executable(SimdLibTestsResampleScalar tests/SimdResample.tests.cpp)
         target_link_libraries(SimdLibTestsResampleScalar PRIVATE SimdLib::SimdLib Catch2::Catch2WithMain)

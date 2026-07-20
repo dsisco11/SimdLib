@@ -23,11 +23,12 @@ acceptance rules.
 
 ## Test inventory
 
-The standard Clang coverage preset contributes 182 CTest entries: 159
-individual Catch2 test cases discovered by `catch_discover_tests()` and 23
-direct CTest audit, compile, example, precondition, and equivalence tests.
-Catch2 executables remain grouped
-by these stable name prefixes:
+The standard Clang coverage preset contributes 182 CTest entries: 172
+individual Catch2 test cases discovered by `catch_discover_tests()` and 10
+direct CTest audit, compile, example, and equivalence tests. The 13
+terminating precondition cases are discovered Catch2 cases, not direct CTest
+driver scenarios. Catch2 executables remain grouped by these stable name
+prefixes:
 
 | Entry | Coverage role |
 | --- | --- |
@@ -52,6 +53,7 @@ by these stable name prefixes:
 | `SimdLib.Tests.Bmi.Bmi1AndBmi2.Equivalence` | Combined-profile-versus-portable deterministic result digest |
 | `SimdLib.Tests.VectorAlgorithms.*` | `SimdVector`, `SimdAlgo`, and SIMD `SimdResample` behavior |
 | `SimdLib.Tests.ResampleScalar.*` | Scalar-only `SimdResample` behavior and oracle parity |
+| `SimdLib.Tests.Preconditions.*` | Individually discovered terminating caller-facing precondition contracts; marker-gated CTest success |
 | `SimdLib.ApiExamples` | Public documented call sites compiled and run together |
 
 Compile-only targets cover:
@@ -102,19 +104,21 @@ UInt128 addition, and resampling; each operation also has a correctness test.
 The complete call-site classification is recorded in
 [`PreconditionInventory.md`](PreconditionInventory.md). There are 13
 caller-facing runtime contracts: four `Api` transfer checks, five dynamic
-`SimdAlgo` span-shape checks, and four `SimdResample` extent checks. Each has
-an isolated negative CTest scenario. The remaining public-header call site is
-the checks-enabled `SimdVector` inactive-lane result invariant; it is not
-caller-triggerable through a supported operation, so its direct proof observes
-successful partial-vector checks and the full-vector bypass.
+`SimdAlgo` span-shape checks, and four `SimdResample` extent checks. Each is
+an independently discovered negative Catch2 case. The remaining public-header
+call site is the checks-enabled `SimdVector` inactive-lane result invariant; it
+is not caller-triggerable through a supported operation, so its direct proof
+observes successful partial-vector checks and the full-vector bypass.
 
-`SimdLibPreconditionFailureProbe` overrides `SIMDLIB_PRECONDITION` and exits
-with status 73 on failure. `RunPreconditionFailureProbe.cmake` executes one
-scenario per child process and requires that exact status. An access violation,
-unrelated crash, or operation that continues past its contract therefore fails
-the CTest scenario instead of masquerading as a successful death test. This
-override remains active in Release, where the default `assert` policy is
-compiled out by `NDEBUG`.
+`SimdLibPreconditionTests` overrides `SIMDLIB_PRECONDITION`, writes the
+private `SIMDLIB_PRECONDITION_FAILURE_EXPECTED_18A7E3` marker to stderr,
+flushes it, and exits with diagnostic status 73 on failure. CTest discovers
+each Catch2 case as a separate process and requires that marker for success;
+a missing marker, access violation, unrelated crash, or timeout fails the
+case. The executable's target-aware coverage prefix is
+`SimdLib.Tests.Preconditions.Catch2`, so its terminating profiles map only to
+that executable in the LCOV report. The override remains active in Release,
+where the default `assert` policy is compiled out by `NDEBUG`.
 
 The failure matrix directly covers undersized `load_partial` and raw-byte
 `Api::store` spans, misaligned aligned load/store addresses, every dynamic
@@ -529,9 +533,12 @@ ctest --test-dir build-phase8-sanitize --output-on-failure
 | Clang ASan/UBSan Debug | 146/146, no diagnostics | optional profiles intentionally omitted | 6.099 s | `build-phase8-sanitize/Testing/Temporary/LastTest.log` |
 
 The Catch2 totals are the sum of every `SimdLibTests*.exe` compact summary with
-`--rng-seed 1592594996`. They intentionally count repeated portable,
-intrinsic, carry, scalar, checks-enabled, SSE, and AVX2 profiles because those
-profiles are separate behavioral evidence. The remaining CTest entries cover
+`--rng-seed 1592594996`. `SimdLibPreconditionTests.exe` is intentionally
+excluded because it terminates after its selected contract case; its 13
+independently discovered CTest entries remain part of the CTest totals. The
+aggregate intentionally counts repeated portable, intrinsic, carry, scalar,
+checks-enabled, SSE, and AVX2 profiles because those profiles are separate
+behavioral evidence. The remaining CTest entries cover
 header isolation, configuration/availability probes, formatter ODR, five
 result-set equivalence runs, 13 isolated precondition failures, the public
 example, the public-header assertion audit, and the constexpr target group.

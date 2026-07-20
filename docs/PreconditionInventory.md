@@ -15,18 +15,20 @@ consumer supplies an override.
   an out-of-bounds access, an aligned instruction with a misaligned address, or
   another undefined operation.
 - A consumer override can remain active in any configuration. The dedicated
-  failure probe uses this replacement point and `SIMDLIB_ENABLE_CHECKS=1` to
-  exit with status 73 before execution can continue past a failed condition.
-  A CMake child-process driver requires that exact status, so an access
-  violation or unrelated crash cannot satisfy the test.
+  Catch2 precondition executable uses this replacement point and
+  `SIMDLIB_ENABLE_CHECKS=1` to write `SIMDLIB_PRECONDITION_FAILURE_EXPECTED_18A7E3` to stderr, flush it, and
+  exit with diagnostic status 73 before execution can continue past a failed
+  condition. CTest requires the marker for success; a missing marker, access
+  violation, unrelated crash, or timeout fails the discovered test.
 - The `SimdVector` inactive-lane invariant is additionally controlled by
   `SIMDLIB_ENABLE_CHECKS`. Its default is enabled without `NDEBUG` and disabled
   with `NDEBUG`.
 
-The 13 caller-facing failures run as separate CTest processes. A failed probe
-therefore cannot terminate the remaining test suite. The probe override also
-keeps these contract tests meaningful in Release builds where the default
-assertion policy is intentionally compiled out.
+The 13 caller-facing failures are ordinary Catch2 cases discovered as separate
+CTest processes. A failed precondition terminates only its selected process,
+so it cannot stop the remaining test suite. The override also keeps these
+contract tests meaningful in Release builds where the default assertion policy
+is intentionally compiled out.
 
 ## Public-header call sites
 
@@ -35,19 +37,19 @@ otherwise.
 
 | Header and operation | Condition | Classification | Failure evidence |
 | --- | --- | --- | --- |
-| `Api.h`: `Api::load_aligned` | Source address is aligned to `byte_count`. | Caller-facing alignment contract. | `api_load_aligned` passes a register-width-aligned array at a one-element offset. |
-| `Api.h`: `Api::load_partial<active_count>` | Runtime source size is at least `active_count`. | Caller-facing extent contract. The check is skipped during constant evaluation; an invalid constexpr access cannot form a constant expression. The template constraint separately requires `active_count <= element_count`. | `api_load_partial` requests two active lanes from a one-element span. |
-| `Api.h`: `Api::store_aligned` | Destination address is aligned to `byte_count`. | Caller-facing alignment contract. | `api_store_aligned` passes a register-width-aligned array at a one-element offset. |
-| `Api.h`: raw-byte `Api::store` | Destination size is at least `byte_count`. | Caller-facing extent contract. | `api_store_bytes` passes `byte_count - 1` writable bytes. |
-| `SimdAlgo.h`: dynamic `BitwiseAnd` | `lhs`, `rhs`, and `write` sizes are equal. | Caller-facing extent contract. Fixed-extent overloads encode matching sizes in their span types. | `algo_bitwise_and` uses sizes 2, 1, and 2. |
-| `SimdAlgo.h`: dynamic `BitwiseOr` | `lhs`, `rhs`, and `write` sizes are equal. | Caller-facing extent contract. Fixed-extent overloads encode matching sizes in their span types. | `algo_bitwise_or` uses sizes 2, 1, and 2. |
-| `SimdAlgo.h`: dynamic `BitwiseXor` | `lhs`, `rhs`, and `write` sizes are equal. | Caller-facing extent contract. Fixed-extent overloads encode matching sizes in their span types. | `algo_bitwise_xor` uses sizes 2, 1, and 2. |
-| `SimdAlgo.h`: dynamic `BitwiseNot` | `lhs` and `write` sizes are equal. | Caller-facing extent contract. Fixed-extent overloads encode matching sizes in their span types. | `algo_bitwise_not` uses sizes 2 and 1. |
-| `SimdAlgo.h`: dynamic `BitwiseAndNot` | `lhs`, `rhs`, and `write` sizes are equal. | Caller-facing extent contract. Fixed-extent overloads encode matching sizes in their span types. | `algo_bitwise_andnot` uses sizes 2, 1, and 2. |
-| `SimdResample.h`: `ReduceBytesToBitsBy8_Any` | `src.size() == dst.size() * 8`. | Caller-facing extent contract. | `resample_reduce_any` uses seven source bytes and one destination byte. |
-| `SimdResample.h`: `ReduceBytesToBitsBy8_All` | `src.size() == dst.size() * 8`. | Caller-facing extent contract. | `resample_reduce_all` uses seven source bytes and one destination byte. |
-| `SimdResample.h`: `ReduceBytesToBitsBy8_Parity` | `src.size() == dst.size() * 8`. | Caller-facing extent contract. | `resample_reduce_parity` uses seven source bytes and one destination byte. |
-| `SimdResample.h`: `ExpandBitsToBytesBy8` | `dst.size() == src.size() * 8`. | Caller-facing extent contract. | `resample_expand` uses one source byte and seven destination bytes. |
+| `Api.h`: `Api::load_aligned` | Source address is aligned to `byte_count`. | Caller-facing alignment contract. | `Api load_aligned terminates for a misaligned source` passes a register-width-aligned array at a one-element offset. |
+| `Api.h`: `Api::load_partial<active_count>` | Runtime source size is at least `active_count`. | Caller-facing extent contract. The check is skipped during constant evaluation; an invalid constexpr access cannot form a constant expression. The template constraint separately requires `active_count <= element_count`. | `Api load_partial terminates for an undersized source` requests two active lanes from a one-element span. |
+| `Api.h`: `Api::store_aligned` | Destination address is aligned to `byte_count`. | Caller-facing alignment contract. | `Api store_aligned terminates for a misaligned destination` passes a register-width-aligned array at a one-element offset. |
+| `Api.h`: raw-byte `Api::store` | Destination size is at least `byte_count`. | Caller-facing extent contract. | `Api byte store terminates for an undersized destination` passes `byte_count - 1` writable bytes. |
+| `SimdAlgo.h`: dynamic `BitwiseAnd` | `lhs`, `rhs`, and `write` sizes are equal. | Caller-facing extent contract. Fixed-extent overloads encode matching sizes in their span types. | `SimdAlgo BitwiseAnd terminates for mismatched extents` uses sizes 2, 1, and 2. |
+| `SimdAlgo.h`: dynamic `BitwiseOr` | `lhs`, `rhs`, and `write` sizes are equal. | Caller-facing extent contract. Fixed-extent overloads encode matching sizes in their span types. | `SimdAlgo BitwiseOr terminates for mismatched extents` uses sizes 2, 1, and 2. |
+| `SimdAlgo.h`: dynamic `BitwiseXor` | `lhs`, `rhs`, and `write` sizes are equal. | Caller-facing extent contract. Fixed-extent overloads encode matching sizes in their span types. | `SimdAlgo BitwiseXor terminates for mismatched extents` uses sizes 2, 1, and 2. |
+| `SimdAlgo.h`: dynamic `BitwiseNot` | `lhs` and `write` sizes are equal. | Caller-facing extent contract. Fixed-extent overloads encode matching sizes in their span types. | `SimdAlgo BitwiseNot terminates for mismatched extents` uses sizes 2 and 1. |
+| `SimdAlgo.h`: dynamic `BitwiseAndNot` | `lhs`, `rhs`, and `write` sizes are equal. | Caller-facing extent contract. Fixed-extent overloads encode matching sizes in their span types. | `SimdAlgo BitwiseAndNot terminates for mismatched extents` uses sizes 2, 1, and 2. |
+| `SimdResample.h`: `ReduceBytesToBitsBy8_Any` | `src.size() == dst.size() * 8`. | Caller-facing extent contract. | `SimdResample reduce any terminates for an invalid shape` uses seven source bytes and one destination byte. |
+| `SimdResample.h`: `ReduceBytesToBitsBy8_All` | `src.size() == dst.size() * 8`. | Caller-facing extent contract. | `SimdResample reduce all terminates for an invalid shape` uses seven source bytes and one destination byte. |
+| `SimdResample.h`: `ReduceBytesToBitsBy8_Parity` | `src.size() == dst.size() * 8`. | Caller-facing extent contract. | `SimdResample reduce parity terminates for an invalid shape` uses seven source bytes and one destination byte. |
+| `SimdResample.h`: `ExpandBitsToBytesBy8` | `dst.size() == src.size() * 8`. | Caller-facing extent contract. | `SimdResample expand terminates for an invalid shape` uses one source byte and seven destination bytes. |
 | `SimdVector.h`: partial-result validation | Every inactive lane in an internally produced result is zero. | Internal implementation invariant, evaluated only at runtime for partial vectors when `SIMDLIB_ENABLE_CHECKS` is enabled. It is not a caller-supplied input contract and cannot be intentionally failed through a supported public call without first introducing a library defect. | `SimdLibTestsVectorChecks` observes three successful evaluations for partial divide, modulus, and clamp, and zero evaluations for their full-vector counterparts. |
 
 No runtime `SIMDLIB_PRECONDITION` for an index, divisor, or overlap was found.
