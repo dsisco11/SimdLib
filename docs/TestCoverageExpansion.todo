@@ -175,6 +175,18 @@ SimdLib Test Coverage Expansion:
     ☐ Verify `git diff --check` passes and no generated profiles, LCOV reports, binaries, logs, or temporary analysis files are tracked.
     ☐ End Phase 9 only when all earlier phase gates are checked, every supported public contract has direct proof or a reviewed justification, all validation configurations are green, and the coverage report is reproducible.
 
+  Phase 10 - Benchmark and Optimize `SimdVector::area()`:
+    ☐ Add a dedicated `area()` benchmark that consumes runtime-derived inputs and prevents constant folding or dead-code elimination.
+    ☐ Cover representative signed and unsigned element widths, full and partial vectors, odd active counts, and active counts crossing a 128-bit lane boundary.
+    ☐ Measure the current direct active-lane scalar reduction as the baseline with repository-standard Release benchmark tooling and record compiler, instruction-set profile, iteration count, and result variance.
+    ☐ Inspect optimized assembly for representative cases to determine whether lane extraction, scalar multiplication, or missed unrolling/vectorization dominates the generated code.
+    ☐ Evaluate alternative reductions only when they preserve active-lane semantics, modular object-representation arithmetic, supported vector widths, and constexpr compatibility.
+    ☐ Compare viable implementations against the recorded baseline across MSVC and Clang without selecting an implementation from a single element type or vector extent.
+    ☐ Adopt an optimization only when repeated measurements show a material improvement without a material regression in another representative case; otherwise retain the simpler baseline implementation.
+    ☐ Re-run the focused `SimdVector` tests, checks-enabled tests, full compiler suites, and coverage profiles after any implementation change.
+    ☐ Record benchmark commands, raw result paths, before/after summaries, assembly findings, and the final implementation decision in `docs/TestCoverage.md`.
+    ☐ End Phase 10 only when the baseline is reproducible, alternatives have been compared fairly, the final decision is evidence-backed, and all correctness and coverage validation remains green.
+
   Execution Evidence:
     ☒ Phase 0 corrected coverage pipeline, clean warning output, object/profile provenance, and corrected baseline totals recorded.
     ☒ Phase 1 BMI contract decisions, helper matrix, deterministic inputs, and portable/intrinsic equivalence results recorded.
@@ -186,6 +198,7 @@ SimdLib Test Coverage Expansion:
     ☒ Phase 7 `SimdVector` full/partial/128/256-bit behavior matrix recorded in `docs/TestCoverage.md`: focused MSVC and Clang runs pass 266 assertions across 14 public cases plus 10 assertions in the checks-enabled case; separate Clang profiles prove high-lane and debug-check branches; the strict MSVC suite passes 162/162 and the Clang suite passes 165/165.
     ☐ Phase 8 precondition inventory, negative-test results, and sanitizer evidence recorded.
     ☐ Phase 9 final compiler/configuration matrix, test/assertion counts, before/after coverage, remaining justifications, and clean-worktree evidence recorded.
+    ☐ Phase 10 `SimdVector::area()` benchmark baseline, alternative comparisons, final implementation decision, and post-change validation evidence recorded.
 
   Post-Plan API Review:
     ☐ After this test-coverage plan is complete, revisit every operation/type cell marked `unavailable` in `docs/ApiOperationMatrix.md`.
