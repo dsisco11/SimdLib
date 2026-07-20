@@ -489,7 +489,7 @@ if(SIMDLIB_BUILD_TESTS)
 		target_link_libraries(SimdLibPreconditionTests PRIVATE SimdLib::SimdLib Catch2::Catch2WithMain)
 		simdlib_enable_development_warnings(SimdLibPreconditionTests)
 		simdlib_set_coverage_profile_prefix(SimdLibPreconditionTests
-			"SimdLib.Tests.Preconditions.Catch2")
+			"SimdLib.Tests.Preconditions")
 		target_compile_definitions(SimdLibPreconditionTests PRIVATE SIMDLIB_ENABLE_CHECKS=1)
 		if(SIMDLIB_MSVC_STYLE_DRIVER)
 			target_compile_options(SimdLibPreconditionTests PRIVATE /arch:AVX2)

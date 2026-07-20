@@ -116,7 +116,7 @@ flushes it, and exits with diagnostic status 73 on failure. CTest discovers
 each Catch2 case as a separate process and requires that marker for success;
 a missing marker, access violation, unrelated crash, or timeout fails the
 case. The executable's target-aware coverage prefix is
-`SimdLib.Tests.Preconditions.Catch2`, so its terminating profiles map only to
+`SimdLib.Tests.Preconditions`, so its terminating profiles map only to
 that executable in the LCOV report. The override remains active in Release,
 where the default `assert` policy is compiled out by `NDEBUG`.
 
