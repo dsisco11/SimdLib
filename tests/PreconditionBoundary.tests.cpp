@@ -16,8 +16,7 @@ namespace
 /** @brief Verifies exact-capacity and minimum-count transfer contracts for one register width.
  *  @tparam RegisterWidth SIMD register width in bits.
  */
-template <std::size_t RegisterWidth>
-void RequireApiTransferBoundaries()
+template <std::size_t RegisterWidth> void RequireApiTransferBoundaries()
 {
 	using Api = SimdLib::Api<RegisterWidth, std::uint32_t>;
 	volatile std::uint32_t runtime_seed = 7;

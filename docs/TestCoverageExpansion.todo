@@ -157,23 +157,23 @@ SimdLib Test Coverage Expansion:
     ☒ End Phase 8 only when every supported runtime precondition has a checks-enabled negative test or a written explanation of why it is compile-time-only/unreachable.
 
   Phase 9 - Full Validation, Documentation, and Close-Out:
-    ☐ Run formatting/static analysis required by the repository after all test changes.
-    ☐ Build and run the strict MSVC Release matrix.
-    ☐ Build and run the strict clang-cl Release matrix.
-    ☐ Build and run the Clang coverage preset from a clean coverage reset.
-    ☐ Build and run the Clang ASan/UBSan Debug configuration.
-    ☐ Run portable, scalar-only, FMA on/off, BMI1-only, BMI2-only, BMI1+BMI2, SSE, and AVX2 profiles.
-    ☐ Run header-isolation, configuration probes, formatter ODR, result-set equivalence, examples, and the external consumer test.
-    ☐ Record exact compiler/CMake versions, commands, test counts, assertion counts, deterministic seeds, elapsed times, and log/report paths.
-    ☐ Update `docs/TestCoverage.md` with corrected coverage-generation behavior, before/after trustworthy totals, the completed public-surface matrix, and remaining justified gaps.
-    ☐ Reconcile the old statement that no unresolved high-risk coverage gap remains with the evidence produced by this todo.
-    ☐ Record every excluded red gutter as constexpr-only, compiler-specific, unreachable, non-code, or intentionally unsupported; do not leave unexplained exclusions.
-    ☐ Verify a source audit finds no unjustified direct `SimdLib::Detail` usage or backend implementation routing in tests or shared test support.
-    ☐ Verify a source audit finds no unallowlisted test-example `static_assert` blocks in public headers and that all dedicated constexpr targets participate in the documented compiler/configuration matrix.
-    ☐ Compare the final consumer-header compile-time measurements with the Phase 3 baseline and record the result in `docs/TestCoverage.md`.
-    ☐ Verify the VS Code Test Coverage view imports the final `coverage.info` and agrees with the documented per-header totals.
-    ☐ Verify `git diff --check` passes and no generated profiles, LCOV reports, binaries, logs, or temporary analysis files are tracked.
-    ☐ End Phase 9 only when all earlier phase gates are checked, every supported public contract has direct proof or a reviewed justification, all validation configurations are green, and the coverage report is reproducible.
+    ☒ Run formatting/static analysis required by the repository after all test changes.
+    ☒ Build and run the strict MSVC Release matrix.
+    ☒ Build and run the strict clang-cl Release matrix.
+    ☒ Build and run the Clang coverage preset from a clean coverage reset.
+    ☒ Build and run the Clang ASan/UBSan Debug configuration.
+    ☒ Run portable, scalar-only, FMA on/off, BMI1-only, BMI2-only, BMI1+BMI2, SSE, and AVX2 profiles.
+    ☒ Run header-isolation, configuration probes, formatter ODR, result-set equivalence, examples, and the external consumer test.
+    ☒ Record exact compiler/CMake versions, commands, test counts, assertion counts, deterministic seeds, elapsed times, and log/report paths.
+    ☒ Update `docs/TestCoverage.md` with corrected coverage-generation behavior, before/after trustworthy totals, the completed public-surface matrix, and remaining justified gaps.
+    ☒ Reconcile the old statement that no unresolved high-risk coverage gap remains with the evidence produced by this todo.
+    ☒ Record every excluded red gutter as constexpr-only, compiler-specific, unreachable, non-code, or intentionally unsupported; do not leave unexplained exclusions.
+    ☒ Verify a source audit finds no unjustified direct `SimdLib::Detail` usage or backend implementation routing in tests or shared test support.
+    ☒ Verify a source audit finds no unallowlisted test-example `static_assert` blocks in public headers and that all dedicated constexpr targets participate in the documented compiler/configuration matrix.
+    ☒ Compare the final consumer-header compile-time measurements with the Phase 3 baseline and record the result in `docs/TestCoverage.md`.
+    ☒ Verify the VS Code Test Coverage view imports the final `coverage.info` and agrees with the documented per-header totals.
+    ☒ Verify `git diff --check` passes and no generated profiles, LCOV reports, binaries, logs, or temporary analysis files are tracked.
+    ☒ End Phase 9 only when all earlier phase gates are checked, every supported public contract has direct proof or a reviewed justification, all validation configurations are green, and the coverage report is reproducible.
 
   Phase 10 - Benchmark and Optimize `SimdVector::area()`:
     ☐ Add a dedicated `area()` benchmark that consumes runtime-derived inputs and prevents constant folding or dead-code elimination.
@@ -197,7 +197,7 @@ SimdLib Test Coverage Expansion:
     ☒ Phase 6 `uint128_t` boundary and compatibility matrix recorded in `docs/TestCoverage.md`: focused MSVC passes 35/35, focused Clang passes 38/38, each Clang profile passes 131 assertions across six boundary cases, the strict MSVC suite passes 154/154, and the Clang suite passes 157/157.
     ☒ Phase 7 `SimdVector` full/partial/128/256-bit behavior matrix recorded in `docs/TestCoverage.md`: focused MSVC and Clang runs pass 266 assertions across 14 public cases plus 10 assertions in the checks-enabled case; separate Clang profiles prove high-lane and debug-check branches; the strict MSVC suite passes 162/162 and the Clang suite passes 165/165.
     ☒ Phase 8 precondition inventory and policy recorded in `docs/PreconditionInventory.md`: 13/13 isolated failure scenarios pass under MSVC Release, Clang coverage, and Clang ASan/UBSan; valid boundaries pass 19 assertions across three focused cases; complete suites pass 178/178 MSVC, 181/181 Clang coverage, and 145/145 ASan/UBSan with no sanitizer diagnostics.
-    ☐ Phase 9 final compiler/configuration matrix, test/assertion counts, before/after coverage, remaining justifications, and clean-worktree evidence recorded.
+    ☒ Phase 9 final compiler/configuration matrix, fixed-seed test/assertion counts, clean-reset coverage totals and reproducible hash, exhaustive red-gutter classifications, compile-time comparison, VS Code import contract, and generated-artifact hygiene evidence recorded in `docs/TestCoverage.md`; strict MSVC passes 179/179, strict clang-cl and Clang coverage pass 182/182, Clang ASan/UBSan passes 146/146 without diagnostics, and both external consumers pass 1/1.
     ☐ Phase 10 `SimdVector::area()` benchmark baseline, alternative comparisons, final implementation decision, and post-change validation evidence recorded.
 
   Post-Plan API Review:

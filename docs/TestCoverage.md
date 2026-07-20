@@ -1,7 +1,7 @@
 # Test coverage audit
 
 This document records the standalone SimdLib coverage audit completed on
-2026-07-17. Coverage percentages are supporting evidence; the behavioral map
+2026-07-19. Coverage percentages are supporting evidence; the behavioral map
 and the feature-profile matrix are the acceptance criteria.
 
 ## Coverage layers
@@ -23,9 +23,10 @@ acceptance rules.
 
 ## Test inventory
 
-The standard Clang coverage preset contributes 113 CTest entries: 106
-individual Catch2 test cases discovered by `catch_discover_tests()` and seven
-direct CTest integration/equivalence tests. Catch2 executables remain grouped
+The standard Clang coverage preset contributes 182 CTest entries: 159
+individual Catch2 test cases discovered by `catch_discover_tests()` and 23
+direct CTest audit, compile, example, precondition, and equivalence tests.
+Catch2 executables remain grouped
 by these stable name prefixes:
 
 | Entry | Coverage role |
@@ -126,10 +127,11 @@ Focused MSVC Release, Clang coverage, and Clang ASan/UBSan runs each pass all
 13 isolated failure scenarios. The valid-boundary selection passes 19
 assertions across three cases and covers exact aligned/raw capacities, empty
 and one-element partial loads, matching empty/one-element algorithm spans, and
-empty/minimum resampling shapes. The complete strict suites pass 178/178 with
-MSVC Release and 181/181 with Clang coverage. Clang 22.1.8 ASan/UBSan Debug
-passes 145/145 with no diagnostics. The target-aware coverage report maps 180
-profiles to 18 executables, including all 13 failure-probe profiles.
+empty/minimum resampling shapes. The complete strict suites pass 179/179 with
+MSVC Release and 182/182 with Clang coverage. Clang 22.1.8 ASan/UBSan Debug
+passes 146/146 with no diagnostics. The target-aware coverage report maps 185
+profiles to 19 executables, including all 13 failure-probe profiles and the
+public API example executable.
 
 ## SimdVector full, partial, and wide-vector matrix
 
@@ -300,11 +302,13 @@ results. The `count >= 32` return remains at zero as justified above.
 ## Deterministic oracle inputs
 
 The randomized/property suites are reproducible. BMI uses seeds
-`0xC001D00D12345678`, `0x9E3779B97F4A7C15`,
+`0x4F1BBCDC6762FA9D`, `0xC001D00D12345678`, `0x9E3779B97F4A7C15`,
 `0xD1B54A32D192ED03`, and `0xA0761D6478BD642F`. UInt128 uses
 `0xD1B54A32D192ED03`, `0x94D049BB133111EB`, and
 `0xA0761D6478BD642F`. Resampling derives its `std::mt19937` seed from
-the tested dimensions so a failing case can be reproduced directly. New
+the tested dimensions so a failing case can be reproduced directly. The final
+manual Catch2 assertion inventory used decimal seed `1592594996` for both
+release compiler matrices. New
 table-driven API comparison and partial-transfer checks report the lane type,
 register width, active count, and failing values through Catch2 captures.
 
@@ -323,7 +327,7 @@ repository root:
 cmake --preset clang-coverage
 cmake --build --preset coverage
 cmake --build build-coverage --target SimdLibCoverageReset
-ctest --test-dir build-coverage -T Test --output-on-failure
+ctest --preset coverage --output-on-failure
 cmake --build build-coverage --target SimdLibCoverageReport
 ```
 
@@ -356,9 +360,9 @@ single-object profiles. The report fails on an unknown binary identity, a
 filename/identity disagreement, a missing executable profile, any LLVM export
 diagnostic, or an export with no SimdLib source records.
 
-### Corrected Phase 0 baseline
+### Corrected trustworthy baseline
 
-Before Phase 0, VS Code displayed 2,293/3,348 lines (68.5%), 361/433
+Before the coverage-pipeline correction, VS Code displayed 2,293/3,348 lines (68.5%), 361/433
 branches (83.4%), and 442/558 functions (79.2%). That report also emitted
 `621 functions have mismatched data` after combining 16 differently
 configured executables into one incompatible profile database. Those values
@@ -400,13 +404,68 @@ comparison for the required headers:
 | `UInt128.h` | `SimdLibTestsUInt128Optimized` | 162/197 (82.23%) | 62/74 (83.78%) | 300/378 (79.37%) | 61/84 (72.62%) |
 | `Detail/Implementations.h` | `SimdLibTests128` | 100/104 (96.15%) | 69/70 (98.57%) | 234/248 (94.35%) | 7/7 (100.00%) |
 
-The final `coverage.info` contains one accumulated record per header and has
-SHA-256
-`B70877D263760CA5AF5602AA413A23C7D38D78669326748B334858241E869359`.
-Regenerating it from unchanged profiles produced the same hash. A separate
-clean-reset run containing only `SimdLib.HeaderOnlySmoke` made the report
-fail on the missing `SimdLibTestsBmiPortable` profile, proving that partial
-runs cannot inherit stale profiles.
+### Final trustworthy close-out totals
+
+The final clean-reset run passed 182/182 CTest entries and mapped 185 profiles
+to 19 single-executable exports. No multi-executable or tool profile was
+included in the final preset run. The final accumulated report is:
+
+| Header | Lines | Branches | Functions |
+| --- | ---: | ---: | ---: |
+| `Api.h` | 387/518 (74.71%) | 97/302 (32.12%) | 923/931 (99.14%) |
+| `Bmi.h` | 474/499 (94.99%) | 116/144 (80.56%) | 182/232 (78.45%) |
+| `Config.h` | 1/1 (100.00%) | 0/0 | 0/0 |
+| `Detail/Extensions.h` | 349/507 (68.84%) | 102/114 (89.47%) | 162/196 (82.65%) |
+| `Detail/Implementations.h` | 1,524/1,627 (93.67%) | 76/118 (64.41%) | 787/806 (97.64%) |
+| `Format.h` | 224/224 (100.00%) | 262/498 (52.61%) | 20/20 (100.00%) |
+| `SimdAlgo.h` | 192/195 (98.46%) | 22/36 (61.11%) | 121/126 (96.03%) |
+| `SimdResample.h` | 128/137 (93.43%) | 78/88 (88.64%) | 6/6 (100.00%) |
+| `SimdVector.h` | 282/283 (99.65%) | 14/18 (77.78%) | 208/210 (99.05%) |
+| `UInt128.h` | 371/409 (90.71%) | 254/298 (85.23%) | 96/102 (94.12%) |
+| **Aggregate** | **3,932/4,400 (89.36%)** | **1,021/1,616 (63.18%)** | **2,505/2,629 (95.28%)** |
+
+Compared with the corrected trustworthy baseline, trustworthy line coverage rose
+from 2,466/3,466 (71.15%) and function coverage rose from 1,438/2,033
+(70.73%). Branch hits rose from 765 to 1,021 while the denominator grew from
+1,142 to 1,616 as additional type and feature profiles instantiated previously
+absent alternatives; the resulting percentage is 63.18%, so branch percentage
+alone is not used as a regression gate.
+
+The final `coverage.info` has SHA-256
+`0D4E9CA6DC04BE1DE0C6F5C2D0A838F84D78C37B7F537630842F7C496E287322`.
+Running `SimdLibCoverageReport` twice over the unchanged 185 profiles produced
+the same hash. A separate clean-reset run containing only
+`SimdLib.HeaderOnlySmoke` made the report fail on the missing
+`SimdLibTestsBmiPortable` profile, proving that partial runs cannot inherit
+stale profiles.
+
+### Reviewed red-gutter exclusions
+
+The table below exhaustively classifies every distinct `DA` line with a zero
+count in the final LCOV file. `non-code` includes blank/comment/preprocessor
+lines and counterless fully inlined wrapper or `if constexpr` selection sites
+whose public callers are directly proved by `ApiOperationMatrix.md`. These are
+line-gutter classifications; unhit LCOV branch alternatives remain visible in
+the totals and are covered by the compiler/configuration matrix or the same
+reviewed compile-time and availability constraints.
+
+| Header | Zero-count line ranges | Category and reviewed reason |
+| --- | --- | --- |
+| `Api.h` | 222-227, 579-582, 598-601, 751-764, 778-787, 802-811, 826-835, 850-859, 884-893, 1079-1088, 1102-1112, 1125-1134, 1154-1164, 1183-1193 | constexpr-only: these are the constant-evaluation bodies; dedicated API constexpr targets prove the same contracts. |
+| `Bmi.h` | 153-154, 160-161, 203, 232, 266, 289, 342, 387, 776, 816-817, 820, 823, 831, 841, 851, 878-879, 882, 885, 893, 903, 913 | non-code: blank/comment/preprocessor lines and counterless template-selection sites; the selected multiplication bodies and public BMI operations have exhaustive/runtime profiles. |
+| `SimdResample.h` | 61, 78, 95, 106, 114, 125, 145, 163, 171 | non-code: blank and preprocessor-alternative lines. |
+| `SimdAlgo.h` | 26 | unreachable: `LowBits` is called only for a count below the selected register's lane count, which cannot reach 32. |
+| `SimdAlgo.h` | 82, 135 | non-code: LLVM assigns no separate line counter to the terminal return after the loop; exact-register no-match and all-match assertions directly prove both returns. |
+| `SimdVector.h` | 112 | non-code: the fully inlined `to_array` assignment has no retained line counter; the signed/unsigned full, partial, odd, and cross-lane `area()` matrix directly executes the reduction. |
+| `UInt128.h` | 162, 173, 184, 195, 427, 454, 497, 525 | non-code: preprocessor terminators. |
+| `UInt128.h` | 354-356 | constexpr-only: the compatibility `getBlock` contract is asserted in the constexpr snapshot. |
+| `UInt128.h` | 409-417, 436-444 | compiler-specific: MSVC carry intrinsics and Clang/GCC overflow builtins are separately selected and proved by the strict compiler profiles; the portable profile cannot execute them. |
+| `UInt128.h` | 461, 464-465, 467, 551, 554-555, 558-559 | non-code: counterless `if constexpr` selection and brace lines; boolean/signed shift normalization and all three bitwise selections have direct assertions. |
+| `Detail/Extensions.h` | 27-74, 83-130 | compiler-specific: MSVC intrinsic-register union access is preprocessor-excluded from the Clang LCOV build and is covered by the strict MSVC matrix. |
+| `Detail/Extensions.h` | 324, 327, 366-368, 372, 377-380, 393, 399, 404-407, 411-413, 417-419, 442-444, 448, 477-479, 512-515, 519-522, 590, 611, 669, 672, 678-681, 717-719, 728, 738, 748, 805-808, 812-815, 915-917 | non-code: comments, blank lines, and counterless fully inlined backend wrappers/selection sites. Their supported public operation/type cells are directly tested at 128 and 256 bits. |
+| `Detail/Implementations.h` | 543, 1998, 2000, 2002, 2186, 2188, 2190, 2202, 2204, 2206, 2218, 2220, 2222, 2233, 2235, 2237, 2249, 2251, 2253, 4310-4312, 4314-4315 | non-code: counterless inlined/template selection sites; the selected public extrema, construction, and bitwise cells are directly tested for every supported lane family. |
+| `Detail/Implementations.h` | 1993-1995, 2012-2014, 2024-2026, 2036-2040, 4305-4307, 4324-4326, 4336-4338, 4348-4352 | constexpr-only: 128/256-bit construction bodies are proved by the dedicated constexpr targets. |
+| `Detail/Implementations.h` | 1389-1400, 2694-2717, 2887-2901 | intentionally unsupported: inherited signed-64 adjacent multiplication and integer square-root backend helpers are not supported public operation/type cells. They remain subject to the post-plan unavailable-area API review rather than being promoted through tests. |
 
 ### Historical audit totals (legacy incompatible merge)
 
@@ -439,51 +498,114 @@ source-controlled. The historical
 `baseline.profdata` and `final.profdata` used for the table above were likewise
 generated artifacts rather than source-controlled inputs.
 
-## Validation record
+## Final validation record
 
-The standard Clang coverage preset contains 113 CTest entries, including 106
-individually addressable Catch2 cases. The earlier MSVC audit recorded 103
-Catch2 test cases and 4,254,178 assertions across the API, BMI profiles,
-UInt128 profiles, formatting, vector algorithms, and scalar resampling.
+All final runs used CMake/CTest 4.4.0. The MSVC tree used MSVC
+19.44.35222.0 with the Visual Studio 17 2022 generator. The clang-cl Release,
+Clang coverage Debug, and Clang ASan/UBSan Debug trees used LLVM 22.1.8 and
+Ninja. Every tree enabled strict warnings and examples; benchmarks were
+excluded from correctness runs. The sanitizer tree intentionally omitted the
+optional compiler-feature profiles.
 
 ```powershell
-cmake --build SimdLib/build-m12-msvc --config Release --parallel
-ctest --test-dir SimdLib/build-m12-msvc -C Release --output-on-failure
-cmake --build SimdLib/build-m12-clang-ninja --parallel
-ctest --test-dir SimdLib/build-m12-clang-ninja --output-on-failure
-cmake -S SimdLib -B SimdLib/build-m1-clang-sanitize -G Ninja `
-  "-DCMAKE_CXX_COMPILER=C:/Program Files/LLVM/bin/clang++.exe" `
-  "-DCMAKE_CXX_FLAGS_DEBUG=-O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer" `
-  "-DCMAKE_EXE_LINKER_FLAGS_DEBUG=-fsanitize=address,undefined" `
-  -DCMAKE_BUILD_TYPE=Debug -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDLL `
-  -DSIMDLIB_STRICT_WARNINGS=ON -DSIMDLIB_BUILD_BENCHMARKS=OFF `
-  -DSIMDLIB_BUILD_TESTS_OPTIONAL=OFF
-cmake --build SimdLib/build-m1-clang-sanitize --parallel
+cmake --build build --config Release --parallel
+ctest --test-dir build -C Release --output-on-failure
+cmake --build build-phase9-clangcl-ninja --parallel
+ctest --test-dir build-phase9-clangcl-ninja --output-on-failure
+cmake --build build-coverage --parallel
+cmake --build build-coverage --target SimdLibCoverageReset
+ctest --preset coverage --output-on-failure
+cmake --build build-coverage --target SimdLibCoverageReport
 $env:PATH='C:\Program Files\LLVM\lib\clang\22\lib\windows;' + $env:PATH
-ctest --test-dir SimdLib/build-m1-clang-sanitize --output-on-failure
+cmake --build build-phase8-sanitize --parallel
+ctest --test-dir build-phase8-sanitize --output-on-failure
 ```
 
-- MSVC 19.44 strict Release: 22/22 passed.
-- clang-cl 22.1.8 strict Release: 22/22 passed.
-- Clang 22.1.8 ASan/UBSan Debug: 16/16 passed with no diagnostics. The LLVM
-  sanitizer runtime directory must be on `PATH` on Windows. The release CRT is
-  required because LLVM ASan is incompatible with the MSVC Debug CRT allocator
-  instrumentation; without the override the process aborts in `ucrtbased.dll`
-  before executing SimdLib code. The restricted validation environment reused
-  the Catch2 source from an existing local build because network access was
-  unavailable.
-- Clang 22.1.8 source-coverage Debug audit: 22 aggregate executable entries
-  passed before individual Catch2 discovery was enabled.
+| Matrix | Result | Catch2 cases/assertions | Measured CTest wall time | CTest log |
+| --- | ---: | ---: | ---: | --- |
+| strict MSVC Release | 179/179 | 156 / 4,324,488 | 4.175 s | `build/Testing/Temporary/LastTest.log` |
+| strict clang-cl Release | 182/182 | 159 / 4,435,080 | 2.583 s | `build-phase9-clangcl-ninja/Testing/Temporary/LastTest.log` |
+| Clang Debug coverage | 182/182 | same 159 discovered Catch2 cases | 1.321 s | `build-coverage/Testing/Temporary/LastTest.log` |
+| Clang ASan/UBSan Debug | 146/146, no diagnostics | optional profiles intentionally omitted | 6.099 s | `build-phase8-sanitize/Testing/Temporary/LastTest.log` |
 
-## Remaining work
+The Catch2 totals are the sum of every `SimdLibTests*.exe` compact summary with
+`--rng-seed 1592594996`. They intentionally count repeated portable,
+intrinsic, carry, scalar, checks-enabled, SSE, and AVX2 profiles because those
+profiles are separate behavioral evidence. The remaining CTest entries cover
+header isolation, configuration/availability probes, formatter ODR, five
+result-set equivalence runs, 13 isolated precondition failures, the public
+example, the public-header assertion audit, and the constexpr target group.
+All required portable, scalar-only, FMA on/off, BMI1-only, BMI2-only,
+BMI1+BMI2, SSE4.2, and AVX2 profiles are present in the complete release and
+coverage matrices.
 
-No unresolved high-risk correctness gap remains from this audit. The following
-items are intentionally retained as lower-risk follow-up work:
+Both freshly configured external consumers pass 1/1: MSVC in 0.084 s at
+`build-phase9-consumer-msvc/Testing/Temporary/LastTest.log`, and clang-cl in
+0.063 s at
+`build-phase9-consumer-clangcl/Testing/Temporary/LastTest.log`. The clang-cl
+consumer reports the expected ignored `[[msvc::flatten]]` vendor-attribute
+diagnostics; SimdLib's strict clang-cl targets apply the documented private
+suppression and are warning-clean.
 
-- clarify whether inherited backend helpers are part of the `Api` contract;
-- specify conversion overflow/rounding and direct-transform overlap behavior;
-- document edge semantics for the derived BMI helper family before expanding
-  its tests;
-- add broader invalid-format and locale cases; and
-- add direct tests for convenience overloads when their behavior diverges from
-  the already-covered core operations.
+Focused `clang-format --dry-run --Werror` passes for the two newly added
+precondition sources after applying the checked-in style. `clang-tidy` 22.1.8
+passes those sources; its only diagnostics are
+`bugprone-throwing-static-initialization` reports originating from Catch2's
+`TEST_CASE` registration macro. The configure/build assertion audit validates
+48 production-header occurrences against 30 reviewed allowlist entries. A
+source audit over `tests` and `examples` finds no `SimdLib::Detail`,
+direct `Detail` include, or backend-routing reference. All dedicated constexpr
+profiles build in both complete release matrices and in the Clang coverage
+matrix.
+
+## Consumer-header compile-time comparison
+
+The final measurement repeats the method in `ConstexprCompilerEvidence.md`:
+one header and the same empty `extern "C"` anchor, Clang 22.1.8,
+`-std=c++20 -O2 -msse4.2 -mavx2`, a discarded warm-up, and the median of 15
+clean object compiles. Generated fixtures and objects remain under the ignored
+`build-phase9-compile-time` directory.
+
+| Header | Extraction baseline | Final median | Change |
+| --- | ---: | ---: | ---: |
+| `Bmi.h` | 271.48 ms | 255.33 ms | -5.95% |
+| `UInt128.h` | 509.06 ms | 441.86 ms | -13.20% |
+| `SimdLib.h` | 527.17 ms | 515.44 ms | -2.23% |
+
+No measured consumer header regressed against the extraction baseline.
+
+## VS Code coverage integration
+
+VS Code CMake Tools 1.23.52 is installed and recommended by
+`.vscode/extensions.json`. The workspace enables CTest Test Explorer
+integration, resets coverage before a run, generates the target-aware report
+afterward, and imports exactly
+`${workspaceFolder}/build-coverage/coverage.info`. The installed extension registers these exact settings; its LCOV handler reads
+each configured file, constructs native scode.FileCoverage records for
+lines, branches, and functions, and calls TestRun.addCoverage. Parsing the
+same imported file produces the per-header and aggregate totals recorded above.
+The command-line environment cannot inspect pixels in the native Test Coverage
+view, so this check proves the provider/import contract and data agreement
+without claiming a manual GUI observation.
+
+## Reviewed remaining gaps
+
+The earlier statement that no unresolved high-risk correctness gap remains is
+consistent with the completed evidence: every supported operation/type cell in
+`ApiOperationMatrix.md` has a direct public test, and every zero-count source
+line is classified above. The remaining items are reviewed API-design or
+lower-risk expansion work rather than known correctness defects:
+
+- inherited backend names that are not supported public operation/type cells;
+- conversion rounding/overflow and direct-transform overlap behavior beyond
+  the current documented cases;
+- convenience overloads whose behavior currently delegates to directly tested
+  core operations; and
+- the explicitly planned review of operation/type cells marked `unavailable`
+  after the current coverage plan, before deciding whether any should gain an
+  implementation.
+
+Generated `.profraw`, `.profdata`, LCOV, binary, object, log, and temporary
+analysis files remain ignored and untracked. The final source diff is limited
+to formatter normalization of the two new precondition tests plus this
+close-out documentation and planning evidence.

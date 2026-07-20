@@ -8,18 +8,18 @@ inline constexpr int contract_failure_exit_code = 73;
 /** @brief Terminates the isolated probe with the contract-failure exit code.
  *  @param message Diagnostic supplied by the failed public precondition.
  */
-[[noreturn]] inline void Fail(const char* message) noexcept
+[[noreturn]] inline void Fail(const char *message) noexcept
 {
 	(void)message;
 	std::exit(contract_failure_exit_code);
 }
 } // namespace SimdLibPreconditionProbe
 
-#define SIMDLIB_PRECONDITION(condition, message) \
-	do \
-	{ \
-		if (!(condition)) \
-			::SimdLibPreconditionProbe::Fail(message); \
+#define SIMDLIB_PRECONDITION(condition, message)                                                                                                               \
+	do                                                                                                                                                         \
+	{                                                                                                                                                          \
+		if (!(condition))                                                                                                                                      \
+			::SimdLibPreconditionProbe::Fail(message);                                                                                                         \
 	} while (false)
 
 #include <SimdLib/Api.h>
@@ -136,7 +136,7 @@ int RunScenario(const std::string_view scenario) noexcept
  *  @param argv Argument vector containing the scenario name.
  *  @return Probe status, where contract failures terminate earlier with code 73.
  */
-int main(const int argc, char** argv) noexcept
+int main(const int argc, char **argv) noexcept
 {
 	return argc == 2 ? RunScenario(argv[1]) : 64;
 }
