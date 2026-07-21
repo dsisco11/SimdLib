@@ -27,12 +27,12 @@ algorithms and partial-register handling remain outside `Register`.
 
 ## Decision status
 
-| Status | Decisions |
-| --- | --- |
-| Controlling requirement | Template order is `<T, Bits>`; every hardware lane is active; default construction uses the native zero-register operation; comparison behavior matches the selected hardware intrinsic; the abstraction has zero runtime overhead in supported configurations. |
+| Status                    | Decisions                                                                                                                                                                                                                                                                                                         |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Controlling requirement   | Template order is `<T, Bits>`; every hardware lane is active; default construction uses the native zero-register operation; comparison behavior matches the selected hardware intrinsic; the abstraction has zero runtime overhead in supported configurations.                                                   |
 | Implemented public design | Explicit register width with `NativeRegister<T>` for target-selected width; C++23 explicit-object members for register-consuming operations; explicit scalar broadcast; `RegisterMask<T, Bits>` predicates; fixed-extent element and byte transfers; operation names and results defined by the migration ledger. |
-| Intentionally excluded | Partial and unsafe loads, automatic lane filling, collection transforms, native-order construction, ambiguous `expand`/`compress`, implementation-specific runtime rearrangements, and multi-register widening results. |
-| Qualification contract | The supported compiler, ISA, type, width, generated-code, and non-inlined calling-boundary cells are defined in `docs/RegisterQualification.md`; individual outcomes are emitted as build receipts, reports, provenance files, and logs. |
+| Intentionally excluded    | Partial and unsafe loads, automatic lane filling, collection transforms, native-order construction, ambiguous `expand`/`compress`, implementation-specific runtime rearrangements, and multi-register widening results.                                                                                           |
+| Qualification contract    | The supported compiler, ISA, type, width, generated-code, and non-inlined calling-boundary cells are defined in `docs/RegisterQualification.md`; individual outcomes are emitted as build receipts, reports, provenance files, and logs.                                                                          |
 
 ## Motivation
 
@@ -100,12 +100,12 @@ output.store(destination);
 
 ## Responsibility boundaries
 
-| Surface | Responsibility | Partial data |
-| --- | --- | --- |
-| `Register<T, Bits>` | One complete hardware register | Rejected |
-| `SimdVector<T, N>` | One fixed logical value | Inactive lanes are managed by the type |
-| `SimdAlgo` and future `Tensor` operations | Collections and batches | Tail policy belongs to the algorithm |
-| `Api<Bits, T>` | Compatibility facade and implementation routing | Existing behavior remains supported |
+| Surface                                   | Responsibility                                  | Partial data                           |
+| ----------------------------------------- | ----------------------------------------------- | -------------------------------------- |
+| `Register<T, Bits>`                       | One complete hardware register                  | Rejected                               |
+| `SimdVector<T, N>`                        | One fixed logical value                         | Inactive lanes are managed by the type |
+| `SimdAlgo` and future `Tensor` operations | Collections and batches                         | Tail policy belongs to the algorithm   |
+| `Api<Bits, T>`                            | Compatibility facade and implementation routing | Existing behavior remains supported    |
 
 `Register` deliberately has no equivalent to `Api::load_partial`,
 `Api::set_partial`, or `Api::setr_partial`. A caller with fewer than
@@ -150,10 +150,10 @@ initial ABI probes have been validated:
 
 ```cpp
 #if defined(__cpp_explicit_this_parameter) && \
-	__cpp_explicit_this_parameter >= 202110L
+ __cpp_explicit_this_parameter >= 202110L
 #define SIMDLIB_REGISTER_INTERFACE_AVAILABLE 1
 #elif defined(_MSC_VER) && !defined(__clang__) && _MSC_VER >= 1944 && \
-	defined(_MSVC_LANG) && _MSVC_LANG > 202002L
+ defined(_MSVC_LANG) && _MSVC_LANG > 202002L
 #define SIMDLIB_REGISTER_INTERFACE_AVAILABLE 1
 #else
 #define SIMDLIB_REGISTER_INTERFACE_AVAILABLE 0
@@ -205,12 +205,12 @@ ODR hazard. The preprocessor macro is the only public availability query.
 The core target retains its existing C++20 compiler matrix. Register support is
 a narrower, separately validated matrix:
 
-| Compiler family | Initial Register floor | Platform | Language mode | Availability path |
-| --- | --- | --- | --- | --- |
-| Microsoft C++ | MSVC 19.44 | Windows x64 | `/std:c++latest` | `_MSC_VER` and `_MSVC_LANG` fallback |
-| clang-cl | 20 | Windows x64 | C++23 | Standard feature-test macro |
-| Clang | 22 | Linux x64 | C++23 | Standard feature-test macro |
-| GCC | 14 | Linux x64 | C++23 | Standard feature-test macro |
+| Compiler family | Initial Register floor | Platform    | Language mode    | Availability path                    |
+| --------------- | ---------------------- | ----------- | ---------------- | ------------------------------------ |
+| Microsoft C++   | MSVC 19.44             | Windows x64 | `/std:c++latest` | `_MSC_VER` and `_MSVC_LANG` fallback |
+| clang-cl        | 20                     | Windows x64 | C++23            | Standard feature-test macro          |
+| Clang           | 22                     | Linux x64   | C++23            | Standard feature-test macro          |
+| GCC             | 14                     | Linux x64   | C++23            | Standard feature-test macro          |
 
 Linux x64 GCC 13.2 remains in the core C++20 matrix and must compile the umbrella
 header with `SIMDLIB_REGISTER_INTERFACE_AVAILABLE == 0`. A compiler is added to the
@@ -231,16 +231,16 @@ add_library(SimdLib::Register ALIAS SimdLibRegister)
 target_link_libraries(SimdLibRegister INTERFACE SimdLib::SimdLib)
 target_compile_features(SimdLibRegister INTERFACE cxx_std_23)
 target_compile_options(
-	SimdLibRegister
-	INTERFACE $<$<CXX_COMPILER_ID:MSVC>:/std:c++latest>)
+ SimdLibRegister
+ INTERFACE $<$<CXX_COMPILER_ID:MSVC>:/std:c++latest>)
 target_compile_definitions(
-	SimdLibRegister
-	INTERFACE SIMDLIB_REQUIRE_REGISTER_INTERFACE=1)
+ SimdLibRegister
+ INTERFACE SIMDLIB_REQUIRE_REGISTER_INTERFACE=1)
 ```
 
 ```cpp
 #if defined(SIMDLIB_REQUIRE_REGISTER_INTERFACE) && \
-	!SIMDLIB_REGISTER_INTERFACE_AVAILABLE
+ !SIMDLIB_REGISTER_INTERFACE_AVAILABLE
 #error "SimdLib::Register requires supported C++23 explicit object parameters."
 #endif
 ```
@@ -276,14 +276,14 @@ namespace SimdLib
  */
 template <class element_t, std::size_t register_width>
 inline constexpr bool is_register_available_v =
-	SimdLib::is_api_available_v<register_width, element_t>;
+ SimdLib::is_api_available_v<register_width, element_t>;
 
 /**
  * @brief Constrains a type and width to a supported complete SIMD register.
  */
 template <class element_t, std::size_t register_width>
 concept RegisterAvailable =
-	is_register_available_v<element_t, register_width>;
+ is_register_available_v<element_t, register_width>;
 
 /**
  * @brief Owns one complete SIMD register whose lanes are all active.
@@ -291,7 +291,7 @@ concept RegisterAvailable =
  * @tparam register_width Width of the native register in bits.
  */
 template <class element_t, std::size_t register_width>
-	requires RegisterAvailable<element_t, register_width>
+ requires RegisterAvailable<element_t, register_width>
 class Register final;
 
 /**
@@ -299,10 +299,10 @@ class Register final;
  * @tparam element_t Scalar interpretation of each register lane.
  */
 template <class element_t>
-	requires RegisterAvailable<element_t, 128>
+ requires RegisterAvailable<element_t, 128>
 using NativeRegister = Register<
-	element_t,
-	is_register_available_v<element_t, 256> ? 256 : 128>;
+ element_t,
+ is_register_available_v<element_t, 256> ? 256 : 128>;
 
 } // namespace SimdLib
 ```
@@ -356,7 +356,7 @@ The operation ledger defines the remaining operation names.
  * @tparam bits Width of the associated register in bits.
  */
 template <class element_t, std::size_t bits>
-	requires RegisterAvailable<element_t, bits>
+ requires RegisterAvailable<element_t, bits>
 class RegisterMask;
 
 /**
@@ -365,192 +365,192 @@ class RegisterMask;
  * @tparam bits Width of the native register in bits.
  */
 template <class element_t, std::size_t bits>
-	requires RegisterAvailable<element_t, bits>
+ requires RegisterAvailable<element_t, bits>
 class Register final
 {
   public:
-	using element_type = element_t;
-	using api_type = Api<bits, element_type>;
-	using native_type = typename api_type::vector_t;
-	using mask_type = RegisterMask<element_type, bits>;
+ using element_type = element_t;
+ using api_type = Api<bits, element_type>;
+ using native_type = typename api_type::vector_t;
+ using mask_type = RegisterMask<element_type, bits>;
 
-	constexpr static inline std::size_t register_width = bits;
-	constexpr static inline std::size_t byte_count = api_type::byte_count;
-	constexpr static inline std::size_t lane_count = api_type::element_count;
+ constexpr static inline std::size_t register_width = bits;
+ constexpr static inline std::size_t byte_count = api_type::byte_count;
+ constexpr static inline std::size_t lane_count = api_type::element_count;
 
-	/** @brief Owns the complete native register value represented by this aggregate. */
-	native_type native = api_type::setzero();
+ /** @brief Owns the complete native register value represented by this aggregate. */
+ native_type native = api_type::setzero();
 
-	/**
-	 * @brief Returns a register with every active lane set to zero.
-	 * @return Fully initialized zero register.
-	 */
-	[[nodiscard]] static constexpr Register SIMD_FLAGS(Out, ForceInline) zero() noexcept;
+ /**
+  * @brief Returns a register with every active lane set to zero.
+  * @return Fully initialized zero register.
+  */
+ [[nodiscard]] static constexpr Register SIMD_FLAGS(Out, ForceInline) zero() noexcept;
 
-	/**
-	 * @brief Broadcasts one scalar value to every active lane.
-	 * @param value Scalar value to broadcast.
-	 * @return Register containing `value` in every lane.
-	 */
-	[[nodiscard]] static constexpr Register SIMD_FLAGS(Out, ForceInline) broadcast(
-		element_type value) noexcept;
+ /**
+  * @brief Broadcasts one scalar value to every active lane.
+  * @param value Scalar value to broadcast.
+  * @return Register containing `value` in every lane.
+  */
+ [[nodiscard]] static constexpr Register SIMD_FLAGS(Out, ForceInline) broadcast(
+  element_type value) noexcept;
 
-	/**
-	 * @brief Constructs a register from exactly one complete logical lane list.
-	 * @param lanes Values in low-to-high logical lane order.
-	 * @return Register containing all supplied lane values.
-	 */
-	template <std::convertible_to<element_type>... lane_types>
-		requires(sizeof...(lane_types) == lane_count)
-	[[nodiscard]] static constexpr Register SIMD_FLAGS(Out, ForceInline) from_lanes(
-		lane_types &&...lanes) noexcept;
+ /**
+  * @brief Constructs a register from exactly one complete logical lane list.
+  * @param lanes Values in low-to-high logical lane order.
+  * @return Register containing all supplied lane values.
+  */
+ template <std::convertible_to<element_type>... lane_types>
+  requires(sizeof...(lane_types) == lane_count)
+ [[nodiscard]] static constexpr Register SIMD_FLAGS(Out, ForceInline) from_lanes(
+  lane_types &&...lanes) noexcept;
 
-	/**
-	 * @brief Constructs a register from one complete fixed-size lane array.
-	 * @param source Source containing every active lane in logical order.
-	 * @return Register containing all source lane values.
-	 */
-	[[nodiscard]] static constexpr Register SIMD_FLAGS(Out, ForceInline) from_array(
-		const std::array<element_type, lane_count> &source) noexcept;
+ /**
+  * @brief Constructs a register from one complete fixed-size lane array.
+  * @param source Source containing every active lane in logical order.
+  * @return Register containing all source lane values.
+  */
+ [[nodiscard]] static constexpr Register SIMD_FLAGS(Out, ForceInline) from_array(
+  const std::array<element_type, lane_count> &source) noexcept;
 
-	/**
-	 * @brief Loads a complete register from potentially unaligned storage.
-	 * @param source Source containing exactly one register of elements.
-	 * @return Register loaded from `source`.
-	 */
-	[[nodiscard]] static Register SIMD_FLAGS(Out, ForceInline) load(
-		std::span<const element_type, lane_count> source) noexcept;
+ /**
+  * @brief Loads a complete register from potentially unaligned storage.
+  * @param source Source containing exactly one register of elements.
+  * @return Register loaded from `source`.
+  */
+ [[nodiscard]] static Register SIMD_FLAGS(Out, ForceInline) load(
+  std::span<const element_type, lane_count> source) noexcept;
 
-	/**
-	 * @brief Loads a complete register from register-aligned storage.
-	 * @param source Aligned source containing exactly one register of elements.
-	 * @return Register loaded from `source`.
-	 */
-	[[nodiscard]] static Register SIMD_FLAGS(Out, ForceInline) load_aligned(
-		std::span<const element_type, lane_count> source) noexcept;
+ /**
+  * @brief Loads a complete register from register-aligned storage.
+  * @param source Aligned source containing exactly one register of elements.
+  * @return Register loaded from `source`.
+  */
+ [[nodiscard]] static Register SIMD_FLAGS(Out, ForceInline) load_aligned(
+  std::span<const element_type, lane_count> source) noexcept;
 
-	/**
-	 * @brief Loads one complete register bit pattern from raw bytes.
-	 * @param source Source containing exactly one register of bytes.
-	 * @return Register containing the source bit pattern.
-	 */
-	[[nodiscard]] static Register SIMD_FLAGS(Out, ForceInline) load_bytes(
-		std::span<const std::byte, byte_count> source) noexcept;
+ /**
+  * @brief Loads one complete register bit pattern from raw bytes.
+  * @param source Source containing exactly one register of bytes.
+  * @return Register containing the source bit pattern.
+  */
+ [[nodiscard]] static Register SIMD_FLAGS(Out, ForceInline) load_bytes(
+  std::span<const std::byte, byte_count> source) noexcept;
 
-	/**
-	 * @brief Stores every active lane to potentially unaligned storage.
-	 * @param value Register to store.
-	 * @param destination Destination for exactly one register of elements.
-	 */
-	void SIMD_FLAGS(In, ForceInline) store(
-		this Register value,
-		std::span<element_type, lane_count> destination) noexcept;
+ /**
+  * @brief Stores every active lane to potentially unaligned storage.
+  * @param value Register to store.
+  * @param destination Destination for exactly one register of elements.
+  */
+ void SIMD_FLAGS(In, ForceInline) store(
+  this Register value,
+  std::span<element_type, lane_count> destination) noexcept;
 
-	/**
-	 * @brief Stores every active lane to register-aligned storage.
-	 * @param value Register to store.
-	 * @param destination Aligned destination for one complete register.
-	 */
-	void SIMD_FLAGS(In, ForceInline) store_aligned(
-		this Register value,
-		std::span<element_type, lane_count> destination) noexcept;
+ /**
+  * @brief Stores every active lane to register-aligned storage.
+  * @param value Register to store.
+  * @param destination Aligned destination for one complete register.
+  */
+ void SIMD_FLAGS(In, ForceInline) store_aligned(
+  this Register value,
+  std::span<element_type, lane_count> destination) noexcept;
 
-	/**
-	 * @brief Stores the complete register bit pattern to raw bytes.
-	 * @param value Register to store.
-	 * @param destination Destination containing exactly one register of bytes.
-	 */
-	void SIMD_FLAGS(In, ForceInline) store_bytes(
-		this Register value,
-		std::span<std::byte, byte_count> destination) noexcept;
+ /**
+  * @brief Stores the complete register bit pattern to raw bytes.
+  * @param value Register to store.
+  * @param destination Destination containing exactly one register of bytes.
+  */
+ void SIMD_FLAGS(In, ForceInline) store_bytes(
+  this Register value,
+  std::span<std::byte, byte_count> destination) noexcept;
 
-	/**
-	 * @brief Copies every active lane into a fixed-size array.
-	 * @param value Register to copy.
-	 * @return Array containing all lanes in low-to-high logical order.
-	 */
-	[[nodiscard]] constexpr
-	std::array<element_type, lane_count> SIMD_FLAGS(In, ForceInline) to_array(
-		this Register value) noexcept;
+ /**
+  * @brief Copies every active lane into a fixed-size array.
+  * @param value Register to copy.
+  * @return Array containing all lanes in low-to-high logical order.
+  */
+ [[nodiscard]] constexpr
+ std::array<element_type, lane_count> SIMD_FLAGS(In, ForceInline) to_array(
+  this Register value) noexcept;
 
-	/**
-	 * @brief Returns one compile-time-selected lane.
-	 * @tparam index Logical lane index.
-	 * @param value Register containing the selected lane.
-	 * @return Copy of the selected lane.
-	 */
-	template <std::size_t index>
-		requires(index < lane_count)
-	[[nodiscard]] constexpr element_type SIMD_FLAGS(In, ForceInline) lane(
-		this Register value) noexcept;
+ /**
+  * @brief Returns one compile-time-selected lane.
+  * @tparam index Logical lane index.
+  * @param value Register containing the selected lane.
+  * @return Copy of the selected lane.
+  */
+ template <std::size_t index>
+  requires(index < lane_count)
+ [[nodiscard]] constexpr element_type SIMD_FLAGS(In, ForceInline) lane(
+  this Register value) noexcept;
 
-	/**
-	 * @brief Returns the wrapped native register for intrinsic interoperation.
-	 * @param value Register to unwrap.
-	 * @return Complete native register value.
-	 */
-	[[nodiscard]] constexpr native_type SIMD_FLAGS(InOut, ForceInline) native(
-		this Register value) noexcept;
+ /**
+  * @brief Returns the wrapped native register for intrinsic interoperation.
+  * @param value Register to unwrap.
+  * @return Complete native register value.
+  */
+ [[nodiscard]] constexpr native_type SIMD_FLAGS(InOut, ForceInline) native(
+  this Register value) noexcept;
 
-	/**
-	 * @brief Adds corresponding lanes.
-	 * @param lhs Left-hand register.
-	 * @param rhs Right-hand register.
-	 * @return Per-lane sum.
-	 */
-	[[nodiscard]] Register SIMD_FLAGS(InOut, ForceInline) operator+(
-		this Register lhs,
-		Register rhs) noexcept;
+ /**
+  * @brief Adds corresponding lanes.
+  * @param lhs Left-hand register.
+  * @param rhs Right-hand register.
+  * @return Per-lane sum.
+  */
+ [[nodiscard]] Register SIMD_FLAGS(InOut, ForceInline) operator+(
+  this Register lhs,
+  Register rhs) noexcept;
 
-	/**
-	 * @brief Subtracts corresponding lanes.
-	 * @param lhs Left-hand register.
-	 * @param rhs Right-hand register.
-	 * @return Per-lane difference.
-	 */
-	[[nodiscard]] Register SIMD_FLAGS(InOut, ForceInline) operator-(
-		this Register lhs,
-		Register rhs) noexcept;
+ /**
+  * @brief Subtracts corresponding lanes.
+  * @param lhs Left-hand register.
+  * @param rhs Right-hand register.
+  * @return Per-lane difference.
+  */
+ [[nodiscard]] Register SIMD_FLAGS(InOut, ForceInline) operator-(
+  this Register lhs,
+  Register rhs) noexcept;
 
-	/**
-	 * @brief Multiplies corresponding lanes.
-	 * @param lhs Left-hand register.
-	 * @param rhs Right-hand register.
-	 * @return Per-lane product.
-	 */
-	[[nodiscard]] Register SIMD_FLAGS(InOut, ForceInline) operator*(
-		this Register lhs,
-		Register rhs) noexcept;
+ /**
+  * @brief Multiplies corresponding lanes.
+  * @param lhs Left-hand register.
+  * @param rhs Right-hand register.
+  * @return Per-lane product.
+  */
+ [[nodiscard]] Register SIMD_FLAGS(InOut, ForceInline) operator*(
+  this Register lhs,
+  Register rhs) noexcept;
 
-	/**
-	 * @brief Compares corresponding lanes for equality.
-	 * @param lhs Left-hand register.
-	 * @param rhs Right-hand register.
-	 * @return Register-shaped lane predicate.
-	 */
-	[[nodiscard]] constexpr mask_type SIMD_FLAGS(InOut, ForceInline) compare_equal(
-		this Register lhs,
-		Register rhs) noexcept;
+ /**
+  * @brief Compares corresponding lanes for equality.
+  * @param lhs Left-hand register.
+  * @param rhs Right-hand register.
+  * @return Register-shaped lane predicate.
+  */
+ [[nodiscard]] constexpr mask_type SIMD_FLAGS(InOut, ForceInline) compare_equal(
+  this Register lhs,
+  Register rhs) noexcept;
 
-	/**
-	 * @brief Tests whether every corresponding lane compares equal.
-	 * @param lhs Left-hand register.
-	 * @param rhs Right-hand register.
-	 * @return `true` when all lanes compare equal.
-	 */
-	[[nodiscard]] constexpr bool SIMD_FLAGS(In, ForceInline) operator==(
-		this Register lhs,
-		Register rhs) noexcept;
+ /**
+  * @brief Tests whether every corresponding lane compares equal.
+  * @param lhs Left-hand register.
+  * @param rhs Right-hand register.
+  * @return `true` when all lanes compare equal.
+  */
+ [[nodiscard]] constexpr bool SIMD_FLAGS(In, ForceInline) operator==(
+  this Register lhs,
+  Register rhs) noexcept;
 
-	/**
-	 * @brief Tests whether any corresponding lane compares unequal.
-	 * @param lhs Left-hand register.
-	 * @param rhs Right-hand register.
-	 * @return `true` when at least one lane compares unequal.
-	 */
-	[[nodiscard]] constexpr bool SIMD_FLAGS(In, ForceInline) operator!=(
-		this Register lhs,
-		Register rhs) noexcept;
+ /**
+  * @brief Tests whether any corresponding lane compares unequal.
+  * @param lhs Left-hand register.
+  * @param rhs Right-hand register.
+  * @return `true` when at least one lane compares unequal.
+  */
+ [[nodiscard]] constexpr bool SIMD_FLAGS(In, ForceInline) operator!=(
+  this Register lhs,
+  Register rhs) noexcept;
 
 };
 ```
@@ -583,7 +583,7 @@ Arithmetic and bitwise operators should initially accept only another
 
 ```cpp
 const auto adjusted = values * FloatRegister::broadcast(scale) +
-	FloatRegister::broadcast(offset);
+ FloatRegister::broadcast(offset);
 ```
 
 This is intentionally more restrictive than `SimdVector`. It makes broadcast
@@ -629,148 +629,148 @@ predicate lanes.
  * @tparam bits Width of the associated register in bits.
  */
 template <class element_t, std::size_t bits>
-	requires RegisterAvailable<element_t, bits>
+ requires RegisterAvailable<element_t, bits>
 class RegisterMask final
 {
   public:
-	using register_type = Register<element_t, bits>;
-	using api_type = typename register_type::api_type;
-	using native_type = typename register_type::native_type;
-	using bits_type = std::conditional_t<
-		(register_type::lane_count <= 32),
-		std::uint32_t,
-		std::uint64_t>;
+ using register_type = Register<element_t, bits>;
+ using api_type = typename register_type::api_type;
+ using native_type = typename register_type::native_type;
+ using bits_type = std::conditional_t<
+  (register_type::lane_count <= 32),
+  std::uint32_t,
+  std::uint64_t>;
 
-	constexpr static inline std::size_t register_width = bits;
-	constexpr static inline std::size_t lane_count = register_type::lane_count;
+ constexpr static inline std::size_t register_width = bits;
+ constexpr static inline std::size_t lane_count = register_type::lane_count;
 
-	/**
-	 * @brief Owns the complete native predicate value represented by this aggregate.
-	 * @pre Every logical lane is either all-zero or all-one when initialized directly.
-	 */
-	native_type native = api_type::setzero();
+ /**
+  * @brief Owns the complete native predicate value represented by this aggregate.
+  * @pre Every logical lane is either all-zero or all-one when initialized directly.
+  */
+ native_type native = api_type::setzero();
 
-	/**
-	 * @brief Tests whether any predicate lane is set.
-	 * @param value Predicate register to test.
-	 * @return `true` when at least one lane is true.
-	 */
-	[[nodiscard]] constexpr bool SIMD_FLAGS(In, ForceInline) any(
-		this RegisterMask value) noexcept;
+ /**
+  * @brief Tests whether any predicate lane is set.
+  * @param value Predicate register to test.
+  * @return `true` when at least one lane is true.
+  */
+ [[nodiscard]] constexpr bool SIMD_FLAGS(In, ForceInline) any(
+  this RegisterMask value) noexcept;
 
-	/**
-	 * @brief Tests whether every predicate lane is set.
-	 * @param value Predicate register to test.
-	 * @return `true` when every lane is true.
-	 */
-	[[nodiscard]] constexpr bool SIMD_FLAGS(In, ForceInline) all(
-		this RegisterMask value) noexcept;
+ /**
+  * @brief Tests whether every predicate lane is set.
+  * @param value Predicate register to test.
+  * @return `true` when every lane is true.
+  */
+ [[nodiscard]] constexpr bool SIMD_FLAGS(In, ForceInline) all(
+  this RegisterMask value) noexcept;
 
-	/**
-	 * @brief Tests whether no predicate lane is set.
-	 * @param value Predicate register to test.
-	 * @return `true` when every lane is false.
-	 */
-	[[nodiscard]] constexpr bool SIMD_FLAGS(In, ForceInline) none(
-		this RegisterMask value) noexcept;
+ /**
+  * @brief Tests whether no predicate lane is set.
+  * @param value Predicate register to test.
+  * @return `true` when every lane is false.
+  */
+ [[nodiscard]] constexpr bool SIMD_FLAGS(In, ForceInline) none(
+  this RegisterMask value) noexcept;
 
-	/**
-	 * @brief Returns one compact bit per logical predicate lane.
-	 * @param value Predicate register to reduce.
-	 * @return Bit `i` set exactly when lane `i` is true.
-	 */
-	[[nodiscard]] constexpr bits_type SIMD_FLAGS(In, ForceInline) bits(
-		this RegisterMask value) noexcept;
+ /**
+  * @brief Returns one compact bit per logical predicate lane.
+  * @param value Predicate register to reduce.
+  * @return Bit `i` set exactly when lane `i` is true.
+  */
+ [[nodiscard]] constexpr bits_type SIMD_FLAGS(In, ForceInline) bits(
+  this RegisterMask value) noexcept;
 
-	/**
-	 * @brief Returns the wrapped native predicate register for intrinsic
-	 *        interoperation.
-	 * @param value Predicate register to unwrap.
-	 * @return Complete native predicate register value.
-	 */
-	[[nodiscard]] constexpr native_type SIMD_FLAGS(InOut, ForceInline) native(
-		this RegisterMask value) noexcept;
+ /**
+  * @brief Returns the wrapped native predicate register for intrinsic
+  *        interoperation.
+  * @param value Predicate register to unwrap.
+  * @return Complete native predicate register value.
+  */
+ [[nodiscard]] constexpr native_type SIMD_FLAGS(InOut, ForceInline) native(
+  this RegisterMask value) noexcept;
 
-	/**
-	 * @brief Selects lanes from two registers according to a predicate.
-	 * @param condition Predicate controlling each selected lane.
-	 * @param when_true Values selected for true predicate lanes.
-	 * @param when_false Values selected for false predicate lanes.
-	 * @return Register containing the selected values.
-	 */
-	[[nodiscard]] register_type SIMD_FLAGS(InOut, ForceInline) select(
-		this RegisterMask condition,
-		register_type when_true,
-		register_type when_false) noexcept;
+ /**
+  * @brief Selects lanes from two registers according to a predicate.
+  * @param condition Predicate controlling each selected lane.
+  * @param when_true Values selected for true predicate lanes.
+  * @param when_false Values selected for false predicate lanes.
+  * @return Register containing the selected values.
+  */
+ [[nodiscard]] register_type SIMD_FLAGS(InOut, ForceInline) select(
+  this RegisterMask condition,
+  register_type when_true,
+  register_type when_false) noexcept;
 
-	/**
-	 * @brief Computes the intersection of two predicate registers.
-	 * @param lhs Left-hand predicate register.
-	 * @param rhs Right-hand predicate register.
-	 * @return Predicate that is true where both inputs are true.
-	 */
-	[[nodiscard]] constexpr RegisterMask SIMD_FLAGS(InOut, ForceInline) operator&(
-		this RegisterMask lhs,
-		RegisterMask rhs) noexcept;
+ /**
+  * @brief Computes the intersection of two predicate registers.
+  * @param lhs Left-hand predicate register.
+  * @param rhs Right-hand predicate register.
+  * @return Predicate that is true where both inputs are true.
+  */
+ [[nodiscard]] constexpr RegisterMask SIMD_FLAGS(InOut, ForceInline) operator&(
+  this RegisterMask lhs,
+  RegisterMask rhs) noexcept;
 
-	/**
-	 * @brief Computes the union of two predicate registers.
-	 * @param lhs Left-hand predicate register.
-	 * @param rhs Right-hand predicate register.
-	 * @return Predicate that is true where either input is true.
-	 */
-	[[nodiscard]] constexpr RegisterMask SIMD_FLAGS(InOut, ForceInline) operator|(
-		this RegisterMask lhs,
-		RegisterMask rhs) noexcept;
+ /**
+  * @brief Computes the union of two predicate registers.
+  * @param lhs Left-hand predicate register.
+  * @param rhs Right-hand predicate register.
+  * @return Predicate that is true where either input is true.
+  */
+ [[nodiscard]] constexpr RegisterMask SIMD_FLAGS(InOut, ForceInline) operator|(
+  this RegisterMask lhs,
+  RegisterMask rhs) noexcept;
 
-	/**
-	 * @brief Computes the exclusive union of two predicate registers.
-	 * @param lhs Left-hand predicate register.
-	 * @param rhs Right-hand predicate register.
-	 * @return Predicate that is true where exactly one input is true.
-	 */
-	[[nodiscard]] constexpr RegisterMask SIMD_FLAGS(InOut, ForceInline) operator^(
-		this RegisterMask lhs,
-		RegisterMask rhs) noexcept;
+ /**
+  * @brief Computes the exclusive union of two predicate registers.
+  * @param lhs Left-hand predicate register.
+  * @param rhs Right-hand predicate register.
+  * @return Predicate that is true where exactly one input is true.
+  */
+ [[nodiscard]] constexpr RegisterMask SIMD_FLAGS(InOut, ForceInline) operator^(
+  this RegisterMask lhs,
+  RegisterMask rhs) noexcept;
 
-	/**
-	 * @brief Inverts every predicate lane.
-	 * @param value Predicate register to invert.
-	 * @return Predicate containing the inverse of every input lane.
-	 */
-	[[nodiscard]] constexpr RegisterMask SIMD_FLAGS(InOut, ForceInline) operator~(
-		this RegisterMask value) noexcept;
+ /**
+  * @brief Inverts every predicate lane.
+  * @param value Predicate register to invert.
+  * @return Predicate containing the inverse of every input lane.
+  */
+ [[nodiscard]] constexpr RegisterMask SIMD_FLAGS(InOut, ForceInline) operator~(
+  this RegisterMask value) noexcept;
 
-	/*
-	 * Disabled compound assignment operators: their convenience does not justify
-	 * the mutable-reference API surface, and MSVC 19.44 emits a redundant 32-byte
-	 * stack-alignment frame for 256-bit wrapper mutation through references.
-	 * Prefer lhs = lhs & rhs, lhs = lhs | rhs, or lhs = lhs ^ rhs.
-	 *
-	/// @brief Intersects this predicate with another predicate.
-	/// @param lhs Predicate register to update.
-	/// @param rhs Right-hand predicate register.
-	/// @return Reference to the updated predicate.
-	constexpr auto SIMD_FLAGS(In, ForceInline) operator&=(
-		this RegisterMask &lhs,
-		RegisterMask rhs) noexcept -> RegisterMask &;
+ /*
+  * Disabled compound assignment operators: their convenience does not justify
+  * the mutable-reference API surface, and MSVC 19.44 emits a redundant 32-byte
+  * stack-alignment frame for 256-bit wrapper mutation through references.
+  * Prefer lhs = lhs & rhs, lhs = lhs | rhs, or lhs = lhs ^ rhs.
+  *
+ /// @brief Intersects this predicate with another predicate.
+ /// @param lhs Predicate register to update.
+ /// @param rhs Right-hand predicate register.
+ /// @return Reference to the updated predicate.
+ constexpr auto SIMD_FLAGS(In, ForceInline) operator&=(
+  this RegisterMask &lhs,
+  RegisterMask rhs) noexcept -> RegisterMask &;
 
-	/// @brief Unites this predicate with another predicate.
-	/// @param lhs Predicate register to update.
-	/// @param rhs Right-hand predicate register.
-	/// @return Reference to the updated predicate.
-	constexpr auto SIMD_FLAGS(In, ForceInline) operator|=(
-		this RegisterMask &lhs,
-		RegisterMask rhs) noexcept -> RegisterMask &;
+ /// @brief Unites this predicate with another predicate.
+ /// @param lhs Predicate register to update.
+ /// @param rhs Right-hand predicate register.
+ /// @return Reference to the updated predicate.
+ constexpr auto SIMD_FLAGS(In, ForceInline) operator|=(
+  this RegisterMask &lhs,
+  RegisterMask rhs) noexcept -> RegisterMask &;
 
-	/// @brief Exclusively combines this predicate with another predicate.
-	/// @param lhs Predicate register to update.
-	/// @param rhs Right-hand predicate register.
-	/// @return Reference to the updated predicate.
-	constexpr auto SIMD_FLAGS(In, ForceInline) operator^=(
-		this RegisterMask &lhs,
-		RegisterMask rhs) noexcept -> RegisterMask &;
-	 */
+ /// @brief Exclusively combines this predicate with another predicate.
+ /// @param lhs Predicate register to update.
+ /// @param rhs Right-hand predicate register.
+ /// @return Reference to the updated predicate.
+ constexpr auto SIMD_FLAGS(In, ForceInline) operator^=(
+  this RegisterMask &lhs,
+  RegisterMask rhs) noexcept -> RegisterMask &;
+  */
 };
 ```
 
@@ -854,73 +854,73 @@ the explicit-object surface by generated-code and ABI tests.
 
 ### Construction and transfer ledger
 
-| Current `Api` operation | Preferred `Register<T, Bits>` form | Decision |
-| --- | --- | --- |
-| `load` | `Register::load(fixed_span)` | Canonical potentially unaligned full load |
-| `load_aligned` | `Register::load_aligned(fixed_span)` | Retained with alignment precondition |
-| `load_unaligned` | `Register::load(fixed_span)` | Redundant spelling omitted |
-| `load_partial` | None | Partial data belongs to higher-level types |
-| `load_unsafe` | None | Dynamic-extent unsafe load remains on `Api` |
-| `store` to element span | `value.store(fixed_span)` | Canonical potentially unaligned full store |
-| `store_aligned` | `value.store_aligned(fixed_span)` | Retained with alignment precondition |
-| `store_unaligned` | `value.store(fixed_span)` | Redundant spelling omitted |
-| `store` to fixed byte span | `value.store_bytes(fixed_byte_span)` | Renamed to make bit-pattern transfer explicit |
-| `store` to dynamic byte span | None | Dynamic-extent transfer remains compatibility-only on `Api` |
-| Fixed-byte `load` | `Register::load_bytes(fixed_byte_span)` | Symmetric bit-pattern transfer |
-| `construct(array)` | `Register::from_array(array)` | Static factory; no ambiguous storage constructor |
-| `to_array` | `value.to_array()` | Retained as a value conversion |
-| `setzero` | Default construction and `Register::zero()` | Uses intrinsic-backed zero construction |
-| `set1` | `Register::broadcast(value)` | Explicit scalar broadcast |
-| `setr` | `Register::from_lanes(...)` | Requires exactly `lane_count` logical-order values |
-| `set` | None | Native intrinsic argument order remains compatibility-only |
-| `set_partial`, `setr_partial` | None | No partial or automatically filled lanes |
+| Current `Api` operation       | Preferred `Register<T, Bits>` form          | Decision                                                    |
+| ----------------------------- | ------------------------------------------- | ----------------------------------------------------------- |
+| `load`                        | `Register::load(fixed_span)`                | Canonical potentially unaligned full load                   |
+| `load_aligned`                | `Register::load_aligned(fixed_span)`        | Retained with alignment precondition                        |
+| `load_unaligned`              | `Register::load(fixed_span)`                | Redundant spelling omitted                                  |
+| `load_partial`                | None                                        | Partial data belongs to higher-level types                  |
+| `load_unsafe`                 | None                                        | Dynamic-extent unsafe load remains on `Api`                 |
+| `store` to element span       | `value.store(fixed_span)`                   | Canonical potentially unaligned full store                  |
+| `store_aligned`               | `value.store_aligned(fixed_span)`           | Retained with alignment precondition                        |
+| `store_unaligned`             | `value.store(fixed_span)`                   | Redundant spelling omitted                                  |
+| `store` to fixed byte span    | `value.store_bytes(fixed_byte_span)`        | Renamed to make bit-pattern transfer explicit               |
+| `store` to dynamic byte span  | None                                        | Dynamic-extent transfer remains compatibility-only on `Api` |
+| Fixed-byte `load`             | `Register::load_bytes(fixed_byte_span)`     | Symmetric bit-pattern transfer                              |
+| `construct(array)`            | `Register::from_array(array)`               | Static factory; no ambiguous storage constructor            |
+| `to_array`                    | `value.to_array()`                          | Retained as a value conversion                              |
+| `setzero`                     | Default construction and `Register::zero()` | Uses intrinsic-backed zero construction                     |
+| `set1`                        | `Register::broadcast(value)`                | Explicit scalar broadcast                                   |
+| `setr`                        | `Register::from_lanes(...)`                 | Requires exactly `lane_count` logical-order values          |
+| `set`                         | None                                        | Native intrinsic argument order remains compatibility-only  |
+| `set_partial`, `setr_partial` | None                                        | No partial or automatically filled lanes                    |
 
 ### Arithmetic and reduction ledger
 
-| Current `Api` operation | Preferred `Register<T, Bits>` form | Result |
-| --- | --- | --- |
-| `add` | `lhs + rhs` | Same register type |
-| `subtract` | `lhs - rhs` | Same register type |
-| `multiply` | `lhs * rhs` | Same register type |
-| `divide` | `lhs / rhs` | Same register type where supported |
-| `modulus` | `lhs % rhs` | Same integral register type |
-| `negate` | `-value` | Same register type |
-| `min` | `lhs.min(rhs)` | Same register type |
-| `max` | `lhs.max(rhs)` | Same register type |
-| `multiply_add` | `lhs.multiply_add(rhs, addend)` | Same register type |
-| `widen` | `value.widen_low<target_t, target_bits>()` | Explicit target `Register`; consumed lanes documented |
-| `absolute` | `value.absolute()` | Same register type and intrinsic edge behavior |
-| `sqrt` | `value.sqrt()` | Same register type where supported |
-| `magnitude` | `value.magnitude()` | Floating groups broadcast; integer groups store an unchecked result only in their leading lane |
-| `magnitude_checked` | `value.magnitude_checked()` | Integral groups store a saturated result followed by a canonical overflow mask |
-| `normalize` | `value.normalize()` | Same floating register type |
-| `avg` | `lhs.average(rhs)` | Same register type |
-| `add_horizontal` | `lhs.horizontal_add(rhs)` | Same register type |
-| `subtract_horizontal` | `lhs.horizontal_subtract(rhs)` | Same register type |
-| `multiply_add_adjacent` | `lhs.multiply_add_adjacent(rhs)` | Explicit operation-result Register alias |
-| `multiply_add_unsigned_signed_bytes` | `lhs.multiply_add_unsigned_signed_bytes(rhs)` | Explicit signed promoted-result Register alias |
-| `sum_absolute_byte_differences` | `lhs.sum_absolute_byte_differences(rhs)` | Explicit unsigned-result Register alias |
-| `multi_sum_absolute_byte_differences` | `lhs.multi_sum_absolute_byte_differences<imm8>(rhs)` | Explicit unsigned-result Register alias |
-| `min_position` | `value.min_position()` | `std::size_t` |
-| `max_position` | `value.max_position()` | `std::size_t` |
-| `add_saturated` | `lhs.add_saturated(rhs)` | Same register type |
-| `subtract_saturated` | `lhs.subtract_saturated(rhs)` | Same register type |
-| `hadd_saturated` | `lhs.horizontal_add_saturated(rhs)` | Same register type |
-| `hsubtract_saturated` | `lhs.horizontal_subtract_saturated(rhs)` | Same register type |
-| `add_subtract` | `lhs.add_subtract(rhs)` | Same floating register type |
-| `dot_product` | `lhs.dot_product<imm8>(rhs)` | Same register type with intrinsic-selected output lanes |
+| Current `Api` operation               | Preferred `Register<T, Bits>` form                   | Result                                                                                         |
+| ------------------------------------- | ---------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `add`                                 | `lhs + rhs`                                          | Same register type                                                                             |
+| `subtract`                            | `lhs - rhs`                                          | Same register type                                                                             |
+| `multiply`                            | `lhs * rhs`                                          | Same register type                                                                             |
+| `divide`                              | `lhs / rhs`                                          | Same register type where supported                                                             |
+| `modulus`                             | `lhs % rhs`                                          | Same integral register type                                                                    |
+| `negate`                              | `-value`                                             | Same register type                                                                             |
+| `min`                                 | `lhs.min(rhs)`                                       | Same register type                                                                             |
+| `max`                                 | `lhs.max(rhs)`                                       | Same register type                                                                             |
+| `multiply_add`                        | `lhs.multiply_add(rhs, addend)`                      | Same register type                                                                             |
+| `widen`                               | `value.widen_low<target_t, target_bits>()`           | Explicit target `Register`; consumed lanes documented                                          |
+| `absolute`                            | `value.absolute()`                                   | Same register type and intrinsic edge behavior                                                 |
+| `sqrt`                                | `value.sqrt()`                                       | Same register type where supported                                                             |
+| `magnitude`                           | `value.magnitude()`                                  | Floating groups broadcast; integer groups store an unchecked result only in their leading lane |
+| `magnitude_checked`                   | `value.magnitude_checked()`                          | Integral groups store a saturated result followed by a canonical overflow mask                 |
+| `normalize`                           | `value.normalize()`                                  | Same floating register type                                                                    |
+| `avg`                                 | `lhs.average(rhs)`                                   | Same register type                                                                             |
+| `add_horizontal`                      | `lhs.horizontal_add(rhs)`                            | Same register type                                                                             |
+| `subtract_horizontal`                 | `lhs.horizontal_subtract(rhs)`                       | Same register type                                                                             |
+| `multiply_add_adjacent`               | `lhs.multiply_add_adjacent(rhs)`                     | Explicit operation-result Register alias                                                       |
+| `multiply_add_unsigned_signed_bytes`  | `lhs.multiply_add_unsigned_signed_bytes(rhs)`        | Explicit signed promoted-result Register alias                                                 |
+| `sum_absolute_byte_differences`       | `lhs.sum_absolute_byte_differences(rhs)`             | Explicit unsigned-result Register alias                                                        |
+| `multi_sum_absolute_byte_differences` | `lhs.multi_sum_absolute_byte_differences<imm8>(rhs)` | Explicit unsigned-result Register alias                                                        |
+| `min_position`                        | `value.min_position()`                               | `std::size_t`                                                                                  |
+| `max_position`                        | `value.max_position()`                               | `std::size_t`                                                                                  |
+| `add_saturated`                       | `lhs.add_saturated(rhs)`                             | Same register type                                                                             |
+| `subtract_saturated`                  | `lhs.subtract_saturated(rhs)`                        | Same register type                                                                             |
+| `hadd_saturated`                      | `lhs.horizontal_add_saturated(rhs)`                  | Same register type                                                                             |
+| `hsubtract_saturated`                 | `lhs.horizontal_subtract_saturated(rhs)`             | Same register type                                                                             |
+| `add_subtract`                        | `lhs.add_subtract(rhs)`                              | Same floating register type                                                                    |
+| `dot_product`                         | `lhs.dot_product<imm8>(rhs)`                         | Same register type with intrinsic-selected output lanes                                        |
 
 Operations whose intrinsic changes the lane type use constrained namespace-level
 alias templates. Keeping these aliases outside `Register` avoids conditional
 member declarations or helper-base storage that could complicate the exact
 one-native-member representation:
 
-| Alias | Exact result mapping |
-| --- | --- |
+| Alias                                     | Exact result mapping                                                                                                                                                                    |
+| ----------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `multiply_add_adjacent_result_t<T, Bits>` | `Register<int16_t, Bits>` for `int8_t`, `Register<uint16_t, Bits>` for `uint8_t`, then the corresponding signedness at twice the lane width through 64 bits; 64-bit lanes remain 64-bit |
-| `byte_multiply_add_result_t<T, Bits>` | `Register<int16_t, Bits>` for supported signed/unsigned byte inputs |
-| `sad_result_t<T, Bits>` | `Register<uint64_t, Bits>` |
-| `multi_sad_result_t<T, Bits>` | `Register<uint16_t, Bits>` |
+| `byte_multiply_add_result_t<T, Bits>`     | `Register<int16_t, Bits>` for supported signed/unsigned byte inputs                                                                                                                     |
+| `sad_result_t<T, Bits>`                   | `Register<uint64_t, Bits>`                                                                                                                                                              |
+| `multi_sad_result_t<T, Bits>`             | `Register<uint16_t, Bits>`                                                                                                                                                              |
 
 The aliases are declared only when the corresponding backend operation is
 available. Each public operation names its exact alias as the return type rather
@@ -931,20 +931,20 @@ formed mechanically.
 
 ### Bitwise and comparison ledger
 
-| Current `Api` operation | Preferred `Register<T, Bits>` form | Result |
-| --- | --- | --- |
-| `bitwise_and` | `lhs & rhs` | Same register type |
-| `bitwise_or` | `lhs \| rhs` | Same register type |
-| `bitwise_xor` | `lhs ^ rhs` | Same register type |
-| `bitwise_not` | `~value` | Same register type |
-| `bitwise_andnot` | `lhs.andnot(rhs)` | Same register type with existing operand polarity |
-| `select` | `mask.select(when_true, when_false)` | Same Register type; canonical predicate remains Register-shaped |
-| `movemask` | `value.movemask()` | Scalar mask with the selected intrinsic's native granularity |
-| `movemask_slim` | `value.lane_sign_bits()` | Scalar mask with one bit per lane |
-| `compare_equal`, `compare_greater`, `compare_greater_equal`, `compare_less`, `compare_less_equal` | Corresponding named comparison | `RegisterMask<T, Bits>` preserving native predicates |
-| `cmp_eq_mask`, `cmp_gt_mask`, `cmp_ge_mask`, `cmp_lt_mask`, `cmp_le_mask` | No compact-mask Register counterpart | Byte-granular legacy-compatible scalar mask |
-| `cmp_eq_slim`, `cmp_gt_slim`, `cmp_ge_slim`, `cmp_lt_slim`, `cmp_le_slim` | Corresponding named comparison followed by `.bits()` | One compact bit per lane |
-| Deprecated `cmp_eq`, `cmp_gt`, `cmp_ge`, `cmp_lt`, `cmp_le` | Corresponding explicitly named `cmp_*_mask` method | Byte-granular compatibility spelling |
+| Current `Api` operation                                                                           | Preferred `Register<T, Bits>` form                   | Result                                                          |
+| ------------------------------------------------------------------------------------------------- | ---------------------------------------------------- | --------------------------------------------------------------- |
+| `bitwise_and`                                                                                     | `lhs & rhs`                                          | Same register type                                              |
+| `bitwise_or`                                                                                      | `lhs \| rhs`                                         | Same register type                                              |
+| `bitwise_xor`                                                                                     | `lhs ^ rhs`                                          | Same register type                                              |
+| `bitwise_not`                                                                                     | `~value`                                             | Same register type                                              |
+| `bitwise_andnot`                                                                                  | `lhs.andnot(rhs)`                                    | Same register type with existing operand polarity               |
+| `select`                                                                                          | `mask.select(when_true, when_false)`                 | Same Register type; canonical predicate remains Register-shaped |
+| `movemask`                                                                                        | `value.movemask()`                                   | Scalar mask with the selected intrinsic's native granularity    |
+| `movemask_slim`                                                                                   | `value.lane_sign_bits()`                             | Scalar mask with one bit per lane                               |
+| `compare_equal`, `compare_greater`, `compare_greater_equal`, `compare_less`, `compare_less_equal` | Corresponding named comparison                       | `RegisterMask<T, Bits>` preserving native predicates            |
+| `cmp_eq_mask`, `cmp_gt_mask`, `cmp_ge_mask`, `cmp_lt_mask`, `cmp_le_mask`                         | No compact-mask Register counterpart                 | Byte-granular legacy-compatible scalar mask                     |
+| `cmp_eq_slim`, `cmp_gt_slim`, `cmp_ge_slim`, `cmp_lt_slim`, `cmp_le_slim`                         | Corresponding named comparison followed by `.bits()` | One compact bit per lane                                        |
+| Deprecated `cmp_eq`, `cmp_gt`, `cmp_ge`, `cmp_lt`, `cmp_le`                                       | Corresponding explicitly named `cmp_*_mask` method   | Byte-granular compatibility spelling                            |
 
 The legacy scalar comparison-mask layout is not uniform across integral and
 floating backends. `mask.bits()` deliberately normalizes it to one bit
@@ -961,22 +961,22 @@ requires an explicit integer reinterpretation followed by integer comparison.
 
 ### Rearrangement ledger
 
-| Current `Api` operation | Preferred `Register<T, Bits>` form | Decision |
-| --- | --- | --- |
-| `expand` | None | Ambiguous legacy widening alias remains compatibility-only |
-| `compress` | None | Ambiguous legacy narrowing alias remains compatibility-only |
-| `extract<index>` | `value.lane<index>()` | Compile-time logical lane extraction |
-| Runtime `extract_slow` | None | Explicit Api slow path; Register retains compile-time lane access |
-| `lower_half` | `value.lower_half()` | Returns `Register<T, 128>` from a 256-bit source |
-| `insert<index>` | `value.with_lane<index>(lane)` | Compile-time logical lane replacement |
-| `unpack_lo` | `lhs.unpack_low(rhs)` | Wrapped backend result |
-| `unpack_hi` | `lhs.unpack_high(rhs)` | Wrapped backend result |
-| `shuffle<indices...>` | `value.shuffle<indices...>()` | One compile-time logical source-lane selector per output lane |
-| `Api<Bits, std::uint8_t>::shuffle<indices...>` | `value.shuffle_bytes<indices...>()` | One compile-time logical source-byte selector per output byte; result retains `T` |
-| Register-selector `shuffle(value, selector)` | None | Native Api runtime control; Register exposes portable logical and byte shuffle forms |
-| `shuffle_lo<imm8>`; `shuffle_lo_slow` | `value.shuffle_low<imm8>()` | Compile-time immediate form; scalar runtime control remains Api-only |
-| `shuffle_hi<imm8>`; `shuffle_hi_slow` | `value.shuffle_high<imm8>()` | Compile-time immediate form; scalar runtime control remains Api-only |
-| `blend<imm8>`; register-mask `blend`; `blend_slow` | `lhs.blend<imm8>(rhs)` | Immediate blend maps directly; predicate selection uses `mask.select(lhs, rhs)`; scalar runtime control remains Api-only |
+| Current `Api` operation                            | Preferred `Register<T, Bits>` form  | Decision                                                                                                                 |
+| -------------------------------------------------- | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `expand`                                           | None                                | Ambiguous legacy widening alias remains compatibility-only                                                               |
+| `compress`                                         | None                                | Ambiguous legacy narrowing alias remains compatibility-only                                                              |
+| `extract<index>`                                   | `value.lane<index>()`               | Compile-time logical lane extraction                                                                                     |
+| Runtime `extract_slow`                             | None                                | Explicit Api slow path; Register retains compile-time lane access                                                        |
+| `lower_half`                                       | `value.lower_half()`                | Returns `Register<T, 128>` from a 256-bit source                                                                         |
+| `insert<index>`                                    | `value.with_lane<index>(lane)`      | Compile-time logical lane replacement                                                                                    |
+| `unpack_lo`                                        | `lhs.unpack_low(rhs)`               | Wrapped backend result                                                                                                   |
+| `unpack_hi`                                        | `lhs.unpack_high(rhs)`              | Wrapped backend result                                                                                                   |
+| `shuffle<indices...>`                              | `value.shuffle<indices...>()`       | One compile-time logical source-lane selector per output lane                                                            |
+| `Api<Bits, std::uint8_t>::shuffle<indices...>`     | `value.shuffle_bytes<indices...>()` | One compile-time logical source-byte selector per output byte; result retains `T`                                        |
+| Register-selector `shuffle(value, selector)`       | None                                | Native Api runtime control; Register exposes portable logical and byte shuffle forms                                     |
+| `shuffle_lo<imm8>`; `shuffle_lo_slow`              | `value.shuffle_low<imm8>()`         | Compile-time immediate form; scalar runtime control remains Api-only                                                     |
+| `shuffle_hi<imm8>`; `shuffle_hi_slow`              | `value.shuffle_high<imm8>()`        | Compile-time immediate form; scalar runtime control remains Api-only                                                     |
+| `blend<imm8>`; register-mask `blend`; `blend_slow` | `lhs.blend<imm8>(rhs)`              | Immediate blend maps directly; predicate selection uses `mask.select(lhs, rhs)`; scalar runtime control remains Api-only |
 
 Logical shuffle selectors use low-to-high lane numbering for the element type.
 The selector count must equal the register lane count, repeated selectors are
@@ -996,24 +996,24 @@ nevertheless remains `Register<T, Bits>`.
 
 ### Shift and conversion ledger
 
-| Current `Api` operation | Preferred `Register<T, Bits>` form | Result |
-| --- | --- | --- |
-| `shift_left` | `value << count` | Per-lane integral shift |
-| `shift_right` | `value.logical_shift_right(count)` | Per-lane logical shift for signed or unsigned lanes |
-| `shift_right_arithmetic` | `value >> count` | Per-lane arithmetic shift for signed lanes |
-| Runtime `shift_bytes_left_slow` | `value.shift_bytes_left_slow(count)` | Complete integral 128-bit register byte shift |
-| Compile-time `shift_bytes_left` | `value.shift_bytes_left<count>()` | Complete integral 128- or 256-bit register byte shift |
-| Runtime `shift_bytes_right_slow` | `value.shift_bytes_right_slow(count)` | Complete integral 128-bit register byte shift |
-| Compile-time `shift_bytes_right` | `value.shift_bytes_right<count>()` | Complete integral 128- or 256-bit register byte shift |
-| Runtime `shift_bits_left_slow` | `value.shift_bits_left_slow(count)` | Complete integral 128-bit bit-string shift |
-| Compile-time `shift_bits_left` | `value.shift_bits_left<count>()` | Complete integral 128-bit bit-string shift |
-| Runtime `shift_bits_right_slow` | `value.shift_bits_right_slow(count)` | Complete integral 128-bit bit-string shift |
-| Compile-time shift_bits_right | alue.shift_bits_right<count>() | Complete integral 128-bit bit-string shift |
-| it_cast | alue.bit_cast<target_t>() | Full-width bit-preserving reinterpretation |
-| `convert_to_float` | `value.convert<float>()` | `Register<float, Bits>` from supported 32-bit integer lanes |
-| `convert_to_int` | `value.convert<std::int32_t>()` | `Register<std::int32_t, Bits>` from float lanes |
-| Explicit-target `convert<target_t>` | `value.convert<target_t>()` | Explicit target type |
-| Inferred-target `convert` | None | Complementary-type inference remains compatibility-only on `Api` |
+| Current `Api` operation             | Preferred `Register<T, Bits>` form    | Result                                                           |
+| ----------------------------------- | ------------------------------------- | ---------------------------------------------------------------- |
+| `shift_left`                        | `value << count`                      | Per-lane integral shift                                          |
+| `shift_right`                       | `value.logical_shift_right(count)`    | Per-lane logical shift for signed or unsigned lanes              |
+| `shift_right_arithmetic`            | `value >> count`                      | Per-lane arithmetic shift for signed lanes                       |
+| Runtime `shift_bytes_left_slow`     | `value.shift_bytes_left_slow(count)`  | Complete integral 128-bit register byte shift                    |
+| Compile-time `shift_bytes_left`     | `value.shift_bytes_left<count>()`     | Complete integral 128- or 256-bit register byte shift            |
+| Runtime `shift_bytes_right_slow`    | `value.shift_bytes_right_slow(count)` | Complete integral 128-bit register byte shift                    |
+| Compile-time `shift_bytes_right`    | `value.shift_bytes_right<count>()`    | Complete integral 128- or 256-bit register byte shift            |
+| Runtime `shift_bits_left_slow`      | `value.shift_bits_left_slow(count)`   | Complete integral 128-bit bit-string shift                       |
+| Compile-time `shift_bits_left`      | `value.shift_bits_left<count>()`      | Complete integral 128-bit bit-string shift                       |
+| Runtime `shift_bits_right_slow`     | `value.shift_bits_right_slow(count)`  | Complete integral 128-bit bit-string shift                       |
+| Compile-time shift_bits_right       | alue.shift_bits_right<count>()        | Complete integral 128-bit bit-string shift                       |
+| it_cast                             | alue.bit_cast<target_t>()             | Full-width bit-preserving reinterpretation                       |
+| `convert_to_float`                  | `value.convert<float>()`              | `Register<float, Bits>` from supported 32-bit integer lanes      |
+| `convert_to_int`                    | `value.convert<std::int32_t>()`       | `Register<std::int32_t, Bits>` from float lanes                  |
+| Explicit-target `convert<target_t>` | `value.convert<target_t>()`           | Explicit target type                                             |
+| Inferred-target `convert`           | None                                  | Complementary-type inference remains compatibility-only on `Api` |
 
 `operator>>` is available only when it has one unambiguous hardware meaning.
 Unsigned lanes use the logical shift. Signed lanes use the arithmetic shift.
@@ -1023,13 +1023,13 @@ request zero fill.
 Shift-count behavior is part of the public contract and matches the existing
 backend operation rather than C++ scalar-shift rules:
 
-| Shift family | Count contract |
-| --- | --- |
-| Per-lane left or logical right | Runtime count must be nonnegative; counts at least the lane width produce zero lanes |
-| Per-lane arithmetic right | Runtime count must be nonnegative; counts at least the lane width clamp to `lane_width - 1` and therefore sign-fill |
-| 128-bit byte shifts | Counts at most zero return the input; counts at least 16 return zero |
-| Runtime 128-bit whole-register bit shifts | Counts at most zero return the input; counts at least 128 return zero |
-| Compile-time 128-bit whole-register bit shifts | Negative counts are rejected; counts at least 128 produce zero |
+| Shift family                                   | Count contract                                                                                                      |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| Per-lane left or logical right                 | Runtime count must be nonnegative; counts at least the lane width produce zero lanes                                |
+| Per-lane arithmetic right                      | Runtime count must be nonnegative; counts at least the lane width clamp to `lane_width - 1` and therefore sign-fill |
+| 128-bit byte shifts                            | Counts at most zero return the input; counts at least 16 return zero                                                |
+| Runtime 128-bit whole-register bit shifts      | Counts at most zero return the input; counts at least 128 return zero                                               |
+| Compile-time 128-bit whole-register bit shifts | Negative counts are rejected; counts at least 128 produce zero                                                      |
 
 The implementation must not introduce release-only undefined behavior for a
 documented count. Negative per-lane shift counts are invalid runtime inputs and
@@ -1038,14 +1038,14 @@ follow the SimdLib precondition policy; tests cover the boundary values `0`,
 
 ### Collection and internal ledger
 
-| Current `Api` operation | `Register` decision |
-| --- | --- |
-| `transform_pack` | Remains a collection algorithm on `Api` or its future algorithm owner |
-| Unary in-place `transform` | Remains a collection algorithm |
-| Unary separate-output `transform` | Remains a collection algorithm |
-| Binary `transform` | Remains a collection algorithm |
-| `TransformForMaxPosition` | Internal helper; no public `Register` counterpart |
-| `compare_each_element` | Internal fallback helper used by the comparison adapter |
+| Current `Api` operation           | `Register` decision                                                   |
+| --------------------------------- | --------------------------------------------------------------------- |
+| `transform_pack`                  | Remains a collection algorithm on `Api` or its future algorithm owner |
+| Unary in-place `transform`        | Remains a collection algorithm                                        |
+| Unary separate-output `transform` | Remains a collection algorithm                                        |
+| Binary `transform`                | Remains a collection algorithm                                        |
+| `TransformForMaxPosition`         | Internal helper; no public `Register` counterpart                     |
+| `compare_each_element`            | Internal fallback helper used by the comparison adapter               |
 
 All preferred register-local operations return `Register`, `RegisterMask`, or
 an explicitly documented scalar. No preferred operation exposes a raw intrinsic
@@ -1304,14 +1304,14 @@ Representative migration:
 // Existing interface.
 using U32Api = SimdLib::Api<128, std::uint32_t>;
 const auto old_result = U32Api::bitwise_or(
-	U32Api::add(lhs, rhs),
-	U32Api::set1(1));
+ U32Api::add(lhs, rhs),
+ U32Api::set1(1));
 
 // Register interface.
 using U32Register = SimdLib::Register<std::uint32_t, 128>;
 const auto new_result =
-	(U32Register{lhs} + U32Register{rhs}) |
-	U32Register::broadcast(1);
+ (U32Register{lhs} + U32Register{rhs}) |
+ U32Register::broadcast(1);
 ```
 
 ## Validation strategy
