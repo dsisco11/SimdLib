@@ -5,3 +5,8 @@
     The Tensor type should support various data types and dimensions, allowing for efficient manipulation of large datasets in parallel.
     It should also facilitate tensors with a templated compile-time fixed size, as well as dynamic size tensors that can be resized at runtime via std::spans.
     It should also provide methods for broadcasting, reshaping, and slicing tensors, as well as performing element-wise operations and reductions.
+
+☐ Ensure test coverage of all `SimdImplementation::negate()` methods.
+☐ Review test coverage of all `SimdImplementation` namespace methods.
+☐ Improve performance of `Bmi::portable_pdep()`.
+☐ Improve performance of `Bmi::portable_pext()`.
