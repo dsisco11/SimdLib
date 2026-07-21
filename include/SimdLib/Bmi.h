@@ -795,8 +795,10 @@ template <std::integral int_t, std::size_t start, std::size_t len> [[nodiscard]]
 #pragma endregion
 
 #pragma region PDEP
+namespace Detail
+{
 /**
- * @brief Performs a software-emulated parallel bit deposit for the width of int_t. [eg: _pdep_emulator<uint8_t>(0b101, 0b01010100) => 0b01000100]
+ * @brief Performs a portable parallel bit deposit for the width of int_t.
  *
  * Deposits the lowest popcount(mask) source bits into the set-bit positions of mask in ascending bit-index order. All unselected result bits are zero.
  *
@@ -805,7 +807,7 @@ template <std::integral int_t, std::size_t start, std::size_t len> [[nodiscard]]
  * @param mask The destination bit positions.
  * @return The deposited bit pattern.
  */
-template <std::integral int_t> SIMDLIB_FORCE_INLINE constexpr static int_t _pdep_emulator(int_t source, int_t mask) noexcept
+template <std::integral int_t> SIMDLIB_FORCE_INLINE constexpr int_t portable_pdep(int_t source, int_t mask) noexcept
 {
 	using unsigned_type = std::make_unsigned_t<int_t>;
 	constexpr unsigned int_width = static_cast<unsigned>(sizeof(int_t) * 8u);
@@ -831,6 +833,7 @@ template <std::integral int_t> SIMDLIB_FORCE_INLINE constexpr static int_t _pdep
 
 	return static_cast<int_t>(result);
 }
+} // namespace Detail
 
 /// @brief Note: This is a wrapper for the '_pdep_xxx' intrinsic providing compile-time emulation.
 [[nodiscard]] SIMDLIB_FORCE_INLINE constexpr static std::uint32_t pdep_u32(std::uint32_t source, std::uint32_t mask) noexcept
@@ -839,7 +842,7 @@ template <std::integral int_t> SIMDLIB_FORCE_INLINE constexpr static int_t _pdep
 	if (!std::is_constant_evaluated())
 		return _pdep_u32(source, mask);
 #endif
-	return _pdep_emulator<std::uint32_t>(source, mask);
+	return Detail::portable_pdep<std::uint32_t>(source, mask);
 }
 
 /// @brief Note: This is a wrapper for the '_pdep_xxx' intrinsic providing compile-time emulation.
@@ -849,7 +852,7 @@ template <std::integral int_t> SIMDLIB_FORCE_INLINE constexpr static int_t _pdep
 	if (!std::is_constant_evaluated())
 		return _pdep_u64(source, mask);
 #endif
-	return _pdep_emulator<std::uint64_t>(source, mask);
+	return Detail::portable_pdep<std::uint64_t>(source, mask);
 }
 
 /// @brief This is a "pdep, but from right (high-bits) to left (low-bits)" aka "expand left"
@@ -867,7 +870,16 @@ template <std::integral int_t> SIMDLIB_FORCE_INLINE constexpr static int_t _pdep
 #pragma endregion
 
 #pragma region PEXT
-template <std::integral int_t> SIMDLIB_FORCE_INLINE constexpr static int_t _pext_emulator(int_t source, int_t mask) noexcept
+namespace Detail
+{
+/**
+ * @brief Performs a portable parallel bit extraction for the width of int_t.
+ * @tparam int_t The integral source, mask, and result type.
+ * @param source The source bits to extract.
+ * @param mask The source bit positions.
+ * @return The extracted bits packed into the least-significant positions.
+ */
+template <std::integral int_t> SIMDLIB_FORCE_INLINE constexpr int_t portable_pext(int_t source, int_t mask) noexcept
 {
 	using unsigned_type = std::make_unsigned_t<int_t>;
 	constexpr unsigned int_width = static_cast<unsigned>(sizeof(int_t) * 8u);
@@ -893,6 +905,7 @@ template <std::integral int_t> SIMDLIB_FORCE_INLINE constexpr static int_t _pext
 
 	return static_cast<int_t>(result);
 }
+} // namespace Detail
 
 /// @brief Note: This is a wrapper for the '_pext_xxx' intrinsic, providing compile-time emulation.
 [[nodiscard]] SIMDLIB_FORCE_INLINE constexpr static std::uint32_t pext_u32(std::uint32_t source, std::uint32_t mask) noexcept
@@ -901,7 +914,7 @@ template <std::integral int_t> SIMDLIB_FORCE_INLINE constexpr static int_t _pext
 	if (!std::is_constant_evaluated())
 		return _pext_u32(source, mask);
 #endif
-	return _pext_emulator<std::uint32_t>(source, mask);
+	return Detail::portable_pext<std::uint32_t>(source, mask);
 }
 
 /// @brief Note: This is a wrapper for the '_pext_xxx' intrinsic, providing compile-time emulation.
@@ -911,7 +924,7 @@ template <std::integral int_t> SIMDLIB_FORCE_INLINE constexpr static int_t _pext
 	if (!std::is_constant_evaluated())
 		return _pext_u64(source, mask);
 #endif
-	return _pext_emulator<std::uint64_t>(source, mask);
+	return Detail::portable_pext<std::uint64_t>(source, mask);
 }
 #pragma endregion
 } // namespace SimdLib::Bmi

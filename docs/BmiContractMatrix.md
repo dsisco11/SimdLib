@@ -17,7 +17,6 @@ contains implementation alternatives and is not a supported test seam.
 | `clear_bits_lower_than`, `clear_bits_higher_than`, `extract_bits_lower_than`, `extract_bits_higher_than` | Supported | `target_bit` is a one-hot bit and is excluded from the lower/higher partition as named. | Derived helper contracts |
 | `bextr` overloads | Supported | Runtime controls use `(source, length, start)`. Zero length or start at/above width returns zero; ranges truncate at source width. Template controls are compile-time constrained to the intrinsic control field. | Exhaustive 8-bit and randomized 32/64-bit tests; constexpr probes |
 | `pdep_u32`, `pdep_u64`, `pdepl_u32`, `pdepl_u64`, `pext_u32`, `pext_u64` | Supported | `pdep`/`pext` use ascending selected mask bits. `pdepl` first applies `operator>>` to the source by the complement-mask population count modulo its word width, then deposits it. | Exhaustive 8-bit masks, randomized 32/64-bit, and derived helper contracts |
-| `_pdep_emulator`, `_pext_emulator` | Internal implementation aid | These leading-underscore templates are implementation alternatives behind the supported deposit/extract wrappers. They are not retained as caller-facing contracts and are exercised only through those wrappers. | Indirect wrapper proof; no direct public-contract test |
 
 The generic public wrappers are exercised over `uint8_t`, `uint16_t`,
 `uint32_t`, `uint64_t`, and the cycle-free `uint128_t` test customization.

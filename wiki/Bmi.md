@@ -6,8 +6,6 @@
 
 - [Overview](#overview)
 - [Example include](#example-setup)
-- [`_pdep_emulator`](#pdep-emulator)
-- [`_pext_emulator`](#pext-emulator)
 - [`abs`](#abs)
 - [`andn`](#andn)
 - [`bextr`](#bextr)
@@ -80,41 +78,6 @@ Include `<SimdLib/Bmi.h>`. Overloads with the same name are collected in one sub
 ```cpp
 #include <SimdLib/SimdLib.h>
 ```
-<a id="pdep-emulator"></a>
-## `_pdep_emulator`
-
-Performs a software-emulated parallel bit deposit for the width of int_t.
-
-Signatures:
-
-```cpp
-template <std::integral int_t> int_t _pdep_emulator(int_t source, int_t mask)
-```
-
-Example:
-
-```cpp
-SimdLib::Bmi::_pdep_emulator<std::uint32_t>(0b101U, 0b0101'0100U); // => 0b0100'0100U
-```
-
-<a id="pext-emulator"></a>
-## `_pext_emulator`
-
-Performs a constexpr software emulation of parallel bit extraction.
-
-Signatures:
-
-```cpp
-template <std::integral int_t> int_t _pext_emulator(int_t source, int_t mask)
-```
-
-Example:
-
-```cpp
-SimdLib::Bmi::_pext_emulator<std::uint32_t>(
-    0b0100'0100U, 0b0101'0100U); // => 0b0000'0101U
-```
-
 <a id="abs"></a>
 ## `abs`
 

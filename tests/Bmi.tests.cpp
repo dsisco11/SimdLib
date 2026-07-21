@@ -705,8 +705,6 @@ TEST_CASE("BMI feature paths produce the scalar-reference result digest", "[simd
 
 TEST_CASE("BMI documentation examples produce their documented results", "[simdlib][bmi][documentation]")
 {
-	CHECK(Bmi::_pdep_emulator<std::uint32_t>(0b101U, 0b0101'0100U) == 0b0100'0100U);
-	CHECK(Bmi::_pext_emulator<std::uint32_t>(0b0100'0100U, 0b0101'0100U) == 0b101U);
 	CHECK(Bmi::abs(-7) == 7);
 	CHECK(Bmi::andn(0b1100U, 0b1010U) == 0b0010U);
 	CHECK(Bmi::bextr(0b1101'0110U, 3, 2) == 0b101U);
