@@ -5,7 +5,7 @@
 ## Contents
 
 - [Overview](#overview)
-- [Example setup](#example-setup)
+- [Example alias](#example-setup)
 - [`absolute`](#absolute)
 - [`add`](#add)
 - [`add_horizontal`](#add-horizontal)
@@ -95,23 +95,13 @@
 Include `<SimdLib/Api.h>`. Overloads with the same name are collected in one subsection; every public overload is listed below.
 
 <a id="example-setup"></a>
-## Example setup
+## Example alias
 
 ```cpp
 #include <SimdLib/SimdLib.h>
-#include <array>
 
-using ApiT = SimdLib::NativeApi<float>;
-using Register = ApiT::vector_t;
-std::array<float, ApiT::element_count> input{};
-std::array<float, ApiT::element_count> output{};
-const Register lhs = ApiT::load(input);
-const Register rhs = ApiT::set1(2.0F);
-const Register addend = ApiT::set1(1.0F);
-const Register value = lhs;
-const int selector = 0;
+using ApiT = SimdLib::Api<128, float>;
 ```
-
 <a id="absolute"></a>
 ## `absolute`
 
@@ -120,13 +110,14 @@ Computes the absolute value of each element in the register.
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE static vector_t VECTORCALL absolute(const vector_t lhs) noexcept requires requires(vector_t value)
+static vector_t absolute(vector_t lhs)
 ```
 
 Example:
 
 ```cpp
-const auto result = ApiT::absolute(value);
+ApiT::absolute(
+    ApiT::construct({-2.0F, 3.0F, 0.0F, 0.0F})); // => {2.0F, 3.0F, 0.0F, ...}
 ```
 
 <a id="add"></a>
@@ -137,13 +128,15 @@ Adds corresponding lanes.
 Signatures:
 
 ```cpp
-static vector_t add(vector_t lhs, vector_t rhs) noexcept;
+static vector_t add(vector_t lhs, vector_t rhs)
 ```
 
 Example:
 
 ```cpp
-const auto result = ApiT::add(lhs, rhs);
+ApiT::add(
+    ApiT::construct({2.0F, 2.0F, 2.0F, 2.0F}),
+    ApiT::construct({3.0F, 3.0F, 3.0F, 3.0F})); // => every lane is 5.0F
 ```
 
 <a id="add-horizontal"></a>
@@ -154,13 +147,16 @@ Adds adjacent element pairs within each 128-bit lane of two registers.
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE static vector_t VECTORCALL add_horizontal(const vector_t lhs, const vector_t rhs) noexcept requires requires(vector_t left, vector_t right)
+static vector_t add_horizontal(vector_t lhs, vector_t rhs)
 ```
 
 Example:
 
 ```cpp
-const auto result = ApiT::add_horizontal(lhs, rhs);
+using F32x4 = SimdLib::Api<128, float>;
+F32x4::add_horizontal(
+    F32x4::construct({1.0F, 2.0F, 3.0F, 4.0F}),
+    F32x4::construct({5.0F, 6.0F, 7.0F, 8.0F})); // => {3.0F, 7.0F, 11.0F, 15.0F}
 ```
 
 <a id="add-saturated"></a>
@@ -171,13 +167,14 @@ Adds corresponding lanes with saturation where the specialization supports it.
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE static auto VECTORCALL add_saturated(const vector_t lhs, const vector_t rhs) noexcept requires requires(vector_t left, vector_t right)
+static auto add_saturated(vector_t lhs, vector_t rhs)
 ```
 
 Example:
 
 ```cpp
-const auto result = ApiT::add_saturated(lhs, rhs);
+using U8 = SimdLib::Api<128, std::uint8_t>;
+U8::add_saturated(U8::set1(250), U8::set1(10)); // => every lane is 255
 ```
 
 <a id="add-subtract"></a>
@@ -188,13 +185,16 @@ Alternates subtraction and addition across lanes for floating-point SIMD familie
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE static auto VECTORCALL add_subtract(const vector_t lhs, const vector_t rhs) noexcept requires requires(vector_t left, vector_t right)
+static auto add_subtract(vector_t lhs, vector_t rhs)
 ```
 
 Example:
 
 ```cpp
-const auto result = ApiT::add_subtract(lhs, rhs);
+using F32x4 = SimdLib::Api<128, float>;
+F32x4::add_subtract(
+    F32x4::construct({10.0F, 10.0F, 10.0F, 10.0F}),
+    F32x4::construct({1.0F, 2.0F, 3.0F, 4.0F})); // => {9.0F, 12.0F, 7.0F, 14.0F}
 ```
 
 <a id="avg"></a>
@@ -205,13 +205,14 @@ Computes the average of corresponding lanes where the specialization supports it
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE static auto VECTORCALL avg(const vector_t lhs, const vector_t rhs) noexcept requires requires(vector_t left, vector_t right)
+static auto avg(vector_t lhs, vector_t rhs)
 ```
 
 Example:
 
 ```cpp
-const auto result = ApiT::avg(lhs, rhs);
+using U8 = SimdLib::Api<128, std::uint8_t>;
+U8::avg(U8::set1(2U), U8::set1(6U)); // => every lane is 4U
 ```
 
 <a id="bit-shift-left"></a>
@@ -222,14 +223,15 @@ Shifts the complete 128-bit register left, carrying bits across lane boundaries.
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE constexpr static int_vector_t VECTORCALL bit_shift_left(const int_vector_t lhs, const int shift) noexcept requires(using_int && register_width == 128)
-template <int shift> SIMDLIB_FORCE_INLINE constexpr static int_vector_t VECTORCALL bit_shift_left(const int_vector_t lhs) noexcept requires(using_int && register_width == 128)
+static int_vector_t bit_shift_left(int_vector_t lhs, int shift)
+template <int shift> static int_vector_t bit_shift_left(int_vector_t lhs)
 ```
 
 Example:
 
 ```cpp
-const auto result = ApiT::bit_shift_left(value); // Add the compile-time selector/type required by the overload.
+using U32x4 = SimdLib::Api<128, std::uint32_t>;
+U32x4::bit_shift_left(U32x4::construct({3U, 3U, 3U, 3U}), 1); // => {6U, 6U, 6U, 6U}
 ```
 
 <a id="bit-shift-right"></a>
@@ -240,14 +242,15 @@ Shifts the complete 128-bit register right, carrying bits across lane boundaries
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE constexpr static int_vector_t VECTORCALL bit_shift_right(const int_vector_t lhs, const int shift) noexcept requires(using_int && register_width == 128)
-template <int shift> SIMDLIB_FORCE_INLINE constexpr static int_vector_t VECTORCALL bit_shift_right(const int_vector_t lhs) noexcept requires(using_int && register_width == 128)
+static int_vector_t bit_shift_right(int_vector_t lhs, int shift)
+template <int shift> static int_vector_t bit_shift_right(int_vector_t lhs)
 ```
 
 Example:
 
 ```cpp
-const auto result = ApiT::bit_shift_right(value); // Add the compile-time selector/type required by the overload.
+using U32x4 = SimdLib::Api<128, std::uint32_t>;
+U32x4::bit_shift_right(U32x4::construct({8U, 8U, 8U, 8U}), 1); // => {4U, 4U, 4U, 4U}
 ```
 
 <a id="bitwise-and"></a>
@@ -258,13 +261,16 @@ Computes a bitwise AND of two registers.
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE static auto VECTORCALL bitwise_and(const vector_t lhs, const vector_t rhs) noexcept requires requires(vector_t left, vector_t right)
+static auto bitwise_and(vector_t lhs, vector_t rhs)
 ```
 
 Example:
 
 ```cpp
-const auto result = ApiT::bitwise_and(lhs, rhs);
+using U32 = SimdLib::Api<128, std::uint32_t>;
+U32::bitwise_and(
+    U32::construct({0b1100U, 0b1100U, 0b1100U, 0b1100U}),
+    U32::construct({0b1010U, 0b1010U, 0b1010U, 0b1010U})); // => every lane is 0b1000U
 ```
 
 <a id="bitwise-andnot"></a>
@@ -275,13 +281,16 @@ Computes a bitwise AND-NOT of two registers.
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE static auto VECTORCALL bitwise_andnot(const vector_t lhs, const vector_t rhs) noexcept requires requires(vector_t left, vector_t right)
+static auto bitwise_andnot(vector_t lhs, vector_t rhs)
 ```
 
 Example:
 
 ```cpp
-const auto result = ApiT::bitwise_andnot(lhs, rhs);
+using U32 = SimdLib::Api<128, std::uint32_t>;
+U32::bitwise_andnot(
+    U32::construct({0b1100U, 0b1100U, 0b1100U, 0b1100U}),
+    U32::construct({0b1010U, 0b1010U, 0b1010U, 0b1010U})); // => every lane is 0b0010U
 ```
 
 <a id="bitwise-not"></a>
@@ -292,13 +301,14 @@ Computes a bitwise NOT of a register.
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE static auto VECTORCALL bitwise_not(const vector_t lhs) noexcept requires requires(vector_t value)
+static auto bitwise_not(vector_t lhs)
 ```
 
 Example:
 
 ```cpp
-const auto result = ApiT::bitwise_not(value);
+using U32 = SimdLib::Api<128, std::uint32_t>;
+U32::bitwise_not(U32::construct({0U, 0U, 0U, 0U})); // => every lane is 0xFFFFFFFFU
 ```
 
 <a id="bitwise-or"></a>
@@ -309,13 +319,16 @@ Computes a bitwise OR of two registers.
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE static auto VECTORCALL bitwise_or(const vector_t lhs, const vector_t rhs) noexcept requires requires(vector_t left, vector_t right)
+static auto bitwise_or(vector_t lhs, vector_t rhs)
 ```
 
 Example:
 
 ```cpp
-const auto result = ApiT::bitwise_or(lhs, rhs);
+using U32 = SimdLib::Api<128, std::uint32_t>;
+U32::bitwise_or(
+    U32::construct({0b1100U, 0b1100U, 0b1100U, 0b1100U}),
+    U32::construct({0b1010U, 0b1010U, 0b1010U, 0b1010U})); // => every lane is 0b1110U
 ```
 
 <a id="bitwise-xor"></a>
@@ -326,13 +339,16 @@ Computes a bitwise XOR of two registers.
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE static auto VECTORCALL bitwise_xor(const vector_t lhs, const vector_t rhs) noexcept requires requires(vector_t left, vector_t right)
+static auto bitwise_xor(vector_t lhs, vector_t rhs)
 ```
 
 Example:
 
 ```cpp
-const auto result = ApiT::bitwise_xor(lhs, rhs);
+using U32 = SimdLib::Api<128, std::uint32_t>;
+U32::bitwise_xor(
+    U32::construct({0b1100U, 0b1100U, 0b1100U, 0b1100U}),
+    U32::construct({0b1010U, 0b1010U, 0b1010U, 0b1010U})); // => every lane is 0b0110U
 ```
 
 <a id="blend"></a>
@@ -343,13 +359,17 @@ Blends two registers according to the implementation-specific control form.
 Signatures:
 
 ```cpp
-template <class... Args> SIMDLIB_FORCE_INLINE static auto VECTORCALL blend(Args &&...args) noexcept requires requires(Args &&...values)
+template <class... Args> static auto blend(Args &&...args)
 ```
 
 Example:
 
 ```cpp
-const auto result = ApiT::blend(lhs);
+using I32x4 = SimdLib::Api<128, std::int32_t>;
+I32x4::blend(
+    I32x4::construct({10, 20, 30, 40}),
+    I32x4::construct({1, 2, 3, 4}),
+    0b0101); // => {1, 20, 3, 40}
 ```
 
 <a id="byte-shift-left"></a>
@@ -360,13 +380,14 @@ Shifts every byte in a 128-bit register toward higher byte indices.
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE constexpr static int_vector_t VECTORCALL byte_shift_left(const int_vector_t lhs, const int shift) noexcept requires(using_int && register_width == 128)
+static int_vector_t byte_shift_left(int_vector_t lhs, int shift)
 ```
 
 Example:
 
 ```cpp
-const auto result = ApiT::byte_shift_left(value); // Add the compile-time selector/type required by the overload.
+using U8x16 = SimdLib::Api<128, std::uint8_t>;
+U8x16::byte_shift_left(U8x16::set1(7U), 1); // => {0U, 7U, 7U, ..., 7U}
 ```
 
 <a id="byte-shift-right"></a>
@@ -377,13 +398,14 @@ Shifts every byte in a 128-bit register toward lower byte indices.
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE constexpr static int_vector_t VECTORCALL byte_shift_right(const int_vector_t lhs, const int shift) noexcept requires(using_int && register_width == 128)
+static int_vector_t byte_shift_right(int_vector_t lhs, int shift)
 ```
 
 Example:
 
 ```cpp
-const auto result = ApiT::byte_shift_right(value); // Add the compile-time selector/type required by the overload.
+using U8x16 = SimdLib::Api<128, std::uint8_t>;
+U8x16::byte_shift_right(U8x16::set1(7U), 1); // => {7U, 7U, ..., 7U, 0U}
 ```
 
 <a id="cmp-eq"></a>
@@ -394,13 +416,16 @@ Computes an equality comparison mask for two registers.
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE constexpr static mask_t VECTORCALL cmp_eq(const vector_t lhs, const vector_t rhs) noexcept
+static mask_t cmp_eq(vector_t lhs, vector_t rhs)
 ```
 
 Example:
 
 ```cpp
-const auto result = ApiT::cmp_eq(lhs, rhs);
+ApiT::cmp_eq(
+    ApiT::construct({2.0F, 2.0F, 2.0F, 2.0F}),
+    ApiT::construct(
+        {2.0F, 2.0F, 2.0F, 2.0F})); // => every comparison lane has all bits set
 ```
 
 <a id="cmp-eq-mask"></a>
@@ -411,13 +436,15 @@ Computes a byte-granular equality comparison mask for two registers of this SIMD
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE constexpr static mask_t VECTORCALL cmp_eq_mask(const vector_t lhs, const vector_t rhs) noexcept
+static mask_t cmp_eq_mask(vector_t lhs, vector_t rhs)
 ```
 
 Example:
 
 ```cpp
-const auto result = ApiT::cmp_eq_mask(lhs, rhs);
+ApiT::cmp_eq_mask(
+    ApiT::construct({2.0F, 2.0F, 2.0F, 2.0F}),
+    ApiT::construct({2.0F, 2.0F, 2.0F, 2.0F})); // => one set mask bit for every lane
 ```
 
 <a id="cmp-ge"></a>
@@ -428,13 +455,16 @@ Computes a greater-than-or-equal comparison mask for two registers.
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE constexpr static mask_t VECTORCALL cmp_ge(const vector_t lhs, const vector_t rhs) noexcept
+static mask_t cmp_ge(vector_t lhs, vector_t rhs)
 ```
 
 Example:
 
 ```cpp
-const auto result = ApiT::cmp_ge(lhs, rhs);
+ApiT::cmp_ge(
+    ApiT::construct({2.0F, 2.0F, 2.0F, 2.0F}),
+    ApiT::construct(
+        {2.0F, 2.0F, 2.0F, 2.0F})); // => every comparison lane has all bits set
 ```
 
 <a id="cmp-gt"></a>
@@ -445,13 +475,16 @@ Computes a greater-than comparison mask for two registers.
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE constexpr static mask_t VECTORCALL cmp_gt(const vector_t lhs, const vector_t rhs) noexcept
+static mask_t cmp_gt(vector_t lhs, vector_t rhs)
 ```
 
 Example:
 
 ```cpp
-const auto result = ApiT::cmp_gt(lhs, rhs);
+ApiT::cmp_gt(
+    ApiT::construct({3.0F, 3.0F, 3.0F, 3.0F}),
+    ApiT::construct(
+        {2.0F, 2.0F, 2.0F, 2.0F})); // => every comparison lane has all bits set
 ```
 
 <a id="cmp-le"></a>
@@ -462,13 +495,16 @@ Computes a less-than-or-equal comparison mask for two registers.
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE constexpr static mask_t VECTORCALL cmp_le(const vector_t lhs, const vector_t rhs) noexcept
+static mask_t cmp_le(vector_t lhs, vector_t rhs)
 ```
 
 Example:
 
 ```cpp
-const auto result = ApiT::cmp_le(lhs, rhs);
+ApiT::cmp_le(
+    ApiT::construct({2.0F, 2.0F, 2.0F, 2.0F}),
+    ApiT::construct(
+        {2.0F, 2.0F, 2.0F, 2.0F})); // => every comparison lane has all bits set
 ```
 
 <a id="cmp-lt"></a>
@@ -479,13 +515,16 @@ Computes a less-than comparison mask for two registers.
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE constexpr static mask_t VECTORCALL cmp_lt(const vector_t lhs, const vector_t rhs) noexcept
+static mask_t cmp_lt(vector_t lhs, vector_t rhs)
 ```
 
 Example:
 
 ```cpp
-const auto result = ApiT::cmp_lt(lhs, rhs);
+ApiT::cmp_lt(
+    ApiT::construct({2.0F, 2.0F, 2.0F, 2.0F}),
+    ApiT::construct(
+        {3.0F, 3.0F, 3.0F, 3.0F})); // => every comparison lane has all bits set
 ```
 
 <a id="compress"></a>
@@ -496,13 +535,16 @@ Compresses two registers into a narrower-lane register where the specialization 
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE static auto VECTORCALL compress(const vector_t lhs, const vector_t rhs) noexcept requires requires(vector_t left, vector_t right)
+static auto compress(vector_t lhs, vector_t rhs)
 ```
 
 Example:
 
 ```cpp
-const auto result = ApiT::compress(lhs, rhs);
+using I16x8 = SimdLib::Api<128, std::int16_t>;
+I16x8::compress(
+    I16x8::set1(300),
+    I16x8::set1(-300)); // => eight 127 lanes followed by eight -128 lanes
 ```
 
 <a id="construct"></a>
@@ -513,13 +555,13 @@ Constructs a SIMD register from a fixed array.
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE constexpr static vector_t VECTORCALL construct(const std::array<element_t, element_count> &data) noexcept
+static vector_t construct(const std::array<element_t, element_count> &data)
 ```
 
 Example:
 
 ```cpp
-const auto result = ApiT::construct(lhs);
+ApiT::construct({1.0F, 2.0F, 0.0F, 0.0F}); // => {1.0F, 2.0F, 0.0F, 0.0F}
 ```
 
 <a id="convert"></a>
@@ -530,13 +572,13 @@ Converts between 32-bit integer and floating-point register representations.
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE static auto VECTORCALL convert(vector_t vector) noexcept requires(element_width == 32)
+static auto convert(vector_t vector)
 ```
 
 Example:
 
 ```cpp
-const auto result = ApiT::convert(value); // Add the compile-time selector/type required by the overload.
+ApiT::convert(ApiT::construct({3.6F, 3.6F, 3.6F, 3.6F})); // => every integer lane is 4
 ```
 
 <a id="convert-to-float"></a>
@@ -547,13 +589,17 @@ Converts 32-bit integer lanes into floating-point lanes.
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE static float_vector_t VECTORCALL convert_to_float(int_vector_t vector) noexcept requires(element_width == 32)
+static float_vector_t convert_to_float(int_vector_t vector)
 ```
 
 Example:
 
 ```cpp
-const auto result = ApiT::convert_to_float(value); // Add the compile-time selector/type required by the overload.
+using I32 = SimdLib::Api<128, std::int32_t>;
+I32::convert_to_float(
+    I32::construct(
+        {16777217, 16777217, 16777217,
+         16777217})); // => every floating-point lane is 16777216.0F
 ```
 
 <a id="convert-to-int"></a>
@@ -564,13 +610,14 @@ Converts 32-bit floating-point lanes into integer lanes.
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE static int_vector_t VECTORCALL convert_to_int(float_vector_t vector) noexcept requires(element_width == 32)
+static int_vector_t convert_to_int(float_vector_t vector)
 ```
 
 Example:
 
 ```cpp
-const auto result = ApiT::convert_to_int(value); // Add the compile-time selector/type required by the overload.
+ApiT::convert_to_int(
+    ApiT::construct({3.6F, 3.6F, 3.6F, 3.6F})); // => every integer lane is 4
 ```
 
 <a id="divide"></a>
@@ -581,13 +628,15 @@ Divides corresponding lanes.
 Signatures:
 
 ```cpp
-static vector_t divide(vector_t lhs, vector_t rhs) noexcept;
+static vector_t divide(vector_t lhs, vector_t rhs)
 ```
 
 Example:
 
 ```cpp
-const auto result = ApiT::divide(lhs, rhs);
+ApiT::divide(
+    ApiT::construct({8.0F, 8.0F, 8.0F, 8.0F}),
+    ApiT::construct({2.0F, 2.0F, 2.0F, 2.0F})); // => every lane is 4.0F
 ```
 
 <a id="dot-product"></a>
@@ -598,30 +647,33 @@ Computes a dot product using a compile-time immediate mask where the specializat
 Signatures:
 
 ```cpp
-template <int imm8> SIMDLIB_FORCE_INLINE static auto VECTORCALL dot_product(const vector_t lhs, const vector_t rhs) noexcept requires requires(vector_t left, vector_t right)
+template <int imm8> static auto dot_product(vector_t lhs, vector_t rhs)
 ```
 
 Example:
 
 ```cpp
-const auto result = ApiT::dot_product(lhs, rhs);
+ApiT::dot_product<0xFF>(
+    ApiT::construct({1.0F, 2.0F, 0.0F, 0.0F}),
+    ApiT::construct({3.0F, 4.0F, 0.0F, 0.0F})); // => selected lanes contain 11.0F
 ```
 
 <a id="expand"></a>
 ## `expand`
 
-Expands a register into a wider-lane register where the specialization supports it.
+Reserved expansion entry point. No current backend provides an end-user-callable overload.
 
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE static auto VECTORCALL expand(const vector_t lhs, const vector_t rhs) noexcept requires requires(vector_t left, vector_t right)
+static auto expand(vector_t lhs, vector_t rhs)
 ```
 
 Example:
 
 ```cpp
-const auto result = ApiT::expand(lhs, rhs);
+using I8x16 = SimdLib::Api<128, std::int8_t>;
+// I8x16::expand(...) // => no output; this reserved entry point has no callable backend
 ```
 
 <a id="extract"></a>
@@ -632,14 +684,15 @@ Extracts a lane or subvalue from a register.
 Signatures:
 
 ```cpp
-template <int index> SIMDLIB_FORCE_INLINE static auto VECTORCALL extract(const vector_t lhs) noexcept requires requires(vector_t value)
-template <class selector_t> SIMDLIB_FORCE_INLINE static auto VECTORCALL extract(const vector_t lhs, selector_t rhs) noexcept requires requires(vector_t left, selector_t selector)
+template <int index> static auto extract(vector_t lhs)
+template <class selector_t> static auto extract(vector_t lhs, selector_t rhs)
 ```
 
 Example:
 
 ```cpp
-const auto result = ApiT::extract(value); // Add the compile-time selector/type required by the overload.
+using I32x4 = SimdLib::Api<128, std::int32_t>;
+I32x4::extract<0>(I32x4::construct({7, 8, 9, 10})); // => 7
 ```
 
 <a id="hadd-saturated"></a>
@@ -650,13 +703,16 @@ Adds adjacent pairs with saturation where the specialization supports it.
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE static auto VECTORCALL hadd_saturated(const vector_t lhs, const vector_t rhs) noexcept requires requires(vector_t left, vector_t right)
+static auto hadd_saturated(vector_t lhs, vector_t rhs)
 ```
 
 Example:
 
 ```cpp
-const auto result = ApiT::hadd_saturated(lhs, rhs);
+using I16 = SimdLib::Api<128, std::int16_t>;
+I16::hadd_saturated(
+    I16::set1(20000),
+    I16::set1(10000)); // => {32767, 32767, 32767, 32767, 20000, 20000, 20000, 20000}
 ```
 
 <a id="hsubtract-saturated"></a>
@@ -667,13 +723,17 @@ Subtracts adjacent pairs with saturation where the specialization supports it.
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE static auto VECTORCALL hsubtract_saturated(const vector_t lhs, const vector_t rhs) noexcept requires requires(vector_t left, vector_t right)
+static auto hsubtract_saturated(vector_t lhs, vector_t rhs)
 ```
 
 Example:
 
 ```cpp
-const auto result = ApiT::hsubtract_saturated(lhs, rhs);
+using I16 = SimdLib::Api<128, std::int16_t>;
+I16::hsubtract_saturated(
+    I16::setr_partial(30000, -10000, -30000, 10000),
+    I16::setr_partial(
+        20000, -20000, 10000, -10000)); // => {32767, -32768, 0, 0, 32767, 20000, 0, 0}
 ```
 
 <a id="insert"></a>
@@ -684,13 +744,14 @@ Inserts a lane or subvalue into a register.
 Signatures:
 
 ```cpp
-template <class... Args> SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(Args &&...args) noexcept requires requires(Args &&...values)
+template <class... Args> static auto insert(Args &&...args)
 ```
 
 Example:
 
 ```cpp
-const auto result = ApiT::insert(value); // Add the compile-time selector/type required by the overload.
+using I32x4 = SimdLib::Api<128, std::int32_t>;
+I32x4::insert(I32x4::construct({0, 0, 0, 0}), 9, 0); // => {9, 0, 0, 0}
 ```
 
 <a id="load"></a>
@@ -701,13 +762,15 @@ Loads element data into a SIMD register.
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE static vector_t VECTORCALL load(std::span<const element_t, element_count> data) noexcept
+static vector_t load(std::span<const element_t, element_count> data)
 ```
 
 Example:
 
 ```cpp
-const auto value = ApiT::load(input);
+alignas(ApiT::byte_count) const std::array<float, ApiT::element_count> input{
+    1.0F, 2.0F};
+ApiT::load(input); // => low lanes are {1.0F, 2.0F}; remaining lanes are zero
 ```
 
 <a id="load-aligned"></a>
@@ -718,13 +781,15 @@ Loads a full register from storage aligned to the register byte width.
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE static vector_t VECTORCALL load_aligned(std::span<const element_t, element_count> data) noexcept
+static vector_t load_aligned(std::span<const element_t, element_count> data)
 ```
 
 Example:
 
 ```cpp
-const auto value = ApiT::load_aligned(input);
+alignas(ApiT::byte_count) const std::array<float, ApiT::element_count> input{
+    1.0F, 2.0F};
+ApiT::load_aligned(input); // => low lanes are {1.0F, 2.0F}; remaining lanes are zero
 ```
 
 <a id="load-partial"></a>
@@ -735,13 +800,15 @@ Loads a logical prefix of elements into a SIMD register and zero-fills the remai
 Signatures:
 
 ```cpp
-template <std::size_t active_count> SIMDLIB_FORCE_INLINE constexpr static vector_t VECTORCALL load_partial(std::span<const element_t> data) noexcept requires(active_count <= element_count)
+template <std::size_t active_count> static vector_t load_partial(std::span<const element_t> data)
 ```
 
 Example:
 
 ```cpp
-const auto value = ApiT::load_partial(input);
+const std::array input{1.0F, 2.0F};
+ApiT::load_partial<2>(std::span<const float>{
+    input}); // => low lanes are {1.0F, 2.0F}; remaining lanes are zero
 ```
 
 <a id="load-unaligned"></a>
@@ -752,13 +819,15 @@ Explicit spelling for an unaligned full-register load.
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE static vector_t VECTORCALL load_unaligned(std::span<const element_t, element_count> data) noexcept
+static vector_t load_unaligned(std::span<const element_t, element_count> data)
 ```
 
 Example:
 
 ```cpp
-const auto value = ApiT::load_unaligned(input);
+alignas(ApiT::byte_count) const std::array<float, ApiT::element_count> input{
+    1.0F, 2.0F};
+ApiT::load_unaligned(input); // => low lanes are {1.0F, 2.0F}; remaining lanes are zero
 ```
 
 <a id="load-unsafe"></a>
@@ -769,13 +838,15 @@ Loads element data into a SIMD register without enforcing a fixed extent.
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE static vector_t VECTORCALL load_unsafe(std::span<const element_t> data) noexcept
+static vector_t load_unsafe(std::span<const element_t> data)
 ```
 
 Example:
 
 ```cpp
-const auto value = ApiT::load_unsafe(input);
+alignas(ApiT::byte_count) const std::array<float, ApiT::element_count> input{
+    1.0F, 2.0F};
+ApiT::load_unsafe(input); // => low lanes are {1.0F, 2.0F}; remaining lanes are zero
 ```
 
 <a id="lower-half"></a>
@@ -786,13 +857,14 @@ Returns the low 128-bit half of a 256-bit register when the specialization suppo
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE static typename SimdLib::Detail::SimdMappings<128, element_t>::vector_t VECTORCALL lower_half(const vector_t lhs) noexcept requires(register_width == 256 && requires(vector_t value)
+static vector_t lower_half(vector_t lhs)
 ```
 
 Example:
 
 ```cpp
-const auto result = ApiT::lower_half(value);
+using F32x8 = SimdLib::Api<256, float>;
+F32x8::lower_half(F32x8::set1(2.0F)); // => {2.0F, 2.0F, 2.0F, 2.0F}
 ```
 
 <a id="magnitude"></a>
@@ -803,13 +875,13 @@ Computes the vector magnitude per 128-bit lane.
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE static vector_t VECTORCALL magnitude(const vector_t lhs) noexcept requires((std::is_floating_point_v<element_t> && requires(vector_t left, vector_t right)
+static vector_t magnitude(vector_t lhs)
 ```
 
 Example:
 
 ```cpp
-const auto result = ApiT::magnitude(value);
+ApiT::magnitude(ApiT::construct({3.0F, 4.0F, 0.0F, 0.0F})); // => every lane is 5.0F
 ```
 
 <a id="max"></a>
@@ -820,13 +892,15 @@ Returns the larger value in each lane.
 Signatures:
 
 ```cpp
-static vector_t max(vector_t lhs, vector_t rhs) noexcept;
+static vector_t max(vector_t lhs, vector_t rhs)
 ```
 
 Example:
 
 ```cpp
-const auto result = ApiT::max(lhs, rhs);
+ApiT::max(
+    ApiT::construct({2.0F, 8.0F, 4.0F, 9.0F}),
+    ApiT::construct({5.0F, 3.0F, 7.0F, 1.0F})); // => {5.0F, 8.0F, 7.0F, 9.0F}
 ```
 
 <a id="max-position"></a>
@@ -837,13 +911,15 @@ Returns the first index of the maximum value in the register.
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE constexpr static std::size_t VECTORCALL max_position(const vector_t lhs) noexcept requires(using_int && requires(vector_t value)
+static std::size_t max_position(vector_t lhs)
 ```
 
 Example:
 
 ```cpp
-const auto result = ApiT::max_position(value);
+using U16x8 = SimdLib::Api<128, std::uint16_t>;
+const auto values = U16x8::insert(U16x8::set1(4), 9, 3);
+U16x8::max_position(values); // => 3
 ```
 
 <a id="min"></a>
@@ -854,13 +930,15 @@ Returns the smaller value in each lane.
 Signatures:
 
 ```cpp
-static vector_t min(vector_t lhs, vector_t rhs) noexcept;
+static vector_t min(vector_t lhs, vector_t rhs)
 ```
 
 Example:
 
 ```cpp
-const auto result = ApiT::min(lhs, rhs);
+ApiT::min(
+    ApiT::construct({2.0F, 8.0F, 4.0F, 9.0F}),
+    ApiT::construct({5.0F, 3.0F, 7.0F, 1.0F})); // => {2.0F, 3.0F, 4.0F, 1.0F}
 ```
 
 <a id="min-position"></a>
@@ -871,13 +949,15 @@ Returns the first index of the minimum value in the register.
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE constexpr static std::size_t VECTORCALL min_position(const vector_t lhs) noexcept requires(using_int && requires(vector_t value)
+static std::size_t min_position(vector_t lhs)
 ```
 
 Example:
 
 ```cpp
-const auto result = ApiT::min_position(value);
+using U16x8 = SimdLib::Api<128, std::uint16_t>;
+const auto values = U16x8::insert(U16x8::set1(4), 1, 3);
+U16x8::min_position(values); // => 3
 ```
 
 <a id="modulus"></a>
@@ -888,13 +968,16 @@ Computes the remainder of each lhs element divided by the corresponding rhs elem
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE static vector_t VECTORCALL modulus(const vector_t lhs, const vector_t rhs) noexcept requires requires(vector_t left, vector_t right)
+static vector_t modulus(vector_t lhs, vector_t rhs)
 ```
 
 Example:
 
 ```cpp
-const auto result = ApiT::modulus(lhs, rhs);
+using U32 = SimdLib::Api<128, std::uint32_t>;
+U32::modulus(
+    U32::construct({7U, 7U, 7U, 7U}),
+    U32::construct({3U, 3U, 3U, 3U})); // => every lane is 1U
 ```
 
 <a id="movemask"></a>
@@ -905,13 +988,15 @@ Returns a mask composed from the most significant bit of each byte in the regist
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE constexpr static mask_t VECTORCALL movemask(const vector_t lhs) noexcept
+static mask_t movemask(vector_t lhs)
 ```
 
 Example:
 
 ```cpp
-const auto result = ApiT::movemask(value);
+ApiT::movemask(
+    ApiT::construct(
+        {-0.0F, -0.0F, -0.0F, -0.0F})); // => one set sign bit for every lane
 ```
 
 <a id="movemask-slim"></a>
@@ -922,13 +1007,14 @@ Returns a mask composed from the most significant bit of each element in the reg
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE constexpr static mask_t VECTORCALL movemask_slim(const vector_t lhs) noexcept
+static mask_t movemask_slim(vector_t lhs)
 ```
 
 Example:
 
 ```cpp
-const auto result = ApiT::movemask_slim(value);
+ApiT::movemask_slim(
+    ApiT::construct({-0.0F, -0.0F, -0.0F, -0.0F})); // => one set bit for every lane
 ```
 
 <a id="multi-sum-absolute-byte-differences"></a>
@@ -939,13 +1025,15 @@ Computes byte-window absolute-difference sums selected by an immediate control m
 Signatures:
 
 ```cpp
-template <int imm8> SIMDLIB_FORCE_INLINE static auto VECTORCALL multi_sum_absolute_byte_differences(const vector_t lhs, const vector_t rhs) noexcept requires(using_int && requires(vector_t left, vector_t right)
+template <int imm8> static auto multi_sum_absolute_byte_differences(vector_t lhs, vector_t rhs)
 ```
 
 Example:
 
 ```cpp
-const auto result = ApiT::multi_sum_absolute_byte_differences(lhs, rhs);
+using U8 = SimdLib::Api<128, std::uint8_t>;
+U8::multi_sum_absolute_byte_differences<0>(
+    U8::set1(9U), U8::set1(4U)); // => every selected 16-bit result lane is 20
 ```
 
 <a id="multiply"></a>
@@ -956,13 +1044,15 @@ Multiplies corresponding lanes.
 Signatures:
 
 ```cpp
-static vector_t multiply(vector_t lhs, vector_t rhs) noexcept;
+static vector_t multiply(vector_t lhs, vector_t rhs)
 ```
 
 Example:
 
 ```cpp
-const auto result = ApiT::multiply(lhs, rhs);
+ApiT::multiply(
+    ApiT::construct({3.0F, 3.0F, 3.0F, 3.0F}),
+    ApiT::construct({4.0F, 4.0F, 4.0F, 4.0F})); // => every lane is 12.0F
 ```
 
 <a id="multiply-add"></a>
@@ -973,13 +1063,16 @@ Computes a fused multiply-add where the implementation supports it, or a multipl
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE static auto VECTORCALL multiply_add(const vector_t lhs, const vector_t rhs, const vector_t addend) noexcept requires requires(vector_t left, vector_t right, vector_t sum)
+static auto multiply_add(vector_t lhs, vector_t rhs, vector_t addend)
 ```
 
 Example:
 
 ```cpp
-const auto result = ApiT::multiply_add(lhs, rhs, addend);
+ApiT::multiply_add(
+    ApiT::construct({2.0F, 2.0F, 2.0F, 2.0F}),
+    ApiT::construct({3.0F, 3.0F, 3.0F, 3.0F}),
+    ApiT::construct({4.0F, 4.0F, 4.0F, 4.0F})); // => every lane is 10.0F
 ```
 
 <a id="multiply-add-adjacent"></a>
@@ -990,13 +1083,15 @@ Multiplies adjacent element pairs and accumulates them into promoted result lane
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE static auto VECTORCALL multiply_add_adjacent(const vector_t lhs, const vector_t rhs) noexcept requires(using_int && requires(vector_t left, vector_t right)
+static auto multiply_add_adjacent(vector_t lhs, vector_t rhs)
 ```
 
 Example:
 
 ```cpp
-const auto result = ApiT::multiply_add_adjacent(lhs, rhs);
+using I16 = SimdLib::Api<128, std::int16_t>;
+I16::multiply_add_adjacent(
+    I16::set1(2), I16::set1(3)); // => every 32-bit result lane is 12
 ```
 
 <a id="multiply-add-unsigned-signed-bytes"></a>
@@ -1007,13 +1102,15 @@ Multiplies raw register bytes as unsigned and signed pairs and accumulates them 
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE static auto VECTORCALL multiply_add_unsigned_signed_bytes(const vector_t lhs, const vector_t rhs) noexcept requires(using_int && requires(vector_t left, vector_t right)
+static auto multiply_add_unsigned_signed_bytes(vector_t lhs, vector_t rhs)
 ```
 
 Example:
 
 ```cpp
-const auto result = ApiT::multiply_add_unsigned_signed_bytes(lhs, rhs);
+using U8 = SimdLib::Api<128, std::uint8_t>;
+U8::multiply_add_unsigned_signed_bytes(
+    U8::set1(2U), U8::set1(3U)); // => every signed 16-bit result lane is 12
 ```
 
 <a id="negate"></a>
@@ -1024,13 +1121,13 @@ Negates each element in the register.
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE static vector_t VECTORCALL negate(const vector_t lhs) noexcept requires requires(vector_t value)
+static vector_t negate(vector_t lhs)
 ```
 
 Example:
 
 ```cpp
-const auto result = ApiT::negate(value);
+ApiT::negate(ApiT::construct({2.0F, -3.0F, 0.0F, 0.0F})); // => {-2.0F, 3.0F, 0.0F, ...}
 ```
 
 <a id="normalize"></a>
@@ -1041,13 +1138,14 @@ Normalizes floating-point lanes using the vector length computed per 128-bit lan
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE static vector_t VECTORCALL normalize(const vector_t lhs) noexcept requires(std::is_floating_point_v<element_t> && requires(vector_t left, vector_t right)
+static vector_t normalize(vector_t lhs)
 ```
 
 Example:
 
 ```cpp
-const auto result = ApiT::normalize(value);
+ApiT::normalize(
+    ApiT::construct({3.0F, 4.0F, 0.0F, 0.0F})); // => {0.6F, 0.8F, 0.0F, ...}
 ```
 
 <a id="set"></a>
@@ -1058,13 +1156,18 @@ Constructs a register from lane values in native argument order.
 Signatures:
 
 ```cpp
-template <class... Args> SIMDLIB_FORCE_INLINE constexpr static auto VECTORCALL set(Args &&...args) noexcept requires requires(Args &&...values)
+template <class... Args> static auto set(Args &&...args)
 ```
 
 Example:
 
 ```cpp
-const auto value = ApiT::set(1.0F, 2.0F, 3.0F, 4.0F);
+using F32x4 = SimdLib::Api<128, float>;
+F32x4::set(
+    4.0F,
+    3.0F,
+    2.0F,
+    1.0F); // => lanes follow native set order: {1.0F, 2.0F, 3.0F, 4.0F}
 ```
 
 <a id="set-partial"></a>
@@ -1075,13 +1178,14 @@ Constructs a register from a partial native-order lane list and zero-fills the r
 Signatures:
 
 ```cpp
-template <class... Args> SIMDLIB_FORCE_INLINE constexpr static auto VECTORCALL set_partial(Args &&...args) noexcept requires(sizeof...(Args) <= element_count)
+template <class... Args> static auto set_partial(Args &&...args)
 ```
 
 Example:
 
 ```cpp
-const auto value = ApiT::set_partial(1.0F, 2.0F, 3.0F, 4.0F);
+ApiT::set_partial(
+    2.0F, 1.0F); // => low lanes are {1.0F, 2.0F}; remaining lanes are zero
 ```
 
 <a id="set1"></a>
@@ -1092,13 +1196,13 @@ Broadcasts one scalar value to every lane in the register.
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE constexpr static vector_t VECTORCALL set1(const element_t value) noexcept requires requires(element_t scalar)
+static vector_t set1(element_t value)
 ```
 
 Example:
 
 ```cpp
-const auto value = ApiT::set1(2.0F);
+ApiT::set1(2.5F); // => every lane is 2.5F
 ```
 
 <a id="setr"></a>
@@ -1109,13 +1213,14 @@ Constructs a register from lane values in forward lane order.
 Signatures:
 
 ```cpp
-template <class... Args> SIMDLIB_FORCE_INLINE constexpr static auto VECTORCALL setr(Args &&...args) noexcept requires requires(Args &&...values)
+template <class... Args> static auto setr(Args &&...args)
 ```
 
 Example:
 
 ```cpp
-const auto value = ApiT::setr(1.0F, 2.0F, 3.0F, 4.0F);
+using F32x4 = SimdLib::Api<128, float>;
+F32x4::setr(1.0F, 2.0F, 3.0F, 4.0F); // => lanes are {1.0F, 2.0F, 3.0F, 4.0F}
 ```
 
 <a id="setr-partial"></a>
@@ -1126,13 +1231,14 @@ Constructs a register from a partial forward-order lane list and zero-fills the 
 Signatures:
 
 ```cpp
-template <class... Args> SIMDLIB_FORCE_INLINE constexpr static auto VECTORCALL setr_partial(Args &&...args) noexcept requires(sizeof...(Args) <= element_count)
+template <class... Args> static auto setr_partial(Args &&...args)
 ```
 
 Example:
 
 ```cpp
-const auto value = ApiT::setr_partial(1.0F, 2.0F, 3.0F, 4.0F);
+ApiT::setr_partial(
+    1.0F, 2.0F); // => low lanes are {1.0F, 2.0F}; remaining lanes are zero
 ```
 
 <a id="setzero"></a>
@@ -1143,13 +1249,13 @@ Returns a zero-initialized SIMD register.
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE constexpr static vector_t VECTORCALL setzero() noexcept requires requires
+static vector_t setzero()
 ```
 
 Example:
 
 ```cpp
-const auto value = ApiT::setzero();
+ApiT::setzero(); // => every lane is 0.0F
 ```
 
 <a id="shift-left"></a>
@@ -1160,13 +1266,14 @@ Shifts each integer lane left by the specified amount.
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE constexpr static int_vector_t VECTORCALL shift_left(const int_vector_t lhs, int shift) noexcept requires(using_int)
+static int_vector_t shift_left(int_vector_t lhs, int shift)
 ```
 
 Example:
 
 ```cpp
-const auto result = ApiT::shift_left(value); // Add the compile-time selector/type required by the overload.
+using I32 = SimdLib::Api<128, std::int32_t>;
+I32::shift_left(I32::construct({3, 3, 3, 3}), 1); // => every lane is 6
 ```
 
 <a id="shift-right"></a>
@@ -1177,13 +1284,14 @@ Shifts each integer lane right by the specified amount.
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE constexpr static int_vector_t VECTORCALL shift_right(const int_vector_t lhs, int shift) noexcept requires(using_int)
+static int_vector_t shift_right(int_vector_t lhs, int shift)
 ```
 
 Example:
 
 ```cpp
-const auto result = ApiT::shift_right(value); // Add the compile-time selector/type required by the overload.
+using I32 = SimdLib::Api<128, std::int32_t>;
+I32::shift_right(I32::construct({8, 8, 8, 8}), 1); // => every lane is 4
 ```
 
 <a id="shift-right-arithmetic"></a>
@@ -1194,13 +1302,14 @@ Arithmetic-shifts each integer lane right by the specified amount.
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE constexpr static int_vector_t VECTORCALL shift_right_arithmetic(const int_vector_t lhs, int shift) noexcept requires(using_int)
+static int_vector_t shift_right_arithmetic(int_vector_t lhs, int shift)
 ```
 
 Example:
 
 ```cpp
-const auto result = ApiT::shift_right_arithmetic(value); // Add the compile-time selector/type required by the overload.
+using I32 = SimdLib::Api<128, std::int32_t>;
+I32::shift_right_arithmetic(I32::construct({-8, -8, -8, -8}), 1); // => every lane is -4
 ```
 
 <a id="shuffle"></a>
@@ -1211,14 +1320,17 @@ Shuffles register contents according to the implementation-specific control form
 Signatures:
 
 ```cpp
-template <std::size_t... indices> SIMDLIB_FORCE_INLINE static auto VECTORCALL shuffle(const int_vector_t lhs) noexcept requires requires(int_vector_t value)
-template <class... Args> SIMDLIB_FORCE_INLINE static auto VECTORCALL shuffle(Args &&...args) noexcept requires requires(Args &&...values)
+template <std::size_t... indices> static auto shuffle(int_vector_t lhs)
+template <class... Args> static auto shuffle(Args &&...args)
 ```
 
 Example:
 
 ```cpp
-const auto result = ApiT::shuffle(value); // Add the compile-time selector/type required by the overload.
+using U8x16 = SimdLib::Api<128, std::uint8_t>;
+U8x16::shuffle(
+    U8x16::set1(7U),
+    U8x16::set1(0x80U)); // => every lane is cleared to 0U by the mask''s high bit
 ```
 
 <a id="shuffle-hi"></a>
@@ -1229,13 +1341,15 @@ Shuffles the high half of a register where the specialization supports it.
 Signatures:
 
 ```cpp
-template <class... Args> SIMDLIB_FORCE_INLINE static auto VECTORCALL shuffle_hi(Args &&...args) noexcept requires requires(Args &&...values)
+template <class... Args> static auto shuffle_hi(Args &&...args)
 ```
 
 Example:
 
 ```cpp
-const auto result = ApiT::shuffle_hi(value); // Add the compile-time selector/type required by the overload.
+using I16x8 = SimdLib::Api<128, std::int16_t>;
+const auto high = I16x8::byte_shift_left(I16x8::setr_partial(1, 2, 3, 4), 8);
+I16x8::shuffle_hi(high, 0b0001'1011); // => {0, 0, 0, 0, 4, 3, 2, 1}
 ```
 
 <a id="shuffle-lo"></a>
@@ -1246,13 +1360,15 @@ Shuffles the low half of a register where the specialization supports it.
 Signatures:
 
 ```cpp
-template <class... Args> SIMDLIB_FORCE_INLINE static auto VECTORCALL shuffle_lo(Args &&...args) noexcept requires requires(Args &&...values)
+template <class... Args> static auto shuffle_lo(Args &&...args)
 ```
 
 Example:
 
 ```cpp
-const auto result = ApiT::shuffle_lo(value); // Add the compile-time selector/type required by the overload.
+using I16x8 = SimdLib::Api<128, std::int16_t>;
+I16x8::shuffle_lo(
+    I16x8::setr_partial(1, 2, 3, 4), 0b0001'1011); // => {4, 3, 2, 1, 0, 0, 0, 0}
 ```
 
 <a id="sqrt"></a>
@@ -1263,13 +1379,13 @@ Computes the square root of each element in the register.
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE static auto VECTORCALL sqrt(const vector_t lhs) noexcept requires requires(vector_t value)
+static auto sqrt(vector_t lhs)
 ```
 
 Example:
 
 ```cpp
-const auto result = ApiT::sqrt(value);
+ApiT::sqrt(ApiT::construct({4.0F, 9.0F, 0.0F, 0.0F})); // => {2.0F, 3.0F, 0.0F, ...}
 ```
 
 <a id="store"></a>
@@ -1280,14 +1396,17 @@ Stores a SIMD register into an element span.
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE static void VECTORCALL store(vector_t vector, std::span<element_t, element_count> data) noexcept
-SIMDLIB_FORCE_INLINE static void VECTORCALL store(vector_t vector, std::span<std::byte> data) noexcept
+static void store(vector_t vector, std::span<element_t, element_count> data)
+static void store(vector_t vector, std::span<std::byte> data)
 ```
 
 Example:
 
 ```cpp
-ApiT::store(value, output);
+alignas(ApiT::byte_count) std::array<float, ApiT::element_count> result{};
+ApiT::store(
+    ApiT::construct({1.0F, 2.0F, 0.0F, 0.0F}),
+    result); // => result begins {1.0F, 2.0F, 0.0F, ...}
 ```
 
 <a id="store-aligned"></a>
@@ -1298,13 +1417,16 @@ Stores a full register to storage aligned to the register byte width.
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE static void VECTORCALL store_aligned(vector_t vector, std::span<element_t, element_count> data) noexcept
+static void store_aligned(vector_t vector, std::span<element_t, element_count> data)
 ```
 
 Example:
 
 ```cpp
-ApiT::store_aligned(value, output);
+alignas(ApiT::byte_count) std::array<float, ApiT::element_count> result{};
+ApiT::store_aligned(
+    ApiT::construct({1.0F, 2.0F, 0.0F, 0.0F}),
+    result); // => result begins {1.0F, 2.0F, 0.0F, ...}
 ```
 
 <a id="store-unaligned"></a>
@@ -1315,13 +1437,16 @@ Explicit spelling for an unaligned full-register store.
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE static void VECTORCALL store_unaligned(vector_t vector, std::span<element_t, element_count> data) noexcept
+static void store_unaligned(vector_t vector, std::span<element_t, element_count> data)
 ```
 
 Example:
 
 ```cpp
-ApiT::store_unaligned(value, output);
+alignas(ApiT::byte_count) std::array<float, ApiT::element_count> result{};
+ApiT::store_unaligned(
+    ApiT::construct({1.0F, 2.0F, 0.0F, 0.0F}),
+    result); // => result begins {1.0F, 2.0F, 0.0F, ...}
 ```
 
 <a id="subtract"></a>
@@ -1332,13 +1457,15 @@ Subtracts corresponding lanes.
 Signatures:
 
 ```cpp
-static vector_t subtract(vector_t lhs, vector_t rhs) noexcept;
+static vector_t subtract(vector_t lhs, vector_t rhs)
 ```
 
 Example:
 
 ```cpp
-const auto result = ApiT::subtract(lhs, rhs);
+ApiT::subtract(
+    ApiT::construct({7.0F, 7.0F, 7.0F, 7.0F}),
+    ApiT::construct({2.0F, 2.0F, 2.0F, 2.0F})); // => every lane is 5.0F
 ```
 
 <a id="subtract-horizontal"></a>
@@ -1349,13 +1476,16 @@ Subtracts adjacent element pairs within each 128-bit lane of two registers.
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE static vector_t VECTORCALL subtract_horizontal(const vector_t lhs, const vector_t rhs) noexcept requires requires(vector_t left, vector_t right)
+static vector_t subtract_horizontal(vector_t lhs, vector_t rhs)
 ```
 
 Example:
 
 ```cpp
-const auto result = ApiT::subtract_horizontal(lhs, rhs);
+using F32x4 = SimdLib::Api<128, float>;
+F32x4::subtract_horizontal(
+    F32x4::construct({3.0F, 1.0F, 7.0F, 2.0F}),
+    F32x4::construct({9.0F, 4.0F, 8.0F, 2.0F})); // => {2.0F, 5.0F, 5.0F, 6.0F}
 ```
 
 <a id="subtract-saturated"></a>
@@ -1366,13 +1496,14 @@ Subtracts corresponding lanes with saturation where the specialization supports 
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE static auto VECTORCALL subtract_saturated(const vector_t lhs, const vector_t rhs) noexcept requires requires(vector_t left, vector_t right)
+static auto subtract_saturated(vector_t lhs, vector_t rhs)
 ```
 
 Example:
 
 ```cpp
-const auto result = ApiT::subtract_saturated(lhs, rhs);
+using U8 = SimdLib::Api<128, std::uint8_t>;
+U8::subtract_saturated(U8::set1(5), U8::set1(10)); // => every lane is 0
 ```
 
 <a id="sum-absolute-byte-differences"></a>
@@ -1383,13 +1514,15 @@ Computes byte-wise absolute differences and accumulates them into 64-bit result 
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE static auto VECTORCALL sum_absolute_byte_differences(const vector_t lhs, const vector_t rhs) noexcept requires(using_int && requires(vector_t left, vector_t right)
+static auto sum_absolute_byte_differences(vector_t lhs, vector_t rhs)
 ```
 
 Example:
 
 ```cpp
-const auto result = ApiT::sum_absolute_byte_differences(lhs, rhs);
+using U8 = SimdLib::Api<128, std::uint8_t>;
+U8::sum_absolute_byte_differences(
+    U8::set1(9U), U8::set1(4U)); // => both 64-bit result lanes are 40
 ```
 
 <a id="to-array"></a>
@@ -1400,13 +1533,13 @@ Converts a SIMD register into a fixed array of elements.
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE constexpr static std::array<element_t, element_count> VECTORCALL to_array(const vector_t vector) noexcept
+static std::array<element_t, element_count> to_array(vector_t vector)
 ```
 
 Example:
 
 ```cpp
-const auto result = ApiT::to_array(value);
+ApiT::to_array(ApiT::construct({1.0F, 2.0F, 0.0F, 0.0F})); // => {1.0F, 2.0F, 0.0F, ...}
 ```
 
 <a id="transform"></a>
@@ -1417,15 +1550,18 @@ Applies a unary SIMD transform to an element span in place.
 Signatures:
 
 ```cpp
-template <std::invocable<vector_t> Func> static inline void transform(std::span<element_t> data, Func &&func) noexcept
-template <std::invocable<vector_t> Func> static inline void transform(std::span<const element_t> lhs, std::span<element_t> write, Func &&func) noexcept
-template <std::invocable<vector_t, vector_t> Func> static inline void transform(std::span<const element_t> lhs, std::span<const element_t> rhs, std::span<element_t> write, Func &&func) noexcept
+template <std::invocable<vector_t> Func> static void transform(std::span<element_t> data, Func &&func)
+template <std::invocable<vector_t> Func> static void transform(std::span<const element_t> lhs, std::span<element_t> write, Func &&func)
+template <std::invocable<vector_t, vector_t> Func> static void transform(std::span<const element_t> lhs, std::span<const element_t> rhs, std::span<element_t> write, Func &&func)
 ```
 
 Example:
 
 ```cpp
-ApiT::transform(input, output, [](auto chunk) { return ApiT::multiply_add(chunk, scale, offset); });
+std::array<float, 3> result{};
+ApiT::transform(std::array{1.0F, 2.0F, 3.0F}, result, [](auto lanes) {
+  return ApiT::add(lanes, ApiT::construct({10.0F, 10.0F, 10.0F, 10.0F}));
+}); // => result is {11.0F, 12.0F, 13.0F}
 ```
 
 <a id="transform-pack"></a>
@@ -1436,13 +1572,19 @@ Applies a SIMD transform whose fixed-width lane results are packed contiguously 
 Signatures:
 
 ```cpp
-template <std::size_t result_bit_width, std::size_t count, std::invocable<vector_t> Func> SIMDLIB_FORCE_INLINE constexpr static void transform_pack( std::span<const element_t, count> read, std::span<packed_element_t<result_bit_width>, packed_element_count<result_bit_width, count>> write, Func &&func) noexcept requires(result_bit_width > 0 && result_bit_width <= 64)
+template <std::size_t result_bit_width, std::size_t count, std::invocable<vector_t> Func> static void transform_pack(std::span<const element_t, count> read, std::span<packed_element_t<result_bit_width>, packed_element_count<result_bit_width, count>> write, Func &&func)
 ```
 
 Example:
 
 ```cpp
-ApiT::transform_pack(input, output, [](auto chunk) { return ApiT::convert(chunk); });
+std::array<std::uint8_t, 1> result{};
+ApiT::transform_pack<1>(
+    std::span<const float, 4>{std::array{0.0F, 1.0F, 0.0F, 1.0F}},
+    std::span<std::uint8_t, 1>{result},
+    [](auto lanes) {
+      return ApiT::cmp_eq_mask(lanes, ApiT::construct({1.0F, 1.0F, 1.0F, 1.0F}));
+    }); // => result[0] is 0b0000'1010
 ```
 
 <a id="unpack-hi"></a>
@@ -1453,13 +1595,15 @@ Unpacks the high lanes of two registers.
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE static auto VECTORCALL unpack_hi(const vector_t lhs, const vector_t rhs) noexcept requires requires(vector_t left, vector_t right)
+static auto unpack_hi(vector_t lhs, vector_t rhs)
 ```
 
 Example:
 
 ```cpp
-const auto result = ApiT::unpack_hi(lhs, rhs);
+ApiT::unpack_hi(
+    ApiT::construct({1.0F, 2.0F, 3.0F, 4.0F}),
+    ApiT::construct({5.0F, 6.0F, 7.0F, 8.0F})); // => {3.0F, 7.0F, 4.0F, 8.0F}
 ```
 
 <a id="unpack-lo"></a>
@@ -1470,13 +1614,15 @@ Unpacks the low lanes of two registers.
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE static auto VECTORCALL unpack_lo(const vector_t lhs, const vector_t rhs) noexcept requires requires(vector_t left, vector_t right)
+static auto unpack_lo(vector_t lhs, vector_t rhs)
 ```
 
 Example:
 
 ```cpp
-const auto result = ApiT::unpack_lo(lhs, rhs);
+ApiT::unpack_lo(
+    ApiT::construct({1.0F, 2.0F, 3.0F, 4.0F}),
+    ApiT::construct({5.0F, 6.0F, 7.0F, 8.0F})); // => {1.0F, 5.0F, 2.0F, 6.0F}
 ```
 
 <a id="widen"></a>
@@ -1487,13 +1633,16 @@ Widens this SIMD register into the specified destination SIMD shape.
 Signatures:
 
 ```cpp
-template <class target_simd> SIMDLIB_FORCE_INLINE static typename target_simd::vector_t VECTORCALL widen(const vector_t lhs) noexcept
+template <class target_simd> static typename target_simd::vector_t widen(vector_t lhs)
 ```
 
 Example:
 
 ```cpp
-const auto result = ApiT::widen(value); // Add the compile-time selector/type required by the overload.
+using I16x8 = SimdLib::Api<128, std::int16_t>;
+using I32x8 = SimdLib::Api<256, std::int32_t>;
+I16x8::widen<I32x8>(
+    I16x8::set1(-30000)); // => eight 32-bit lanes, each containing -30000
 ```
 
 <a id="related-types-and-constants"></a>

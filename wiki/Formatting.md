@@ -26,7 +26,10 @@ Including `Format.h` provides standard-library integration for SimdLib value typ
 Accepts fill, alignment, and width for the completed `{a, b, c}` container text.
 
 ```cpp
-const auto text = std::format("{:>20}", SimdLib::SimdVector<float, 3>{1.0F, 2.0F, 3.0F});
+std::format(
+    "{:>20}",
+    SimdLib::SimdVector<float, 3>{
+        1.0F, 2.0F, 3.0F}); // => right-aligned "{1, 2, 3}" in 20 characters
 ```
 
 <a id="vector-format"></a>
@@ -35,8 +38,7 @@ const auto text = std::format("{:>20}", SimdLib::SimdVector<float, 3>{1.0F, 2.0F
 Formats logical lanes in order inside braces.
 
 ```cpp
-const auto text = std::format("{}", SimdLib::SimdVector<float, 3>{1.0F, 2.0F, 3.0F});
-// "{1, 2, 3}"
+std::format("{}", SimdLib::SimdVector<float, 3>{1.0F, 2.0F, 3.0F}); // => "{1, 2, 3}"
 ```
 
 <a id="uint128-parse"></a>
@@ -45,7 +47,7 @@ const auto text = std::format("{}", SimdLib::SimdVector<float, 3>{1.0F, 2.0F, 3.
 Accepts integer sign, alternate form, zero padding, width, and binary/octal/decimal/hex presentation options.
 
 ```cpp
-const auto text = std::format("{:#x}", SimdLib::uint128_t{255});
+std::format("{:#x}", SimdLib::uint128_t{255}); // => "0xff"
 ```
 
 <a id="uint128-format"></a>
@@ -54,7 +56,7 @@ const auto text = std::format("{:#x}", SimdLib::uint128_t{255});
 Formats a portable 128-bit value without requiring a compiler-native 128-bit integer.
 
 ```cpp
-const auto text = std::format("{}", SimdLib::uint128_t{42});
+std::format("{}", SimdLib::uint128_t{42}); // => "42"
 ```
 
 <a id="vector-hash"></a>
@@ -63,7 +65,10 @@ const auto text = std::format("{}", SimdLib::uint128_t{42});
 Hashes every logical lane, making vectors usable as keys in standard unordered containers.
 
 ```cpp
-const auto hash = std::hash<SimdLib::SimdVector<float, 3>>{}(position);
+std::hash<SimdLib::SimdVector<float, 3>>{}(SimdLib::SimdVector<float, 3>{
+    1.0F, 2.0F,
+    3.0F}) == std::hash<SimdLib::SimdVector<float, 3>>{}(SimdLib::SimdVector<float, 3>{
+                  1.0F, 2.0F, 3.0F}); // => true
 ```
 
 <a id="uint128-hash"></a>
@@ -72,7 +77,8 @@ const auto hash = std::hash<SimdLib::SimdVector<float, 3>>{}(position);
 Combines the low and high words into a standard `std::size_t` hash.
 
 ```cpp
-const auto hash = std::hash<SimdLib::uint128_t>{}(value);
+std::hash<SimdLib::uint128_t>{}(SimdLib::uint128_t{
+    5, 7}) == std::hash<SimdLib::uint128_t>{}(SimdLib::uint128_t{5, 7}); // => true
 ```
 
 <a id="uint128-min"></a>
@@ -81,7 +87,7 @@ const auto hash = std::hash<SimdLib::uint128_t>{}(value);
 Returns zero, the smallest `uint128_t` value.
 
 ```cpp
-const auto value = std::numeric_limits<SimdLib::uint128_t>::min();
+std::numeric_limits<SimdLib::uint128_t>::min(); // => 0
 ```
 
 <a id="uint128-lowest"></a>
@@ -90,7 +96,7 @@ const auto value = std::numeric_limits<SimdLib::uint128_t>::min();
 Returns zero because `uint128_t` is unsigned.
 
 ```cpp
-const auto value = std::numeric_limits<SimdLib::uint128_t>::lowest();
+std::numeric_limits<SimdLib::uint128_t>::lowest(); // => 0
 ```
 
 <a id="uint128-max"></a>
@@ -99,7 +105,7 @@ const auto value = std::numeric_limits<SimdLib::uint128_t>::lowest();
 Returns a value with all 128 bits set.
 
 ```cpp
-const auto value = std::numeric_limits<SimdLib::uint128_t>::max();
+std::numeric_limits<SimdLib::uint128_t>::max(); // => all 128 bits set
 ```
 
 <a id="uint128-epsilon"></a>
@@ -108,7 +114,7 @@ const auto value = std::numeric_limits<SimdLib::uint128_t>::max();
 Returns zero for this exact integer type.
 
 ```cpp
-const auto value = std::numeric_limits<SimdLib::uint128_t>::epsilon();
+std::numeric_limits<SimdLib::uint128_t>::epsilon(); // => 0
 ```
 
 <a id="uint128-round-error"></a>
@@ -117,7 +123,7 @@ const auto value = std::numeric_limits<SimdLib::uint128_t>::epsilon();
 Returns zero because integer operations have no floating-point rounding error.
 
 ```cpp
-const auto value = std::numeric_limits<SimdLib::uint128_t>::round_error();
+std::numeric_limits<SimdLib::uint128_t>::round_error(); // => 0
 ```
 
 <a id="uint128-infinity"></a>
@@ -126,7 +132,7 @@ const auto value = std::numeric_limits<SimdLib::uint128_t>::round_error();
 Returns zero; `uint128_t` has no infinity representation.
 
 ```cpp
-const auto value = std::numeric_limits<SimdLib::uint128_t>::infinity();
+std::numeric_limits<SimdLib::uint128_t>::infinity(); // => 0
 ```
 
 <a id="uint128-quiet-nan"></a>
@@ -135,7 +141,7 @@ const auto value = std::numeric_limits<SimdLib::uint128_t>::infinity();
 Returns zero; `uint128_t` has no NaN representation.
 
 ```cpp
-const auto value = std::numeric_limits<SimdLib::uint128_t>::quiet_NaN();
+std::numeric_limits<SimdLib::uint128_t>::quiet_NaN(); // => 0
 ```
 
 <a id="uint128-signaling-nan"></a>
@@ -144,7 +150,7 @@ const auto value = std::numeric_limits<SimdLib::uint128_t>::quiet_NaN();
 Returns zero; `uint128_t` has no signaling NaN representation.
 
 ```cpp
-const auto value = std::numeric_limits<SimdLib::uint128_t>::signaling_NaN();
+std::numeric_limits<SimdLib::uint128_t>::signaling_NaN(); // => 0
 ```
 
 <a id="uint128-denorm-min"></a>
@@ -153,5 +159,5 @@ const auto value = std::numeric_limits<SimdLib::uint128_t>::signaling_NaN();
 Returns zero; integer values do not have denormal representations.
 
 ```cpp
-const auto value = std::numeric_limits<SimdLib::uint128_t>::denorm_min();
+std::numeric_limits<SimdLib::uint128_t>::denorm_min(); // => 0
 ```

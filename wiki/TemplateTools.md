@@ -20,7 +20,7 @@
 Constructs the disambiguation tag used by APIs that accept already-sorted unique input.
 
 ```cpp
-constexpr SimdLib::sorted_unique_t tag{};
+constexpr SimdLib::sorted_unique_t result{}; // => a sorted-unique disambiguation tag
 ```
 
 <a id="sorted-unique-value"></a>
@@ -29,7 +29,7 @@ constexpr SimdLib::sorted_unique_t tag{};
 A ready-made `sorted_unique_t` value.
 
 ```cpp
-auto tag = SimdLib::sorted_unique;
+SimdLib::sorted_unique; // => a sorted_unique_t value
 ```
 
 <a id="select-unsigned-integer-t"></a>
@@ -38,7 +38,7 @@ auto tag = SimdLib::sorted_unique;
 Selects the smallest standard unsigned integer type that can hold the requested number of bits, up to 64.
 
 ```cpp
-using Byte = SimdLib::select_unsigned_integer_t<8>;
+using Result = SimdLib::select_unsigned_integer_t<8>; // => std::uint8_t
 ```
 
 <a id="select-signed-integer-t"></a>
@@ -47,7 +47,7 @@ using Byte = SimdLib::select_unsigned_integer_t<8>;
 Selects the smallest standard signed integer type for the requested bit width, up to 64.
 
 ```cpp
-using Word = SimdLib::select_signed_integer_t<16>;
+using Result = SimdLib::select_signed_integer_t<16>; // => std::int16_t
 ```
 
 <a id="integer-like"></a>
@@ -56,7 +56,7 @@ using Word = SimdLib::select_signed_integer_t<16>;
 Matches numeric-limits-aware integer types other than `bool`, including SimdLib integer-like extensions.
 
 ```cpp
-static_assert(SimdLib::integer_like<std::uint32_t>);
+SimdLib::integer_like<std::uint32_t>; // => true
 ```
 
 <a id="force-consteval"></a>
@@ -65,7 +65,7 @@ static_assert(SimdLib::integer_like<std::uint32_t>);
 Forces an expression through immediate constant evaluation.
 
 ```cpp
-constexpr auto value = SimdLib::force_consteval(2 + 3);
+SimdLib::force_consteval(2 + 3); // => 5
 ```
 
 <a id="constexpr-for-each"></a>
@@ -74,7 +74,12 @@ constexpr auto value = SimdLib::force_consteval(2 + 3);
 Invokes a callable once for each supplied argument.
 
 ```cpp
-SimdLib::constexpr_for_each([](auto value) { consume(value); }, 1, 2, 3);
+int result = 0;
+SimdLib::constexpr_for_each(
+    [&](auto value) { result += value; },
+    1,
+    2,
+    3); // => result is 6
 ```
 
 <a id="constexpr-for"></a>
@@ -83,7 +88,10 @@ SimdLib::constexpr_for_each([](auto value) { consume(value); }, 1, 2, 3);
 Unrolls a compile-time integer range and invokes the callable with each index as a template argument.
 
 ```cpp
-SimdLib::constexpr_for<0, 4, 1>([]<auto index>() { use_index<index>(); });
+std::array<int, 4> result{};
+SimdLib::constexpr_for<0, 4, 1>([&]<auto index>() {
+  result[index] = index;
+}); // => result is {0, 1, 2, 3}
 ```
 
 <a id="constexpr-for-tuple"></a>
@@ -92,5 +100,8 @@ SimdLib::constexpr_for<0, 4, 1>([]<auto index>() { use_index<index>(); });
 Visits every element in a tuple and supplies its index and value.
 
 ```cpp
-SimdLib::constexpr_for_tuple(values, [](auto index, const auto& value) { consume(index, value); });
+int result = 0;
+SimdLib::constexpr_for_tuple(std::tuple{2, 3, 4}, [&](auto, int value) {
+  result += value;
+}); // => result is 9
 ```

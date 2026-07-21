@@ -5,7 +5,7 @@
 ## Contents
 
 - [Overview](#overview)
-- [Example setup](#example-setup)
+- [Example alias](#example-setup)
 - [`~SimdVector`](#destructor-simdvector)
 - [`abs`](#abs)
 - [`add_horizontal`](#add-horizontal)
@@ -75,7 +75,7 @@
 - [`sign`](#sign)
 - [`SimdVector`](#simdvector)
 - [`size`](#size)
-- [`sizeof`](#sizeof)
+- [`SimdVector` widening constructor](#simdvector-widening)
 - [`sqrt`](#sqrt)
 - [`subtract_horizontal`](#subtract-horizontal)
 - [`subtract_horizontal_saturated`](#subtract-horizontal-saturated)
@@ -94,19 +94,13 @@
 Include `<SimdLib/SimdVector.h>`. Overloads with the same name are collected in one subsection; every public overload is listed below.
 
 <a id="example-setup"></a>
-## Example setup
+## Example alias
 
 ```cpp
 #include <SimdLib/SimdLib.h>
 
 using Vector3 = SimdLib::SimdVector<float, 3>;
-Vector3 position{1.0F, 2.0F, 3.0F};
-Vector3 other{4.0F, 5.0F, 6.0F};
-Vector3 minimum{-10.0F};
-Vector3 maximum{10.0F};
-Vector3 scale{2.0F};
 ```
-
 <a id="destructor-simdvector"></a>
 ## `~SimdVector`
 
@@ -115,13 +109,15 @@ Destroys the SIMD vector.
 Signatures:
 
 ```cpp
-~SimdVector() = default;
+~SimdVector() = default
 ```
 
 Example:
 
 ```cpp
-// Destruction is automatic when the vector leaves scope.
+{
+  const Vector3 temporary{1.0F, 2.0F, 3.0F};
+} // => temporary is destroyed at the closing brace
 ```
 
 <a id="abs"></a>
@@ -132,13 +128,13 @@ Returns a SIMD register containing the absolute value of each element.
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE vector_t VECTORCALL abs() const noexcept requires requires(vector_t value)
+vector_t abs() const
 ```
 
 Example:
 
 ```cpp
-const auto result = position.abs();
+Vector3{-1.0F, 2.0F, -3.0F}.abs(); // => {1.0F, 2.0F, 3.0F}
 ```
 
 <a id="add-horizontal"></a>
@@ -149,13 +145,14 @@ Adds adjacent lane pairs within each 128-bit lane.
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE auto VECTORCALL add_horizontal(vector_t rhs) const noexcept requires requires(vector_t lhsValue, vector_t rhsValue)
+auto add_horizontal(vector_t rhs) const
 ```
 
 Example:
 
 ```cpp
-const auto result = position.add_horizontal(other);
+Vector3{1.0F, 2.0F, 3.0F}.add_horizontal(
+    Vector3{4.0F, 5.0F, 6.0F}); // => register lanes are {3.0F, 3.0F, 9.0F, 6.0F}
 ```
 
 <a id="add-horizontal-saturated"></a>
@@ -166,13 +163,15 @@ Adds adjacent lane pairs with saturation where the specialization supports it.
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE auto VECTORCALL add_horizontal_saturated(vector_t rhs) const noexcept requires requires(vector_t lhsValue, vector_t rhsValue)
+auto add_horizontal_saturated(vector_t rhs) const
 ```
 
 Example:
 
 ```cpp
-const auto result = position.add_horizontal_saturated(other);
+using I16x4 = SimdLib::SimdVector<std::int16_t, 4>;
+I16x4{30000, 10000, 200, 300}.add_horizontal_saturated(
+    I16x4{1, 2, 3, 4}); // => register lanes begin {32767, 500, 0, 0, ...}
 ```
 
 <a id="add-saturated"></a>
@@ -183,14 +182,15 @@ Adds the two vectors together and clamps integer overflow to the underlying type
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE vector_t VECTORCALL add_saturated(vector_t rhs) const noexcept requires requires(vector_t lhsValue, vector_t rhsValue)
-SIMDLIB_FORCE_INLINE vector_t VECTORCALL add_saturated(element_t rhs) const noexcept requires requires(vector_t lhsValue, vector_t rhsValue)
+vector_t add_saturated(vector_t rhs) const
+vector_t add_saturated(element_t rhs) const
 ```
 
 Example:
 
 ```cpp
-const auto result = position.add_saturated(other);
+using U8x3 = SimdLib::SimdVector<std::uint8_t, 3>;
+U8x3{250, 10, 20}.add_saturated(U8x3{10, 20, 30}); // => {255, 30, 50}
 ```
 
 <a id="add-subtract"></a>
@@ -201,13 +201,14 @@ Alternates subtraction and addition across lanes for floating-point SIMD familie
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE auto VECTORCALL add_subtract(vector_t rhs) const noexcept requires requires(vector_t lhsValue, vector_t rhsValue)
+auto add_subtract(vector_t rhs) const
 ```
 
 Example:
 
 ```cpp
-const auto result = position.add_subtract(other);
+Vector3{10.0F, 10.0F, 10.0F}.add_subtract(
+    Vector3{1.0F, 2.0F, 3.0F}); // => low lanes are {9.0F, 12.0F, 7.0F}
 ```
 
 <a id="all-equal"></a>
@@ -218,13 +219,13 @@ Returns true if all elements equal the corresponding element in the other vector
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE constexpr bool VECTORCALL all_equal(vector_t rhs) const noexcept
+bool all_equal(vector_t rhs) const
 ```
 
 Example:
 
 ```cpp
-const auto result = position.all_equal(other);
+Vector3{2.0F, 2.0F, 2.0F}.all_equal(Vector3{2.0F, 2.0F, 2.0F}); // => true
 ```
 
 <a id="all-greater"></a>
@@ -235,13 +236,13 @@ Returns true if all elements are greater than the corresponding element in the o
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE constexpr bool VECTORCALL all_greater(vector_t rhs) const noexcept
+bool all_greater(vector_t rhs) const
 ```
 
 Example:
 
 ```cpp
-const auto result = position.all_greater(other);
+Vector3{4.0F, 5.0F, 6.0F}.all_greater(Vector3{1.0F, 2.0F, 3.0F}); // => true
 ```
 
 <a id="all-greater-equal"></a>
@@ -252,13 +253,13 @@ Returns true if all elements are greater than or equal to the corresponding elem
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE constexpr bool VECTORCALL all_greater_equal(vector_t rhs) const noexcept
+bool all_greater_equal(vector_t rhs) const
 ```
 
 Example:
 
 ```cpp
-const auto result = position.all_greater_equal(other);
+Vector3{1.0F, 2.0F, 3.0F}.all_greater_equal(Vector3{1.0F, 1.0F, 3.0F}); // => true
 ```
 
 <a id="all-less"></a>
@@ -269,13 +270,13 @@ Returns true if all elements are less than the corresponding element in the othe
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE constexpr bool VECTORCALL all_less(vector_t rhs) const noexcept
+bool all_less(vector_t rhs) const
 ```
 
 Example:
 
 ```cpp
-const auto result = position.all_less(other);
+Vector3{1.0F, 2.0F, 3.0F}.all_less(Vector3{4.0F, 5.0F, 6.0F}); // => true
 ```
 
 <a id="all-less-equal"></a>
@@ -286,13 +287,13 @@ Returns true if all elements are less than or equal to the corresponding element
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE constexpr bool VECTORCALL all_less_equal(vector_t rhs) const noexcept
+bool all_less_equal(vector_t rhs) const
 ```
 
 Example:
 
 ```cpp
-const auto result = position.all_less_equal(other);
+Vector3{1.0F, 2.0F, 3.0F}.all_less_equal(Vector3{1.0F, 3.0F, 3.0F}); // => true
 ```
 
 <a id="any-equal"></a>
@@ -303,13 +304,13 @@ Returns true if any element equals the corresponding element in the other vector
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE constexpr bool VECTORCALL any_equal(vector_t rhs) const noexcept
+bool any_equal(vector_t rhs) const
 ```
 
 Example:
 
 ```cpp
-const auto result = position.any_equal(other);
+Vector3{1.0F, 2.0F, 3.0F}.any_equal(Vector3{9.0F, 2.0F, 8.0F}); // => true
 ```
 
 <a id="any-greater"></a>
@@ -320,13 +321,13 @@ Returns true if any element is greater than the corresponding element in the oth
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE constexpr bool VECTORCALL any_greater(vector_t rhs) const noexcept
+bool any_greater(vector_t rhs) const
 ```
 
 Example:
 
 ```cpp
-const auto result = position.any_greater(other);
+Vector3{1.0F, 5.0F, 2.0F}.any_greater(Vector3{3.0F, 4.0F, 6.0F}); // => true
 ```
 
 <a id="any-greater-equal"></a>
@@ -337,13 +338,13 @@ Returns true if any element is greater than or equal to the corresponding elemen
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE constexpr bool VECTORCALL any_greater_equal(vector_t rhs) const noexcept
+bool any_greater_equal(vector_t rhs) const
 ```
 
 Example:
 
 ```cpp
-const auto result = position.any_greater_equal(other);
+Vector3{1.0F, 2.0F, 3.0F}.any_greater_equal(Vector3{4.0F, 2.0F, 5.0F}); // => true
 ```
 
 <a id="any-less"></a>
@@ -354,13 +355,13 @@ Returns true if any element is less than the corresponding element in the other 
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE constexpr bool VECTORCALL any_less(vector_t rhs) const noexcept
+bool any_less(vector_t rhs) const
 ```
 
 Example:
 
 ```cpp
-const auto result = position.any_less(other);
+Vector3{1.0F, 5.0F, 6.0F}.any_less(Vector3{2.0F, 4.0F, 3.0F}); // => true
 ```
 
 <a id="any-less-equal"></a>
@@ -371,13 +372,13 @@ Returns true if any element is less than or equal to the corresponding element i
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE constexpr bool VECTORCALL any_less_equal(vector_t rhs) const noexcept
+bool any_less_equal(vector_t rhs) const
 ```
 
 Example:
 
 ```cpp
-const auto result = position.any_less_equal(other);
+Vector3{5.0F, 2.0F, 6.0F}.any_less_equal(Vector3{4.0F, 2.0F, 3.0F}); // => true
 ```
 
 <a id="area"></a>
@@ -388,14 +389,15 @@ Computes the multiplicative inclusive extent between this vector and a minimum b
 Signatures:
 
 ```cpp
-template <class target_element_t = area_element_t> SIMDLIB_FORCE_INLINE auto VECTORCALL area(vector_t minInclusive) const noexcept requires(std::is_integral_v<element_t> && std::is_integral_v<target_element_t> && sizeof(target_element_t) >= sizeof(element_t))
-SIMDLIB_FORCE_INLINE area_element_t VECTORCALL area() const noexcept requires std::is_integral_v<element_t>
+template <class target_element_t = area_element_t> auto area(vector_t minInclusive) const
+area_element_t area() const
 ```
 
 Example:
 
 ```cpp
-const auto result = position.area();
+using U16x3 = SimdLib::SimdVector<std::uint16_t, 3>;
+U16x3{2U, 3U, 4U}.area(); // => 24U
 ```
 
 <a id="avg"></a>
@@ -406,13 +408,14 @@ Computes the average of corresponding lanes where the specialization supports it
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE auto VECTORCALL avg(vector_t rhs) const noexcept requires requires(vector_t lhsValue, vector_t rhsValue)
+auto avg(vector_t rhs) const
 ```
 
 Example:
 
 ```cpp
-const auto result = position.avg(other);
+using U8x3 = SimdLib::SimdVector<std::uint8_t, 3>;
+U8x3{2U, 4U, 6U}.avg(U8x3{4U, 6U, 8U}); // => {3U, 5U, 7U}
 ```
 
 <a id="clamp"></a>
@@ -423,14 +426,15 @@ Clamps each element between the corresponding minimum and maximum elements.
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE vector_t VECTORCALL clamp(vector_t minValue, vector_t maxValue) const noexcept requires requires(vector_t value)
-SIMDLIB_FORCE_INLINE vector_t VECTORCALL clamp(element_t minValue, element_t maxValue) const noexcept requires requires(vector_t value)
+vector_t clamp(vector_t minValue, vector_t maxValue) const
+vector_t clamp(element_t minValue, element_t maxValue) const
 ```
 
 Example:
 
 ```cpp
-const auto result = position.clamp(other, minimum);
+Vector3{-2.0F, 5.0F, 12.0F}.clamp(
+    Vector3{0.0F}, Vector3{10.0F}); // => {0.0F, 5.0F, 10.0F}
 ```
 
 <a id="dot-product"></a>
@@ -441,13 +445,14 @@ Computes the scalar dot product over the vector's declared dimension count.
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE element_t VECTORCALL dot_product(vector_t rhs) const noexcept requires(std::is_floating_point_v<element_t> && requires(vector_t lhsValue, vector_t rhsValue)
+element_t dot_product(vector_t rhs) const
 ```
 
 Example:
 
 ```cpp
-const auto result = position.dot_product(other);
+Vector3{1.0F, 2.0F, 3.0F}.dot_product(
+    Vector3{4.0F, 5.0F, 6.0F}); // => 32.0F in every result lane
 ```
 
 <a id="getregister"></a>
@@ -458,14 +463,15 @@ Returns the underlying SIMD register.
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE vector_t &VECTORCALL getRegister() noexcept
-SIMDLIB_FORCE_INLINE vector_t VECTORCALL getRegister() const noexcept
+vector_t &getRegister()
+vector_t getRegister() const
 ```
 
 Example:
 
 ```cpp
-const auto result = position.getRegister();
+Vector3{1.0F, 2.0F, 3.0F}
+    .getRegister(); // => register lanes {1.0F, 2.0F, 3.0F, 0.0F, ...}
 ```
 
 <a id="getspan"></a>
@@ -476,14 +482,15 @@ Returns a span over the SIMD vector's elements.
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE std::span<element_t, simd::element_count> getSpan() noexcept
-SIMDLIB_FORCE_INLINE std::span<const element_t, simd::element_count> getSpan() const noexcept
+std::span<element_t, simd::element_count> getSpan()
+std::span<const element_t, simd::element_count> getSpan() const
 ```
 
 Example:
 
 ```cpp
-const auto result = position.getSpan();
+Vector3 input{1.0F, 2.0F, 3.0F};
+input.getSpan(); // => span over {1.0F, 2.0F, 3.0F}
 ```
 
 <a id="gettuple"></a>
@@ -494,13 +501,13 @@ Returns a tuple containing the span view used by tuple-like integrations.
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE constexpr auto getTuple() const noexcept
+auto getTuple() const
 ```
 
 Example:
 
 ```cpp
-const auto result = position.getTuple();
+Vector3{1.0F, 2.0F, 3.0F}.getTuple(); // => tuple {1.0F, 2.0F, 3.0F}
 ```
 
 <a id="magnitude"></a>
@@ -511,13 +518,13 @@ Computes the per-128-bit-lane magnitude when the underlying Simd specialization 
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE auto VECTORCALL magnitude() const noexcept requires requires(vector_t value)
+auto magnitude() const
 ```
 
 Example:
 
 ```cpp
-const auto result = position.magnitude();
+Vector3{3.0F, 4.0F, 0.0F}.magnitude(); // => 5.0F
 ```
 
 <a id="max"></a>
@@ -528,13 +535,13 @@ Returns a SIMD register containing the per-element maxima.
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE vector_t VECTORCALL max(vector_t rhs) const noexcept
+vector_t max(vector_t rhs) const
 ```
 
 Example:
 
 ```cpp
-const auto result = position.max(other);
+Vector3{1.0F, 5.0F, 3.0F}.max(Vector3{2.0F, 4.0F, 6.0F}); // => {2.0F, 5.0F, 6.0F}
 ```
 
 <a id="max-position"></a>
@@ -545,13 +552,14 @@ Returns the first index of the maximum value in the vector.
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE std::size_t VECTORCALL max_position() const noexcept requires requires(vector_t value)
+std::size_t max_position() const
 ```
 
 Example:
 
 ```cpp
-const auto result = position.max_position();
+using U16x3 = SimdLib::SimdVector<std::uint16_t, 3>;
+U16x3{4U, 1U, 3U}.max_position(); // => 0
 ```
 
 <a id="min"></a>
@@ -562,13 +570,13 @@ Returns a SIMD register containing the per-element minima.
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE vector_t VECTORCALL min(vector_t rhs) const noexcept
+vector_t min(vector_t rhs) const
 ```
 
 Example:
 
 ```cpp
-const auto result = position.min(other);
+Vector3{1.0F, 5.0F, 3.0F}.min(Vector3{2.0F, 4.0F, 6.0F}); // => {1.0F, 4.0F, 3.0F}
 ```
 
 <a id="min-position"></a>
@@ -579,13 +587,14 @@ Returns the first index of the minimum value in the vector.
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE std::size_t VECTORCALL min_position() const noexcept requires requires(vector_t value)
+std::size_t min_position() const
 ```
 
 Example:
 
 ```cpp
-const auto result = position.min_position();
+using U16x3 = SimdLib::SimdVector<std::uint16_t, 3>;
+U16x3{4U, 1U, 3U}.min_position(); // => 1
 ```
 
 <a id="multi-sum-absolute-byte-differences"></a>
@@ -596,13 +605,15 @@ Computes byte-window absolute-difference sums selected by a compile-time immedia
 Signatures:
 
 ```cpp
-template <int imm8> SIMDLIB_FORCE_INLINE auto VECTORCALL multi_sum_absolute_byte_differences(vector_t rhs) const noexcept requires requires(vector_t lhsValue, vector_t rhsValue)
+template <int imm8> auto multi_sum_absolute_byte_differences(vector_t rhs) const
 ```
 
 Example:
 
 ```cpp
-const auto result = position.multi_sum_absolute_byte_differences(other);
+using U8x16 = SimdLib::uint8x16;
+U8x16{9}.multi_sum_absolute_byte_differences<0>(U8x16{
+    4}); // => every selected 16-bit result lane is 20
 ```
 
 <a id="multiply-add"></a>
@@ -613,13 +624,14 @@ Computes a fused multiply-add where the specialization supports it.
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE auto VECTORCALL multiply_add(vector_t rhs, vector_t addend) const noexcept requires requires(vector_t lhsValue, vector_t rhsValue, vector_t addValue)
+auto multiply_add(vector_t rhs, vector_t addend) const
 ```
 
 Example:
 
 ```cpp
-const auto result = position.multiply_add(other, minimum);
+Vector3{2.0F, 3.0F, 4.0F}.multiply_add(
+    Vector3{5.0F, 6.0F, 7.0F}, Vector3{1.0F}); // => {11.0F, 19.0F, 29.0F}
 ```
 
 <a id="multiply-add-adjacent"></a>
@@ -630,13 +642,15 @@ Multiplies adjacent lane pairs and accumulates them into promoted result lanes.
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE auto VECTORCALL multiply_add_adjacent(vector_t rhs) const noexcept requires requires(vector_t lhsValue, vector_t rhsValue)
+auto multiply_add_adjacent(vector_t rhs) const
 ```
 
 Example:
 
 ```cpp
-const auto result = position.multiply_add_adjacent(other);
+using I16x4 = SimdLib::SimdVector<std::int16_t, 4>;
+I16x4{1, 2, 3, 4}.multiply_add_adjacent(
+    I16x4{5, 6, 7, 8}); // => low promoted lanes are {17, 53}
 ```
 
 <a id="multiply-add-unsigned-signed-bytes"></a>
@@ -647,13 +661,15 @@ Multiplies raw register bytes as unsigned and signed pairs and accumulates them 
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE auto VECTORCALL multiply_add_unsigned_signed_bytes(vector_t rhs) const noexcept requires requires(vector_t lhsValue, vector_t rhsValue)
+auto multiply_add_unsigned_signed_bytes(vector_t rhs) const
 ```
 
 Example:
 
 ```cpp
-const auto result = position.multiply_add_unsigned_signed_bytes(other);
+using U8x16 = SimdLib::uint8x16;
+U8x16{2}.multiply_add_unsigned_signed_bytes(
+    U8x16{3}); // => every signed 16-bit result lane is 12
 ```
 
 <a id="multiply-saturated"></a>
@@ -664,14 +680,15 @@ Multiplies the two vectors and clamps integer overflow to the underlying type's 
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE vector_t VECTORCALL multiply_saturated(vector_t rhs) const noexcept requires requires(vector_t lhsValue, vector_t rhsValue)
-SIMDLIB_FORCE_INLINE vector_t VECTORCALL multiply_saturated(element_t rhs) const noexcept requires requires(vector_t lhsValue, vector_t rhsValue)
+vector_t multiply_saturated(vector_t rhs) const
+vector_t multiply_saturated(element_t rhs) const
 ```
 
 Example:
 
 ```cpp
-const auto result = position.multiply_saturated(other);
+using U16x3 = SimdLib::SimdVector<std::uint16_t, 3>;
+U16x3{40000U, 5U, 2U}.multiply_saturated(U16x3{2U, 6U, 4U}); // => {65535U, 30U, 8U}
 ```
 
 <a id="normalize"></a>
@@ -682,13 +699,13 @@ Normalizes floating-point lanes using the Simd API's lane-local length semantics
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE auto VECTORCALL normalize() const noexcept requires requires(vector_t value)
+auto normalize() const
 ```
 
 Example:
 
 ```cpp
-const auto result = position.normalize();
+Vector3{3.0F, 4.0F, 0.0F}.normalize(); // => {0.6F, 0.8F, 0.0F}
 ```
 
 <a id="operator-std-array-element-t-simd-element-countconversion"></a>
@@ -699,13 +716,14 @@ Converts the wrapped SIMD register to a fixed array.
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE constexpr explicit operator std::array<element_t, simd::element_count>() const noexcept
+explicit operator std::array<element_t, simd::element_count>() const
 ```
 
 Example:
 
 ```cpp
-const auto converted = static_cast<Destination>(position);
+static_cast<std::array<float, Vector3::simd::element_count>>(Vector3{
+    1.0F, 2.0F, 3.0F}); // => {1.0F, 2.0F, 3.0F, 0.0F, ...}
 ```
 
 <a id="operator-std-span-const-element-t-simd-element-countconversion"></a>
@@ -716,13 +734,15 @@ Returns a readonly span view over the underlying register storage.
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE operator std::span<const element_t, simd::element_count>() const noexcept
+operator std::span<const element_t, simd::element_count>() const
 ```
 
 Example:
 
 ```cpp
-const auto converted = static_cast<Destination>(position);
+const Vector3 input{1.0F, 2.0F, 3.0F};
+static_cast<std::span<const float, Vector3::simd::element_count>>(
+    input); // => read-only view beginning {1.0F, 2.0F, 3.0F}
 ```
 
 <a id="operator-std-span-element-t-simd-element-countconversion"></a>
@@ -733,13 +753,15 @@ Returns a mutable span view over the underlying register storage.
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE operator std::span<element_t, simd::element_count>() noexcept
+operator std::span<element_t, simd::element_count>()
 ```
 
 Example:
 
 ```cpp
-const auto converted = static_cast<Destination>(position);
+Vector3 input{1.0F, 2.0F, 3.0F};
+static_cast<std::span<float, Vector3::simd::element_count>>(
+    input); // => mutable view beginning {1.0F, 2.0F, 3.0F}
 ```
 
 <a id="operator-vector-t"></a>
@@ -750,13 +772,14 @@ Implicitly converts this wrapper to the underlying SIMD register.
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE VECTORCALL operator vector_t() const noexcept
+operator vector_t() const
 ```
 
 Example:
 
 ```cpp
-const auto converted = static_cast<Destination>(position);
+static_cast<Vector3::vector_t>(Vector3{
+    1.0F, 2.0F, 3.0F}); // => register lanes {1.0F, 2.0F, 3.0F, 0.0F, ...}
 ```
 
 <a id="operator-minus"></a>
@@ -767,15 +790,15 @@ Subtracts another register lane-wise from this vector.
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE vector_t VECTORCALL operator-(vector_t rhs) const noexcept
-SIMDLIB_FORCE_INLINE vector_t VECTORCALL operator-(element_t rhs) const noexcept
-SIMDLIB_FORCE_INLINE vector_t VECTORCALL operator-() const noexcept
+vector_t operator-(vector_t rhs) const
+vector_t operator-(element_t rhs) const
+vector_t operator-() const
 ```
 
 Example:
 
 ```cpp
-const auto result = position - other;
+Vector3{4.0F, 5.0F, 6.0F} - Vector3{1.0F, 2.0F, 3.0F}; // => {3.0F, 3.0F, 3.0F}
 ```
 
 <a id="operator-minus-assign"></a>
@@ -786,14 +809,15 @@ Subtracts another register lane-wise from this vector in place.
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE SimdVector &VECTORCALL operator-=(vector_t rhs) noexcept
-SIMDLIB_FORCE_INLINE SimdVector &VECTORCALL operator-=(element_t rhs) noexcept
+SimdVector &operator-=(vector_t rhs)
+SimdVector &operator-=(element_t rhs)
 ```
 
 Example:
 
 ```cpp
-position -= other;
+Vector3 result{7.0F, 8.0F, 9.0F};
+result -= Vector3{1.0F, 2.0F, 3.0F}; // => {6.0F, 6.0F, 6.0F}
 ```
 
 <a id="operator-subscript"></a>
@@ -804,14 +828,14 @@ Returns the element at the requested lane index.
 Signatures:
 
 ```cpp
-constexpr inline element_t operator[](const std::size_t index) const noexcept
-constexpr inline element_t &operator[](const std::size_t index) noexcept
+element_t operator[](std::size_t index) const
+element_t &operator[](std::size_t index)
 ```
 
 Example:
 
 ```cpp
-const float x = position[0];
+Vector3{1.0F, 2.0F, 3.0F}[1]; // => 2.0F
 ```
 
 <a id="operator-multiply"></a>
@@ -822,14 +846,14 @@ Multiplies this vector by another register lane-wise.
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE vector_t VECTORCALL operator*(vector_t rhs) const noexcept
-SIMDLIB_FORCE_INLINE vector_t VECTORCALL operator*(element_t rhs) const noexcept
+vector_t operator*(vector_t rhs) const
+vector_t operator*(element_t rhs) const
 ```
 
 Example:
 
 ```cpp
-const auto result = position * other;
+Vector3{1.0F, 2.0F, 3.0F} * 2.0F; // => {2.0F, 4.0F, 6.0F}
 ```
 
 <a id="operator-multiply-assign"></a>
@@ -840,14 +864,15 @@ Multiplies this vector by another register lane-wise in place.
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE SimdVector &VECTORCALL operator*=(vector_t rhs) noexcept
-SIMDLIB_FORCE_INLINE SimdVector &VECTORCALL operator*=(element_t rhs) noexcept
+SimdVector &operator*=(vector_t rhs)
+SimdVector &operator*=(element_t rhs)
 ```
 
 Example:
 
 ```cpp
-position *= other;
+Vector3 result{1.0F, 2.0F, 3.0F};
+result *= Vector3{4.0F, 5.0F, 6.0F}; // => {4.0F, 10.0F, 18.0F}
 ```
 
 <a id="operator-divide"></a>
@@ -858,14 +883,14 @@ Divides this vector by another register lane-wise.
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE vector_t VECTORCALL operator/(vector_t rhs) const noexcept
-SIMDLIB_FORCE_INLINE vector_t VECTORCALL operator/(element_t rhs) const noexcept
+vector_t operator/(vector_t rhs) const
+vector_t operator/(element_t rhs) const
 ```
 
 Example:
 
 ```cpp
-const auto result = position / other;
+Vector3{2.0F, 4.0F, 6.0F} / 2.0F; // => {1.0F, 2.0F, 3.0F}
 ```
 
 <a id="operator-divide-assign"></a>
@@ -876,14 +901,15 @@ Divides this vector by another register lane-wise in place.
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE SimdVector &VECTORCALL operator/=(vector_t rhs) noexcept
-SIMDLIB_FORCE_INLINE SimdVector &VECTORCALL operator/=(element_t rhs) noexcept
+SimdVector &operator/=(vector_t rhs)
+SimdVector &operator/=(element_t rhs)
 ```
 
 Example:
 
 ```cpp
-position /= other;
+Vector3 result{8.0F, 12.0F, 18.0F};
+result /= Vector3{2.0F, 3.0F, 6.0F}; // => {4.0F, 4.0F, 3.0F}
 ```
 
 <a id="operator-and"></a>
@@ -894,13 +920,15 @@ Computes a lane-wise bitwise AND with another register.
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE SimdVector VECTORCALL operator&(vector_t rhs) const noexcept
+SimdVector operator&(vector_t rhs) const
 ```
 
 Example:
 
 ```cpp
-const auto result = position & other;
+using U32x3 = SimdLib::SimdVector<std::uint32_t, 3>;
+U32x3{0b1100U, 0b1010U, 0b1111U} &
+    U32x3{0b1010U, 0b0110U, 0b0101U}; // => {0b1000U, 0b0010U, 0b0101U}
 ```
 
 <a id="operator-and-assign"></a>
@@ -911,13 +939,15 @@ Applies a lane-wise bitwise AND with another register in place.
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE SimdVector &VECTORCALL operator&=(vector_t rhs) noexcept
+SimdVector &operator&=(vector_t rhs)
 ```
 
 Example:
 
 ```cpp
-position &= other;
+using U32x3 = SimdLib::SimdVector<std::uint32_t, 3>;
+U32x3 result{0b1100U, 0b1010U, 0b1111U};
+result &= U32x3{0b1010U, 0b0110U, 0b0101U}; // => {0b1000U, 0b0010U, 0b0101U}
 ```
 
 <a id="operator-modulus"></a>
@@ -928,14 +958,15 @@ Computes the lane-wise remainder with another register.
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE vector_t VECTORCALL operator%(vector_t rhs) const noexcept
-SIMDLIB_FORCE_INLINE vector_t VECTORCALL operator%(element_t rhs) const noexcept
+vector_t operator%(vector_t rhs) const
+vector_t operator%(element_t rhs) const
 ```
 
 Example:
 
 ```cpp
-const auto result = position % other;
+using I32x3 = SimdLib::SimdVector<std::int32_t, 3>;
+I32x3{7, 8, 9} % 4; // => {3, 0, 1}
 ```
 
 <a id="operator-modulus-assign"></a>
@@ -946,14 +977,16 @@ Computes the lane-wise remainder with another register in place.
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE SimdVector &VECTORCALL operator%=(vector_t rhs) noexcept
-SIMDLIB_FORCE_INLINE SimdVector &VECTORCALL operator%=(element_t rhs) noexcept
+SimdVector &operator%=(vector_t rhs)
+SimdVector &operator%=(element_t rhs)
 ```
 
 Example:
 
 ```cpp
-position %= other;
+using I32x3 = SimdLib::SimdVector<std::int32_t, 3>;
+I32x3 result{7, 8, 9};
+result %= I32x3{4, 4, 4}; // => {3, 0, 1}
 ```
 
 <a id="operator-xor"></a>
@@ -964,13 +997,15 @@ Computes a lane-wise bitwise XOR with another register.
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE SimdVector VECTORCALL operator^(vector_t rhs) const noexcept
+SimdVector operator^(vector_t rhs) const
 ```
 
 Example:
 
 ```cpp
-const auto result = position ^ other;
+using U32x3 = SimdLib::SimdVector<std::uint32_t, 3>;
+U32x3{0b1100U, 0b1010U, 0b1111U} ^
+    U32x3 { 0b1010U, 0b0110U, 0b0101U }; // => {0b0110U, 0b1100U, 0b1010U}
 ```
 
 <a id="operator-xor-assign"></a>
@@ -981,13 +1016,15 @@ Applies a lane-wise bitwise XOR with another register in place.
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE SimdVector &VECTORCALL operator^=(vector_t rhs) noexcept
+SimdVector &operator^=(vector_t rhs)
 ```
 
 Example:
 
 ```cpp
-position ^= other;
+using U32x3 = SimdLib::SimdVector<std::uint32_t, 3>;
+U32x3 result{0b1100U, 0b1010U, 0b1111U};
+result ^= U32x3{0b1010U, 0b0110U, 0b0101U}; // => {0b0110U, 0b1100U, 0b1010U}
 ```
 
 <a id="operator-plus"></a>
@@ -998,14 +1035,14 @@ Adds another register lane-wise to this vector.
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE vector_t VECTORCALL operator+(vector_t rhs) const noexcept
-SIMDLIB_FORCE_INLINE vector_t VECTORCALL operator+(element_t rhs) const noexcept
+vector_t operator+(vector_t rhs) const
+vector_t operator+(element_t rhs) const
 ```
 
 Example:
 
 ```cpp
-const auto result = position + other;
+Vector3{1.0F, 2.0F, 3.0F} + Vector3{4.0F, 5.0F, 6.0F}; // => {5.0F, 7.0F, 9.0F}
 ```
 
 <a id="operator-plus-assign"></a>
@@ -1016,14 +1053,15 @@ Adds another register lane-wise into this vector.
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE SimdVector &VECTORCALL operator+=(vector_t rhs) noexcept
-SIMDLIB_FORCE_INLINE SimdVector &VECTORCALL operator+=(element_t rhs) noexcept
+SimdVector &operator+=(vector_t rhs)
+SimdVector &operator+=(element_t rhs)
 ```
 
 Example:
 
 ```cpp
-position += other;
+Vector3 result{1.0F, 2.0F, 3.0F};
+result += Vector3{4.0F, 5.0F, 6.0F}; // => {5.0F, 7.0F, 9.0F}
 ```
 
 <a id="operator-less"></a>
@@ -1034,13 +1072,13 @@ Returns true if all elements are less than the corresponding element in the othe
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE constexpr bool VECTORCALL operator<(vector_t rhs) const noexcept
+bool operator<(vector_t rhs) const
 ```
 
 Example:
 
 ```cpp
-const auto result = position < other;
+Vector3{1.0F, 2.0F, 3.0F} < Vector3{2.0F, 3.0F, 4.0F}; // => true
 ```
 
 <a id="operator-shift-left"></a>
@@ -1051,13 +1089,14 @@ Shifts each integer lane left by the specified amount.
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE constexpr SimdVector VECTORCALL operator<<(int shift) const noexcept
+SimdVector operator<<(int shift) const
 ```
 
 Example:
 
 ```cpp
-const auto result = position << other;
+using U32x3 = SimdLib::SimdVector<std::uint32_t, 3>;
+U32x3{1U, 2U, 3U} << 1; // => {2U, 4U, 6U}
 ```
 
 <a id="operator-shift-left-assign"></a>
@@ -1068,13 +1107,15 @@ Shifts each integer lane left in place.
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE constexpr SimdVector &VECTORCALL operator<<=(int shift) noexcept
+SimdVector &operator<<=(int shift)
 ```
 
 Example:
 
 ```cpp
-position <<= other;
+using U32x3 = SimdLib::SimdVector<std::uint32_t, 3>;
+U32x3 result{1U, 2U, 3U};
+result <<= 1; // => {2U, 4U, 6U}
 ```
 
 <a id="operator-less-equal"></a>
@@ -1085,13 +1126,13 @@ Returns true if all elements are less than or equal to the corresponding element
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE constexpr bool VECTORCALL operator<=(vector_t rhs) const noexcept
+bool operator<=(vector_t rhs) const
 ```
 
 Example:
 
 ```cpp
-const auto result = position <= other;
+Vector3{1.0F, 2.0F, 3.0F} <= Vector3{1.0F, 3.0F, 3.0F}; // => true
 ```
 
 <a id="operator-assign"></a>
@@ -1102,14 +1143,15 @@ Replaces this SIMD vector with a copy of another SIMD vector.
 Signatures:
 
 ```cpp
-SimdVector &operator=(const SimdVector &other) = default;
-SimdVector &operator=(SimdVector &&other) = default;
+SimdVector &operator=(const SimdVector &other) = default
+SimdVector &operator=(SimdVector &&other) = default
 ```
 
 Example:
 
 ```cpp
-position = other;
+Vector3 result{};
+result = Vector3{1.0F, 2.0F, 3.0F}; // => result is {1.0F, 2.0F, 3.0F}
 ```
 
 <a id="operator-equal"></a>
@@ -1120,13 +1162,13 @@ Returns true if all elements equal the corresponding element in the other vector
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE constexpr bool VECTORCALL operator==(vector_t rhs) const noexcept
+bool operator==(vector_t rhs) const
 ```
 
 Example:
 
 ```cpp
-const auto result = position == other;
+Vector3{1.0F, 2.0F, 3.0F} == Vector3{1.0F, 2.0F, 3.0F}; // => true
 ```
 
 <a id="operator-greater"></a>
@@ -1137,13 +1179,13 @@ Returns true if all elements are greater than the corresponding element in the o
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE constexpr bool VECTORCALL operator>(vector_t rhs) const noexcept
+bool operator>(vector_t rhs) const
 ```
 
 Example:
 
 ```cpp
-const auto result = position > other;
+Vector3{4.0F, 5.0F, 6.0F} > Vector3{1.0F, 2.0F, 3.0F}; // => true
 ```
 
 <a id="operator-greater-equal"></a>
@@ -1154,13 +1196,13 @@ Returns true if all elements are greater than or equal to the corresponding elem
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE constexpr bool VECTORCALL operator>=(vector_t rhs) const noexcept
+bool operator>=(vector_t rhs) const
 ```
 
 Example:
 
 ```cpp
-const auto result = position >= other;
+Vector3{4.0F, 5.0F, 6.0F} >= Vector3{4.0F, 2.0F, 6.0F}; // => true
 ```
 
 <a id="operator-shift-right"></a>
@@ -1171,13 +1213,14 @@ Shifts each integer lane right by the specified amount.
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE constexpr SimdVector VECTORCALL operator>>(int shift) const noexcept
+SimdVector operator>>(int shift) const
 ```
 
 Example:
 
 ```cpp
-const auto result = position >> other;
+using U32x3 = SimdLib::SimdVector<std::uint32_t, 3>;
+U32x3{2U, 4U, 6U} >> 1; // => {1U, 2U, 3U}
 ```
 
 <a id="operator-shift-right-assign"></a>
@@ -1188,13 +1231,15 @@ Shifts each integer lane right in place.
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE constexpr SimdVector &VECTORCALL operator>>=(int shift) noexcept
+SimdVector &operator>>=(int shift)
 ```
 
 Example:
 
 ```cpp
-position >>= other;
+using U32x3 = SimdLib::SimdVector<std::uint32_t, 3>;
+U32x3 result{2U, 4U, 6U};
+result >>= 1; // => {1U, 2U, 3U}
 ```
 
 <a id="operator-or"></a>
@@ -1205,13 +1250,15 @@ Computes a lane-wise bitwise OR with another register.
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE SimdVector VECTORCALL operator|(vector_t rhs) const noexcept
+SimdVector operator|(vector_t rhs) const
 ```
 
 Example:
 
 ```cpp
-const auto result = position | other;
+using U32x3 = SimdLib::SimdVector<std::uint32_t, 3>;
+U32x3{0b1100U, 0b1010U, 0b1111U} |
+    U32x3{0b1010U, 0b0110U, 0b0101U}; // => {0b1110U, 0b1110U, 0b1111U}
 ```
 
 <a id="operator-or-assign"></a>
@@ -1222,13 +1269,15 @@ Applies a lane-wise bitwise OR with another register in place.
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE SimdVector &VECTORCALL operator|=(vector_t rhs) noexcept
+SimdVector &operator|=(vector_t rhs)
 ```
 
 Example:
 
 ```cpp
-position |= other;
+using U32x3 = SimdLib::SimdVector<std::uint32_t, 3>;
+U32x3 result{0b1100U, 0b1010U, 0b1111U};
+result |= U32x3{0b1010U, 0b0110U, 0b0101U}; // => {0b1110U, 0b1110U, 0b1111U}
 ```
 
 <a id="operator-not"></a>
@@ -1239,13 +1288,14 @@ Inverts every bit in the underlying register.
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE SimdVector VECTORCALL operator~() const noexcept
+SimdVector operator~() const
 ```
 
 Example:
 
 ```cpp
-const auto result = ~position;
+using U32x3 = SimdLib::SimdVector<std::uint32_t, 3>;
+~U32x3{0U}; // => {0xFFFFFFFFU, 0xFFFFFFFFU, 0xFFFFFFFFU}
 ```
 
 <a id="sign"></a>
@@ -1256,13 +1306,13 @@ Returns the sign of each element as -1, 0, or 1, or 0 and 1 for unsigned types.
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE vector_t VECTORCALL sign() const noexcept requires requires(vector_t value)
+vector_t sign() const
 ```
 
 Example:
 
 ```cpp
-const auto result = position.sign();
+Vector3{-1.0F, 0.0F, 3.0F}.sign(); // => {-1.0F, 0.0F, 1.0F}
 ```
 
 <a id="simdvector"></a>
@@ -1273,24 +1323,24 @@ Copies another SIMD vector.
 Signatures:
 
 ```cpp
-SimdVector(const SimdVector &other) = default;
-SimdVector(SimdVector &&other) = default;
-SIMDLIB_FORCE_INLINE constexpr SimdVector() noexcept
-SIMDLIB_FORCE_INLINE constexpr SimdVector(vector_t data) noexcept
-SIMDLIB_FORCE_INLINE constexpr explicit SimdVector(element_t v) noexcept
-SIMDLIB_FORCE_INLINE constexpr explicit SimdVector(std::span<element_t, simd::element_count> data) noexcept
-SIMDLIB_FORCE_INLINE constexpr explicit SimdVector(std::span<const element_t, simd::element_count> data) noexcept
-SIMDLIB_FORCE_INLINE constexpr explicit SimdVector(std::span<element_t, element_count> data) noexcept requires(element_count != simd::element_count)
-SIMDLIB_FORCE_INLINE constexpr explicit SimdVector(std::span<const element_t, element_count> data) noexcept requires(element_count != simd::element_count)
-SIMDLIB_FORCE_INLINE constexpr explicit SimdVector(const std::array<element_t, simd::element_count> &data) noexcept
-SIMDLIB_FORCE_INLINE constexpr explicit SimdVector(const std::array<element_t, element_count> &data) noexcept requires(element_count != simd::element_count)
-template <std::convertible_to<element_t>... Args> requires(sizeof...(Args) == element_count) SIMDLIB_FORCE_INLINE constexpr explicit SimdVector(Args &&...args) noexcept
+SimdVector(const SimdVector &other) = default
+SimdVector(SimdVector &&other) = default
+SimdVector()
+SimdVector(vector_t data)
+explicit SimdVector(element_t v)
+explicit SimdVector(std::span<element_t, simd::element_count> data)
+explicit SimdVector(std::span<const element_t, simd::element_count> data)
+explicit SimdVector(std::span<element_t, element_count> data)
+explicit SimdVector(std::span<const element_t, element_count> data)
+explicit SimdVector(const std::array<element_t, simd::element_count> &data)
+explicit SimdVector(const std::array<element_t, element_count> &data)
+template <std::convertible_to<element_t>... Args>
 ```
 
 Example:
 
 ```cpp
-Vector3 position{1.0F, 2.0F, 3.0F};
+Vector3{1.0F, 2.0F, 3.0F}; // => {1.0F, 2.0F, 3.0F}
 ```
 
 <a id="size"></a>
@@ -1301,30 +1351,33 @@ Computes the inclusive per-lane extent between this vector and a minimum bound.
 Signatures:
 
 ```cpp
-template <class target_element_t = area_element_t> SIMDLIB_FORCE_INLINE auto VECTORCALL size(vector_t minInclusive) const noexcept requires(std::is_integral_v<element_t> && std::is_integral_v<target_element_t> && sizeof(target_element_t) >= sizeof(element_t))
+template <class target_element_t = area_element_t> auto size(vector_t minInclusive) const
 ```
 
 Example:
 
 ```cpp
-const auto result = position.size();
+using U16x3 = SimdLib::SimdVector<std::uint16_t, 3>;
+U16x3{5U, 7U, 9U}.size(U16x3{1U, 2U, 3U}.getRegister()); // => {5U, 6U, 7U}
 ```
 
-<a id="sizeof"></a>
-## `sizeof`
+<a id="simdvector-widening"></a>
+## `SimdVector` widening constructor
 
 Constructs a new SIMD vector by widening another SIMD vector with the same logical element count.
 
 Signatures:
 
 ```cpp
-template <class source_t> requires(std::is_integral_v<source_t> && std::is_integral_v<element_t> && sizeof(source_t) < sizeof(element_t)) SIMDLIB_FORCE_INLINE constexpr explicit SimdVector(const SimdVector<source_t, element_count> &other) noexcept
+template <class source_t>
+explicit SimdVector(const SimdVector<source_t, element_count> &other)
 ```
 
 Example:
 
 ```cpp
-const auto result = position.sizeof(other);
+SimdLib::SimdVector<std::uint32_t, 3>{
+    SimdLib::SimdVector<std::uint16_t, 3>{1U, 2U, 3U}}; // => {1U, 2U, 3U}
 ```
 
 <a id="sqrt"></a>
@@ -1335,13 +1388,13 @@ Computes the square root of each element.
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE auto VECTORCALL sqrt() const noexcept requires requires(vector_t value)
+auto sqrt() const
 ```
 
 Example:
 
 ```cpp
-const auto result = position.sqrt();
+Vector3{1.0F, 4.0F, 9.0F}.sqrt(); // => {1.0F, 2.0F, 3.0F}
 ```
 
 <a id="subtract-horizontal"></a>
@@ -1352,13 +1405,14 @@ Subtracts adjacent lane pairs within each 128-bit lane.
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE auto VECTORCALL subtract_horizontal(vector_t rhs) const noexcept requires requires(vector_t lhsValue, vector_t rhsValue)
+auto subtract_horizontal(vector_t rhs) const
 ```
 
 Example:
 
 ```cpp
-const auto result = position.subtract_horizontal(other);
+Vector3{5.0F, 2.0F, 9.0F}.subtract_horizontal(
+    Vector3{8.0F, 3.0F, 6.0F}); // => register lanes are {3.0F, 9.0F, 5.0F, 6.0F}
 ```
 
 <a id="subtract-horizontal-saturated"></a>
@@ -1369,13 +1423,15 @@ Subtracts adjacent lane pairs with saturation where the specialization supports 
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE auto VECTORCALL subtract_horizontal_saturated(vector_t rhs) const noexcept requires requires(vector_t lhsValue, vector_t rhsValue)
+auto subtract_horizontal_saturated(vector_t rhs) const
 ```
 
 Example:
 
 ```cpp
-const auto result = position.subtract_horizontal_saturated(other);
+using I16x4 = SimdLib::SimdVector<std::int16_t, 4>;
+I16x4{30000, -10000, -30000, 10000}.subtract_horizontal_saturated(
+    I16x4{1, 2, 3, 4}); // => register lanes begin {32767, -32768, 0, 0, ...}
 ```
 
 <a id="subtract-saturated"></a>
@@ -1386,14 +1442,15 @@ Subtracts the two vectors and clamps integer overflow to the underlying type's m
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE vector_t VECTORCALL subtract_saturated(vector_t rhs) const noexcept requires requires(vector_t lhsValue, vector_t rhsValue)
-SIMDLIB_FORCE_INLINE vector_t VECTORCALL subtract_saturated(element_t rhs) const noexcept requires requires(vector_t lhsValue, vector_t rhsValue)
+vector_t subtract_saturated(vector_t rhs) const
+vector_t subtract_saturated(element_t rhs) const
 ```
 
 Example:
 
 ```cpp
-const auto result = position.subtract_saturated(other);
+using U8x3 = SimdLib::SimdVector<std::uint8_t, 3>;
+U8x3{5, 20, 30}.subtract_saturated(U8x3{10, 7, 40}); // => {0, 13, 0}
 ```
 
 <a id="sum-absolute-byte-differences"></a>
@@ -1404,13 +1461,14 @@ Computes byte-wise absolute differences and accumulates them into 64-bit result 
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE auto VECTORCALL sum_absolute_byte_differences(vector_t rhs) const noexcept requires requires(vector_t lhsValue, vector_t rhsValue)
+auto sum_absolute_byte_differences(vector_t rhs) const
 ```
 
 Example:
 
 ```cpp
-const auto result = position.sum_absolute_byte_differences(other);
+using U8x16 = SimdLib::uint8x16;
+U8x16{9}.sum_absolute_byte_differences(U8x16{4}); // => both 64-bit result lanes are 40
 ```
 
 <a id="toarray"></a>
@@ -1421,13 +1479,13 @@ Converts the SIMD vector to an array of elements.
 Signatures:
 
 ```cpp
-SIMDLIB_FORCE_INLINE constexpr std::array<element_t, simd::element_count> toArray() const noexcept
+std::array<element_t, simd::element_count> toArray() const
 ```
 
 Example:
 
 ```cpp
-const auto result = position.toArray();
+Vector3{1.0F, 2.0F, 3.0F}.toArray(); // => {1.0F, 2.0F, 3.0F, 0.0F, ...}
 ```
 
 <a id="w"></a>
@@ -1438,14 +1496,14 @@ Returns a mutable reference to the fourth element.
 Signatures:
 
 ```cpp
-constexpr inline element_t &w() noexcept requires(element_count > 3)
-constexpr inline element_t w() const noexcept requires(element_count > 3)
+element_t &w()
+element_t w() const
 ```
 
 Example:
 
 ```cpp
-const auto result = position.w();
+SimdLib::SimdVector<float, 4>{1.0F, 2.0F, 3.0F, 4.0F}.w(); // => 4.0F
 ```
 
 <a id="x"></a>
@@ -1456,14 +1514,14 @@ Returns a mutable reference to the first element.
 Signatures:
 
 ```cpp
-constexpr inline element_t &x() noexcept requires(element_count > 0)
-constexpr inline element_t x() const noexcept requires(element_count > 0)
+element_t &x()
+element_t x() const
 ```
 
 Example:
 
 ```cpp
-const auto result = position.x();
+Vector3{1.0F, 2.0F, 3.0F}.x(); // => 1.0F
 ```
 
 <a id="y"></a>
@@ -1474,14 +1532,14 @@ Returns a mutable reference to the second element.
 Signatures:
 
 ```cpp
-constexpr inline element_t &y() noexcept requires(element_count > 1)
-constexpr inline element_t y() const noexcept requires(element_count > 1)
+element_t &y()
+element_t y() const
 ```
 
 Example:
 
 ```cpp
-const auto result = position.y();
+Vector3{1.0F, 2.0F, 3.0F}.y(); // => 2.0F
 ```
 
 <a id="z"></a>
@@ -1492,14 +1550,14 @@ Returns a mutable reference to the third element.
 Signatures:
 
 ```cpp
-constexpr inline element_t &z() noexcept requires(element_count > 2)
-constexpr inline element_t z() const noexcept requires(element_count > 2)
+element_t &z()
+element_t z() const
 ```
 
 Example:
 
 ```cpp
-const auto result = position.z();
+Vector3{1.0F, 2.0F, 3.0F}.z(); // => 3.0F
 ```
 
 <a id="related-types-and-constants"></a>

@@ -16,6 +16,7 @@ Deprecated alias for `Api<register_width, element_t>`. Its methods are documente
 ```cpp
 using OldApi [[deprecated]] = SimdLib::SimdApi<128, float>;
 using NewApi = SimdLib::Api<128, float>;
+static_assert(std::same_as<OldApi, NewApi>); // => true
 ```
 
 <a id="simdapiavailable"></a>
@@ -24,7 +25,7 @@ using NewApi = SimdLib::Api<128, float>;
 Deprecated alias for the `ApiAvailable` concept.
 
 ```cpp
-static_assert(SimdLib::SimdApiAvailable<128, float>);
+SimdLib::SimdApiAvailable<128, float>; // => same result as ApiAvailable<128, float>
 ```
 
 <a id="is-simd-api-available-v"></a>
@@ -33,6 +34,7 @@ static_assert(SimdLib::SimdApiAvailable<128, float>);
 Deprecated alias for `is_api_available_v`.
 
 ```cpp
-static_assert(SimdLib::is_simd_api_available_v<128, float>);
+SimdLib::is_simd_api_available_v<
+    128,
+    float>; // => same result as is_api_available_v<128, float>
 ```
-

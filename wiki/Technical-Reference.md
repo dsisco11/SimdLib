@@ -185,23 +185,28 @@ translation unit:
 #include <format>
 
 using Api = SimdLib::Api<128, std::uint32_t>;
-auto sum = Api::add(Api::setr(1, 2, 3, 4), Api::set1(10));
+Api::add(
+    Api::construct({2, 2, 2, 2}),
+    Api::construct({10, 10, 10, 10})); // => {12, 12, 12, 12}
 
 SimdLib::SimdVector<std::uint32_t, 4> vector{3, 5, 7, 9};
-auto vector_text = std::format("{}", vector);
+auto vector_text = std::format("{}", vector); // => "{3, 5, 7, 9}"
 
-std::array<std::uint8_t, 8> values{1, 2, 3, 4, 5, 6, 7, 8};
 bool contains_six = SimdLib::SimdAlgo<8, 8>::AnyEqual(
-    values, std::uint8_t{6});
+    std::span<const std::uint8_t, 8>{
+        std::array<std::uint8_t, 8>{1, 2, 3, 4, 5, 6, 7, 8}},
+    std::uint8_t{6}); // => true
 
-auto extracted = SimdLib::Bmi::pext_u32(
-    std::uint32_t{0xD2}, std::uint32_t{0xF0});
+auto extracted =
+    SimdLib::Bmi::pext_u32(std::uint32_t{0xD2}, std::uint32_t{0xF0}); // => 0x0D
 SimdLib::uint128_t wide =
-    SimdLib::uint128_t{~std::uint64_t{0}} + SimdLib::uint128_t{1};
-auto wide_text = std::format("{}", wide);
+    SimdLib::uint128_t{~std::uint64_t{0}} + SimdLib::uint128_t{1}; // => 2^64
+auto wide_text = std::format("{}", wide); // => "18446744073709551616"
 
 std::array<std::uint8_t, 1> packed{};
-SimdLib::SimdResample::ReduceBytesToBitsBy8_Any(values, packed);
+SimdLib::SimdResample::ReduceBytesToBitsBy8_Any(
+    std::array<std::uint8_t, 8>{1, 2, 3, 4, 5, 6, 7, 8},
+    packed); // => packed[0] is 0b1111'1111
 ```
 
 Enable the executable with `-DSIMDLIB_BUILD_EXAMPLES=ON`.

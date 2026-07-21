@@ -5,7 +5,7 @@
 ## Contents
 
 - [Overview](#overview)
-- [Example setup](#example-setup)
+- [Example include](#example-setup)
 - [`~uint128_t`](#destructor-uint128-t)
 - [`abs_diff`](#abs-diff)
 - [`bit_ceil`](#bit-ceil)
@@ -56,15 +56,11 @@
 Include `<SimdLib/UInt128.h>`. Overloads with the same name are collected in one subsection; every public overload is listed below.
 
 <a id="example-setup"></a>
-## Example setup
+## Example include
 
 ```cpp
 #include <SimdLib/UInt128.h>
-
-SimdLib::uint128_t value{42};
-SimdLib::uint128_t other{7};
 ```
-
 <a id="destructor-uint128-t"></a>
 ## `~uint128_t`
 
@@ -73,13 +69,15 @@ Destroys the value.
 Signatures:
 
 ```cpp
-constexpr ~uint128_t() = default;
+~uint128_t() = default
 ```
 
 Example:
 
 ```cpp
-const auto result = value.~uint128_t();
+{
+  const SimdLib::uint128_t temporary{42};
+} // => temporary is destroyed at the closing brace
 ```
 
 <a id="abs-diff"></a>
@@ -90,13 +88,13 @@ Computes the absolute difference between two unsigned 128-bit values.
 Signatures:
 
 ```cpp
-[[nodiscard]] constexpr uint128_t abs_diff(const uint128_t& other) const noexcept
+uint128_t abs_diff(const uint128_t& other) const
 ```
 
 Example:
 
 ```cpp
-const auto result = value.abs_diff(other);
+SimdLib::uint128_t{10}.abs_diff(SimdLib::uint128_t{3}); // => 7
 ```
 
 <a id="bit-ceil"></a>
@@ -107,13 +105,13 @@ Returns the smallest representable power of two not less than the value, or zero
 Signatures:
 
 ```cpp
-[[nodiscard]] constexpr uint128_t bit_ceil(const uint128_t value) noexcept
+uint128_t bit_ceil(uint128_t value)
 ```
 
 Example:
 
 ```cpp
-const auto result = SimdLib::bit_ceil(value);
+SimdLib::bit_ceil(SimdLib::uint128_t{9}); // => 16
 ```
 
 <a id="bit-floor"></a>
@@ -124,13 +122,13 @@ Returns the greatest power of two not greater than the value.
 Signatures:
 
 ```cpp
-[[nodiscard]] constexpr uint128_t bit_floor(const uint128_t value) noexcept
+uint128_t bit_floor(uint128_t value)
 ```
 
 Example:
 
 ```cpp
-const auto result = SimdLib::bit_floor(value);
+SimdLib::bit_floor(SimdLib::uint128_t{9}); // => 8
 ```
 
 <a id="bit-width"></a>
@@ -141,13 +139,13 @@ Returns the number of bits required to represent the value.
 Signatures:
 
 ```cpp
-[[nodiscard]] constexpr int bit_width(const uint128_t value) noexcept
+int bit_width(uint128_t value)
 ```
 
 Example:
 
 ```cpp
-const auto result = SimdLib::bit_width(value);
+SimdLib::bit_width(SimdLib::uint128_t{9}); // => 4
 ```
 
 <a id="countl-one"></a>
@@ -158,13 +156,13 @@ Returns the number of consecutive one bits from the most-significant side.
 Signatures:
 
 ```cpp
-[[nodiscard]] constexpr int countl_one(const uint128_t value) noexcept
+int countl_one(uint128_t value)
 ```
 
 Example:
 
 ```cpp
-const auto result = SimdLib::countl_one(value);
+SimdLib::countl_one(SimdLib::uint128_t{0, 0xE000'0000'0000'0000ULL}); // => 3
 ```
 
 <a id="countl-zero"></a>
@@ -175,13 +173,13 @@ Returns the number of consecutive zero bits from the most-significant side.
 Signatures:
 
 ```cpp
-[[nodiscard]] constexpr int countl_zero(const uint128_t value) noexcept
+int countl_zero(uint128_t value)
 ```
 
 Example:
 
 ```cpp
-const auto result = SimdLib::countl_zero(value);
+SimdLib::countl_zero(SimdLib::uint128_t{1}); // => 127
 ```
 
 <a id="countr-one"></a>
@@ -192,13 +190,13 @@ Returns the number of consecutive one bits from the least-significant side.
 Signatures:
 
 ```cpp
-[[nodiscard]] constexpr int countr_one(const uint128_t value) noexcept
+int countr_one(uint128_t value)
 ```
 
 Example:
 
 ```cpp
-const auto result = SimdLib::countr_one(value);
+SimdLib::countr_one(SimdLib::uint128_t{7}); // => 3
 ```
 
 <a id="countr-zero"></a>
@@ -209,13 +207,13 @@ Returns the number of consecutive zero bits from the least-significant side.
 Signatures:
 
 ```cpp
-[[nodiscard]] constexpr int countr_zero(const uint128_t value) noexcept
+int countr_zero(uint128_t value)
 ```
 
 Example:
 
 ```cpp
-const auto result = SimdLib::countr_zero(value);
+SimdLib::countr_zero(SimdLib::uint128_t{8}); // => 3
 ```
 
 <a id="create-mask"></a>
@@ -226,13 +224,13 @@ Creates a mask containing `bitCount` low one bits.
 Signatures:
 
 ```cpp
-[[nodiscard]] static constexpr uint128_t create_mask(const int bitCount) noexcept
+static uint128_t create_mask(int bitCount)
 ```
 
 Example:
 
 ```cpp
-const auto result = SimdLib::uint128_t::create_mask(12);
+SimdLib::uint128_t::create_mask(4); // => 0b1111
 ```
 
 <a id="extract"></a>
@@ -243,15 +241,15 @@ Extracts a contiguous bit range and shifts it to bit zero. Prefer `SimdLib::Bmi:
 Signatures:
 
 ```cpp
-constexpr uint128_t extract(std::uint8_t len, std::uint8_t start) const noexcept;
-template <std::size_t len> constexpr std::uint64_t extract(std::uint8_t start) const noexcept;
-template <std::size_t start, std::size_t len> constexpr uint128_t extract() const noexcept;
+uint128_t extract(std::uint8_t len, std::uint8_t start) const
+template <std::size_t len> std::uint64_t extract(std::uint8_t start) const
+template <std::size_t start, std::size_t len> uint128_t extract() const
 ```
 
 Example:
 
 ```cpp
-const auto result = value.extract(8, 16); // Deprecated: prefer Bmi::bextr.
+SimdLib::uint128_t{0xABCD}.extract(8, 4); // => 0xBC (deprecated; prefer Bmi::bextr)
 ```
 
 <a id="from-register"></a>
@@ -262,13 +260,14 @@ Constructs a value by extracting both words from a backend register through Api.
 Signatures:
 
 ```cpp
-template <class Dependency = void> requires(simd_available<Dependency>) [[nodiscard]] static uint128_t from_register(const typename simd<Dependency>::vector_t value) noexcept
+template <class Dependency = void>
 ```
 
 Example:
 
 ```cpp
-const auto result = SimdLib::uint128_t::from_register(registerValue);
+SimdLib::uint128_t::from_register(
+    SimdLib::Api<128, std::uint64_t>::construct({5, 7})); // => low word 5, high word 7
 ```
 
 <a id="getblock"></a>
@@ -279,13 +278,13 @@ Returns the backing word at index zero (low) or one (high).
 Signatures:
 
 ```cpp
-[[nodiscard]] constexpr std::uint64_t getBlock(const int index) const noexcept
+std::uint64_t getBlock(int index) const
 ```
 
 Example:
 
 ```cpp
-const std::uint64_t upper = value.getBlock(1);
+SimdLib::uint128_t{5, 7}.getBlock(1); // => 7
 ```
 
 <a id="has-single-bit"></a>
@@ -296,13 +295,13 @@ Returns true when exactly one bit is set.
 Signatures:
 
 ```cpp
-[[nodiscard]] constexpr bool has_single_bit(const uint128_t value) noexcept
+bool has_single_bit(uint128_t value)
 ```
 
 Example:
 
 ```cpp
-const auto result = SimdLib::has_single_bit(value);
+SimdLib::has_single_bit(SimdLib::uint128_t{8}); // => true
 ```
 
 <a id="high"></a>
@@ -313,14 +312,14 @@ Returns the high 64-bit word by value or mutable reference.
 Signatures:
 
 ```cpp
-constexpr std::uint64_t& high() noexcept;
-constexpr std::uint64_t high() const noexcept;
+std::uint64_t& high()
+std::uint64_t high() const
 ```
 
 Example:
 
 ```cpp
-const auto result = value.high();
+SimdLib::uint128_t{5, 7}.high(); // => 7
 ```
 
 <a id="low"></a>
@@ -331,14 +330,14 @@ Returns the low 64-bit word by value or mutable reference.
 Signatures:
 
 ```cpp
-constexpr std::uint64_t& low() noexcept;
-constexpr std::uint64_t low() const noexcept;
+std::uint64_t& low()
+std::uint64_t low() const
 ```
 
 Example:
 
 ```cpp
-const auto result = value.low();
+SimdLib::uint128_t{5, 7}.low(); // => 5
 ```
 
 <a id="operator-bool"></a>
@@ -349,13 +348,13 @@ Returns true when any bit is set.
 Signatures:
 
 ```cpp
-constexpr explicit operator bool() const noexcept;
+explicit operator bool() const
 ```
 
 Example:
 
 ```cpp
-if (value) { /* at least one bit is set */ }
+static_cast<bool>(SimdLib::uint128_t{1}); // => true
 ```
 
 <a id="operator-t"></a>
@@ -366,13 +365,13 @@ Explicitly converts the low word to a supported integral type.
 Signatures:
 
 ```cpp
-template <std::integral T> constexpr explicit operator T() const noexcept;
+template <std::integral T> explicit operator T() const
 ```
 
 Example:
 
 ```cpp
-const auto low = static_cast<std::uint64_t>(value);
+static_cast<std::uint64_t>(SimdLib::uint128_t{42}); // => 42
 ```
 
 <a id="operator-minus"></a>
@@ -383,14 +382,14 @@ Subtracts or negates with unsigned wraparound.
 Signatures:
 
 ```cpp
-constexpr uint128_t operator-(const uint128_t& rhs) const noexcept;
-constexpr uint128_t operator-() const noexcept;
+uint128_t operator-(const uint128_t& rhs) const
+uint128_t operator-() const
 ```
 
 Example:
 
 ```cpp
-const auto result = value - other;
+SimdLib::uint128_t{45} - SimdLib::uint128_t{3}; // => 42
 ```
 
 <a id="operator-decrement"></a>
@@ -401,14 +400,15 @@ Decrements the value; prefix and postfix forms are available.
 Signatures:
 
 ```cpp
-constexpr uint128_t& operator--() noexcept;
-constexpr uint128_t operator--(int) noexcept;
+uint128_t& operator--()
+uint128_t operator--(int)
 ```
 
 Example:
 
 ```cpp
---value;
+SimdLib::uint128_t result{43};
+--result; // => 42
 ```
 
 <a id="operator-minus-assign"></a>
@@ -419,13 +419,14 @@ Subtracts another value in place.
 Signatures:
 
 ```cpp
-constexpr uint128_t& operator-=(const uint128_t& rhs) noexcept;
+uint128_t& operator-=(const uint128_t& rhs)
 ```
 
 Example:
 
 ```cpp
-value -= other;
+SimdLib::uint128_t result{45};
+result -= SimdLib::uint128_t{3}; // => 42
 ```
 
 <a id="operator-literal-u128"></a>
@@ -436,13 +437,14 @@ Constructs a 128-bit value from an unsigned long long literal.
 Signatures:
 
 ```cpp
-[[nodiscard]] constexpr uint128_t operator""_u128(const unsigned long long value) noexcept
+uint128_t operator""_u128(const unsigned long long value)
 ```
 
 Example:
 
 ```cpp
-using namespace SimdLib; const auto result = 42_u128;
+using namespace SimdLib;
+42_u128; // => 42
 ```
 
 <a id="operator-and"></a>
@@ -453,13 +455,13 @@ Computes bitwise AND.
 Signatures:
 
 ```cpp
-constexpr uint128_t operator&(const uint128_t& rhs) const noexcept;
+uint128_t operator&(const uint128_t& rhs) const
 ```
 
 Example:
 
 ```cpp
-const auto result = value & other;
+SimdLib::uint128_t{0b1100} & SimdLib::uint128_t{0b1010}; // => 0b1000
 ```
 
 <a id="operator-and-assign"></a>
@@ -470,13 +472,14 @@ Applies bitwise AND in place.
 Signatures:
 
 ```cpp
-constexpr uint128_t& operator&=(const uint128_t& rhs) noexcept;
+uint128_t& operator&=(const uint128_t& rhs)
 ```
 
 Example:
 
 ```cpp
-value &= other;
+SimdLib::uint128_t result{0b1100};
+result &= SimdLib::uint128_t{0b1010}; // => 0b1000
 ```
 
 <a id="operator-xor"></a>
@@ -487,13 +490,13 @@ Computes bitwise exclusive OR.
 Signatures:
 
 ```cpp
-constexpr uint128_t operator^(const uint128_t& rhs) const noexcept;
+uint128_t operator^(const uint128_t& rhs) const
 ```
 
 Example:
 
 ```cpp
-const auto result = value ^ other;
+SimdLib::uint128_t{0b1100} ^ SimdLib::uint128_t{0b1010}; // => 0b0110
 ```
 
 <a id="operator-xor-assign"></a>
@@ -504,13 +507,14 @@ Applies bitwise exclusive OR in place.
 Signatures:
 
 ```cpp
-constexpr uint128_t& operator^=(const uint128_t& rhs) noexcept;
+uint128_t& operator^=(const uint128_t& rhs)
 ```
 
 Example:
 
 ```cpp
-value ^= other;
+SimdLib::uint128_t result{0b1100};
+result ^= SimdLib::uint128_t{0b1010}; // => 0b0110
 ```
 
 <a id="operator-plus"></a>
@@ -521,13 +525,13 @@ Adds two 128-bit values with unsigned wraparound.
 Signatures:
 
 ```cpp
-constexpr uint128_t operator+(const uint128_t& rhs) const noexcept;
+uint128_t operator+(const uint128_t& rhs) const
 ```
 
 Example:
 
 ```cpp
-const auto result = value + other;
+SimdLib::uint128_t{40} + SimdLib::uint128_t{2}; // => 42
 ```
 
 <a id="operator-increment"></a>
@@ -538,14 +542,15 @@ Increments the value; prefix and postfix forms are available.
 Signatures:
 
 ```cpp
-constexpr uint128_t& operator++() noexcept;
-constexpr uint128_t operator++(int) noexcept;
+uint128_t& operator++()
+uint128_t operator++(int)
 ```
 
 Example:
 
 ```cpp
-++value;
+SimdLib::uint128_t result{41};
+++result; // => 42
 ```
 
 <a id="operator-plus-assign"></a>
@@ -556,13 +561,14 @@ Adds another value in place.
 Signatures:
 
 ```cpp
-constexpr uint128_t& operator+=(const uint128_t& rhs) noexcept;
+uint128_t& operator+=(const uint128_t& rhs)
 ```
 
 Example:
 
 ```cpp
-value += other;
+SimdLib::uint128_t result{40};
+result += SimdLib::uint128_t{2}; // => 42
 ```
 
 <a id="operator-shift-left"></a>
@@ -573,14 +579,14 @@ Whole-value left shift. Negative counts are treated as zero; counts of 128 or mo
 Signatures:
 
 ```cpp
-template <std::integral T> [[nodiscard]] constexpr uint128_t operator<<(const T count) const noexcept
-template <std::integral T> constexpr uint128_t operator<<(T count) const noexcept;
+template <std::integral T> uint128_t operator<<(T count) const
+template <std::integral T> uint128_t operator<<(T count) const
 ```
 
 Example:
 
 ```cpp
-const auto result = value << 4;
+SimdLib::uint128_t{3} << 2; // => 12
 ```
 
 <a id="operator-shift-left-assign"></a>
@@ -591,13 +597,14 @@ Shifts left in place.
 Signatures:
 
 ```cpp
-template <std::integral T> constexpr uint128_t& operator<<=(T count) noexcept;
+template <std::integral T> uint128_t& operator<<=(T count)
 ```
 
 Example:
 
 ```cpp
-value <<= 4;
+SimdLib::uint128_t result{3};
+result <<= 2; // => 12
 ```
 
 <a id="operator-compare"></a>
@@ -608,14 +615,14 @@ Provides strong ordering against another 128-bit value or a supported integral v
 Signatures:
 
 ```cpp
-constexpr std::strong_ordering operator<=>(const uint128_t& rhs) const noexcept;
-template <std::integral T> constexpr std::strong_ordering operator<=>(T rhs) const noexcept;
+std::strong_ordering operator<=>(const uint128_t& rhs) const
+template <std::integral T> std::strong_ordering operator<=>(T rhs) const
 ```
 
 Example:
 
 ```cpp
-const auto ordering = value <=> other;
+SimdLib::uint128_t{1} <=> SimdLib::uint128_t{2}; // => std::strong_ordering::less
 ```
 
 <a id="operator-assign"></a>
@@ -626,14 +633,15 @@ Copies or moves another value into this object.
 Signatures:
 
 ```cpp
-constexpr uint128_t& operator=(const uint128_t&) noexcept = default;
-constexpr uint128_t& operator=(uint128_t&&) noexcept = default;
+uint128_t& operator=(const uint128_t&) = default
+uint128_t& operator=(uint128_t&&) = default
 ```
 
 Example:
 
 ```cpp
-value = other;
+SimdLib::uint128_t result{};
+result = SimdLib::uint128_t{42}; // => 42
 ```
 
 <a id="operator-equal"></a>
@@ -644,14 +652,14 @@ Tests equality against another 128-bit value or a supported integral value.
 Signatures:
 
 ```cpp
-constexpr bool operator==(const uint128_t& rhs) const noexcept;
-template <std::integral T> constexpr bool operator==(T rhs) const noexcept;
+bool operator==(const uint128_t& rhs) const
+template <std::integral T> bool operator==(T rhs) const
 ```
 
 Example:
 
 ```cpp
-const bool result = value == other;
+SimdLib::uint128_t{42} == SimdLib::uint128_t{42}; // => true
 ```
 
 <a id="operator-shift-right"></a>
@@ -662,13 +670,13 @@ Returns the value shifted right; out-of-range counts produce zero.
 Signatures:
 
 ```cpp
-template <std::integral T> constexpr uint128_t operator>>(T count) const noexcept;
+template <std::integral T> uint128_t operator>>(T count) const
 ```
 
 Example:
 
 ```cpp
-const auto result = value >> 4;
+SimdLib::uint128_t{12} >> 2; // => 3
 ```
 
 <a id="operator-shift-right-assign"></a>
@@ -679,13 +687,14 @@ Shifts right in place.
 Signatures:
 
 ```cpp
-template <std::integral T> constexpr uint128_t& operator>>=(T count) noexcept;
+template <std::integral T> uint128_t& operator>>=(T count)
 ```
 
 Example:
 
 ```cpp
-value >>= 4;
+SimdLib::uint128_t result{12};
+result >>= 2; // => 3
 ```
 
 <a id="operator-or"></a>
@@ -696,13 +705,13 @@ Computes bitwise OR.
 Signatures:
 
 ```cpp
-constexpr uint128_t operator|(const uint128_t& rhs) const noexcept;
+uint128_t operator|(const uint128_t& rhs) const
 ```
 
 Example:
 
 ```cpp
-const auto result = value | other;
+SimdLib::uint128_t{0b1100} | SimdLib::uint128_t{0b1010}; // => 0b1110
 ```
 
 <a id="operator-or-assign"></a>
@@ -713,13 +722,14 @@ Applies bitwise OR in place.
 Signatures:
 
 ```cpp
-constexpr uint128_t& operator|=(const uint128_t& rhs) noexcept;
+uint128_t& operator|=(const uint128_t& rhs)
 ```
 
 Example:
 
 ```cpp
-value |= other;
+SimdLib::uint128_t result{0b1100};
+result |= SimdLib::uint128_t{0b1010}; // => 0b1110
 ```
 
 <a id="operator-not"></a>
@@ -730,13 +740,13 @@ Complements all 128 bits.
 Signatures:
 
 ```cpp
-constexpr uint128_t operator~() const noexcept;
+uint128_t operator~() const
 ```
 
 Example:
 
 ```cpp
-const auto result = ~value;
+~SimdLib::uint128_t{}; // => all 128 bits are set
 ```
 
 <a id="popcount"></a>
@@ -747,13 +757,13 @@ Returns the number of one bits.
 Signatures:
 
 ```cpp
-[[nodiscard]] constexpr int popcount(const uint128_t value) noexcept
+int popcount(uint128_t value)
 ```
 
 Example:
 
 ```cpp
-const auto result = SimdLib::popcount(value);
+SimdLib::popcount(SimdLib::uint128_t{0b1011}); // => 3
 ```
 
 <a id="to-register"></a>
@@ -764,13 +774,13 @@ Loads the stored words into a backend register through Api.
 Signatures:
 
 ```cpp
-template <class Dependency = void> requires(simd_available<Dependency>) [[nodiscard]] auto to_register() const noexcept -> typename simd<Dependency>::vector_t
+template <class Dependency = void>
 ```
 
 Example:
 
 ```cpp
-const auto result = value.to_register();
+SimdLib::uint128_t{5, 7}.to_register(); // => register words {5, 7}
 ```
 
 <a id="uint128-t"></a>
@@ -781,19 +791,19 @@ Constructs a value from low and high words, in that order.
 Signatures:
 
 ```cpp
-constexpr uint128_t(const std::uint64_t lower, const std::uint64_t upper) noexcept : m_data
-constexpr uint128_t() noexcept = default;
-constexpr uint128_t(const uint128_t&) noexcept = default;
-constexpr uint128_t(uint128_t&&) noexcept = default;
-constexpr uint128_t(std::uint64_t lower, std::uint64_t upper) noexcept;
-template <std::integral T> constexpr uint128_t(T value) noexcept;
-constexpr uint128_t(bool value) noexcept;
+uint128_t(std::uint64_t lower, std::uint64_t upper) : m_data
+uint128_t() = default
+uint128_t(const uint128_t&) = default
+uint128_t(uint128_t&&) = default
+uint128_t(std::uint64_t lower, std::uint64_t upper)
+template <std::integral T> uint128_t(T value)
+uint128_t(bool value)
 ```
 
 Example:
 
 ```cpp
-SimdLib::uint128_t value{42};
+SimdLib::uint128_t{42}; // => 42
 ```
 
 <a id="related-types-and-constants"></a>

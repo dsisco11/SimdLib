@@ -14,7 +14,7 @@
 `version_major`, `version_minor`, and `version_patch` form the library version. The same three names are also available directly in `SimdLib`.
 
 ```cpp
-static_assert(SimdLib::Config::version_major == SimdLib::version_major);
+SimdLib::Config::version_major; // => 0 for version 0.2.0
 ```
 
 ## Compiler and target constants
@@ -22,9 +22,7 @@ static_assert(SimdLib::Config::version_major == SimdLib::version_major);
 `compiler_clang`, `compiler_msvc`, `compiler_gcc`, `target_x86`, `target_x64`, and `vectorcall_enabled` describe the active compiler and ABI target.
 
 ```cpp
-if constexpr (SimdLib::Config::target_x64) {
-    // Compile x64-specific integration code.
-}
+SimdLib::Config::target_x64; // => true when compiling for x64
 ```
 
 ## Instruction constants
@@ -32,7 +30,7 @@ if constexpr (SimdLib::Config::target_x64) {
 `has_sse`, `has_sse2`, `has_sse3`, `has_ssse3`, `has_sse41`, `has_sse42`, `has_avx`, `has_avx2`, `has_fma`, `has_bmi1`, and `has_bmi2` mirror the instruction families enabled by compiler flags.
 
 ```cpp
-static_assert(!SimdLib::Config::has_avx2 || SimdLib::Config::has_avx);
+SimdLib::Config::has_avx2; // => true when AVX2 code generation is enabled
 ```
 
 ## Customization macros
@@ -42,5 +40,7 @@ All `SIMDLIB_*` configuration macros are caller-overridable before including Sim
 ```cpp
 #define SIMDLIB_ENABLE_CHECKS 1
 #include <SimdLib/SimdLib.h>
-```
 
+static_assert(
+    SIMDLIB_ENABLE_CHECKS == 1); // => checks are enabled in this translation unit
+```

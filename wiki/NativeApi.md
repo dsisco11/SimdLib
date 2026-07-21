@@ -22,14 +22,19 @@ The alias selects 256 bits when that facade is available and otherwise selects 1
 ```cpp
 #include <SimdLib/SimdLib.h>
 
+#include <array>
+
 using FloatApi = SimdLib::NativeApi<float>;
 
-const auto scale = FloatApi::set1(2.0F);
-const auto offset = FloatApi::set1(10.0F);
-const auto result = FloatApi::multiply_add(value, scale, offset);
+std::array<float, 8> output{};
+FloatApi::transform(
+    std::array{1.0F, 2.0F, 3.0F, 4.0F, 5.0F, 6.0F, 7.0F, 8.0F},
+    output,
+    [](auto values) {
+      return FloatApi::multiply(values, values);
+    }); // => output is {1.0F, 4.0F, 9.0F, 16.0F, 25.0F, 36.0F, 49.0F, 64.0F}
 ```
 
 ## Methods
 
 `NativeApi<element_t>` is a type alias, so it owns no separate methods. It exposes every method, nested type, and constant documented on the complete [`Api`](Api.md) page.
-
