@@ -1,5 +1,6 @@
 ☐ Design a `SimdLib::Register` class to represent SIMD registers and provide methods for loading, storing, and manipulating data in a SIMD context.
     The Register type should supercede SimdLib::Api as the recommended interface for SIMD operations, providing a more intuitive and efficient way to work with SIMD registers.
+    This trype will resemble the existing `SimdLib::Vector` class, but it will be much more low-level/restrictive, and will not provide an "element_count" template input, meaning it will not auto fill "inactive lanes" because ALL lanes are considered "active".
 
 ☐ Design a `SimdLib::Tensor` class to represent multi-dimensional arrays (tensors) and provide methods for performing tensor operations in a SIMD context.
     The Tensor type should support various data types and dimensions, allowing for efficient manipulation of large datasets in parallel.
@@ -10,3 +11,4 @@
 ☐ Review test coverage of all `SimdImplementation` namespace methods.
 ☐ Improve performance of `Bmi::portable_pdep()`.
 ☐ Improve performance of `Bmi::portable_pext()`.
+☐ Benchmark and Optimize `SimdVector::area()`.
