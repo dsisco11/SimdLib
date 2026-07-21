@@ -94,7 +94,7 @@ template <std::integral int_t> int_t _pdep_emulator(int_t source, int_t mask)
 Example:
 
 ```cpp
-SimdLib::Bmi::_pdep_emulator(0b101, 0b01010100); // => 0b01000100
+SimdLib::Bmi::_pdep_emulator<std::uint32_t>(0b101U, 0b0101'0100U); // => 0b0100'0100U
 ```
 
 <a id="pext-emulator"></a>
@@ -441,7 +441,7 @@ template <integer_like int_t> int_t clear_lowest_set_bits(int_t value, int_t &ou
 Example:
 
 ```cpp
-SimdLib::Bmi::clear_lowest_set_bits(0b1011); // => 0b1000
+SimdLib::Bmi::clear_lowest_set_bits(0U); // => 0U
 ```
 
 <a id="clear-trailing-ones"></a>
@@ -458,7 +458,7 @@ template <integer_like int_t> int_t clear_trailing_ones(int_t value)
 Example:
 
 ```cpp
-SimdLib::Bmi::clear_trailing_ones(0b1011); // => 0b1000
+SimdLib::Bmi::clear_trailing_ones(0U); // => 0U
 ```
 
 <a id="consume-bit-sequence-left"></a>
@@ -545,7 +545,7 @@ template <integer_like int_t> int_t flip_trailing_zeros(int_t value)
 Example:
 
 ```cpp
-SimdLib::Bmi::flip_trailing_zeros(0b10100); // => 0b10111
+SimdLib::Bmi::flip_trailing_zeros(0U); // => 0U
 ```
 
 <a id="flipr-unset"></a>
@@ -562,7 +562,7 @@ template <integer_like int_t> int_t flipr_unset(int_t value)
 Example:
 
 ```cpp
-SimdLib::Bmi::flipr_unset(0b01011); // => 0b01111
+SimdLib::Bmi::flipr_unset(0U); // => 0U
 ```
 
 <a id="left-collapse-trailing-bits"></a>
@@ -579,7 +579,7 @@ template <integer_like int_t> int_t left_collapse_trailing_bits(int_t value)
 Example:
 
 ```cpp
-SimdLib::Bmi::left_collapse_trailing_bits(0b10111); // => 0b10100
+SimdLib::Bmi::left_collapse_trailing_bits(0U); // => 0U
 ```
 
 <a id="mask-bits-lower-than-lsb"></a>
@@ -596,7 +596,7 @@ template <integer_like int_t> int_t mask_bits_lower_than_lsb(int_t value)
 Example:
 
 ```cpp
-SimdLib::Bmi::mask_bits_lower_than_lsb(0b101000); // => 0b000111
+SimdLib::Bmi::mask_bits_lower_than_lsb(0U); // => 0U
 ```
 
 <a id="mask-bits-lower-than-lsb-or-all-ones"></a>
@@ -613,7 +613,7 @@ template <integer_like int_t> int_t mask_bits_lower_than_lsb_or_all_ones(int_t v
 Example:
 
 ```cpp
-SimdLib::Bmi::mask_bits_lower_than_lsb_or_all_ones(0b101000); // => 0b000111
+SimdLib::Bmi::mask_bits_lower_than_lsb_or_all_ones(0U); // => 0U
 ```
 
 <a id="mask-leading-ones"></a>
@@ -664,7 +664,7 @@ template <integer_like int_t> int_t mask_trailing_ones(int_t value)
 Example:
 
 ```cpp
-SimdLib::Bmi::mask_trailing_ones(0b10111); // => 0b00111
+SimdLib::Bmi::mask_trailing_ones(0U); // => 0U
 ```
 
 <a id="mask-trailing-zeros"></a>
@@ -681,7 +681,7 @@ template <integer_like int_t> int_t mask_trailing_zeros(int_t value)
 Example:
 
 ```cpp
-SimdLib::Bmi::mask_trailing_zeros(0b10100); // => 0b011
+SimdLib::Bmi::mask_trailing_zeros(0U); // => 0U
 ```
 
 <a id="mask-trailing-zeros-or-zero"></a>
@@ -698,7 +698,7 @@ template <integer_like int_t> int_t mask_trailing_zeros_or_zero(int_t value)
 Example:
 
 ```cpp
-SimdLib::Bmi::mask_trailing_zeros_or_zero(0b10100); // => 0b00011
+SimdLib::Bmi::mask_trailing_zeros_or_zero(0U); // => 0U
 ```
 
 <a id="maskl-trailing-one"></a>
@@ -715,7 +715,7 @@ template <integer_like int_t> int_t maskl_trailing_one(int_t value)
 Example:
 
 ```cpp
-SimdLib::Bmi::maskl_trailing_one(0b010111); // => 0b00100
+SimdLib::Bmi::maskl_trailing_one(0U); // => 0U
 ```
 
 <a id="maskr-unset"></a>
@@ -732,7 +732,7 @@ template <integer_like int_t> int_t maskr_unset(int_t value)
 Example:
 
 ```cpp
-SimdLib::Bmi::maskr_unset(0b01011); // => 0b00100
+SimdLib::Bmi::maskr_unset(0U); // => 0U
 ```
 
 <a id="max"></a>
@@ -937,7 +937,7 @@ template <integer_like int_t> int_t pp_and(int_t value)
 Example:
 
 ```cpp
-SimdLib::Bmi::pp_and(0b01101110); // => 0b00100110
+SimdLib::Bmi::pp_and(0U); // => 0U
 ```
 
 <a id="pp-andn"></a>
@@ -954,7 +954,7 @@ template <integer_like int_t> int_t pp_andn(int_t value)
 Example:
 
 ```cpp
-SimdLib::Bmi::pp_andn(0b01110); // => 0b01000
+SimdLib::Bmi::pp_andn(0U); // => 0U
 ```
 
 <a id="pp-andni"></a>
@@ -971,7 +971,7 @@ template <integer_like int_t> int_t pp_andni(int_t value)
 Example:
 
 ```cpp
-SimdLib::Bmi::pp_andni(0b01110); // => 0b00001
+SimdLib::Bmi::pp_andni(0U); // => 0U
 ```
 
 <a id="pp-lsor"></a>
@@ -1022,7 +1022,7 @@ template <integer_like int_t> int_t pp_xor(int_t value)
 Example:
 
 ```cpp
-SimdLib::Bmi::pp_xor(0b01110); // => 0b01001
+SimdLib::Bmi::pp_xor(0U); // => 0U
 ```
 
 <a id="ps-and"></a>
@@ -1039,7 +1039,7 @@ template <integer_like int_t> int_t ps_and(int_t value)
 Example:
 
 ```cpp
-SimdLib::Bmi::ps_and(0b01101110); // => 0b01001100
+SimdLib::Bmi::ps_and(0U); // => 0U
 ```
 
 <a id="ps-andn"></a>
@@ -1056,7 +1056,7 @@ template <integer_like int_t> int_t ps_andn(int_t value)
 Example:
 
 ```cpp
-SimdLib::Bmi::ps_andn(0b01110); // => 0b00010
+SimdLib::Bmi::ps_andn(0U); // => 0U
 ```
 
 <a id="ps-andni"></a>
@@ -1073,7 +1073,7 @@ template <integer_like int_t> int_t ps_andni(int_t value)
 Example:
 
 ```cpp
-SimdLib::Bmi::ps_andni(0b01110); // => 0b10000
+SimdLib::Bmi::ps_andni(0U); // => 0U
 ```
 
 <a id="ps-or"></a>
@@ -1107,7 +1107,7 @@ template <integer_like int_t> int_t ps_xor(int_t value)
 Example:
 
 ```cpp
-SimdLib::Bmi::ps_xor(0b01110); // => 0b10010
+SimdLib::Bmi::ps_xor(0U); // => 0U
 ```
 
 <a id="select"></a>

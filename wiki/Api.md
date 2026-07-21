@@ -1184,8 +1184,7 @@ template <class... Args> static auto set_partial(Args &&...args)
 Example:
 
 ```cpp
-ApiT::set_partial(
-    2.0F, 1.0F); // => low lanes are {1.0F, 2.0F}; remaining lanes are zero
+ApiT::set_partial(2.0F, 1.0F); // => {0.0F, 0.0F, 1.0F, 2.0F} in native set order
 ```
 
 <a id="set1"></a>
@@ -1580,10 +1579,10 @@ Example:
 ```cpp
 std::array<std::uint8_t, 1> result{};
 ApiT::transform_pack<1>(
-    std::span<const float, 4>{std::array{0.0F, 1.0F, 0.0F, 1.0F}},
+    std::span<const float, 4>{std::array{1.0F, -2.0F, 3.0F, -4.0F}},
     std::span<std::uint8_t, 1>{result},
     [](auto lanes) {
-      return ApiT::cmp_eq_mask(lanes, ApiT::construct({1.0F, 1.0F, 1.0F, 1.0F}));
+      return ApiT::movemask_slim(lanes);
     }); // => result[0] is 0b0000'1010
 ```
 

@@ -7,18 +7,44 @@
 #include <cstdint>
 #include <functional>
 #include <limits>
+#include <ranges>
+#include <span>
+#include <tuple>
 #include <type_traits>
 
 namespace
 {
-template <class Vector, std::size_t Count>
-void require_lanes(const Vector& value, const std::array<typename Vector::simd::element_type, Count>& expected)
+/** @brief Verifies the logical lanes of a SimdVector result.
+ *  @tparam Vector SimdVector type under test.
+ *  @tparam Element Expected lane element type.
+ *  @tparam Count Expected logical lane count.
+ *  @param value Vector produced by the documented invocation.
+ *  @param expected Documented logical lane values.
+ */
+template <class Vector, class Element, std::size_t Count>
+	requires requires { typename Vector::simd; }
+void require_lanes(const Vector& value, const std::array<Element, Count>& expected)
 {
 	const auto actual = value.toArray();
 	for (std::size_t index = 0; index < Count; ++index)
-		REQUIRE(actual[index] == expected[index]);
+		REQUIRE(actual[index] == static_cast<typename Vector::simd::element_type>(expected[index]));
 	for (std::size_t index = Count; index < actual.size(); ++index)
 		REQUIRE(actual[index] == 0);
+}
+
+/**
+ * @brief Verifies a raw register result by wrapping it in the documented logical vector type.
+ * @tparam Register Raw SIMD register type.
+ * @tparam Element Logical vector element type.
+ * @tparam Count Logical vector element count.
+ * @param value Raw register produced by the documented invocation.
+ * @param expected Documented logical lane values.
+ */
+template <class Register, class Element, std::size_t Count>
+	requires(!requires { typename Register::simd; })
+void require_lanes(const Register value, const std::array<Element, Count>& expected)
+{
+	require_lanes(SimdLib::SimdVector<Element, static_cast<int>(Count)>{value}, expected);
 }
 }
 
@@ -271,4 +297,138 @@ TEST_CASE("SimdVector double dot products cover full and partial 128-bit and 256
 	require_dot_product<double, 2>({3.0, -4.0}, {5.0, 6.0}, -9.0);
 	require_dot_product<double, 3>({1.0, 2.0, 3.0}, {1.0, 2.0, 3.0}, 14.0);
 	require_dot_product<double, 4>({1.0, 2.0, 3.0, 4.0}, {1.0, 2.0, 3.0, 4.0}, 30.0);
+}
+
+TEST_CASE("SimdVector documentation examples produce their documented results", "[simdlib][vector][documentation]")
+{
+	using Vector3 = SimdLib::SimdVector<float, 3>;
+	using U8x3 = SimdLib::SimdVector<std::uint8_t, 3>;
+	using I16x4 = SimdLib::SimdVector<std::int16_t, 4>;
+	using U16x3 = SimdLib::SimdVector<std::uint16_t, 3>;
+	using I32x3 = SimdLib::SimdVector<std::int32_t, 3>;
+	using U32x3 = SimdLib::SimdVector<std::uint32_t, 3>;
+	require_lanes(Vector3{1.0F, 2.0F, 3.0F}, std::array{1.0F, 2.0F, 3.0F});
+	{
+		const Vector3 temporary{1.0F, 2.0F, 3.0F};
+		REQUIRE(temporary.z() == 3.0F);
+	}
+	require_lanes(U16x3{5U, 7U, 9U}.size(U16x3{1U, 2U, 3U}.getRegister()), std::array<std::uint16_t, 3>{5U, 6U, 7U});
+	require_lanes(SimdLib::SimdVector<std::uint32_t, 3>{U16x3{1U, 2U, 3U}}, std::array<std::uint32_t, 3>{1U, 2U, 3U});
+	REQUIRE(Vector3{1.0F, 2.0F, 3.0F}.x() == 1.0F);
+	REQUIRE(Vector3{1.0F, 2.0F, 3.0F}.y() == 2.0F);
+	REQUIRE(Vector3{1.0F, 2.0F, 3.0F}.z() == 3.0F);
+	REQUIRE(SimdLib::SimdVector<float, 4>{1.0F, 2.0F, 3.0F, 4.0F}.w() == 4.0F);
+	REQUIRE(U16x3{2U, 3U, 4U}.area() == 24U);
+	const auto magnitude = Vector3::simd::to_array(Vector3{3.0F, 4.0F, 0.0F}.magnitude());
+	REQUIRE(magnitude == std::array{5.0F, 5.0F, 5.0F, 5.0F});
+	const auto normalized = Vector3{Vector3{3.0F, 4.0F, 0.0F}.normalize()}.toArray();
+	REQUIRE(normalized[0] > 0.599F);
+	REQUIRE(normalized[0] < 0.601F);
+	REQUIRE(normalized[1] > 0.799F);
+	REQUIRE(normalized[1] < 0.801F);
+	const auto dot = Vector3{1.0F, 2.0F, 3.0F}.dot_product(Vector3{4.0F, 5.0F, 6.0F});
+	REQUIRE(dot == 32.0F);
+	require_lanes(Vector3{-1.0F, 2.0F, -3.0F}.abs(), std::array{1.0F, 2.0F, 3.0F});
+	require_lanes(Vector3{-1.0F, 0.0F, 3.0F}.sign(), std::array{-1.0F, 0.0F, 1.0F});
+	require_lanes(Vector3{1.0F, 4.0F, 9.0F}.sqrt(), std::array{1.0F, 2.0F, 3.0F});
+	require_lanes(Vector3{1.0F, 5.0F, 3.0F}.min(Vector3{2.0F, 4.0F, 6.0F}), std::array{1.0F, 4.0F, 3.0F});
+	require_lanes(Vector3{1.0F, 5.0F, 3.0F}.max(Vector3{2.0F, 4.0F, 6.0F}), std::array{2.0F, 5.0F, 6.0F});
+	require_lanes(Vector3{-2.0F, 5.0F, 12.0F}.clamp(Vector3{0.0F}, Vector3{10.0F}), std::array{0.0F, 5.0F, 10.0F});
+	require_lanes(U8x3{2U, 4U, 6U}.avg(U8x3{4U, 6U, 8U}), std::array<std::uint8_t, 3>{3U, 5U, 7U});
+	REQUIRE(U16x3{4U, 1U, 3U}.min_position() == 1);
+	REQUIRE(U16x3{4U, 1U, 3U}.max_position() == 0);
+	REQUIRE(Vector3{2.0F, 2.0F, 2.0F}.all_equal(Vector3{2.0F, 2.0F, 2.0F}));
+	REQUIRE(Vector3{1.0F, 2.0F, 3.0F}.any_equal(Vector3{9.0F, 2.0F, 8.0F}));
+	REQUIRE(Vector3{4.0F, 5.0F, 6.0F}.all_greater(Vector3{1.0F, 2.0F, 3.0F}));
+	REQUIRE(Vector3{1.0F, 5.0F, 2.0F}.any_greater(Vector3{3.0F, 4.0F, 6.0F}));
+	REQUIRE(Vector3{1.0F, 2.0F, 3.0F}.all_greater_equal(Vector3{1.0F, 1.0F, 3.0F}));
+	REQUIRE(Vector3{1.0F, 2.0F, 3.0F}.any_greater_equal(Vector3{4.0F, 2.0F, 5.0F}));
+	REQUIRE(Vector3{1.0F, 2.0F, 3.0F}.all_less(Vector3{4.0F, 5.0F, 6.0F}));
+	REQUIRE(Vector3{1.0F, 5.0F, 6.0F}.any_less(Vector3{2.0F, 4.0F, 3.0F}));
+	REQUIRE(Vector3{1.0F, 2.0F, 3.0F}.all_less_equal(Vector3{1.0F, 3.0F, 3.0F}));
+	REQUIRE(Vector3{5.0F, 2.0F, 6.0F}.any_less_equal(Vector3{4.0F, 2.0F, 3.0F}));
+	REQUIRE(Vector3{1.0F, 2.0F, 3.0F}[1] == 2.0F);
+	require_lanes(Vector3{Vector3{1.0F, 2.0F, 3.0F} + Vector3{4.0F, 5.0F, 6.0F}}, std::array{5.0F, 7.0F, 9.0F});
+	require_lanes(Vector3{Vector3{4.0F, 5.0F, 6.0F} - Vector3{1.0F, 2.0F, 3.0F}}, std::array{3.0F, 3.0F, 3.0F});
+	require_lanes(Vector3{Vector3{1.0F, 2.0F, 3.0F} * 2.0F}, std::array{2.0F, 4.0F, 6.0F});
+	require_lanes(Vector3{Vector3{2.0F, 4.0F, 6.0F} / 2.0F}, std::array{1.0F, 2.0F, 3.0F});
+	require_lanes(I32x3{I32x3{7, 8, 9} % 4}, std::array{3, 0, 1});
+	const bool equal = Vector3{1.0F, 2.0F, 3.0F} == Vector3{1.0F, 2.0F, 3.0F}.getRegister();
+	const bool less = Vector3{1.0F, 2.0F, 3.0F} < Vector3{2.0F, 3.0F, 4.0F}.getRegister();
+	const bool less_equal = Vector3{1.0F, 2.0F, 3.0F} <= Vector3{1.0F, 3.0F, 3.0F}.getRegister();
+	const bool greater = Vector3{4.0F, 5.0F, 6.0F} > Vector3{1.0F, 2.0F, 3.0F}.getRegister();
+	const bool greater_equal = Vector3{4.0F, 5.0F, 6.0F} >= Vector3{4.0F, 2.0F, 6.0F}.getRegister();
+	REQUIRE(equal);
+	REQUIRE(less);
+	REQUIRE(less_equal);
+	REQUIRE(greater);
+	REQUIRE(greater_equal);
+	REQUIRE(Vector3{1.0F, 2.0F, 3.0F}.toArray() == std::array{1.0F, 2.0F, 3.0F, 0.0F});
+	const Vector3 tuple_source{1.0F, 2.0F, 3.0F};
+	REQUIRE(std::ranges::equal(std::get<0>(tuple_source.getTuple()).first<3>(), std::array{1.0F, 2.0F, 3.0F}));
+	Vector3 input{1.0F, 2.0F, 3.0F};
+	REQUIRE(std::ranges::equal(input.getSpan().first<3>(), std::array{1.0F, 2.0F, 3.0F}));
+	REQUIRE(Vector3::simd::to_array(input.getRegister()) == std::array{1.0F, 2.0F, 3.0F, 0.0F});
+	REQUIRE(static_cast<std::array<float, Vector3::simd::element_count>>(input) == std::array{1.0F, 2.0F, 3.0F, 0.0F});
+	const Vector3 const_input{1.0F, 2.0F, 3.0F};
+	REQUIRE(std::ranges::equal(static_cast<std::span<const float, Vector3::simd::element_count>>(const_input).first<3>(), std::array{1.0F, 2.0F, 3.0F}));
+	REQUIRE(std::ranges::equal(static_cast<std::span<float, Vector3::simd::element_count>>(input).first<3>(), std::array{1.0F, 2.0F, 3.0F}));
+	REQUIRE(Vector3::simd::to_array(static_cast<Vector3::vector_t>(input)) == std::array{1.0F, 2.0F, 3.0F, 0.0F});
+	require_lanes(U8x3{250, 10, 20}.add_saturated(U8x3{10, 20, 30}), std::array<std::uint8_t, 3>{255, 30, 50});
+	require_lanes(U8x3{5, 20, 30}.subtract_saturated(U8x3{10, 7, 40}), std::array<std::uint8_t, 3>{0, 13, 0});
+	require_lanes(U16x3{40000U, 5U, 2U}.multiply_saturated(U16x3{2U, 6U, 4U}), std::array<std::uint16_t, 3>{65535U, 30U, 8U});
+	require_lanes(Vector3{Vector3{2.0F, 3.0F, 4.0F}.multiply_add(Vector3{5.0F, 6.0F, 7.0F}, Vector3{1.0F})}, std::array{11.0F, 19.0F, 29.0F});
+	REQUIRE(Vector3::simd::to_array(Vector3{1.0F, 2.0F, 3.0F}.add_horizontal(Vector3{4.0F, 5.0F, 6.0F})) == std::array{3.0F, 3.0F, 9.0F, 6.0F});
+	REQUIRE(Vector3::simd::to_array(Vector3{10.0F, 10.0F, 10.0F}.add_subtract(Vector3{1.0F, 2.0F, 3.0F})) == std::array{9.0F, 12.0F, 7.0F, 0.0F});
+	REQUIRE(I16x4::simd::to_array(I16x4{30000, 10000, 200, 300}.add_horizontal_saturated(I16x4{1, 2, 3, 4})) ==
+			std::array<std::int16_t, 8>{32767, 500, 0, 0, 3, 7, 0, 0});
+	REQUIRE(Vector3::simd::to_array(Vector3{5.0F, 2.0F, 9.0F}.subtract_horizontal(Vector3{8.0F, 3.0F, 6.0F})) == std::array{3.0F, 9.0F, 5.0F, 6.0F});
+	REQUIRE(I16x4::simd::to_array(I16x4{30000, -10000, -30000, 10000}.subtract_horizontal_saturated(I16x4{1, 2, 3, 4})) ==
+			std::array<std::int16_t, 8>{32767, -32768, 0, 0, -1, -1, 0, 0});
+	REQUIRE(SimdLib::Api<128, std::int32_t>::to_array(I16x4{1, 2, 3, 4}.multiply_add_adjacent(I16x4{5, 6, 7, 8})) == std::array{17, 53, 0, 0});
+	using U8x16 = SimdLib::uint8x16;
+	REQUIRE(SimdLib::Api<128, std::int16_t>::to_array(U8x16{2}.multiply_add_unsigned_signed_bytes(U8x16{3})) ==
+			std::array<std::int16_t, 8>{12, 12, 12, 12, 12, 12, 12, 12});
+	REQUIRE(SimdLib::Api<128, std::uint64_t>::to_array(U8x16{9}.sum_absolute_byte_differences(U8x16{4})) == std::array<std::uint64_t, 2>{40, 40});
+	REQUIRE(SimdLib::Api<128, std::uint16_t>::to_array(U8x16{9}.multi_sum_absolute_byte_differences<0>(U8x16{4})) ==
+			std::array<std::uint16_t, 8>{20, 20, 20, 20, 20, 20, 20, 20});
+	Vector3 floats{};
+	floats = Vector3{1.0F, 2.0F, 3.0F};
+	require_lanes(floats, std::array{1.0F, 2.0F, 3.0F});
+	floats = Vector3{1.0F, 2.0F, 3.0F};
+	floats += Vector3{4.0F, 5.0F, 6.0F};
+	require_lanes(floats, std::array{5.0F, 7.0F, 9.0F});
+	floats = Vector3{7.0F, 8.0F, 9.0F};
+	floats -= Vector3{1.0F, 2.0F, 3.0F};
+	require_lanes(floats, std::array{6.0F, 6.0F, 6.0F});
+	floats = Vector3{1.0F, 2.0F, 3.0F};
+	floats *= Vector3{4.0F, 5.0F, 6.0F};
+	require_lanes(floats, std::array{4.0F, 10.0F, 18.0F});
+	floats = Vector3{8.0F, 12.0F, 18.0F};
+	floats /= Vector3{2.0F, 3.0F, 6.0F};
+	require_lanes(floats, std::array{4.0F, 4.0F, 3.0F});
+	I32x3 ints{7, 8, 9};
+	ints %= I32x3{4, 4, 4};
+	require_lanes(ints, std::array{3, 0, 1});
+	U32x3 bits{12U, 10U, 15U};
+	bits &= U32x3{10U, 6U, 5U};
+	require_lanes(bits, std::array{8U, 2U, 5U});
+	bits = U32x3{12U, 10U, 15U};
+	bits |= U32x3{10U, 6U, 5U};
+	require_lanes(bits, std::array{14U, 14U, 15U});
+	bits = U32x3{12U, 10U, 15U};
+	bits ^= U32x3{10U, 6U, 5U};
+	require_lanes(bits, std::array{6U, 12U, 10U});
+	bits = U32x3{1U, 2U, 3U};
+	bits <<= 1;
+	require_lanes(bits, std::array{2U, 4U, 6U});
+	bits = U32x3{2U, 4U, 6U};
+	bits >>= 1;
+	require_lanes(bits, std::array{1U, 2U, 3U});
+	require_lanes(U32x3{~U32x3{0U}}, std::array{0xFFFFFFFFU, 0xFFFFFFFFU, 0xFFFFFFFFU});
+	require_lanes(U32x3{U32x3{12U, 10U, 15U} & U32x3{10U, 6U, 5U}}, std::array{8U, 2U, 5U});
+	require_lanes(U32x3{U32x3{12U, 10U, 15U} | U32x3{10U, 6U, 5U}}, std::array{14U, 14U, 15U});
+	require_lanes(U32x3{U32x3{12U, 10U, 15U} ^ U32x3{10U, 6U, 5U}}, std::array{6U, 12U, 10U});
+	require_lanes(U32x3{U32x3{1U, 2U, 3U} << 1}, std::array{2U, 4U, 6U});
+	require_lanes(U32x3{U32x3{2U, 4U, 6U} >> 1}, std::array{1U, 2U, 3U});
 }

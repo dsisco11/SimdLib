@@ -451,8 +451,7 @@ element_t dot_product(vector_t rhs) const
 Example:
 
 ```cpp
-Vector3{1.0F, 2.0F, 3.0F}.dot_product(
-    Vector3{4.0F, 5.0F, 6.0F}); // => 32.0F in every result lane
+Vector3{1.0F, 2.0F, 3.0F}.dot_product(Vector3{4.0F, 5.0F, 6.0F}); // => 32.0F
 ```
 
 <a id="getregister"></a>
@@ -507,7 +506,8 @@ auto getTuple() const
 Example:
 
 ```cpp
-Vector3{1.0F, 2.0F, 3.0F}.getTuple(); // => tuple {1.0F, 2.0F, 3.0F}
+const Vector3 input{1.0F, 2.0F, 3.0F};
+input.getTuple(); // => tuple containing a span over {1.0F, 2.0F, 3.0F, 0.0F}
 ```
 
 <a id="magnitude"></a>
@@ -524,7 +524,7 @@ auto magnitude() const
 Example:
 
 ```cpp
-Vector3{3.0F, 4.0F, 0.0F}.magnitude(); // => 5.0F
+Vector3{3.0F, 4.0F, 0.0F}.magnitude(); // => {5.0F, 5.0F, 5.0F}
 ```
 
 <a id="max"></a>

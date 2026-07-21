@@ -178,3 +178,17 @@ TEST_CASE("SimdResample expansion matches scalar references for randomized unali
 				REQUIRE(std::ranges::equal(dst, expected));
 			}
 }
+
+TEST_CASE("SimdResample documentation examples produce their documented results", "[simdlib][resample][documentation]")
+{
+	std::array<std::uint8_t, 8> expanded{};
+	SimdLib::SimdResample::ExpandBitsToBytesBy8(std::array<std::uint8_t, 1>{0b0000'0101}, expanded);
+	REQUIRE(expanded == std::array<std::uint8_t, 8>{0xFF, 0, 0xFF, 0, 0, 0, 0, 0});
+	std::array<std::uint8_t, 1> result{};
+	SimdLib::SimdResample::ReduceBytesToBitsBy8_All(std::array<std::uint8_t, 8>{0xFF, 0, 0xFF, 0, 0, 0, 0, 0}, result);
+	REQUIRE(result[0] == 0b0000'0101);
+	SimdLib::SimdResample::ReduceBytesToBitsBy8_Any(std::array<std::uint8_t, 8>{0, 4, 0, 2, 0, 0, 0, 0}, result);
+	REQUIRE(result[0] == 0b0000'1010);
+	SimdLib::SimdResample::ReduceBytesToBitsBy8_Parity(std::array<std::uint8_t, 8>{1, 3, 7, 0, 0, 0, 0, 0}, result);
+	REQUIRE(result[0] == 0b0000'0101);
+}

@@ -1,4 +1,5 @@
 #include "TestSupport.h"
+#include <SimdLib/Bmi.h>
 
 #include <algorithm>
 #include <array>
@@ -232,4 +233,122 @@ TEST_CASE("128-bit shuffle, blend, and position helpers match scalar references"
     const auto values = positions::setr(8, 4, 7, 1, 9, 2, 6, 3);
     REQUIRE(positions::min_position(values) == 3);
     REQUIRE(positions::max_position(values) == 4);
+}
+
+TEST_CASE("128-bit Api documentation examples produce their documented results", "[simdlib][sse42][documentation]")
+{
+	using ApiT = SimdLib::Api<128, float>;
+	using I8 = SimdLib::Api<128, std::int8_t>;
+	using I16 = SimdLib::Api<128, std::int16_t>;
+	using I32 = SimdLib::Api<128, std::int32_t>;
+	using U8 = SimdLib::Api<128, std::uint8_t>;
+	using U16 = SimdLib::Api<128, std::uint16_t>;
+	using U32 = SimdLib::Api<128, std::uint32_t>;
+	STATIC_REQUIRE(SimdLib::is_api_available_v<128, float>);
+	STATIC_REQUIRE(SimdLib::ApiAvailable<128, float>);
+	require_documented_register<ApiT>(ApiT::absolute(ApiT::construct({-2.0F, 3.0F, 0.0F, 0.0F})), std::array{2.0F, 3.0F, 0.0F, 0.0F});
+	require_documented_register<ApiT>(ApiT::add(ApiT::set1(2.0F), ApiT::set1(3.0F)), std::array{5.0F, 5.0F, 5.0F, 5.0F});
+	require_documented_register<ApiT>(ApiT::add_horizontal(ApiT::setr(1.0F, 2.0F, 3.0F, 4.0F), ApiT::setr(5.0F, 6.0F, 7.0F, 8.0F)),
+									  std::array{3.0F, 7.0F, 11.0F, 15.0F});
+	require_documented_register<U8>(U8::add_saturated(U8::set1(250), U8::set1(10)),
+									std::array<std::uint8_t, 16>{255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255});
+	require_documented_register<ApiT>(ApiT::add_subtract(ApiT::set1(10.0F), ApiT::setr(1.0F, 2.0F, 3.0F, 4.0F)), std::array{9.0F, 12.0F, 7.0F, 14.0F});
+	require_documented_register<U8>(U8::avg(U8::set1(2), U8::set1(6)), std::array<std::uint8_t, 16>{4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4});
+	require_documented_register<U32>(U32::bit_shift_left(U32::set1(3), 1), std::array{6U, 6U, 6U, 6U});
+	require_documented_register<U32>(U32::bit_shift_right(U32::set1(8), 1), std::array{4U, 4U, 4U, 4U});
+	require_documented_register<U32>(U32::bitwise_and(U32::set1(12), U32::set1(10)), std::array{8U, 8U, 8U, 8U});
+	require_documented_register<U32>(U32::bitwise_andnot(U32::set1(12), U32::set1(10)), std::array{2U, 2U, 2U, 2U});
+	require_documented_register<U32>(U32::bitwise_not(U32::setzero()), std::array{0xFFFFFFFFU, 0xFFFFFFFFU, 0xFFFFFFFFU, 0xFFFFFFFFU});
+	require_documented_register<U32>(U32::bitwise_or(U32::set1(12), U32::set1(10)), std::array{14U, 14U, 14U, 14U});
+	require_documented_register<U32>(U32::bitwise_xor(U32::set1(12), U32::set1(10)), std::array{6U, 6U, 6U, 6U});
+	require_documented_register<I32>(I32::blend(I32::setr(10, 20, 30, 40), I32::setr(1, 2, 3, 4), 0b0101), std::array{1, 20, 3, 40});
+	require_documented_register<U8>(U8::byte_shift_left(U8::set1(7), 1), std::array<std::uint8_t, 16>{0, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7});
+	require_documented_register<U8>(U8::byte_shift_right(U8::set1(7), 1), std::array<std::uint8_t, 16>{7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 0});
+	REQUIRE(ApiT::cmp_eq(ApiT::set1(2.0F), ApiT::set1(2.0F)) == 0xFFFFU);
+	REQUIRE(ApiT::cmp_eq_mask(ApiT::set1(2.0F), ApiT::set1(2.0F)) == 0xFFFFU);
+	REQUIRE(ApiT::cmp_ge(ApiT::set1(2.0F), ApiT::set1(2.0F)) == 0xFFFFU);
+	REQUIRE(ApiT::cmp_gt(ApiT::set1(3.0F), ApiT::set1(2.0F)) == 0xFFFFU);
+	REQUIRE(ApiT::cmp_le(ApiT::set1(2.0F), ApiT::set1(2.0F)) == 0xFFFFU);
+	REQUIRE(ApiT::cmp_lt(ApiT::set1(2.0F), ApiT::set1(3.0F)) == 0xFFFFU);
+	require_documented_register<I8>(I16::compress(I16::set1(300), I16::set1(-300)),
+									std::array<std::int8_t, 16>{127, 127, 127, 127, 127, 127, 127, 127, -128, -128, -128, -128, -128, -128, -128, -128});
+	require_documented_register<ApiT>(ApiT::construct({1.0F, 2.0F, 0.0F, 0.0F}), std::array{1.0F, 2.0F, 0.0F, 0.0F});
+	require_documented_register<I32>(ApiT::convert(ApiT::set1(3.6F)), std::array{4, 4, 4, 4});
+	require_documented_register<ApiT>(I32::convert_to_float(I32::set1(16777217)), std::array{16777216.0F, 16777216.0F, 16777216.0F, 16777216.0F});
+	require_documented_register<I32>(ApiT::convert_to_int(ApiT::set1(3.6F)), std::array{4, 4, 4, 4});
+	require_documented_register<ApiT>(ApiT::divide(ApiT::set1(8.0F), ApiT::set1(2.0F)), std::array{4.0F, 4.0F, 4.0F, 4.0F});
+	require_documented_register<ApiT>(ApiT::dot_product<0xFF>(ApiT::setr_partial(1.0F, 2.0F), ApiT::setr_partial(3.0F, 4.0F)),
+									  std::array{11.0F, 11.0F, 11.0F, 11.0F});
+	REQUIRE(I32::extract<0>(I32::setr(7, 8, 9, 10)) == 7);
+	require_documented_register<I16>(I16::hadd_saturated(I16::set1(20000), I16::set1(10000)),
+									 std::array<std::int16_t, 8>{32767, 32767, 32767, 32767, 20000, 20000, 20000, 20000});
+	require_documented_register<I16>(I16::hsubtract_saturated(I16::setr_partial(30000, -10000, -30000, 10000), I16::setr_partial(20000, -20000, 10000, -10000)),
+									 std::array<std::int16_t, 8>{32767, -32768, 0, 0, 32767, 20000, 0, 0});
+	require_documented_register<I32>(I32::insert(I32::setzero(), 9, 0), std::array{9, 0, 0, 0});
+	alignas(ApiT::byte_count) const std::array<float, ApiT::element_count> input{1.0F, 2.0F};
+	require_documented_register<ApiT>(ApiT::load(input), std::array{1.0F, 2.0F, 0.0F, 0.0F});
+	require_documented_register<ApiT>(ApiT::load_aligned(input), std::array{1.0F, 2.0F, 0.0F, 0.0F});
+	require_documented_register<ApiT>(ApiT::load_partial<2>(std::span<const float>{input}), std::array{1.0F, 2.0F, 0.0F, 0.0F});
+	require_documented_register<ApiT>(ApiT::load_unaligned(input), std::array{1.0F, 2.0F, 0.0F, 0.0F});
+	require_documented_register<ApiT>(ApiT::load_unsafe(input), std::array{1.0F, 2.0F, 0.0F, 0.0F});
+	require_documented_register<ApiT>(ApiT::magnitude(ApiT::setr_partial(3.0F, 4.0F)), std::array{5.0F, 5.0F, 5.0F, 5.0F});
+	require_documented_register<ApiT>(ApiT::max(ApiT::setr(2.0F, 8.0F, 4.0F, 9.0F), ApiT::setr(5.0F, 3.0F, 7.0F, 1.0F)), std::array{5.0F, 8.0F, 7.0F, 9.0F});
+	REQUIRE(U16::max_position(U16::insert(U16::set1(4), 9, 3)) == 3);
+	require_documented_register<ApiT>(ApiT::min(ApiT::setr(2.0F, 8.0F, 4.0F, 9.0F), ApiT::setr(5.0F, 3.0F, 7.0F, 1.0F)), std::array{2.0F, 3.0F, 4.0F, 1.0F});
+	REQUIRE(U16::min_position(U16::insert(U16::set1(4), 1, 3)) == 3);
+	require_documented_register<U32>(U32::modulus(U32::set1(7), U32::set1(3)), std::array{1U, 1U, 1U, 1U});
+	REQUIRE(ApiT::movemask(ApiT::set1(-0.0F)) == 0x8888U);
+	REQUIRE(ApiT::movemask_slim(ApiT::set1(-0.0F)) == 0xFU);
+	require_documented_register<SimdLib::Api<128, std::uint16_t>>(U8::multi_sum_absolute_byte_differences<0>(U8::set1(9), U8::set1(4)),
+																  std::array<std::uint16_t, 8>{20, 20, 20, 20, 20, 20, 20, 20});
+	require_documented_register<ApiT>(ApiT::multiply(ApiT::set1(3.0F), ApiT::set1(4.0F)), std::array{12.0F, 12.0F, 12.0F, 12.0F});
+	require_documented_register<ApiT>(ApiT::multiply_add(ApiT::set1(2.0F), ApiT::set1(3.0F), ApiT::set1(4.0F)), std::array{10.0F, 10.0F, 10.0F, 10.0F});
+	require_documented_register<I32>(I16::multiply_add_adjacent(I16::set1(2), I16::set1(3)), std::array{12, 12, 12, 12});
+	require_documented_register<I16>(U8::multiply_add_unsigned_signed_bytes(U8::set1(2), U8::set1(3)),
+									 std::array<std::int16_t, 8>{12, 12, 12, 12, 12, 12, 12, 12});
+	require_documented_register<ApiT>(ApiT::negate(ApiT::setr_partial(2.0F, -3.0F)), std::array{-2.0F, 3.0F, 0.0F, 0.0F});
+	const auto normalized = ApiT::to_array(ApiT::normalize(ApiT::setr_partial(3.0F, 4.0F)));
+	REQUIRE(normalized[0] > 0.599F);
+	REQUIRE(normalized[0] < 0.601F);
+	REQUIRE(normalized[1] > 0.799F);
+	REQUIRE(normalized[1] < 0.801F);
+	require_documented_register<ApiT>(ApiT::set(4.0F, 3.0F, 2.0F, 1.0F), std::array{1.0F, 2.0F, 3.0F, 4.0F});
+	require_documented_register<ApiT>(ApiT::set_partial(2.0F, 1.0F), std::array{0.0F, 0.0F, 1.0F, 2.0F});
+	require_documented_register<ApiT>(ApiT::set1(2.5F), std::array{2.5F, 2.5F, 2.5F, 2.5F});
+	require_documented_register<ApiT>(ApiT::setr(1.0F, 2.0F, 3.0F, 4.0F), std::array{1.0F, 2.0F, 3.0F, 4.0F});
+	require_documented_register<ApiT>(ApiT::setr_partial(1.0F, 2.0F), std::array{1.0F, 2.0F, 0.0F, 0.0F});
+	require_documented_register<ApiT>(ApiT::setzero(), std::array{0.0F, 0.0F, 0.0F, 0.0F});
+	require_documented_register<I32>(I32::shift_left(I32::set1(3), 1), std::array{6, 6, 6, 6});
+	require_documented_register<I32>(I32::shift_right(I32::set1(8), 1), std::array{4, 4, 4, 4});
+	require_documented_register<I32>(I32::shift_right_arithmetic(I32::set1(-8), 1), std::array{-4, -4, -4, -4});
+	require_documented_register<U8>(U8::shuffle(U8::set1(7), U8::set1(0x80)), std::array<std::uint8_t, 16>{});
+	const auto high = I16::byte_shift_left(I16::setr_partial(1, 2, 3, 4), 8);
+	require_documented_register<I16>(I16::shuffle_hi(high, 0b0001'1011), std::array<std::int16_t, 8>{0, 0, 0, 0, 4, 3, 2, 1});
+	require_documented_register<I16>(I16::shuffle_lo(I16::setr_partial(1, 2, 3, 4), 0b0001'1011), std::array<std::int16_t, 8>{4, 3, 2, 1, 0, 0, 0, 0});
+	require_documented_register<ApiT>(ApiT::sqrt(ApiT::setr_partial(4.0F, 9.0F)), std::array{2.0F, 3.0F, 0.0F, 0.0F});
+	alignas(ApiT::byte_count) std::array<float, ApiT::element_count> stored{};
+	ApiT::store(ApiT::setr_partial(1.0F, 2.0F), stored);
+	REQUIRE(stored == std::array{1.0F, 2.0F, 0.0F, 0.0F});
+	ApiT::store_aligned(ApiT::setr_partial(1.0F, 2.0F), stored);
+	REQUIRE(stored == std::array{1.0F, 2.0F, 0.0F, 0.0F});
+	ApiT::store_unaligned(ApiT::setr_partial(1.0F, 2.0F), stored);
+	REQUIRE(stored == std::array{1.0F, 2.0F, 0.0F, 0.0F});
+	require_documented_register<ApiT>(ApiT::subtract(ApiT::set1(7.0F), ApiT::set1(2.0F)), std::array{5.0F, 5.0F, 5.0F, 5.0F});
+	require_documented_register<ApiT>(ApiT::subtract_horizontal(ApiT::setr(3.0F, 1.0F, 7.0F, 2.0F), ApiT::setr(9.0F, 4.0F, 8.0F, 2.0F)),
+									  std::array{2.0F, 5.0F, 5.0F, 6.0F});
+	require_documented_register<U8>(U8::subtract_saturated(U8::set1(5), U8::set1(10)), std::array<std::uint8_t, 16>{});
+	require_documented_register<SimdLib::Api<128, std::uint64_t>>(U8::sum_absolute_byte_differences(U8::set1(9), U8::set1(4)),
+																  std::array<std::uint64_t, 2>{40, 40});
+	REQUIRE(ApiT::to_array(ApiT::setr_partial(1.0F, 2.0F)) == std::array{1.0F, 2.0F, 0.0F, 0.0F});
+	std::array<float, 3> transformed{};
+	ApiT::transform(std::array{1.0F, 2.0F, 3.0F}, transformed, [](auto lanes) { return ApiT::add(lanes, ApiT::set1(10.0F)); });
+	REQUIRE(transformed == std::array{11.0F, 12.0F, 13.0F});
+	std::array<std::uint8_t, 1> packed{};
+	ApiT::transform_pack<1>(std::span<const float, 4>{std::array{1.0F, -2.0F, 3.0F, -4.0F}}, packed,
+							[](auto lanes) { return ApiT::movemask_slim(lanes); });
+	REQUIRE(packed[0] == 0b0000'1010);
+	require_documented_register<ApiT>(ApiT::unpack_hi(ApiT::setr(1.0F, 2.0F, 3.0F, 4.0F), ApiT::setr(5.0F, 6.0F, 7.0F, 8.0F)),
+									  std::array{3.0F, 7.0F, 4.0F, 8.0F});
+	require_documented_register<ApiT>(ApiT::unpack_lo(ApiT::setr(1.0F, 2.0F, 3.0F, 4.0F), ApiT::setr(5.0F, 6.0F, 7.0F, 8.0F)),
+									  std::array{1.0F, 5.0F, 2.0F, 6.0F});
 }

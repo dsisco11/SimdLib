@@ -729,6 +729,7 @@ void require_floating_operation_contract()
 	std::array<Element, simd::element_count> minimum{};
 	std::array<Element, simd::element_count> maximum{};
 	std::array<Element, simd::element_count> absolute{};
+	std::array<Element, simd::element_count> negated{};
 	for (std::size_t index = 0; index < simd::element_count; ++index)
 	{
 		lhs[index] = index == 0 ? static_cast<Element>(-3.5) : static_cast<Element>(index + 2);
@@ -740,6 +741,7 @@ void require_floating_operation_contract()
 		minimum[index] = std::min(lhs[index], rhs[index]);
 		maximum[index] = std::max(lhs[index], rhs[index]);
 		absolute[index] = lhs[index] < Element{0} ? -lhs[index] : lhs[index];
+		negated[index] = -lhs[index];
 	}
 
 	const auto left = simd::construct(lhs);
@@ -754,6 +756,7 @@ void require_floating_operation_contract()
 	REQUIRE(simd::to_array(simd::min(left, right)) == minimum);
 	REQUIRE(simd::to_array(simd::max(left, right)) == maximum);
 	REQUIRE(simd::to_array(simd::absolute(left)) == absolute);
+	REQUIRE(simd::to_array(simd::negate(left)) == negated);
 	REQUIRE(simd::get_element(left, 0) == lhs[0]);
 	const auto replaced = simd::set_element(left, static_cast<int>(simd::element_count - 1), static_cast<Element>(-9.25));
 	auto expected_replaced = lhs;
@@ -899,6 +902,23 @@ void require_transform_pack_type_matrix()
 	require_transform_pack_mask_contract<Width, std::uint32_t, Api<Width, std::uint32_t>::element_count + 3>();
 	require_transform_pack_mask_contract<Width, std::int64_t, Api<Width, std::int64_t>::element_count + 3>();
 	require_transform_pack_mask_contract<Width, std::uint64_t, Api<Width, std::uint64_t>::element_count + 3>();
+}
+
+/**
+ * @brief Verifies every lane produced by a documentation example.
+ * @tparam Simd Api facade used to decode the raw register.
+ * @tparam Vector Raw SIMD register type.
+ * @tparam Expected Fixed-size container holding the documented values.
+ * @param value Raw register produced by the documented invocation.
+ * @param expected Values shown in the documentation.
+ */
+template <class Simd, class Vector, class Expected>
+void require_documented_register(const Vector value, const Expected& expected)
+{
+	const auto actual = Simd::to_array(value);
+	STATIC_REQUIRE(std::tuple_size_v<decltype(actual)> == std::tuple_size_v<Expected>);
+	for (std::size_t index = 0; index < actual.size(); ++index)
+		REQUIRE(actual[index] == static_cast<typename Simd::element_type>(expected[index]));
 }
 
 } // namespace SimdLib::Tests

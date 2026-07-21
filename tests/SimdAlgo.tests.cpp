@@ -292,3 +292,25 @@ TEST_CASE("SimdAlgo dynamic spans select 128 and 256 bit execution without seman
 			REQUIRE(output[index] == ((~lhs[index]) & rhs[index]));
 	}
 }
+
+TEST_CASE("SimdAlgo documentation examples produce their documented results", "[simdlib][algo][documentation]")
+{
+	using Algo = SimdLib::SimdAlgo<32, 1>;
+	REQUIRE(Algo::AllEqual(std::span<const std::uint32_t, 4>{std::array{3U, 3U, 3U, 3U}}, 3U));
+	REQUIRE(Algo::AnyEqual(std::span<const std::uint32_t, 4>{std::array{1U, 2U, 3U, 4U}}, 3U));
+	std::array<std::uint32_t, 2> result{};
+	Algo::BitwiseAnd(std::span<const std::uint32_t, 2>{std::array{0b1100U, 0b0011U}}, std::span<const std::uint32_t, 2>{std::array{0b1010U, 0b0110U}}, result);
+	REQUIRE(result == std::array{0b1000U, 0b0010U});
+	Algo::BitwiseAndNot(std::span<const std::uint32_t, 2>{std::array{0b1100U, 0b0011U}}, std::span<const std::uint32_t, 2>{std::array{0b1010U, 0b0110U}},
+						result);
+	REQUIRE(result == std::array{0b0010U, 0b0100U});
+	Algo::BitwiseNot(std::span<const std::uint32_t, 2>{std::array{0b1100U, 0b0011U}}, result);
+	REQUIRE(result == std::array{0xFFFFFFF3U, 0xFFFFFFFCU});
+	Algo::BitwiseOr(std::span<const std::uint32_t, 2>{std::array{0b1100U, 0b0011U}}, std::span<const std::uint32_t, 2>{std::array{0b1010U, 0b0110U}}, result);
+	REQUIRE(result == std::array{0b1110U, 0b0111U});
+	Algo::BitwiseXor(std::span<const std::uint32_t, 2>{std::array{0b1100U, 0b0011U}}, std::span<const std::uint32_t, 2>{std::array{0b1010U, 0b0110U}}, result);
+	REQUIRE(result == std::array{0b0110U, 0b0101U});
+	std::array<std::uint8_t, 1> compared{};
+	Algo::Compare(std::span<const std::uint32_t, 8>{std::array{3U, 1U, 3U, 2U, 0U, 0U, 0U, 0U}}, compared, 3U);
+	REQUIRE(compared[0] == 0b0000'0101);
+}

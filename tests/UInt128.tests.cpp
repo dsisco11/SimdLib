@@ -676,3 +676,75 @@ TEST_CASE("uint128 compiler paths produce the portable-oracle result digest", "[
 	CHECK(actualDigest == oracleDigest);
 	std::cout << "SIMDLIB_UINT128_RESULT_DIGEST=" << std::hex << actualDigest << '\n';
 }
+
+TEST_CASE("uint128_t documentation examples produce their documented results", "[simdlib][uint128][documentation]")
+{
+	REQUIRE(uint128_t{42} == uint128_t{42});
+	{
+		const uint128_t temporary{42};
+		REQUIRE(temporary == uint128_t{42});
+	}
+	REQUIRE(uint128_t{10}.abs_diff(uint128_t{3}) == uint128_t{7});
+	REQUIRE(SimdLib::bit_ceil(uint128_t{9}) == uint128_t{16});
+	REQUIRE(SimdLib::bit_floor(uint128_t{9}) == uint128_t{8});
+	REQUIRE(SimdLib::bit_width(uint128_t{9}) == 4);
+	REQUIRE(SimdLib::countl_one(uint128_t{0, 0xE000'0000'0000'0000ULL}) == 3);
+	REQUIRE(SimdLib::countl_zero(uint128_t{1}) == 127);
+	REQUIRE(SimdLib::countr_one(uint128_t{7}) == 3);
+	REQUIRE(SimdLib::countr_zero(uint128_t{8}) == 3);
+	REQUIRE(uint128_t::create_mask(4) == uint128_t{0b1111});
+	REQUIRE(deprecated_extract(uint128_t{0xABCD}, 8, 4) == uint128_t{0xBC});
+	REQUIRE(uint128_t{5, 7}.getBlock(1) == 7);
+	REQUIRE(SimdLib::has_single_bit(uint128_t{8}));
+	REQUIRE(uint128_t{5, 7}.high() == 7);
+	REQUIRE(uint128_t{5, 7}.low() == 5);
+	REQUIRE(SimdLib::popcount(uint128_t{0b1011}) == 3);
+	using namespace SimdLib;
+	REQUIRE(42_u128 == uint128_t{42});
+	REQUIRE(static_cast<bool>(uint128_t{1}));
+	REQUIRE(static_cast<std::uint64_t>(uint128_t{42}) == 42);
+	REQUIRE(uint128_t{40} + uint128_t{2} == uint128_t{42});
+	REQUIRE(uint128_t{45} - uint128_t{3} == uint128_t{42});
+	REQUIRE(uint128_t{42} == uint128_t{42});
+	REQUIRE((uint128_t{1} <=> uint128_t{2}) == std::strong_ordering::less);
+	REQUIRE((uint128_t{0b1100} & uint128_t{0b1010}) == uint128_t{0b1000});
+	REQUIRE((uint128_t{0b1100} | uint128_t{0b1010}) == uint128_t{0b1110});
+	REQUIRE((uint128_t{0b1100} ^ uint128_t{0b1010}) == uint128_t{0b0110});
+	REQUIRE(~uint128_t{} == uint128_t{std::numeric_limits<std::uint64_t>::max(), std::numeric_limits<std::uint64_t>::max()});
+	REQUIRE((uint128_t{3} << 2) == uint128_t{12});
+	REQUIRE((uint128_t{12} >> 2) == uint128_t{3});
+#if SIMDLIB_HAS_SSE2
+	REQUIRE(uint128_t::from_register(SimdLib::Api<128, std::uint64_t>::construct({5, 7})) == uint128_t{5, 7});
+	REQUIRE(SimdLib::Api<128, std::uint64_t>::to_array(uint128_t{5, 7}.to_register()) == std::array<std::uint64_t, 2>{5, 7});
+#endif
+	uint128_t result{};
+	result = uint128_t{42};
+	REQUIRE(result == uint128_t{42});
+	result = uint128_t{40};
+	result += uint128_t{2};
+	REQUIRE(result == uint128_t{42});
+	result = uint128_t{45};
+	result -= uint128_t{3};
+	REQUIRE(result == uint128_t{42});
+	result = uint128_t{0b1100};
+	result &= uint128_t{0b1010};
+	REQUIRE(result == uint128_t{0b1000});
+	result = uint128_t{0b1100};
+	result |= uint128_t{0b1010};
+	REQUIRE(result == uint128_t{0b1110});
+	result = uint128_t{0b1100};
+	result ^= uint128_t{0b1010};
+	REQUIRE(result == uint128_t{0b0110});
+	result = uint128_t{3};
+	result <<= 2;
+	REQUIRE(result == uint128_t{12});
+	result = uint128_t{12};
+	result >>= 2;
+	REQUIRE(result == uint128_t{3});
+	result = uint128_t{41};
+	++result;
+	REQUIRE(result == uint128_t{42});
+	result = uint128_t{43};
+	--result;
+	REQUIRE(result == uint128_t{42});
+}

@@ -152,3 +152,14 @@ TEST_CASE("256-bit SimdVector preserves arithmetic and storage", "[simdlib][avx2
     const vector rhs{2};
     REQUIRE(vector{lhs * rhs}.toArray() == std::array<std::int32_t, 8>{2, 4, 6, 8, 10, 12, 14, 16});
 }
+
+TEST_CASE("256-bit Api documentation examples produce their documented results", "[simdlib][avx2][documentation]")
+{
+	using F32x8 = SimdLib::Api<256, float>;
+	using F32x4 = SimdLib::Api<128, float>;
+	using I16x8 = SimdLib::Api<128, std::int16_t>;
+	using I32x8 = SimdLib::Api<256, std::int32_t>;
+	require_documented_register<F32x4>(F32x8::lower_half(F32x8::set1(2.0F)), std::array{2.0F, 2.0F, 2.0F, 2.0F});
+	require_documented_register<I32x8>(I16x8::widen<I32x8>(I16x8::set1(-30000)),
+									   std::array<std::int32_t, 8>{-30000, -30000, -30000, -30000, -30000, -30000, -30000, -30000});
+}
