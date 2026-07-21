@@ -2272,7 +2272,10 @@ template <class element_t> struct SimdMappings<128, element_t> : public SimdImpl
 	SIMDLIB_FORCE_INLINE static vector_t VECTORCALL negate(vector_t lhs) noexcept
 		requires std::is_floating_point_v<element_t>
 	{
-		return subtract(setzero(), lhs);
+		if constexpr (std::same_as<element_t, float>)
+			return _mm_sub_ps(_mm_setzero_ps(), lhs);
+		else
+			return _mm_sub_pd(_mm_setzero_pd(), lhs);
 	}
 #pragma endregion
 
@@ -4582,7 +4585,10 @@ template <class element_t> struct SimdMappings<256, element_t> : public SimdImpl
 	SIMDLIB_FORCE_INLINE static vector_t VECTORCALL negate(vector_t lhs) noexcept
 		requires std::is_floating_point_v<element_t>
 	{
-		return subtract(setzero(), lhs);
+		if constexpr (std::same_as<element_t, float>)
+			return _mm256_sub_ps(_mm256_setzero_ps(), lhs);
+		else
+			return _mm256_sub_pd(_mm256_setzero_pd(), lhs);
 	}
 #pragma endregion
 
