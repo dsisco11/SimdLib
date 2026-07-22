@@ -138,6 +138,12 @@ hot function and its generated code should a consumer consider applying
 `__declspec(safebuffers)` to that function; the annotation disables `/GS`
 protection for the entire annotated function.
 
+The mandatory generated-code gate recognizes only the exact wrapper-only MSVC
+security-cookie sequence present in its scalar-result construction
+probe. It retains the unmodified wrapper and raw disassembly, records the accepted
+exception in the artifact provenance, and rejects every other code-generation
+difference.
+
 ## Learn more
 
 - The [wiki](wiki/Home.md) contains API documentation for every

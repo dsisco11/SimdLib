@@ -70,6 +70,73 @@ function(simdlib_profile_disassembly input_text output_variable)
 	set(${output_variable} "${profile}" PARENT_SCOPE)
 endfunction()
 
+# @brief Removes the one accepted MSVC scalar-result security-cookie sequence.
+# @param input_text Allocation-independent wrapper instruction profile.
+# @param output_variable Variable that receives the comparable wrapper profile.
+# @param accepted_variable Variable that reports whether the exact exception was found.
+function(simdlib_accept_msvc_scalar_cookie input_text output_variable accepted_variable)
+	set(${output_variable} "${input_text}" PARENT_SCOPE)
+	set(${accepted_variable} OFF PARENT_SCOPE)
+	if(NOT COMPILER_ID STREQUAL "MSVC" OR
+		NOT SYSTEM_NAME STREQUAL "Windows" OR
+		NOT VECTORCALL_ENABLED STREQUAL "1" OR
+		NOT SYMBOL_PATTERN STREQUAL "simdlib_codegen_")
+		return()
+	endif()
+
+	if(REGISTER_WIDTH STREQUAL "128")
+		set(cookie_profile [=[<symbol>:
+subq	$0x18, %rsp
+movq	(%rip), %rax            # 0x<target>
+xorq	%rsp, %rax
+movq	%rax, (%rsp)
+vpmovmskb	%vreg, %eax
+movq	(%rsp), %rcx
+xorq	%rsp, %rcx
+callq	0x<target>
+addq	$0x18, %rsp
+retq]=])
+		set(raw_scalar_profile [=[<symbol>:
+vpmovmskb	%vreg, %eax
+retq]=])
+	elseif(REGISTER_WIDTH STREQUAL "256")
+		set(cookie_profile [=[<symbol>:
+subq	$0x18, %rsp
+movq	(%rip), %rax            # 0x<target>
+xorq	%rsp, %rax
+movq	%rax, (%rsp)
+vpmovmskb	%vreg, %eax
+vzeroupper
+movq	(%rsp), %rcx
+xorq	%rsp, %rcx
+callq	0x<target>
+addq	$0x18, %rsp
+retq]=])
+		set(raw_scalar_profile [=[<symbol>:
+vpmovmskb	%vreg, %eax
+vzeroupper
+retq]=])
+	else()
+		return()
+	endif()
+
+	string(FIND "${input_text}" "${cookie_profile}" cookie_index)
+	if(cookie_index LESS 0)
+		return()
+	endif()
+	string(LENGTH "${cookie_profile}" cookie_length)
+	math(EXPR cookie_tail_index "${cookie_index} + ${cookie_length}")
+	string(SUBSTRING "${input_text}" ${cookie_tail_index} -1 cookie_tail)
+	string(FIND "${cookie_tail}" "${cookie_profile}" duplicate_cookie_index)
+	if(NOT duplicate_cookie_index LESS 0)
+		return()
+	endif()
+
+	string(REPLACE "${cookie_profile}" "${raw_scalar_profile}" comparable_profile "${input_text}")
+	set(${output_variable} "${comparable_profile}" PARENT_SCOPE)
+	set(${accepted_variable} ON PARENT_SCOPE)
+endfunction()
+
 simdlib_disassemble("${WRAPPER_OBJECT}" wrapper_disassembly)
 simdlib_disassemble("${RAW_OBJECT}" raw_disassembly)
 simdlib_normalize_disassembly("${wrapper_disassembly}" wrapper_normalized)
@@ -77,12 +144,30 @@ simdlib_normalize_disassembly("${raw_disassembly}" raw_normalized)
 simdlib_profile_disassembly("${wrapper_normalized}" wrapper_profile)
 simdlib_profile_disassembly("${raw_normalized}" raw_profile)
 
+set(comparable_wrapper_profile "${wrapper_profile}")
+set(comparison_result "exact-parity")
+set(accepted_exception "none")
+if(NOT wrapper_profile STREQUAL raw_profile)
+	simdlib_accept_msvc_scalar_cookie(
+		"${wrapper_profile}" comparable_wrapper_profile accepted_msvc_scalar_cookie)
+	if(accepted_msvc_scalar_cookie AND comparable_wrapper_profile STREQUAL raw_profile)
+		set(comparison_result "accepted-compiler-exception")
+		set(accepted_exception "msvc-gs-scalar-cookie")
+	else()
+		set(comparison_result "failed")
+	endif()
+endif()
+
 file(WRITE "${ARTIFACT_DIRECTORY}/wrapper.disassembly.txt" "${wrapper_disassembly}")
 file(WRITE "${ARTIFACT_DIRECTORY}/raw.disassembly.txt" "${raw_disassembly}")
 file(WRITE "${ARTIFACT_DIRECTORY}/wrapper.normalized.txt" "${wrapper_normalized}\n")
 file(WRITE "${ARTIFACT_DIRECTORY}/raw.normalized.txt" "${raw_normalized}\n")
 file(WRITE "${ARTIFACT_DIRECTORY}/wrapper.profile.txt" "${wrapper_profile}\n")
 file(WRITE "${ARTIFACT_DIRECTORY}/raw.profile.txt" "${raw_profile}\n")
+file(WRITE "${ARTIFACT_DIRECTORY}/wrapper.comparable.profile.txt" "${comparable_wrapper_profile}\n")
+file(WRITE "${ARTIFACT_DIRECTORY}/comparison.txt"
+	"result=${comparison_result}\n"
+	"accepted_exception=${accepted_exception}\n")
 file(WRITE "${ARTIFACT_DIRECTORY}/provenance.txt"
 	"compiler_id=${COMPILER_ID}\n"
 	"compiler_version=${COMPILER_VERSION}\n"
@@ -93,10 +178,15 @@ file(WRITE "${ARTIFACT_DIRECTORY}/provenance.txt"
 	"register_width=${REGISTER_WIDTH}\n"
 	"vectorcall_enabled=${VECTORCALL_ENABLED}\n"
 	"stack_protector_mode=${STACK_PROTECTOR_MODE}\n"
+	"comparison_result=${comparison_result}\n"
+	"accepted_exception=${accepted_exception}\n"
 	"wrapper_object=${WRAPPER_OBJECT}\n"
 	"raw_object=${RAW_OBJECT}\n")
 
-if(NOT wrapper_profile STREQUAL raw_profile)
+if(comparison_result STREQUAL "failed")
 	message(FATAL_ERROR
 		"Register wrapper generated code differs from the raw fixture; inspect ${ARTIFACT_DIRECTORY}")
+elseif(comparison_result STREQUAL "accepted-compiler-exception")
+	message(STATUS
+		"Accepted the exact MSVC /GS scalar security-cookie exception; artifacts: ${ARTIFACT_DIRECTORY}")
 endif()
