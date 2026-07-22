@@ -5,7 +5,6 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
-#include <cstring>
 #include <span>
 
 #if SIMDLIB_COMPILER_MSVC
@@ -194,7 +193,20 @@ SIMDLIB_DETAIL_MSVC_SAFE_BUFFERS SIMDLIB_CODEGEN_NOINLINE float VECTORCALL
 #if SIMDLIB_CODEGEN_USE_WRAPPER
 	return SimdLibCodegen::register_type(value).template lane<0>();
 #else
-	return SimdLibCodegen::api_type::to_array(value)[0];
+	return SimdLibCodegen::api_type::template extract<0>(value);
+#endif
+}
+
+/** @brief Highest-lane observation fixture. */
+SIMDLIB_DETAIL_MSVC_SAFE_BUFFERS SIMDLIB_CODEGEN_NOINLINE float VECTORCALL
+	simdlib_codegen_lane_last(native_type value) noexcept
+{
+#if SIMDLIB_CODEGEN_USE_WRAPPER
+	return SimdLibCodegen::register_type(value)
+		.template lane<SimdLibCodegen::register_type::lane_count - 1>();
+#else
+	return SimdLibCodegen::api_type::template extract<
+		static_cast<int>(SimdLibCodegen::register_type::lane_count - 1)>(value);
 #endif
 }
 
@@ -207,9 +219,8 @@ SIMDLIB_DETAIL_MSVC_SAFE_BUFFERS SIMDLIB_CODEGEN_NOINLINE native_type VECTORCALL
 		.template with_lane<SimdLibCodegen::register_type::lane_count - 1>(replacement)
 		.native();
 #else
-	auto lanes = SimdLibCodegen::api_type::to_array(value);
-	lanes.back() = replacement;
-	return SimdLibCodegen::api_type::construct(lanes);
+	return SimdLibCodegen::api_type::template insert<
+		SimdLibCodegen::register_type::lane_count - 1>(value, replacement);
 #endif
 }
 
@@ -256,9 +267,9 @@ SIMDLIB_DETAIL_MSVC_SAFE_BUFFERS SIMDLIB_CODEGEN_NOINLINE void simdlib_codegen_b
 	SimdLibCodegen::register_type::load_bytes(std::span<const std::byte, count>{source, count})
 		.store_bytes(std::span<std::byte, count>{destination, count});
 #else
-	native_type value = SimdLibCodegen::api_type::setzero();
-	std::memcpy(&value, source, count);
-	std::memcpy(destination, &value, count);
+	SimdLibCodegen::api_type::store(
+		SimdLibCodegen::api_type::load(std::span<const std::byte, count>{source, count}),
+		std::span<std::byte, count>{destination, count});
 #endif
 }
 

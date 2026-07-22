@@ -13,4 +13,4 @@
 ☐ Improve performance of `Bmi::portable_pext()`.
 ☐ Benchmark and Optimize `SimdVector::area()`.
 ☐ Add Intel oneAPI DPC++/C++ Compiler (ICX/ICPX) as an explicitly supported toolchain, including compiler detection, strict-warning builds, runtime tests, external-consumer coverage, and Register ABI/generated-code validation.
-☐ Add NVIDIA HPC SDK NVC++ as an explicitly supported toolchain, including dedicated compiler detection, x86 intrinsic coverage, C++23 Register availability, compiler-attribute mappings, runtime tests, external-consumer coverage, and generated-code validation.
+☐ Add NVIDIA HPC SDK NVC++ as an explicitly supported toolchain, including dedicated compiler detection, x86-family intrinsic coverage on x64, C++23 Register availability, compiler-attribute mappings, runtime tests, external-consumer coverage, and generated-code validation.

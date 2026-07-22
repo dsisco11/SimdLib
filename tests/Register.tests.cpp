@@ -5,6 +5,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 #include <span>
 #include <type_traits>
 #include <utility>
@@ -19,7 +20,30 @@ template <class register_t>
 	std::array<typename register_t::element_type, register_t::lane_count> result{};
 	for (std::size_t index = 0; index < result.size(); ++index)
 		result[index] = static_cast<typename register_t::element_type>(index + 1);
+	if constexpr (std::is_integral_v<typename register_t::element_type>)
+	{
+		result.front() = std::numeric_limits<typename register_t::element_type>::lowest();
+		result.back() = std::numeric_limits<typename register_t::element_type>::max();
+	}
+	else
+	{
+		result.front() = static_cast<typename register_t::element_type>(-3.5);
+		result.back() = static_cast<typename register_t::element_type>(7.25);
+	}
 	return result;
+}
+
+/** @brief Verifies every compile-time-selected lane against its source value. */
+template <std::size_t index = 0, class register_t>
+void require_all_lanes(
+	const register_t value,
+	const std::array<typename register_t::element_type, register_t::lane_count> &expected)
+{
+	if constexpr (index < register_t::lane_count)
+	{
+		REQUIRE(value.template lane<index>() == expected[index]);
+		require_all_lanes<index + 1>(value, expected);
+	}
 }
 
 /** @brief Constructs a register from an expanded low-to-high lane array. */
@@ -52,8 +76,7 @@ void require_value_contracts()
 
 	const register_type wrapped(register_type::api_type::construct(values));
 	REQUIRE(register_type::api_type::to_array(wrapped.native()) == values);
-	REQUIRE(wrapped.template lane<0>() == values.front());
-	REQUIRE(wrapped.template lane<register_type::lane_count - 1>() == values.back());
+	require_all_lanes(wrapped, values);
 
 	const auto first_replaced = wrapped.template with_lane<0>(static_cast<element_t>(41)).to_array();
 	const auto last_replaced = wrapped.template with_lane<register_type::lane_count - 1>(static_cast<element_t>(43)).to_array();

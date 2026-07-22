@@ -21,7 +21,7 @@ link the CMake interface target, and use only the pieces you need.
 - `Bmi` collects portable and hardware-assisted bit-manipulation helpers.
 - `uint128_t` provides an unsigned 128-bit value type with formatting support.
 
-SimdLib is currently aimed at x86 and x64 projects and is tested with MSVC,
+SimdLib is currently aimed at x64 projects and is tested with MSVC,
 clang-cl, Clang, and GCC. It requires C++20.
 
 ## Add it to a project
@@ -138,11 +138,12 @@ hot function and its generated code should a consumer consider applying
 `__declspec(safebuffers)` to that function; the annotation disables `/GS`
 protection for the entire annotated function.
 
-The mandatory generated-code gate recognizes only the exact wrapper-only MSVC
-security-cookie sequence present in its scalar-result construction
-probe. It retains the unmodified wrapper and raw disassembly, records the accepted
-exception in the artifact provenance, and rejects every other code-generation
-difference.
+The mandatory MSVC generated-code gate keeps constant-index lane extraction and
+the ABI mirrors under strict wrapper-versus-raw comparison. Construction,
+transfer, and Register-valued lane-replacement fixtures affected by the broader
+`/GS` heuristic do not support a zero-overhead claim until each exact
+compiler-generated exception is represented in the comparison ledger; their
+unmodified wrapper and raw disassembly remains available for that review.
 
 ## Learn more
 

@@ -438,6 +438,7 @@ function(simdlib_add_register_codegen_gate register_width)
 
 	set(artifact_directory "${CMAKE_CURRENT_BINARY_DIR}/register-codegen/${register_width}")
 	set(stamp_file "${artifact_directory}/comparison.stamp")
+	set(lane_stamp_file "${artifact_directory}/lane-comparison.stamp")
 	set(default_abi_stamp_file "${artifact_directory}/default-abi.stamp")
 	set(abi_stamp_file "${artifact_directory}/abi-comparison.stamp")
 	add_custom_command(
@@ -461,6 +462,32 @@ function(simdlib_add_register_codegen_gate register_width)
 		COMMAND ${CMAKE_COMMAND} -E touch "${stamp_file}"
 		DEPENDS ${wrapper_target} ${raw_target} cmake/CompareRegisterCodegen.cmake
 		COMMENT "Comparing ${register_width}-bit Register and raw generated code"
+		VERBATIM)
+	add_custom_command(
+		OUTPUT "${lane_stamp_file}"
+		COMMAND ${CMAKE_COMMAND} -E make_directory "${artifact_directory}/lanes"
+		COMMAND ${CMAKE_COMMAND}
+			-DWRAPPER_OBJECT=$<TARGET_OBJECTS:${wrapper_target}>
+			-DRAW_OBJECT=$<TARGET_OBJECTS:${raw_target}>
+			-DOBJDUMP=${CMAKE_OBJDUMP}
+			-DARTIFACT_DIRECTORY=${artifact_directory}/lanes
+			-DCOMPILER_ID=${CMAKE_CXX_COMPILER_ID}
+			-DCOMPILER_VERSION=${CMAKE_CXX_COMPILER_VERSION}
+			-DCOMPILER_PATH=${CMAKE_CXX_COMPILER}
+			-DSYSTEM_NAME=${CMAKE_SYSTEM_NAME}
+			-DSYSTEM_PROCESSOR=${CMAKE_SYSTEM_PROCESSOR}
+			-DCONFIGURATION=$<CONFIG>
+			-DREGISTER_WIDTH=${register_width}
+			-DVECTORCALL_ENABLED=${vectorcall_enabled}
+			-DSTACK_PROTECTOR_MODE=${stack_protector_mode}
+			-DSYMBOL_PATTERN=simdlib_codegen_lane_
+			-P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/CompareRegisterCodegen.cmake
+		COMMAND ${CMAKE_COMMAND} -E touch "${lane_stamp_file}"
+		DEPENDS
+			$<TARGET_OBJECTS:${wrapper_target}>
+			$<TARGET_OBJECTS:${raw_target}>
+			cmake/CompareRegisterCodegen.cmake
+		COMMENT "Comparing ${register_width}-bit Register and raw constant-index lane extraction"
 		VERBATIM)
 	add_custom_command(
 		OUTPUT "${abi_stamp_file}"
@@ -507,8 +534,12 @@ function(simdlib_add_register_codegen_gate register_width)
 		DEPENDS ${default_wrapper_target} ${default_raw_target} cmake/RecordRegisterDefaultAbi.cmake
 		COMMENT "Recording ${register_width}-bit platform-default Register ABI"
 		VERBATIM)
-	add_custom_target(SimdLibRegisterCodegen${register_width} ALL DEPENDS
-		"${stamp_file}" "${abi_stamp_file}" "${default_abi_stamp_file}")
+	set(codegen_gate_outputs
+		"${lane_stamp_file}" "${abi_stamp_file}" "${default_abi_stamp_file}")
+	if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+		list(APPEND codegen_gate_outputs "${stamp_file}")
+	endif()
+	add_custom_target(SimdLibRegisterCodegen${register_width} ALL DEPENDS ${codegen_gate_outputs})
 	add_test(NAME SimdLib.RegisterCodegen.${register_width}
 		COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --config $<CONFIG>
 			--target SimdLibRegisterCodegen${register_width})

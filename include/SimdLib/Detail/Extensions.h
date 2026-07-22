@@ -931,11 +931,6 @@ SIMDLIB_FORCE_INLINE __m256d VECTORCALL _ext256_cmpgt_pd(const __m256d lhs, cons
 	return _mm256_cmp_pd(lhs, rhs, _CMP_GT_OQ);
 }
 
-SIMDLIB_FORCE_INLINE __m256 VECTORCALL _ext256_extract_ps(__m256 lhs, const int imm8) noexcept
-{
-	return _mm256_permutevar8x32_ps(lhs, _mm256_set1_epi32(imm8));
-}
-
 // SIMDLIB_FORCE_INLINE VECTORCALL __m256 _ext256_insert_ps(__m256 lhs, __m128 rhs, const int imm8) noexcept
 //{
 //     return _mm256_insertf128_ps(lhs, rhs, imm8);

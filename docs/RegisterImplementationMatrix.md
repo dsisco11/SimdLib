@@ -64,7 +64,7 @@ These portability rules do not change a public declaration.
 | Type-changing results | Public operations name the exact constrained namespace-level result alias and never expose a raw intrinsic result | 7 | Type assertions and unsupported-combination rejection |
 | Conversion split | `bit_cast()` preserves bits; `convert()` changes numeric values; `widen_low()` explicitly consumes only low source lanes | 8 | Independent bit/numeric/lane-consumption tests |
 | Zero overhead | No supported wrapper expression or call boundary adds instructions, moves, spills, reloads, stack traffic, temporaries, return buffers, branches, or indirection relative to the identical raw baseline, except for an explicitly recorded compiler-generated security protection | 3, 10 | Mandatory generated-code and ABI gates with provenance |
-| MSVC `/GS` exception | The MSVC wrapper `simdlib_codegen_scalar` fixture may contain the exact documented security-cookie prologue and epilogue at 128 or 256 bits while its raw mirror remains register-only; the gate removes only that sequence for comparison, preserves the original artifacts, records the exception, and rejects every additional difference | 3, 10 | `CompareRegisterCodegen.cmake`, paired profiles, comparison result, and provenance |
+| MSVC `/GS` exception | Constant-index lane extraction and ABI mirrors retain strict wrapper-versus-raw gates. Construction, transfer, and Register-valued lane-replacement fixtures affected by the broader MSVC security-cookie heuristic cannot support a zero-overhead claim until each exact exception is represented in the comparison ledger; their original paired disassembly remains review evidence | 3, 10 | Lane and ABI comparison stamps, paired profiles, comparison result, and provenance |
 | Compatibility | `Api` remains supported; collection transforms and compatibility-only operations do not migrate | 9, 11 | Final ledger audit and unchanged C++20 matrix |
 | Public exposure | `Register.h` remains out of the umbrella until correctness and zero-overhead qualification succeeds | 1, 11 | Header and migration gates |
 
@@ -224,15 +224,15 @@ escape classification.
 
 | Surface | Compiler | Architecture/configuration | Requirement |
 | --- | --- | --- | --- |
-| C++20 core | MSVC 19.44 | x64 and x86; Debug and Release | Existing full public matrix remains supported |
-| C++20 core | clang-cl 22.1.8 | x64 and x86; Debug and Release | Existing full public matrix remains supported |
-| C++20 core | Clang 22.1.8 | x64 and x86; Debug and Release | Existing full public matrix remains supported |
-| C++20 core | GCC 13.2 | x64 and CI x86; Debug and Release | Existing full public matrix remains supported; Register unavailable |
+| C++20 core | MSVC 19.44 | x64; Debug and Release | Existing full public matrix remains supported |
+| C++20 core | clang-cl 22.1.8 | x64; Debug and Release | Existing full public matrix remains supported |
+| C++20 core | Clang 22.1.8 | x64; Debug and Release | Existing full public matrix remains supported |
+| C++20 core | GCC 13.2 | x64; Debug and Release | Existing full public matrix remains supported; Register unavailable |
 | C++20 core sanitizer | Clang 22.1.8 | x64 Debug, `-O1`, ASan/UBSan, frame pointers | No sanitizer diagnostics |
-| Register | MSVC 19.44 | `/std:c++latest`; supported x64/x86 profiles | Complete Register gates must pass; the generated-code gate may record only the exact documented `/GS` scalar-cookie exception |
-| Register | clang-cl 22.1.8 | C++23; supported x64/x86 profiles | Standard feature macro and complete Register gates pass |
-| Register | Clang 22.1.8 | C++23; supported x64/x86 profiles | Standard feature macro and complete Register gates pass |
-| Register | GCC 14 or newer | C++23; supported x64/x86 profiles | Standard feature macro and complete Register gates pass |
+| Register | MSVC 19.44 | `/std:c++latest`; supported x64 profiles | Constant-index lane-extraction and ABI gates must pass exactly; broader `/GS`-affected fixtures require explicit exception-ledger qualification before supporting zero-overhead claims |
+| Register | clang-cl 22.1.8 | C++23; supported x64 profiles | Standard feature macro and complete Register gates pass |
+| Register | Clang 22.1.8 | C++23; supported x64 profiles | Standard feature macro and complete Register gates pass |
+| Register | GCC 14 or newer | C++23; supported x64 profiles | Standard feature macro and complete Register gates pass |
 
 GCC 13.2 remains the required local unavailable-interface probe; it is not a
 Register compiler. A Register compiler floor is lowered or expanded only after

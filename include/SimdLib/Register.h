@@ -263,7 +263,14 @@ class Register final
 	[[nodiscard]] SIMDLIB_FORCE_INLINE constexpr element_type VECTORCALL lane(
 		this Register value) noexcept
 	{
-		return value.to_array()[index];
+		if consteval
+		{
+			return lane_constexpr<index>(value);
+		}
+		else
+		{
+			return api_type::template extract<static_cast<int>(index)>(value.m_data);
+		}
 	}
 
 	/**
@@ -279,9 +286,15 @@ class Register final
 		this Register value,
 		element_type replacement) noexcept
 	{
-		auto lanes = value.to_array();
-		lanes[index] = replacement;
-		return from_array(lanes);
+		if consteval
+		{
+			return with_lane_constexpr<index>(value, replacement);
+		}
+		else
+		{
+			value.m_data = api_type::template insert<index>(value.m_data, replacement);
+			return value;
+		}
 	}
 
 	/**
@@ -295,7 +308,37 @@ class Register final
 		return value.m_data;
 	}
 
+
   private:
+	/**
+	 * @brief Implements compile-time lane observation through the portable array representation.
+	 * @tparam index Logical lane index to observe.
+	 * @param value Register containing the selected lane.
+	 * @return Copy of lane `index`.
+	 */
+	template <std::size_t index>
+	[[nodiscard]] constexpr static element_type lane_constexpr(Register value) noexcept
+	{
+		return value.to_array()[index];
+	}
+
+	/**
+	 * @brief Implements compile-time lane replacement through the portable array representation.
+	 * @tparam index Logical lane index to replace.
+	 * @param value Register containing the lanes to copy.
+	 * @param replacement Replacement value for lane `index`.
+	 * @return Register with lane `index` replaced.
+	 */
+	template <std::size_t index>
+	[[nodiscard]] constexpr static Register with_lane_constexpr(
+		Register value,
+		element_type replacement) noexcept
+	{
+		auto lanes = value.to_array();
+		lanes[index] = replacement;
+		return from_array(lanes);
+	}
+
 	native_type m_data;
 };
 

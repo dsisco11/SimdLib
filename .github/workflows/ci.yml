@@ -10,19 +10,18 @@ permissions:
 
 jobs:
   windows:
-    name: MSVC ${{ matrix.arch }} ${{ matrix.config }}
+    name: MSVC x64 ${{ matrix.config }}
     runs-on: windows-2022
     strategy:
       fail-fast: false
       matrix:
-        arch: [x64, Win32]
         config: [Debug, Release]
     steps:
       - uses: actions/checkout@v4
       - name: Configure
         shell: pwsh
         run: |
-          cmake -S . -B build -G 'Visual Studio 17 2022' -A '${{ matrix.arch }}' -T v143 `
+          cmake -S . -B build -G 'Visual Studio 17 2022' -A x64 -T v143 `
             -DSIMDLIB_BUILD_TESTS=ON `
             -DSIMDLIB_BUILD_TESTS_OPTIONAL=OFF `
             -DSIMDLIB_BUILD_EXAMPLES=ON `
@@ -33,18 +32,17 @@ jobs:
         run: ctest --test-dir build -C ${{ matrix.config }} --output-on-failure
 
   clang-cl:
-    name: clang-cl ${{ matrix.arch }} ${{ matrix.config }}
+    name: clang-cl x64 ${{ matrix.config }}
     runs-on: windows-2022
     strategy:
       fail-fast: false
       matrix:
-        arch: [x64, x86]
         config: [Debug, Release]
     steps:
       - uses: actions/checkout@v4
       - uses: ilammy/msvc-dev-cmd@v1
         with:
-          arch: ${{ matrix.arch }}
+          arch: x64
       - name: Configure standalone clang-cl
         run: >-
           cmake -S . -B build -G Ninja

@@ -3,6 +3,7 @@
 #include <SimdLib/Detail/Extensions.h>
 #include <SimdLib/TemplateTools.h>
 #include <array>
+#include <bit>
 #include <concepts>
 #if SIMDLIB_COMPILER_MSVC && SIMDLIB_TARGET_X86
 #include <intrin.h>
@@ -238,6 +239,11 @@ template <> struct SimdImpl128<int8_t>
 	{
 		return register_get<int8_t>(lhs, static_cast<std::size_t>(rhs));
 	}
+	/** @brief Replaces the compile-time-selected signed 8-bit lane. */
+	template <int index> SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, const int8_t rhs) noexcept
+	{
+		return _mm_insert_epi8(lhs, static_cast<int>(rhs), index);
+	}
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, auto rhs, const int index) noexcept
 	{
 		return register_insert<std::int8_t>(lhs, rhs, static_cast<std::size_t>(index));
@@ -462,9 +468,18 @@ template <> struct SimdImpl128<uint8_t>
 	}
 
 	// extract / insert
+	template <int index> SIMDLIB_FORCE_INLINE static auto VECTORCALL extract(auto lhs) noexcept
+	{
+		return static_cast<uint8_t>(_mm_extract_epi8(lhs, index));
+	}
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL extract(auto lhs, auto rhs) noexcept
 	{
 		return register_get<uint8_t>(lhs, static_cast<std::size_t>(rhs));
+	}
+	/** @brief Replaces the compile-time-selected unsigned 8-bit lane. */
+	template <int index> SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, const uint8_t rhs) noexcept
+	{
+		return _mm_insert_epi8(lhs, static_cast<int>(rhs), index);
 	}
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, auto rhs, const int index) noexcept
 	{
@@ -706,6 +721,11 @@ template <> struct SimdImpl128<int16_t>
 	{
 		return register_get<int16_t>(lhs, static_cast<std::size_t>(rhs));
 	}
+	/** @brief Replaces the compile-time-selected signed 16-bit lane. */
+	template <int index> SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, const int16_t rhs) noexcept
+	{
+		return _mm_insert_epi16(lhs, static_cast<int>(rhs), index);
+	}
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, auto rhs, const int index) noexcept
 	{
 		return register_insert<std::int16_t>(lhs, rhs, static_cast<std::size_t>(index));
@@ -934,6 +954,11 @@ template <> struct SimdImpl128<uint16_t>
 	{
 		return register_get<uint16_t>(lhs, static_cast<std::size_t>(rhs));
 	}
+	/** @brief Replaces the compile-time-selected unsigned 16-bit lane. */
+	template <int index> SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, const uint16_t rhs) noexcept
+	{
+		return _mm_insert_epi16(lhs, static_cast<int>(rhs), index);
+	}
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, auto rhs, const int index) noexcept
 	{
 		return register_insert<std::int16_t>(lhs, rhs, static_cast<std::size_t>(index));
@@ -1132,6 +1157,11 @@ template <> struct SimdImpl128<int32_t>
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL extract(auto lhs, auto rhs) noexcept
 	{
 		return register_get<int32_t>(lhs, static_cast<std::size_t>(rhs));
+	}
+	/** @brief Replaces the compile-time-selected signed 32-bit lane. */
+	template <int index> SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, const int32_t rhs) noexcept
+	{
+		return _mm_insert_epi32(lhs, rhs, index);
 	}
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, auto rhs, const int index) noexcept
 	{
@@ -1350,6 +1380,11 @@ template <> struct SimdImpl128<uint32_t>
 	{
 		return register_get<uint32_t>(lhs, static_cast<std::size_t>(rhs));
 	}
+	/** @brief Replaces the compile-time-selected unsigned 32-bit lane. */
+	template <int index> SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, const uint32_t rhs) noexcept
+	{
+		return _mm_insert_epi32(lhs, std::bit_cast<int32_t>(rhs), index);
+	}
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, auto rhs, const int index) noexcept
 	{
 		return register_insert<std::int32_t>(lhs, rhs, static_cast<std::size_t>(index));
@@ -1513,6 +1548,11 @@ template <> struct SimdImpl128<int64_t>
 	{
 		return register_get<int64_t>(lhs, static_cast<std::size_t>(rhs));
 	}
+	/** @brief Replaces the compile-time-selected signed 64-bit lane. */
+	template <int index> SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, const int64_t rhs) noexcept
+	{
+		return _mm_insert_epi64(lhs, rhs, index);
+	}
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, auto rhs, int index) noexcept
 	{
 		return register_insert<std::int64_t>(lhs, rhs, static_cast<std::size_t>(index));
@@ -1658,11 +1698,16 @@ template <> struct SimdImpl128<uint64_t>
 	// extract / insert
 	template <int index> SIMDLIB_FORCE_INLINE static auto VECTORCALL extract(auto lhs) noexcept
 	{
-		return register_get<uint64_t>(lhs, static_cast<std::size_t>(index));
+		return static_cast<uint64_t>(_mm_extract_epi64(lhs, index));
 	}
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL extract(auto lhs, auto rhs) noexcept
 	{
 		return register_get<uint64_t>(lhs, static_cast<std::size_t>(rhs));
+	}
+	/** @brief Replaces the compile-time-selected unsigned 64-bit lane. */
+	template <int index> SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, const uint64_t rhs) noexcept
+	{
+		return _mm_insert_epi64(lhs, std::bit_cast<int64_t>(rhs), index);
 	}
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, auto rhs, int index) noexcept
 	{
@@ -1777,12 +1822,17 @@ template <> struct SimdImpl128<float>
 	// extract / insert
 	template <int index> SIMDLIB_FORCE_INLINE static auto VECTORCALL extract(auto lhs) noexcept
 	{
-		return static_cast<float>(_mm_extract_ps(lhs, index));
+		return _mm_cvtss_f32(_mm_shuffle_ps(lhs, lhs, index));
 	}
 
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL extract(auto lhs, auto rhs) noexcept
 	{
 		return register_get<float>(lhs, static_cast<std::size_t>(rhs));
+	}
+	/** @brief Replaces the compile-time-selected 32-bit floating-point lane. */
+	template <int index> SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, const float rhs) noexcept
+	{
+		return _mm_insert_ps(lhs, _mm_set_ss(rhs), index << 4);
 	}
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, auto rhs, const int index) noexcept
 	{
@@ -1912,11 +1962,23 @@ template <> struct SimdImpl128<double>
 	// extract / insert
 	template <int index> SIMDLIB_FORCE_INLINE static auto VECTORCALL extract(auto lhs) noexcept
 	{
-		return register_get<double>(lhs, static_cast<std::size_t>(index));
+		if constexpr (index == 0)
+			return _mm_cvtsd_f64(lhs);
+		else
+			return _mm_cvtsd_f64(_mm_unpackhi_pd(lhs, lhs));
 	}
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL extract(auto lhs, auto rhs) noexcept
 	{
 		return register_get<double>(lhs, static_cast<std::size_t>(rhs));
+	}
+	/** @brief Replaces the compile-time-selected 64-bit floating-point lane. */
+	template <int index> SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, const double rhs) noexcept
+	{
+		const __m128d replacement = _mm_set_sd(rhs);
+		if constexpr (index == 0)
+			return _mm_move_sd(lhs, replacement);
+		else
+			return _mm_unpacklo_pd(lhs, replacement);
 	}
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, auto rhs, const int index) noexcept
 	{
@@ -2632,6 +2694,11 @@ template <> struct SimdImpl256<int8_t>
 	{
 		return register_get<int8_t>(lhs, static_cast<std::size_t>(rhs));
 	}
+	/** @brief Replaces the compile-time-selected signed 8-bit lane. */
+	template <int index> SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, const int8_t rhs) noexcept
+	{
+		return _mm256_insert_epi8(lhs, static_cast<int>(rhs), index);
+	}
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, auto rhs, const int imm8) noexcept
 	{
 		return register_insert<std::int8_t>(lhs, rhs, static_cast<std::size_t>(imm8));
@@ -2838,6 +2905,11 @@ template <> struct SimdImpl256<uint8_t>
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL extract(auto lhs, auto rhs) noexcept
 	{
 		return register_get<uint8_t>(lhs, static_cast<std::size_t>(rhs));
+	}
+	/** @brief Replaces the compile-time-selected unsigned 8-bit lane. */
+	template <int index> SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, const uint8_t rhs) noexcept
+	{
+		return _mm256_insert_epi8(lhs, static_cast<int>(rhs), index);
 	}
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, auto rhs, const int imm8) noexcept
 	{
@@ -3054,6 +3126,11 @@ template <> struct SimdImpl256<int16_t>
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL extract(auto lhs, auto rhs) noexcept
 	{
 		return register_get<int16_t>(lhs, static_cast<std::size_t>(rhs));
+	}
+	/** @brief Replaces the compile-time-selected signed 16-bit lane. */
+	template <int index> SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, const int16_t rhs) noexcept
+	{
+		return _mm256_insert_epi16(lhs, static_cast<int>(rhs), index);
 	}
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, auto rhs, const int imm8) noexcept
 	{
@@ -3275,6 +3352,11 @@ template <> struct SimdImpl256<uint16_t>
 	{
 		return register_get<uint16_t>(lhs, static_cast<std::size_t>(rhs));
 	}
+	/** @brief Replaces the compile-time-selected unsigned 16-bit lane. */
+	template <int index> SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, const uint16_t rhs) noexcept
+	{
+		return _mm256_insert_epi16(lhs, static_cast<int>(rhs), index);
+	}
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, auto rhs, const int imm8) noexcept
 	{
 		return register_insert<std::int16_t>(lhs, rhs, static_cast<std::size_t>(imm8));
@@ -3449,6 +3531,11 @@ template <> struct SimdImpl256<int32_t>
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL extract(auto lhs, auto rhs) noexcept
 	{
 		return register_get<int32_t>(lhs, static_cast<std::size_t>(rhs));
+	}
+	/** @brief Replaces the compile-time-selected signed 32-bit lane. */
+	template <int index> SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, const int32_t rhs) noexcept
+	{
+		return _mm256_insert_epi32(lhs, rhs, index);
 	}
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, auto rhs, const int imm8) noexcept
 	{
@@ -3640,6 +3727,11 @@ template <> struct SimdImpl256<uint32_t>
 	{
 		return register_get<uint32_t>(lhs, static_cast<std::size_t>(rhs));
 	}
+	/** @brief Replaces the compile-time-selected unsigned 32-bit lane. */
+	template <int index> SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, const uint32_t rhs) noexcept
+	{
+		return _mm256_insert_epi32(lhs, std::bit_cast<int32_t>(rhs), index);
+	}
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, auto rhs, const int index) noexcept
 	{
 		return register_insert<std::int32_t>(lhs, rhs, static_cast<std::size_t>(index));
@@ -3811,6 +3903,11 @@ template <> struct SimdImpl256<int64_t>
 	{
 		return register_get<int64_t>(lhs, static_cast<std::size_t>(rhs));
 	}
+	/** @brief Replaces the compile-time-selected signed 64-bit lane. */
+	template <int index> SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, const int64_t rhs) noexcept
+	{
+		return _mm256_insert_epi64(lhs, rhs, index);
+	}
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, auto rhs, const int index) noexcept
 	{
 		return register_insert<std::int64_t>(lhs, rhs, static_cast<std::size_t>(index));
@@ -3968,6 +4065,11 @@ template <> struct SimdImpl256<uint64_t>
 	{
 		return register_get<uint64_t>(lhs, static_cast<std::size_t>(rhs));
 	}
+	/** @brief Replaces the compile-time-selected unsigned 64-bit lane. */
+	template <int index> SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, const uint64_t rhs) noexcept
+	{
+		return _mm256_insert_epi64(lhs, std::bit_cast<int64_t>(rhs), index);
+	}
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, auto rhs, const int index) noexcept
 	{
 		return register_insert<std::int64_t>(lhs, rhs, static_cast<std::size_t>(index));
@@ -4090,12 +4192,33 @@ template <> struct SimdImpl256<float>
 	// extract / insert
 	template <int index> SIMDLIB_FORCE_INLINE static auto VECTORCALL extract(auto lhs) noexcept
 	{
-		return static_cast<float>(_ext256_extract_ps(lhs, index));
+		constexpr int half_index = index / 4;
+		constexpr int lane_index = index % 4;
+		const __m128 half = [&]() {
+			if constexpr (half_index == 0)
+				return _mm256_castps256_ps128(lhs);
+			else
+				return _mm256_extractf128_ps(lhs, half_index);
+		}();
+		return _mm_cvtss_f32(_mm_shuffle_ps(half, half, lane_index));
 	}
 
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL extract(auto lhs, auto rhs) noexcept
 	{
 		return register_get<float>(lhs, static_cast<std::size_t>(rhs));
+	}
+	/** @brief Replaces the compile-time-selected 32-bit floating-point lane. */
+	template <int index> SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, const float rhs) noexcept
+	{
+		constexpr int half_index = index / 4;
+		constexpr int lane_index = index % 4;
+		__m128 half;
+		if constexpr (half_index == 0)
+			half = _mm256_castps256_ps128(lhs);
+		else
+			half = _mm256_extractf128_ps(lhs, half_index);
+		half = _mm_insert_ps(half, _mm_set_ss(rhs), lane_index << 4);
+		return _mm256_insertf128_ps(lhs, half, half_index);
 	}
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, auto rhs, const int index) noexcept
 	{
@@ -4229,12 +4352,40 @@ template <> struct SimdImpl256<double>
 	// extract / insert
 	template <int index> SIMDLIB_FORCE_INLINE static auto VECTORCALL extract(auto lhs) noexcept
 	{
-		return register_get<double>(lhs, static_cast<std::size_t>(index));
+		constexpr int half_index = index / 2;
+		constexpr int lane_index = index % 2;
+		const __m128d half = [&]() {
+			if constexpr (half_index == 0)
+				return _mm256_castpd256_pd128(lhs);
+			else
+				return _mm256_extractf128_pd(lhs, half_index);
+		}();
+		if constexpr (lane_index == 0)
+			return _mm_cvtsd_f64(half);
+		else
+			return _mm_cvtsd_f64(_mm_unpackhi_pd(half, half));
 	}
 
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL extract(auto lhs, auto rhs) noexcept
 	{
 		return register_get<double>(lhs, static_cast<std::size_t>(rhs));
+	}
+	/** @brief Replaces the compile-time-selected 64-bit floating-point lane. */
+	template <int index> SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, const double rhs) noexcept
+	{
+		constexpr int half_index = index / 2;
+		constexpr int lane_index = index % 2;
+		__m128d half;
+		if constexpr (half_index == 0)
+			half = _mm256_castpd256_pd128(lhs);
+		else
+			half = _mm256_extractf128_pd(lhs, half_index);
+		const __m128d replacement = _mm_set_sd(rhs);
+		if constexpr (lane_index == 0)
+			half = _mm_move_sd(half, replacement);
+		else
+			half = _mm_unpacklo_pd(half, replacement);
+		return _mm256_insertf128_pd(lhs, half, half_index);
 	}
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, auto rhs, const int index) noexcept
 	{

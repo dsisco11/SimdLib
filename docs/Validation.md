@@ -11,17 +11,12 @@ SIMD resampling paths, FMA enabled/disabled paths, and all BMI1/BMI2 profiles.
 | Compiler | Target | Configuration | Result |
 | --- | --- | --- | --- |
 | MSVC 19.44 | x64 | Debug, Release | 19/19 tests passed in each configuration |
-| MSVC 19.44 | x86 | Debug, Release | 19/19 tests passed in each configuration |
 | clang-cl 22.1.8 | x64 | Debug, Release | 19/19 tests passed in each configuration |
-| clang-cl 22.1.8 | x86 | Debug, Release | 19/19 tests passed in each configuration |
 | Clang 22.1.8 | x64 | Release | 19/19 tests passed |
-| Clang 22.1.8 | x86 | Debug, Release | 19/19 tests passed in each configuration |
 | GCC 13.2 | x64 | Debug, Release | 19/19 tests passed in each configuration |
 
-The local MinGW GCC installation is x64-only and cannot link `-m32` because it
-has no 32-bit UCRT/import libraries or multilib. The Linux CI x86 jobs install
-`g++-multilib` explicitly, so x86 GCC and Clang remain part of the committed CI
-contract rather than being silently omitted.
+SimdLib supports 64-bit targets only; 32-bit compiler configurations are outside
+the validation contract.
 
 Clang ASan and UBSan validation used Debug symbols, `-O1`, frame pointers, and
 strict warnings. All 13 runtime tests passed with no sanitizer diagnostics.

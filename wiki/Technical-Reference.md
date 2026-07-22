@@ -81,12 +81,12 @@ The current validation matrix covers:
 
 | Compiler family | Validated frontend | Targets |
 | --- | --- | --- |
-| MSVC | Visual Studio 2022 / MSVC 19.44 | Windows x86 and x64 |
-| clang-cl | LLVM Clang 22 with the MSVC ABI | Windows x86 and x64 |
-| Clang | LLVM Clang 22 | Linux x86 and x64 |
-| GCC | GCC 13.2 or newer | Linux and MinGW x86 and x64 |
+| MSVC | Visual Studio 2022 / MSVC 19.44 | Windows x64 |
+| clang-cl | LLVM Clang 22 with the MSVC ABI | Windows x64 |
+| Clang | LLVM Clang 22 | Linux x64 |
+| GCC | GCC 13.2 or newer | Linux and MinGW x64 |
 
-The SIMD backends require x86/x64 intrinsic headers. The portable
+The SIMD backends require x86-family intrinsic headers on an x64 target. The portable
 configuration layer, BMI fallback algorithms, and two-word `uint128_t`
 representation do not perform runtime CPU dispatch.
 
@@ -160,7 +160,7 @@ first SimdLib include.
 - `SIMDLIB_ENABLE_CHECKS` defaults to enabled without `NDEBUG` and disabled
   with `NDEBUG`.
 - `VECTORCALL` affects the ABI. It is `__vectorcall` on supported MSVC and
-  Clang Windows x86/x64 targets and empty on non-Windows Clang and other
+  Clang Windows x64 targets and empty on non-Windows Clang and other
   unsupported targets.
 
 A caller that overrides `VECTORCALL` with an empty definition must also set
@@ -279,7 +279,7 @@ include or exclude them explicitly. The `SimdLibCoverageReset` and
 ## Continuous validation
 
 `.github/workflows/ci.yml` defines Debug and Release jobs for MSVC, clang-cl,
-Clang, and GCC on supported x86/x64 targets. It also contains Clang ASan/UBSan
+Clang, and GCC on supported x64 targets. It also contains Clang ASan/UBSan
 coverage, an independent instruction-family matrix, and explicit constexpr,
 first-include header-hygiene, multi-translation-unit ODR, example, and consumer
 gates.

@@ -72,8 +72,9 @@ SimdLib Register Implementation Plan:
     ☒ End Phase 2 only when the accepted container/Compose workflow is reproducible, uses the same images locally and in CI, reports aggregate failures correctly, preserves explicit Windows-only evidence boundaries, and has demonstrated clean and failing matrix runs.
 
   Phase 3 - Establish the Representation and Performance Harness:
+    ☐ Make every full generated-code and ABI comparison stamp depend on its concrete object files, then extend the reviewed MSVC `/GS` exception ledger to every cookie-affected fixture without weakening strict comparison for unaffected functions. Constant-index lane extraction retains a separate object-dependent exact-parity gate.
     ☒ Add declaration-complete skeletons for `Register<T, Bits>`, `RegisterMask<T, Bits>`, `RegisterAvailable<T, Bits>`, `is_register_available_v<T, Bits>`, and `NativeRegister<T>`.
-    ☒ Constrain Register availability to the existing x86 128-bit SSE4.2 and 256-bit AVX2-backed `Api` specializations.
+	☒ Constrain Register availability to the existing x64 128-bit SSE4.2 and 256-bit AVX2-backed `Api` specializations.
     ☒ Store exactly one native vector data member in each Register and RegisterMask specialization with no bases, virtual functions, allocation, metadata, active-lane state, or address-dependent proxy state.
     ☒ Add compile-time checks for exact native size and alignment, standard layout, trivial copy/move construction and assignment, trivial destruction, and trivial copyability across every supported type and width.
     ☒ Default compiler-generated copy/move operations and confirm that the intrinsic-backed default constructor does not invalidate required value-type traits.
@@ -204,7 +205,7 @@ SimdLib Register Implementation Plan:
     ☐ Migrate appropriate internal complete-register call sites without moving collection algorithms, tails, or partial-lane policies into Register.
     ☐ Keep `Api` documented and supported for C++20, compatibility, specialized low-level access, collection helpers, and operations intentionally excluded from Register.
     ☐ Run the complete existing C++20 core matrix and prove Register integration has not changed existing public behavior, target language requirements, headers, or configuration contracts.
-    ☐ Run the complete C++23 Register matrix for MSVC 19.44, clang-cl 22, Clang 22, and GCC 14 or newer across supported x86/x64 and SSE4.2/AVX2 profiles.
+	☐ Run the complete C++23 Register matrix for MSVC 19.44, clang-cl 22, Clang 22, and GCC 14 or newer across supported x64 and SSE4.2/AVX2 profiles.
     ☐ Run strict warnings, header isolation, configuration probes, constexpr probes, runtime tests, sanitizer tests, ODR tests, external consumer tests, generated-code gates, ABI mirrors, and supplemental benchmarks.
     ☐ Update `docs/Validation.md` with exact commands, versions, configurations, test/assertion counts, artifact paths, code-generation results, exclusions, and any explicit exceptions.
     ☐ Reconcile `docs/RegisterProposal.md`, `docs/ApiOperationMatrix.md`, README examples, and this todo with the final implemented surface.

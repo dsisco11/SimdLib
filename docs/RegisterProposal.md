@@ -1148,7 +1148,7 @@ The preferred implementation uses these mechanisms together:
 
 `VECTORCALL` controls a surviving function-call boundary; it does not pin a
 value to a physical register and has no effect after a function is inlined. In
-the current configuration it is enabled for MSVC and Clang on x86 targets and
+the current configuration it is enabled for MSVC and Clang on x64 targets and
 is empty for GCC. MSVC and Clang are expected to classify a one-vector wrapper
 as a one-element homogeneous vector aggregate, but that classification is a
 compiler ABI property and must be verified. GCC uses its target ABI and must be

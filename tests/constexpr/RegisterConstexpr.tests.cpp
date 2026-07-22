@@ -36,12 +36,16 @@ template <class element_t, std::size_t bits>
 	const register_type lane_value = from_lanes<register_type>(values,
 		std::make_index_sequence<register_type::lane_count>{});
 	const register_type native_value(array_value.native());
+	const element_t first_lane = array_value.template lane<0>();
+	const register_type changed_value =
+		array_value.template with_lane<register_type::lane_count - 1>(static_cast<element_t>(43));
 	(void)value;
 	(void)zero;
 	(void)broadcast;
 	(void)lane_value;
 	(void)native_value;
-	return true;
+	return first_lane == values.front() &&
+		changed_value.template lane<register_type::lane_count - 1>() == static_cast<element_t>(43);
 #else
 	if (register_type{}.to_array() != zeros || register_type::zero().to_array() != zeros)
 		return false;

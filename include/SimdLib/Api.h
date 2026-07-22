@@ -922,6 +922,19 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 		return impl::lower_half(lhs);
 	}
 
+	/** @brief Inserts a compile-time-selected scalar lane into a register.
+	 *  @tparam index Compile-time logical lane index.
+	 *  @param lhs Register whose unselected lanes are preserved.
+	 *  @param rhs Scalar replacement value.
+	 *  @return Register with lane `index` replaced.
+	 */
+	template <std::size_t index>
+	SIMDLIB_FORCE_INLINE static vector_t VECTORCALL insert(const vector_t lhs, const element_t rhs) noexcept
+		requires(index < element_count)
+	{
+		return impl::template insert<static_cast<int>(index)>(lhs, rhs);
+	}
+
 	/** @brief Inserts a lane or subvalue into a register.
 	 *  @tparam Args Argument pack matching the implementation-specific insert signature.
 	 *  @param args Arguments forwarded to the specialization insert operation.
