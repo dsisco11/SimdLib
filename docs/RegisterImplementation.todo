@@ -1,0 +1,200 @@
+SimdLib Register Implementation Plan:
+
+  Purpose:
+    ☐ Implement the approved `SimdLib::Register<T, Bits>` and `RegisterMask<T, Bits>` design from `docs/RegisterProposal.md` as the preferred C++23 complete-register interface.
+    ☐ Treat `docs/RegisterProposal.md` as the controlling semantic and performance contract and `docs/ApiOperationMatrix.md` as the controlling record of backend operation availability.
+    ☐ Preserve `SimdLib::Api<Bits, T>` as the supported C++20 compatibility and implementation-routing surface throughout this work.
+    ☐ Require objective correctness, layout, ABI, and generated-code evidence before exposing Register through the umbrella header or recommending it in primary documentation.
+
+  Controlling Decisions:
+    ☐ Use the canonical template order `Register<T, Bits>` and associated Register-facing traits and aliases in `<T, Bits>` order.
+    ☐ Support exactly one complete 128-bit or 256-bit register; every hardware lane is always active.
+    ☐ Keep the base `SimdLib::SimdLib` target at C++20 and expose Register through the opt-in C++23 `SimdLib::Register` target.
+    ☐ Implement non-static operations as C++23 explicit-object members, taking non-mutating objects by value and mutating compound-assignment objects by reference.
+    ☐ Apply `VECTORCALL` where supported, while treating it as a call-boundary convention rather than a guarantee that a value can never spill.
+    ☐ Guarantee zero wrapper-introduced runtime overhead relative to equivalent supported `Api` or raw-intrinsic code compiled with identical options and configuration.
+    ☐ Use intrinsic-defined comparison semantics and represent lane predicates with the distinct `RegisterMask<T, Bits>` type.
+    ☐ Explicitly zero-initialize every default-constructed Register and RegisterMask through the appropriate native zero-register operation.
+
+  Non-Goals:
+    ☐ Do not add partial loads, partial stores, automatically filled inactive lanes, dynamic-extent unsafe transfers, or native-order lane construction.
+    ☐ Do not move span-wide transforms or collection-tail handling from `Api`, `SimdAlgo`, or higher-level abstractions into Register.
+    ☐ Do not add implicit scalar broadcasts, implicit native-register conversions, public mutable native references, or public unchecked mask construction.
+    ☐ Do not initially add runtime `extract`, generic implementation-specific shuffles, scalar arithmetic overloads, `RegisterMask::from_bits()`, multi-register widening results, or 512-bit Register support.
+    ☐ Do not deprecate or remove `Api` as part of this implementation.
+
+  Phase 0 - Freeze the Contract and Record the Baseline:
+    ☐ Review `docs/RegisterProposal.md` and copy every accepted operation, exclusion, precondition, result type, compiler requirement, and validation gate into a traceable implementation matrix.
+    ☐ Inventory the public `Api` declarations and `docs/ApiOperationMatrix.md`; assign every operation to a Register implementation phase or an explicit compatibility-only classification.
+    ☐ Record the current clean C++20 build, CTest, constexpr, header-isolation, ODR, configuration, sanitizer, and external-consumer results before Register files are introduced.
+    ☐ Record compiler, CMake, architecture, ISA, optimization, calling-convention, and SimdLib configuration provenance for every baseline artifact.
+    ☐ Identify the exact test targets and source directories that will own Register runtime tests, constexpr probes, compile-failure probes, ABI mirrors, and generated-code comparisons.
+    ☐ Confirm that all ten supported element types are covered: `int8_t`, `uint8_t`, `int16_t`, `uint16_t`, `int32_t`, `uint32_t`, `int64_t`, `uint64_t`, `float`, and `double`.
+    ☐ Confirm the initial Register compiler matrix: MSVC 19.44, clang-cl 22, Clang 22, and GCC 14 or newer in their documented C++23 modes.
+    ☐ Confirm that the existing core matrix, including GCC 13.2 C++20, remains supported with the Register interface unavailable.
+    ☐ End Phase 0 only when the implementation matrix accounts for the complete proposal and the pre-change evidence is recorded with reproducible commands.
+
+  Phase 1 - Add Language Availability and Build Integration:
+    ☐ Define `SIMDLIB_REGISTER_INTERFACE_AVAILABLE` in `Config.h` from `__cpp_explicit_this_parameter >= 202110L` or the documented Microsoft C++ fallback of `_MSC_VER >= 1944` and `_MSVC_LANG > 202002L`.
+    ☐ Exclude clang-cl from the Microsoft C++ fallback even though it defines `_MSC_VER`.
+    ☐ Keep the availability result computed and non-overridable; update the Config documentation to identify it as an exception to caller-overridable configuration macros.
+    ☐ Do not add a namespace-scope constexpr availability variable or a generalized SimdLib language-version macro.
+    ☐ Add `SIMDLIB_REQUIRE_REGISTER_INTERFACE=1` as a requirement signal that diagnoses an unavailable Register interface without overriding availability.
+    ☐ Add the `SimdLibRegister` INTERFACE target and `SimdLib::Register` alias, link `SimdLib::SimdLib`, request `cxx_std_23`, publish the requirement signal, and select `/std:c++latest` only for Microsoft C++.
+    ☐ Verify the generated Microsoft C++ command line and `_MSVC_LANG > 202002L` instead of assuming CMake's standard-feature mapping is sufficient.
+    ☐ Add a focused `include/SimdLib/Register.h` boundary that emits a clear diagnostic when directly included without the required language feature.
+    ☐ Keep `Register.h` out of `SimdLib.h` until the final migration phase.
+    ☐ Add C++20 umbrella probes proving availability is zero and all existing public headers and targets remain usable without C++23.
+    ☐ Add C++23 positive probes for the standard feature-test path on clang-cl, Clang, and GCC and the version/language fallback on Microsoft C++.
+    ☐ Add negative probes for direct Register-header inclusion, disabled language mode, clang-cl fallback exclusion, and unsupported compiler floors.
+    ☐ Add an external consumer probe that links `SimdLib::Register` without changing the language requirement inherited from `SimdLib::SimdLib`.
+    ☐ End Phase 1 only when both C++20 and C++23 consumer paths select the intended surface and unsupported configurations fail with focused diagnostics.
+
+  Phase 2 - Establish the Representation and Performance Harness:
+    ☐ Add declaration-complete skeletons for `Register<T, Bits>`, `RegisterMask<T, Bits>`, `RegisterAvailable<T, Bits>`, `is_register_available_v<T, Bits>`, and `NativeRegister<T>`.
+    ☐ Constrain Register availability to the existing x86 128-bit SSE4.2 and 256-bit AVX2-backed `Api` specializations.
+    ☐ Store exactly one native vector data member in each Register and RegisterMask specialization with no bases, virtual functions, allocation, metadata, active-lane state, or address-dependent proxy state.
+    ☐ Add compile-time checks for exact native size and alignment, standard layout, trivial copy/move construction and assignment, trivial destruction, and trivial copyability across every supported type and width.
+    ☐ Default compiler-generated copy/move operations and confirm that the intrinsic-backed default constructor does not invalidate required value-type traits.
+    ☐ Build paired wrapper and raw-intrinsic generated-code fixtures before implementing the broad operation surface.
+    ☐ Generate forced-inline expression probes and separately compiled no-inline ABI mirrors for unary, binary, ternary, scalar-result, mask-result, native-result, store, and mutating-reference signatures.
+    ☐ Compare wrapper and raw fixtures compiled with identical compiler, architecture, ISA, optimization, calling-convention, and configuration settings.
+    ☐ Detect wrapper-only stack traffic, hidden copies, branches, register moves, spills, reloads, temporaries, return buffers, or indirection.
+    ☐ Add controlled register-pressure and opaque-call probes that distinguish unavoidable raw-value spills from wrapper-introduced spills.
+    ☐ Add paired consumer-defined function probes using `VECTORCALL` and the platform default convention; require vector-convention parity where supported and record default-convention behavior separately.
+    ☐ Make generated-code comparisons mandatory gates; keep benchmarks supplemental and prohibit them from substituting for missing machine-code evidence.
+    ☐ Record complete provenance beside each generated-code and ABI artifact so results from incompatible configurations cannot be merged or compared as one profile.
+    ☐ End Phase 2 only when the minimal wrappers pass layout and call-boundary gates on each supported compiler before broad method implementation begins.
+
+  Phase 3 - Implement Register Construction, Observation, and Transfer:
+    ☐ Implement the default constructor and `zero()` through `Api::setzero()` or the corresponding intrinsic-backed implementation path with no temporary array or memory clear.
+    ☐ Implement the explicit native-value constructor and by-value `native()` observer without implicit native conversion or mutable native access.
+    ☐ Implement `broadcast(value)` as the only initial scalar-to-register construction path.
+    ☐ Implement `from_lanes(...)` with exactly `lane_count` low-to-high logical lane arguments and compile-time rejection of partial or oversized lists.
+    ☐ Implement `from_array()` and `to_array()` for one complete logical lane array.
+    ☐ Implement unaligned `load()` and `store()` over fixed-extent element spans of exactly `lane_count`.
+    ☐ Implement `load_aligned()` and `store_aligned()` with the documented `byte_count` alignment precondition and no release-only wrapper branch beyond the raw operation.
+    ☐ Implement `load_bytes()` and `store_bytes()` over fixed-extent byte spans of exactly `byte_count`, preserving every register bit.
+    ☐ Implement compile-time `lane<index>()` and `with_lane<index>()` with `index < lane_count` constraints.
+    ☐ Add compile-failure probes proving there are no partial, dynamic-extent unsafe, implicit scalar, implicit native, native-order, or uninitialized construction paths.
+    ☐ Add runtime and constexpr tests with distinctive values in every lane, especially the highest lane, for all construction and observation paths supported in constant evaluation.
+    ☐ Add aligned, unaligned, exact-byte, canary, and sanitizer tests proving transfers neither omit active lanes nor access caller storage outside the fixed extent.
+    ☐ Add generated-code comparisons for zero construction, broadcast reuse, native wrapping/observation, load-operate-store chains, arrays, lane access, and compiler-generated special members.
+    ☐ End Phase 3 only when every complete-register construction and transfer path has correctness, constraint, layout, and generated-code proof.
+
+  Phase 4 - Implement RegisterMask, Comparisons, and Selection:
+    ☐ Implement `RegisterMask<T, Bits>` with one native predicate register and the invariant that every lane is all-zero or all-one.
+    ☐ Implement an intrinsic-backed all-false default constructor and keep the native predicate constructor private to Register and the internal comparison adapter.
+    ☐ Define normalized unsigned `bits_type` from `lane_count`, using `uint32_t` for the initial 128/256-bit specializations rather than inheriting `Api::mask_t`.
+    ☐ Implement by-value `native()` observation without public native construction, mutable native access, `from_native_unchecked()`, or `from_bits()`.
+    ☐ Implement `any()`, `all()`, `none()`, and `bits()` with one compact bit per logical lane and all unused scalar bits cleared.
+    ☐ Implement mask `&`, `|`, `^`, `~`, `&=`, `|=`, and `^=` while preserving canonical predicate lanes.
+    ☐ Implement `mask.select(when_true, when_false)` with the documented true/false polarity and a direct blend or equivalent native bitwise sequence.
+    ☐ Add the narrow `Detail::RegisterBackend<T, Bits>` comparison adapter as the only Register-header code permitted to name backend implementation mappings.
+    ☐ Implement named equality, greater, greater-equal, less, and less-equal comparisons only where the backend operation is supported.
+    ☐ Implement `Register::operator==` as `compare_equal().all()` and `operator!=` as the logical negation of whole-register equality; do not add ambiguous relational operators.
+    ☐ Reproduce the selected hardware intrinsic's signed/unsigned ordering, ordered/unordered floating behavior, NaN behavior, signed-zero behavior, and canonical predicate bit patterns in runtime, portable, emulated, and constexpr paths.
+    ☐ Add all-false, all-true, alternating, first-lane-only, highest-lane-only, combined-mask, selection-polarity, and unused-bit tests for every lane geometry.
+    ☐ Add compile-time tests proving arbitrary native vectors, scalar bit fields, and numeric Registers cannot publicly construct a RegisterMask and that no implicit Boolean conversion exists.
+    ☐ Add generated-code comparisons for compare/combine/select chains, Boolean reductions, compact bits, native observation, and mask pass/return boundaries.
+    ☐ End Phase 4 only when masks remain register-shaped until an explicit scalar reduction and every comparison matches its documented intrinsic semantics.
+
+  Phase 5 - Implement Basic Arithmetic, Bitwise Operations, and Shifts:
+    ☐ Implement register-register `+`, `-`, `*`, `/`, and `%` only for supported type/width combinations, with matching `+=`, `-=`, `*=`, `/=`, and `%=` forms where the proposal includes them.
+    ☐ Implement unary negation with the existing backend edge behavior and availability constraints.
+    ☐ Keep scalar arithmetic absent; require explicit `Register::broadcast()` at call sites.
+    ☐ Implement register bitwise `&`, `|`, `^`, `~`, compound bitwise assignments, and named `andnot()` with the existing operand polarity.
+    ☐ Implement `movemask()` with the selected intrinsic's native bit granularity and `lane_sign_bits()` with exactly one compact bit per logical lane.
+    ☐ Implement per-lane left shift, logical right shift, and signed arithmetic right shift with their unambiguous operator and named-method spellings.
+    ☐ Implement 128-bit byte shifts and runtime/compile-time whole-register bit shifts only for the supported shapes.
+    ☐ Enforce nonnegative per-lane runtime shift preconditions and the documented zero, clamp, identity, or rejection behavior at every count boundary.
+    ☐ Add compile-time and runtime tests for counts `0`, `width - 1`, `width`, `width + 1`, negative invalid per-lane counts, nonpositive byte/whole-register counts, and oversized byte/whole-register counts.
+    ☐ Add independent scalar-oracle parity tests covering overflow, signed minima/maxima, unsigned high-bit values, division/remainder edge cases, and floating special values where applicable.
+    ☐ Add generated-code comparisons for individual methods, overloaded expressions, compound assignments, explicit broadcast chains, shift immediates, and runtime shift counts.
+    ☐ End Phase 5 only when every basic operator is constrained correctly, behaviorally matches `Api` and an independent oracle, and introduces no wrapper-only instructions.
+
+  Phase 6 - Implement Specialized Arithmetic and Reductions:
+    ☐ Implement named `min()`, `max()`, `absolute()`, `sqrt()`, `average()`, and `multiply_add()` operations where supported.
+    ☐ Implement `magnitude()` and `normalize()` with the existing grouping, type, and feature behavior.
+    ☐ Implement `horizontal_add()`, `horizontal_subtract()`, `add_saturated()`, `subtract_saturated()`, `horizontal_add_saturated()`, `horizontal_subtract_saturated()`, and floating `add_subtract()` under backend availability constraints.
+    ☐ Implement `dot_product<imm8>()` with the intrinsic-selected output-lane behavior and an immediate range of `0..255`.
+    ☐ Implement `min_position()` and `max_position()` with first-position tie semantics and complete-register highest-lane coverage.
+    ☐ Define constrained namespace-level `multiply_add_adjacent_result_t<T, Bits>`, `byte_multiply_add_result_t<T, Bits>`, `sad_result_t<T, Bits>`, and `multi_sad_result_t<T, Bits>` aliases with the exact proposal mappings.
+    ☐ Keep each result alias and operation absent when the corresponding backend operation is unavailable even if a result type can be formed mechanically.
+    ☐ Implement multiply-add-adjacent, unsigned/signed byte multiply-add, sum of absolute byte differences, and `multi_sum_absolute_byte_differences<imm8>()` with exact result Register types.
+    ☐ Add compile-time result-type and unavailability assertions for every source type and width.
+    ☐ Add independent lane-order, overflow, saturation, grouping, immediate, highest-lane, and result-signedness tests for every specialized family.
+    ☐ Add generated-code comparisons for every supported specialized overload, including FMA-enabled and FMA-disabled profiles where applicable.
+    ☐ End Phase 6 only when every specialized arithmetic result has an explicit public Register type and complete behavioral and machine-code parity evidence.
+
+  Phase 7 - Implement Rearrangement and Conversion Operations:
+    ☐ Implement `lower_half()` from supported 256-bit sources without exposing an ambiguous generic width reduction.
+    ☐ Implement `unpack_low()` and `unpack_high()` with documented logical lane ordering.
+    ☐ Implement logical `shuffle<indices...>()` with the exact selector count and source-lane range constrained at overload resolution.
+    ☐ Implement `shuffle_low<imm8>()`, `shuffle_high<imm8>()`, and `blend<imm8>()` with immediates constrained to `0..255` and operation-specific unused bits retaining intrinsic behavior.
+    ☐ Keep implementation-specific generic shuffle signatures and runtime extraction outside the initial Register surface.
+    ☐ Implement `bit_cast<target_t>()` as a full-width bit-preserving reinterpretation between supported Register specializations.
+    ☐ Implement `convert<target_t>()` only for numeric conversions that produce exactly one complete target Register under the existing backend contract.
+    ☐ Implement `widen_low<target_t, target_bits>()` with explicit source-lane consumption and no silent implication that all source lanes are preserved.
+    ☐ Keep generic `expand`, `compress`, narrowing/packing, and multi-register widening outside the preferred surface.
+    ☐ Add compile-failure tests for out-of-range selectors, wrong selector counts, out-of-range immediates, unsupported target types, unavailable width changes, and ambiguous compatibility-only operations.
+    ☐ Add runtime and constexpr lane-order tests with unique bit patterns, floating edge values, signed/unsigned boundaries, and highest-source-lane sentinels.
+    ☐ Add generated-code comparisons for every rearrangement and conversion shape, rejecting wrapper-only temporaries, stores, reloads, or extra lane moves.
+    ☐ End Phase 7 only when lane order, consumed lanes, conversion meaning, selector domains, and excluded operations are explicit and mechanically enforced.
+
+  Phase 8 - Complete the Operation and Constraint Matrix:
+    ☐ Implement any remaining register-local operation in the proposal ledger that was not completed in Phases 3-7.
+    ☐ Re-audit every current public `Api` declaration and mark it implemented on Register, intentionally compatibility-only, internal-only, or collection-owned.
+    ☐ Verify each Register method uses a `requires` clause or concept that removes unsupported type/width/feature combinations before entering the implementation body.
+    ☐ Verify all Register-facing traits, aliases, concepts, examples, and diagnostics use `<T, Bits>` ordering even when delegating internally to `Api<Bits, T>`.
+    ☐ Verify every class and method has complete Doxygen documentation covering parameters, return values, template parameters, preconditions, intrinsic semantics, lane ordering, and availability where applicable.
+    ☐ Verify no public Register declaration leaks `SimdLib::Detail`, inherited backend members, raw result types, or implementation-specific selector signatures.
+    ☐ Verify no operation silently discards active lanes except the explicitly named and documented `widen_low()` contract.
+    ☐ Verify unsupported partial, unsafe, scalar, native-order, runtime-selector, and collection operations are absent through compile-failure probes rather than merely undocumented.
+    ☐ Extend the public-operation/type/width matrix with runtime, constexpr, constraint, code-generation, and ABI evidence links for every supported cell.
+    ☐ End Phase 8 only when the proposal ledger and implementation matrix agree with no unclassified `Api` operation or untested public Register declaration.
+
+  Phase 9 - Qualify Correctness, Constexpr, Preconditions, ABI, and Performance:
+    ☐ Run runtime parity against independent scalar references and use `Api` only as an additional migration oracle so both interfaces cannot agree on the same defect unnoticed.
+    ☐ Run constexpr probes for every Register and RegisterMask operation whose `Api` counterpart supports constant evaluation.
+    ☐ Run checks-enabled negative tests for alignment and invalid runtime shift counts while verifying valid release paths add no wrapper-only validation branches.
+    ☐ Run ASan/UBSan configurations over valid boundary inputs, fixed-extent transfers, conversions, shifts, rearrangements, and mask paths.
+    ☐ Generate and inspect the complete forced-inline code corpus for every public operation family, overload shape, supported type, width, compiler, architecture, and ISA profile.
+    ☐ Generate and inspect separately compiled no-inline ABI mirrors for Register, RegisterMask, native vectors, scalar results, native results, stores, and mutating operations.
+    ☐ Require zero wrapper-only instructions, moves, spills, reloads, stack traffic, return buffers, branches, temporaries, or indirection in every supported optimized Release comparison.
+    ☐ Validate consumer-defined `VECTORCALL` boundaries on MSVC and Clang and equivalent raw/default ABI boundaries on GCC where `VECTORCALL` is empty.
+    ☐ Report default-convention consumer behavior separately on compilers where `VECTORCALL` is available and exclude failing signatures from the supported call-boundary claim.
+    ☐ Run Debug and sanitizer wrapper-versus-raw differential checks under identical flags and record any wrapper-only difference even though optimized Release assembly is the primary machine-code gate.
+    ☐ Run supplemental benchmarks only after generated-code gates pass, using runtime-derived inputs that prevent constant folding and dead-code elimination.
+    ☐ Record all accepted and excluded compiler/type/width/configuration combinations and discuss every observed performance exception explicitly.
+    ☐ End Phase 9 only when every supported configuration has complete correctness and zero-overhead evidence and every exclusion has a reviewed written justification.
+
+  Phase 10 - Expose, Migrate, Document, and Close Out:
+    ☐ Conditionally include `Register.h` from `SimdLib.h` only when `SIMDLIB_REGISTER_INTERFACE_AVAILABLE` is nonzero.
+    ☐ Add Register as a first-and-only public-header probe and extend the umbrella, multi-translation-unit ODR, disabled-feature, and external-consumer gates.
+    ☐ Update README and examples so C++23 complete-register workflows use `NativeRegister<T>` or explicit `Register<T, Bits>` rather than recommending `NativeApi<T>`.
+    ☐ Document that explicit `Register<T, Bits>` is required for stable storage and ABI contracts and that `NativeRegister<T>` must not cross incompatible ISA/configuration boundaries.
+    ☐ Document that non-inlined consumer functions must declare `VECTORCALL` where supported to participate in the vector-calling-convention guarantee.
+    ☐ Document RegisterMask creation, comparison, combination, scalar reduction, native observation, and selection workflows, including NaN and signed-zero behavior.
+    ☐ Migrate appropriate internal complete-register call sites without moving collection algorithms, tails, or partial-lane policies into Register.
+    ☐ Keep `Api` documented and supported for C++20, compatibility, specialized low-level access, collection helpers, and operations intentionally excluded from Register.
+    ☐ Run the complete existing C++20 core matrix and prove Register integration has not changed existing public behavior, target language requirements, headers, or configuration contracts.
+    ☐ Run the complete C++23 Register matrix for MSVC 19.44, clang-cl 22, Clang 22, and GCC 14 or newer across supported x86/x64 and SSE4.2/AVX2 profiles.
+    ☐ Run strict warnings, header isolation, configuration probes, constexpr probes, runtime tests, sanitizer tests, ODR tests, external consumer tests, generated-code gates, ABI mirrors, and supplemental benchmarks.
+    ☐ Update `docs/Validation.md` with exact commands, versions, configurations, test/assertion counts, artifact paths, code-generation results, exclusions, and any explicit exceptions.
+    ☐ Reconcile `docs/RegisterProposal.md`, `docs/ApiOperationMatrix.md`, README examples, and this todo with the final implemented surface.
+    ☐ Verify `git diff --check` passes and no generated build output, disassembly, profiles, logs, reports, or temporary probes are tracked.
+    ☐ End Phase 10 only when all earlier phase gates are checked, the complete supported matrix is green, documentation recommends Register in supported C++23 contexts, and no zero-overhead claim lacks matching evidence.
+
+  Execution Evidence:
+    ☐ Phase 0 contract matrix, baseline commands, compiler/configuration provenance, and clean pre-change results recorded.
+    ☐ Phase 1 availability, CMake target, language-mode, header-boundary, and external-consumer probes recorded.
+    ☐ Phase 2 layout, generated-code harness, ABI mirror, calling-convention, and register-pressure evidence recorded.
+    ☐ Phase 3 construction, transfer, lane, native-interoperation, sanitizer, and code-generation evidence recorded.
+    ☐ Phase 4 RegisterMask, comparison-intrinsic, selection, scalar-reduction, constraint, and code-generation evidence recorded.
+    ☐ Phase 5 basic arithmetic, bitwise, compound-assignment, shift-boundary, oracle, and generated-code evidence recorded.
+    ☐ Phase 6 specialized arithmetic, reduction, result-alias, feature-profile, oracle, and generated-code evidence recorded.
+    ☐ Phase 7 rearrangement, selector, conversion, width-change, compile-failure, lane-order, and generated-code evidence recorded.
+    ☐ Phase 8 final operation matrix, Doxygen audit, public-boundary audit, and compatibility-only classifications recorded.
+    ☐ Phase 9 complete correctness, constexpr, precondition, sanitizer, optimized code-generation, ABI, and exception ledger recorded.
+    ☐ Phase 10 umbrella exposure, migration, documentation, full compiler/configuration matrix, and close-out evidence recorded in `docs/Validation.md`.
