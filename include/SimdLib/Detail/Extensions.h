@@ -158,6 +158,21 @@ SIMDLIB_FORCE_INLINE constexpr Vector register_from_values(Args &&...values) noe
 	return register_from_array<Vector>(std::array<Element, sizeof...(Args)>{static_cast<Element>(values)...});
 }
 
+/** @brief Constructs a constant-evaluated native register with every lane set to one value.
+ *  @tparam Vector Native register representation.
+ *  @tparam Element Scalar lane type.
+ *  @param value Value copied into every lane.
+ *  @return Native register containing the repeated value.
+ */
+template <class Vector, class Element>
+	requires(sizeof(Vector) % sizeof(Element) == 0)
+SIMDLIB_FORCE_INLINE constexpr Vector register_from_repeated_value(const Element value) noexcept
+{
+	std::array<Element, sizeof(Vector) / sizeof(Element)> lanes{};
+	lanes.fill(value);
+	return register_from_array<Vector>(lanes);
+}
+
 template <class Element, class Vector> SIMDLIB_FORCE_INLINE constexpr auto register_to_array(const Vector value) noexcept
 {
 	std::array<Element, sizeof(Vector) / sizeof(Element)> result{};

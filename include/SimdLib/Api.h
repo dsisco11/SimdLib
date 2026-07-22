@@ -219,18 +219,10 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 */
 	SIMDLIB_FORCE_INLINE constexpr static std::array<element_t, element_count> VECTORCALL to_array(const vector_t vector) noexcept
 	{
-		std::array<element_t, element_count> result{};
 		if (std::is_constant_evaluated())
-		{
-			for (std::size_t index = 0; index < element_count; ++index)
-			{
-				result[index] = impl::get_element(vector, static_cast<int>(index));
-			}
-		}
-		else
-		{
-			impl::store_unaligned(vector, result.data());
-		}
+			return to_array_constexpr(vector);
+		std::array<element_t, element_count> result{};
+		impl::store_unaligned(vector, result.data());
 		return result;
 	}
 
@@ -578,10 +570,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 		})
 	{
 		if (std::is_constant_evaluated())
-		{
-			const auto values = to_array(lhs);
-			return static_cast<std::size_t>(std::min_element(values.begin(), values.end()) - values.begin());
-		}
+			return min_position_constexpr(lhs);
 
 		return static_cast<std::size_t>(impl::template extract<1>(impl::min_position(lhs)));
 	}
@@ -597,10 +586,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 		})
 	{
 		if (std::is_constant_evaluated())
-		{
-			const auto values = to_array(lhs);
-			return static_cast<std::size_t>(std::max_element(values.begin(), values.end()) - values.begin());
-		}
+			return max_position_constexpr(lhs);
 
 		if constexpr (using_unsigned)
 		{
@@ -764,16 +750,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	SIMDLIB_FORCE_INLINE constexpr static mask_t VECTORCALL movemask_slim(const vector_t lhs) noexcept
 	{
 		if (std::is_constant_evaluated())
-		{
-			const auto lanes = to_array(lhs);
-			mask_t result = 0;
-			for (std::size_t laneIndex = 0; laneIndex < element_count; ++laneIndex)
-			{
-				const auto laneBytes = std::bit_cast<std::array<std::uint8_t, sizeof(element_t)>>(lanes[laneIndex]);
-				result |= static_cast<mask_t>((laneBytes.back() >> 7) & 1u) << laneIndex;
-			}
-			return result;
-		}
+			return movemask_slim_constexpr(lhs);
 		else
 		{
 			return impl::movemask_slim(lhs);
@@ -788,16 +765,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	SIMDLIB_FORCE_INLINE constexpr static mask_t VECTORCALL cmp_eq(const vector_t lhs, const vector_t rhs) noexcept
 	{
 		if (std::is_constant_evaluated())
-		{
-			const auto lhsValues = to_array(lhs);
-			const auto rhsValues = to_array(rhs);
-			mask_t result = 0;
-			constexpr mask_t laneMask = static_cast<mask_t>((mask_t{1} << sizeof(element_t)) - 1);
-			for (std::size_t index = 0; index < element_count; ++index)
-				if (lhsValues[index] == rhsValues[index])
-					result |= laneMask << (index * sizeof(element_t));
-			return result;
-		}
+			return comparison_mask_constexpr<Detail::comparison_operation::equivalent>(lhs, rhs);
 		else
 		{
 			return impl::movemask(impl::cmpeq(lhs, rhs));
@@ -812,16 +780,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	SIMDLIB_FORCE_INLINE constexpr static mask_t VECTORCALL cmp_eq_mask(const vector_t lhs, const vector_t rhs) noexcept
 	{
 		if (std::is_constant_evaluated())
-		{
-			const auto lhsValues = to_array(lhs);
-			const auto rhsValues = to_array(rhs);
-			mask_t result = 0;
-			constexpr mask_t laneMask = static_cast<mask_t>((mask_t{1} << sizeof(element_t)) - 1);
-			for (std::size_t index = 0; index < element_count; ++index)
-				if (lhsValues[index] == rhsValues[index])
-					result |= laneMask << (index * sizeof(element_t));
-			return result;
-		}
+			return comparison_mask_constexpr<Detail::comparison_operation::equivalent>(lhs, rhs);
 		else
 		{
 			return impl::movemask(impl::cmpeq(lhs, rhs));
@@ -836,16 +795,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	SIMDLIB_FORCE_INLINE constexpr static mask_t VECTORCALL cmp_gt(const vector_t lhs, const vector_t rhs) noexcept
 	{
 		if (std::is_constant_evaluated())
-		{
-			const auto lhsValues = to_array(lhs);
-			const auto rhsValues = to_array(rhs);
-			mask_t result = 0;
-			constexpr mask_t laneMask = static_cast<mask_t>((mask_t{1} << sizeof(element_t)) - 1);
-			for (std::size_t index = 0; index < element_count; ++index)
-				if (lhsValues[index] > rhsValues[index])
-					result |= laneMask << (index * sizeof(element_t));
-			return result;
-		}
+			return comparison_mask_constexpr<Detail::comparison_operation::greater>(lhs, rhs);
 		else
 		{
 			return impl::movemask(impl::cmpgt(lhs, rhs));
@@ -870,16 +820,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	SIMDLIB_FORCE_INLINE constexpr static mask_t VECTORCALL cmp_lt(const vector_t lhs, const vector_t rhs) noexcept
 	{
 		if (std::is_constant_evaluated())
-		{
-			const auto lhsValues = to_array(lhs);
-			const auto rhsValues = to_array(rhs);
-			mask_t result = 0;
-			constexpr mask_t laneMask = static_cast<mask_t>((mask_t{1} << sizeof(element_t)) - 1);
-			for (std::size_t index = 0; index < element_count; ++index)
-				if (lhsValues[index] < rhsValues[index])
-					result |= laneMask << (index * sizeof(element_t));
-			return result;
-		}
+			return comparison_mask_constexpr<Detail::comparison_operation::less>(lhs, rhs);
 		else
 		{
 			return impl::movemask(impl::cmpgt(rhs, lhs));
@@ -1065,16 +1006,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 		requires(using_int)
 	{
 		if (std::is_constant_evaluated())
-		{
-			if (shift >= static_cast<int>(element_width))
-				return impl::setzero();
-			std::array<element_t, element_count> results{};
-			for (std::size_t index = 0; index < element_count; ++index)
-			{
-				results[index] = static_cast<element_t>(impl::get_element(lhs, static_cast<int>(index)) << shift);
-			}
-			return impl::construct(results);
-		}
+			return shift_left_constexpr(lhs, shift);
 
 		return impl::shift_left(lhs, shift);
 	}
@@ -1088,16 +1020,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 		requires(using_int)
 	{
 		if (std::is_constant_evaluated())
-		{
-			if (shift >= static_cast<int>(element_width))
-				return impl::setzero();
-			std::array<element_t, element_count> results{};
-			for (std::size_t index = 0; index < element_count; ++index)
-			{
-				results[index] = static_cast<element_t>(static_cast<std::make_unsigned_t<element_t>>(impl::get_element(lhs, static_cast<int>(index))) >> shift);
-			}
-			return impl::construct(results);
-		}
+			return shift_right_constexpr(lhs, shift);
 
 		return impl::shift_right(lhs, shift);
 	}
@@ -1111,16 +1034,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 		requires(using_int)
 	{
 		if (std::is_constant_evaluated())
-		{
-			if (shift >= static_cast<int>(element_width))
-				shift = static_cast<int>(element_width) - 1;
-			std::array<element_t, element_count> results{};
-			for (std::size_t index = 0; index < element_count; ++index)
-			{
-				results[index] = static_cast<element_t>(impl::get_element(lhs, static_cast<int>(index)) >> shift);
-			}
-			return impl::construct(results);
-		}
+			return shift_right_arithmetic_constexpr(lhs, shift);
 
 		return impl::shift_right_arithmetic(lhs, shift);
 	}
@@ -1140,17 +1054,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 		requires(using_int && register_width == 128)
 	{
 		if (std::is_constant_evaluated())
-		{
-			if (shift <= 0)
-				return lhs;
-			if (shift >= static_cast<int>(byte_count))
-				return impl::setzero();
-			const auto sourceBytes = std::bit_cast<std::array<std::uint8_t, byte_count>>(to_array(lhs));
-			std::array<std::uint8_t, byte_count> resultBytes{};
-			for (std::size_t index = static_cast<std::size_t>(shift); index < byte_count; ++index)
-				resultBytes[index] = sourceBytes[index - static_cast<std::size_t>(shift)];
-			return construct(std::bit_cast<std::array<element_t, element_count>>(resultBytes));
-		}
+			return byte_shift_left_constexpr(lhs, shift);
 		return impl::byte_shift_left(lhs, shift);
 	}
 
@@ -1169,17 +1073,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 		requires(using_int && register_width == 128)
 	{
 		if (std::is_constant_evaluated())
-		{
-			if (shift <= 0)
-				return lhs;
-			if (shift >= static_cast<int>(byte_count))
-				return impl::setzero();
-			const auto sourceBytes = std::bit_cast<std::array<std::uint8_t, byte_count>>(to_array(lhs));
-			std::array<std::uint8_t, byte_count> resultBytes{};
-			for (std::size_t index = 0; index + static_cast<std::size_t>(shift) < byte_count; ++index)
-				resultBytes[index] = sourceBytes[index + static_cast<std::size_t>(shift)];
-			return construct(std::bit_cast<std::array<element_t, element_count>>(resultBytes));
-		}
+			return byte_shift_right_constexpr(lhs, shift);
 		return impl::byte_shift_right(lhs, shift);
 	}
 
@@ -1492,6 +1386,18 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 
 #pragma region Internal
   protected:
+	/** @brief Converts a register to lane storage during constant evaluation.
+	 *  @param vector Register represented in constant evaluation.
+	 *  @return Array containing the register elements in lane order.
+	 */
+	constexpr static std::array<element_t, element_count> to_array_constexpr(const vector_t vector) noexcept
+	{
+		std::array<element_t, element_count> result{};
+		for (std::size_t index = 0; index < element_count; ++index)
+			result[index] = impl::get_element(vector, static_cast<int>(index));
+		return result;
+	}
+
 	/** @brief Computes the byte-granular movemask during constant evaluation.
 	 *  @param lhs Input register represented in constant evaluation.
 	 *  @return Byte-granular movemask for the register contents.
@@ -1510,6 +1416,154 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 			}
 		}
 		return result;
+	}
+
+	/** @brief Finds the first minimum lane during constant evaluation.
+	 *  @param lhs Input register represented in constant evaluation.
+	 *  @return Zero-based index of the first minimum element.
+	 */
+	constexpr static std::size_t min_position_constexpr(const vector_t lhs) noexcept
+	{
+		const auto values = to_array(lhs);
+		return static_cast<std::size_t>(std::min_element(values.begin(), values.end()) - values.begin());
+	}
+
+	/** @brief Finds the first maximum lane during constant evaluation.
+	 *  @param lhs Input register represented in constant evaluation.
+	 *  @return Zero-based index of the first maximum element.
+	 */
+	constexpr static std::size_t max_position_constexpr(const vector_t lhs) noexcept
+	{
+		const auto values = to_array(lhs);
+		return static_cast<std::size_t>(std::max_element(values.begin(), values.end()) - values.begin());
+	}
+
+	/** @brief Computes the element-granular movemask during constant evaluation.
+	 *  @param lhs Input register represented in constant evaluation.
+	 *  @return Element-granular movemask for the register contents.
+	 */
+	constexpr static mask_t movemask_slim_constexpr(const vector_t lhs) noexcept
+	{
+		const auto lanes = to_array(lhs);
+		mask_t result = 0;
+		for (std::size_t laneIndex = 0; laneIndex < element_count; ++laneIndex)
+		{
+			const auto laneBytes = std::bit_cast<std::array<std::uint8_t, sizeof(element_t)>>(lanes[laneIndex]);
+			result |= static_cast<mask_t>((laneBytes.back() >> 7) & 1u) << laneIndex;
+		}
+		return result;
+	}
+
+	/** @brief Computes a scalar comparison mask during constant evaluation.
+	 *  @tparam operation Comparison ordering applied to corresponding lanes.
+	 *  @param lhs Left-hand input register represented in constant evaluation.
+	 *  @param rhs Right-hand input register represented in constant evaluation.
+	 *  @return Byte-granular scalar mask for lanes satisfying the comparison.
+	 */
+	template <Detail::comparison_operation operation>
+	constexpr static mask_t comparison_mask_constexpr(const vector_t lhs, const vector_t rhs) noexcept
+	{
+		const auto lhsValues = to_array(lhs);
+		const auto rhsValues = to_array(rhs);
+		mask_t result = 0;
+		constexpr mask_t laneMask = static_cast<mask_t>((mask_t{1} << sizeof(element_t)) - 1);
+		for (std::size_t index = 0; index < element_count; ++index)
+		{
+			bool matches = false;
+			if constexpr (operation == Detail::comparison_operation::equivalent)
+				matches = lhsValues[index] == rhsValues[index];
+			else if constexpr (operation == Detail::comparison_operation::greater)
+				matches = lhsValues[index] > rhsValues[index];
+			else if constexpr (operation == Detail::comparison_operation::less)
+				matches = lhsValues[index] < rhsValues[index];
+			if (matches)
+				result |= laneMask << (index * sizeof(element_t));
+		}
+		return result;
+	}
+
+	/** @brief Left-shifts integer lanes during constant evaluation.
+	 *  @param lhs Input integer register represented in constant evaluation.
+	 *  @param shift Shift count applied to each lane.
+	 *  @return Register containing shifted lanes.
+	 */
+	constexpr static int_vector_t shift_left_constexpr(const int_vector_t lhs, const int shift) noexcept
+	{
+		if (shift >= static_cast<int>(element_width))
+			return impl::setzero();
+		std::array<element_t, element_count> results{};
+		for (std::size_t index = 0; index < element_count; ++index)
+			results[index] = static_cast<element_t>(impl::get_element(lhs, static_cast<int>(index)) << shift);
+		return impl::construct(results);
+	}
+
+	/** @brief Logically right-shifts integer lanes during constant evaluation.
+	 *  @param lhs Input integer register represented in constant evaluation.
+	 *  @param shift Shift count applied to each lane.
+	 *  @return Register containing shifted lanes.
+	 */
+	constexpr static int_vector_t shift_right_constexpr(const int_vector_t lhs, const int shift) noexcept
+	{
+		if (shift >= static_cast<int>(element_width))
+			return impl::setzero();
+		std::array<element_t, element_count> results{};
+		for (std::size_t index = 0; index < element_count; ++index)
+		{
+			results[index] = static_cast<element_t>(
+				static_cast<std::make_unsigned_t<element_t>>(impl::get_element(lhs, static_cast<int>(index))) >> shift);
+		}
+		return impl::construct(results);
+	}
+
+	/** @brief Arithmetically right-shifts integer lanes during constant evaluation.
+	 *  @param lhs Input integer register represented in constant evaluation.
+	 *  @param shift Shift count applied to each lane.
+	 *  @return Register containing shifted lanes.
+	 */
+	constexpr static int_vector_t shift_right_arithmetic_constexpr(const int_vector_t lhs, int shift) noexcept
+	{
+		if (shift >= static_cast<int>(element_width))
+			shift = static_cast<int>(element_width) - 1;
+		std::array<element_t, element_count> results{};
+		for (std::size_t index = 0; index < element_count; ++index)
+			results[index] = static_cast<element_t>(impl::get_element(lhs, static_cast<int>(index)) >> shift);
+		return impl::construct(results);
+	}
+
+	/** @brief Shifts a complete 128-bit register toward higher byte indices during constant evaluation.
+	 *  @param lhs Input integer register represented in constant evaluation.
+	 *  @param shift Runtime-compatible byte count.
+	 *  @return Byte-shifted register.
+	 */
+	constexpr static int_vector_t byte_shift_left_constexpr(const int_vector_t lhs, const int shift) noexcept
+	{
+		if (shift <= 0)
+			return lhs;
+		if (shift >= static_cast<int>(byte_count))
+			return impl::setzero();
+		const auto sourceBytes = std::bit_cast<std::array<std::uint8_t, byte_count>>(to_array(lhs));
+		std::array<std::uint8_t, byte_count> resultBytes{};
+		for (std::size_t index = static_cast<std::size_t>(shift); index < byte_count; ++index)
+			resultBytes[index] = sourceBytes[index - static_cast<std::size_t>(shift)];
+		return construct(std::bit_cast<std::array<element_t, element_count>>(resultBytes));
+	}
+
+	/** @brief Shifts a complete 128-bit register toward lower byte indices during constant evaluation.
+	 *  @param lhs Input integer register represented in constant evaluation.
+	 *  @param shift Runtime-compatible byte count.
+	 *  @return Byte-shifted register.
+	 */
+	constexpr static int_vector_t byte_shift_right_constexpr(const int_vector_t lhs, const int shift) noexcept
+	{
+		if (shift <= 0)
+			return lhs;
+		if (shift >= static_cast<int>(byte_count))
+			return impl::setzero();
+		const auto sourceBytes = std::bit_cast<std::array<std::uint8_t, byte_count>>(to_array(lhs));
+		std::array<std::uint8_t, byte_count> resultBytes{};
+		for (std::size_t index = 0; index + static_cast<std::size_t>(shift) < byte_count; ++index)
+			resultBytes[index] = sourceBytes[index + static_cast<std::size_t>(shift)];
+		return construct(std::bit_cast<std::array<element_t, element_count>>(resultBytes));
 	}
 
 	/** @brief Re-encodes integer lanes so a minimum-position backend yields the first maximum index.

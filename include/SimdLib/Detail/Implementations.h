@@ -2035,11 +2035,7 @@ template <class element_t> struct SimdMappings<128, element_t> : public SimdImpl
 	SIMDLIB_FORCE_INLINE constexpr static vector_t VECTORCALL set1(const element_t value) noexcept
 	{
 		if (std::is_constant_evaluated())
-		{
-			std::array<element_t, element_count> lanes{};
-			lanes.fill(value);
-			return register_from_array<vector_t>(lanes);
-		}
+			return register_from_repeated_value<vector_t>(value);
 		else
 		{
 			return impl::set1(value);
@@ -4350,11 +4346,7 @@ template <class element_t> struct SimdMappings<256, element_t> : public SimdImpl
 	SIMDLIB_FORCE_INLINE constexpr static vector_t VECTORCALL set1(const element_t value) noexcept
 	{
 		if (std::is_constant_evaluated())
-		{
-			std::array<element_t, element_count> lanes{};
-			lanes.fill(value);
-			return register_from_array<vector_t>(lanes);
-		}
+			return register_from_repeated_value<vector_t>(value);
 		else
 		{
 			return impl::set1(value);
