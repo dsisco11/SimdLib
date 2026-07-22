@@ -48,30 +48,31 @@ after these repairs; earlier failing logs are stale and are not passing evidence
 
 | Contract | Accepted implementation requirement | Owning phase | Required evidence |
 | --- | --- | ---: | --- |
-| Template identity | All new public templates, concepts, aliases, and examples use `<T, Bits>`; only internal delegation uses `Api<Bits, T>` | 2, 8 | Compile probes and public-source audit |
+| Template identity | All new public templates, concepts, aliases, and examples use `<T, Bits>`; only internal delegation uses `Api<Bits, T>` | 3, 9 | Compile probes and public-source audit |
 | Availability | `SIMDLIB_REGISTER_INTERFACE_AVAILABLE` is computed from the standard explicit-object feature macro or the documented MSVC 19.44 fallback and cannot be overridden | 1 | Positive and negative configuration probes |
 | Build boundary | `SimdLib::SimdLib` remains C++20; `SimdLib::Register` requests C++23, requires Register availability, and selects `/std:c++latest` for Microsoft C++ | 1 | CMake consumer probes and generated command inspection |
-| Supported geometry | A specialization owns one complete 128-bit or 256-bit native register and has no logical active count | 2 | Availability, size, alignment, and lane-count assertions |
-| Representation | Register and RegisterMask each contain exactly one native vector member and no bases, metadata, allocation, proxies, or address-dependent state | 2 | Layout traits and ABI inspection |
-| Special members | Copy/move construction and assignment and destruction remain trivial; default construction is explicitly intrinsic-zeroed | 2, 3 | Type traits and zero-construction code generation |
-| All-active invariant | Every lane participates in transfer, arithmetic, comparison, rearrangement, and reduction behavior | 3-8 | Distinctive highest-lane runtime and constexpr tests |
-| Transfer extent | Element and byte loads/stores use fixed extents equal to `lane_count` or `byte_count`; partial and unsafe forms do not exist | 3 | Compile rejection, canaries, and sanitizers |
-| Alignment | Aligned loads/stores require `byte_count` alignment and follow the existing SimdLib precondition configuration | 3, 9 | Checks-enabled failures and release code generation |
-| Scalar operands | Arithmetic and bitwise operations initially accept only the same Register type; scalar use requires explicit `broadcast()` | 3, 5 | Compile rejection and broadcast code generation |
-| Native interoperation | Register and RegisterMask expose by-value `native()` observers; Register has an explicit native constructor; mask native construction remains private | 3, 4 | Constructibility assertions and native-result ABI probes |
-| Explicit object parameters | Non-mutating members take the explicit object by value; compound assignment takes it by reference | 2-8 | Declaration audit and forced-inline/no-inline probes |
-| Calling convention | Register-shaped members use `VECTORCALL` where supported; consumer-defined non-inlined boundaries must opt in separately | 2, 9 | Vector/default convention wrapper-versus-raw mirrors |
-| Mask invariant | Each predicate lane is all-zero or all-one; arbitrary numeric/native values cannot publicly construct a mask | 4 | Constraint tests and predicate-bit tests |
-| Compact mask bits | `bits_type` is normalized from lane count, is `uint32_t` for initial widths, maps bit `i` to lane `i`, and clears unused bits | 4 | Static assertions and mask-pattern tests |
-| Comparison semantics | Named comparisons reproduce the selected intrinsic, including signedness, NaNs, signed zero, ordered/unordered predicates, and lane bit patterns | 4 | Runtime, portable, emulated, and constexpr parity |
-| Whole equality | `operator==` means all lanes compare equal; `operator!=` is its Boolean negation; relational operators are absent | 4 | Boolean and compile-rejection tests |
-| Shift counts | Per-lane negative counts are invalid; logical overshifts zero, arithmetic overshifts sign-fill, and byte/whole-register shifts follow the proposal boundary table | 5 | Boundary, precondition, constexpr, and codegen tests |
-| Immediate controls | Every `imm8` is constrained to `0..255`; logical selectors have exact counts and valid source indices | 6, 7 | Compile-success/failure boundaries |
-| Type-changing results | Public operations name the exact constrained namespace-level result alias and never expose a raw intrinsic result | 6 | Type assertions and unsupported-combination rejection |
-| Conversion split | `bit_cast()` preserves bits; `convert()` changes numeric values; `widen_low()` explicitly consumes only low source lanes | 7 | Independent bit/numeric/lane-consumption tests |
-| Zero overhead | No supported wrapper expression or call boundary adds instructions, moves, spills, reloads, stack traffic, temporaries, return buffers, branches, or indirection relative to the identical raw baseline | 2, 9 | Mandatory generated-code and ABI gates with provenance |
-| Compatibility | `Api` remains supported; collection transforms and compatibility-only operations do not migrate | 8, 10 | Final ledger audit and unchanged C++20 matrix |
-| Public exposure | `Register.h` remains out of the umbrella until correctness and zero-overhead qualification succeeds | 1, 10 | Header and migration gates |
+| Reproducible toolchains | GCC and GNU-like Clang container environments are pinned, locally and CI reusable, aggregate failures reliably, and remain explicitly separate from native Windows ABI evidence | 2 | Dockerfile provenance, Compose/orchestrator comparison, clean/failing matrix demonstrations |
+| Supported geometry | A specialization owns one complete 128-bit or 256-bit native register and has no logical active count | 3 | Availability, size, alignment, and lane-count assertions |
+| Representation | Register and RegisterMask each contain exactly one native vector member and no bases, metadata, allocation, proxies, or address-dependent state | 3 | Layout traits and ABI inspection |
+| Special members | Copy/move construction and assignment and destruction remain trivial; default construction is explicitly intrinsic-zeroed | 3, 4 | Type traits and zero-construction code generation |
+| All-active invariant | Every lane participates in transfer, arithmetic, comparison, rearrangement, and reduction behavior | 4-9 | Distinctive highest-lane runtime and constexpr tests |
+| Transfer extent | Element and byte loads/stores use fixed extents equal to `lane_count` or `byte_count`; partial and unsafe forms do not exist | 4 | Compile rejection, canaries, and sanitizers |
+| Alignment | Aligned loads/stores require `byte_count` alignment and follow the existing SimdLib precondition configuration | 4, 10 | Checks-enabled failures and release code generation |
+| Scalar operands | Arithmetic and bitwise operations initially accept only the same Register type; scalar use requires explicit `broadcast()` | 4, 6 | Compile rejection and broadcast code generation |
+| Native interoperation | Register and RegisterMask expose by-value `native()` observers; Register has an explicit native constructor; mask native construction remains private | 4, 5 | Constructibility assertions and native-result ABI probes |
+| Explicit object parameters | Non-mutating members take the explicit object by value; compound assignment takes it by reference | 3-9 | Declaration audit and forced-inline/no-inline probes |
+| Calling convention | Register-shaped members use `VECTORCALL` where supported; consumer-defined non-inlined boundaries must opt in separately | 3, 10 | Vector/default convention wrapper-versus-raw mirrors |
+| Mask invariant | Each predicate lane is all-zero or all-one; arbitrary numeric/native values cannot publicly construct a mask | 5 | Constraint tests and predicate-bit tests |
+| Compact mask bits | `bits_type` is normalized from lane count, is `uint32_t` for initial widths, maps bit `i` to lane `i`, and clears unused bits | 5 | Static assertions and mask-pattern tests |
+| Comparison semantics | Named comparisons reproduce the selected intrinsic, including signedness, NaNs, signed zero, ordered/unordered predicates, and lane bit patterns | 5 | Runtime, portable, emulated, and constexpr parity |
+| Whole equality | `operator==` means all lanes compare equal; `operator!=` is its Boolean negation; relational operators are absent | 5 | Boolean and compile-rejection tests |
+| Shift counts | Per-lane negative counts are invalid; logical overshifts zero, arithmetic overshifts sign-fill, and byte/whole-register shifts follow the proposal boundary table | 6 | Boundary, precondition, constexpr, and codegen tests |
+| Immediate controls | Every `imm8` is constrained to `0..255`; logical selectors have exact counts and valid source indices | 7, 8 | Compile-success/failure boundaries |
+| Type-changing results | Public operations name the exact constrained namespace-level result alias and never expose a raw intrinsic result | 7 | Type assertions and unsupported-combination rejection |
+| Conversion split | `bit_cast()` preserves bits; `convert()` changes numeric values; `widen_low()` explicitly consumes only low source lanes | 8 | Independent bit/numeric/lane-consumption tests |
+| Zero overhead | No supported wrapper expression or call boundary adds instructions, moves, spills, reloads, stack traffic, temporaries, return buffers, branches, or indirection relative to the identical raw baseline | 3, 10 | Mandatory generated-code and ABI gates with provenance |
+| Compatibility | `Api` remains supported; collection transforms and compatibility-only operations do not migrate | 9, 11 | Final ledger audit and unchanged C++20 matrix |
+| Public exposure | `Register.h` remains out of the umbrella until correctness and zero-overhead qualification succeeds | 1, 11 | Header and migration gates |
 
 ## Explicit exclusions
 
@@ -105,91 +106,91 @@ after these repairs; earlier failing logs are stale and are not passing evidence
 ## Public operation migration matrix
 
 The phase column is the implementation owner. “Compatibility” and “internal”
-rows are verified absent from the preferred surface in Phase 8.
+rows are verified absent from the preferred surface in Phase 9.
 
 | Current public `Api` operation | Register result | Owner |
 | --- | --- | --- |
-| `load` | `Register::load(fixed_span)` | Phase 3 |
-| `load_aligned` | `Register::load_aligned(fixed_span)` | Phase 3 |
-| `load_unaligned` | Canonicalized to `Register::load(fixed_span)` | Phase 3 |
+| `load` | `Register::load(fixed_span)` | Phase 4 |
+| `load_aligned` | `Register::load_aligned(fixed_span)` | Phase 4 |
+| `load_unaligned` | Canonicalized to `Register::load(fixed_span)` | Phase 4 |
 | `load_partial` | No Register operation | Compatibility |
 | `load_unsafe` | No Register operation | Compatibility |
-| Element `store` | `value.store(fixed_span)` | Phase 3 |
-| `store_aligned` | `value.store_aligned(fixed_span)` | Phase 3 |
-| `store_unaligned` | Canonicalized to `value.store(fixed_span)` | Phase 3 |
-| Byte `store` | `value.store_bytes(fixed_byte_span)` | Phase 3 |
-| No byte-load counterpart | `Register::load_bytes(fixed_byte_span)` | Phase 3 |
-| `construct(array)` | `Register::from_array(array)` | Phase 3 |
-| `to_array` | `value.to_array()` | Phase 3 |
-| `setzero` | Default construction and `Register::zero()` | Phase 3 |
-| `set1` | `Register::broadcast(value)` | Phase 3 |
-| `setr` | `Register::from_lanes(...)` | Phase 3 |
+| Element `store` | `value.store(fixed_span)` | Phase 4 |
+| `store_aligned` | `value.store_aligned(fixed_span)` | Phase 4 |
+| `store_unaligned` | Canonicalized to `value.store(fixed_span)` | Phase 4 |
+| Byte `store` | `value.store_bytes(fixed_byte_span)` | Phase 4 |
+| No byte-load counterpart | `Register::load_bytes(fixed_byte_span)` | Phase 4 |
+| `construct(array)` | `Register::from_array(array)` | Phase 4 |
+| `to_array` | `value.to_array()` | Phase 4 |
+| `setzero` | Default construction and `Register::zero()` | Phase 4 |
+| `set1` | `Register::broadcast(value)` | Phase 4 |
+| `setr` | `Register::from_lanes(...)` | Phase 4 |
 | `set`, `set_partial`, `setr_partial` | No Register operation | Compatibility |
-| `add` | `lhs + rhs`, `lhs += rhs` | Phase 5 |
-| `subtract` | `lhs - rhs`, `lhs -= rhs` | Phase 5 |
-| `multiply` | `lhs * rhs`, `lhs *= rhs` | Phase 5 |
-| `divide` | `lhs / rhs`, `lhs /= rhs` | Phase 5 |
-| `modulus` | `lhs % rhs`, `lhs %= rhs` | Phase 5 |
-| `negate` | `-value` | Phase 5 |
-| `min` | `lhs.min(rhs)` | Phase 6 |
-| `max` | `lhs.max(rhs)` | Phase 6 |
-| `multiply_add` | `lhs.multiply_add(rhs, addend)` | Phase 6 |
-| `widen` | `value.widen_low<target_t, target_bits>()` | Phase 7 |
-| `absolute` | `value.absolute()` | Phase 6 |
-| `sqrt` | `value.sqrt()` | Phase 6 |
-| `magnitude` | `value.magnitude()` | Phase 6 |
-| `normalize` | `value.normalize()` | Phase 6 |
-| `avg` | `lhs.average(rhs)` | Phase 6 |
-| `add_horizontal` | `lhs.horizontal_add(rhs)` | Phase 6 |
-| `subtract_horizontal` | `lhs.horizontal_subtract(rhs)` | Phase 6 |
-| `multiply_add_adjacent` | `lhs.multiply_add_adjacent(rhs)` with named result alias | Phase 6 |
-| `multiply_add_unsigned_signed_bytes` | Same named member with byte-multiply-add result alias | Phase 6 |
-| `sum_absolute_byte_differences` | Same named member with SAD result alias | Phase 6 |
-| `multi_sum_absolute_byte_differences` | Same named immediate member with multi-SAD result alias | Phase 6 |
-| `min_position` | `value.min_position()` | Phase 6 |
-| `max_position` | `value.max_position()` | Phase 6 |
-| `add_saturated` | `lhs.add_saturated(rhs)` | Phase 6 |
-| `subtract_saturated` | `lhs.subtract_saturated(rhs)` | Phase 6 |
-| `hadd_saturated` | `lhs.horizontal_add_saturated(rhs)` | Phase 6 |
-| `hsubtract_saturated` | `lhs.horizontal_subtract_saturated(rhs)` | Phase 6 |
-| `add_subtract` | `lhs.add_subtract(rhs)` | Phase 6 |
-| `dot_product` | `lhs.dot_product<imm8>(rhs)` | Phase 6 |
-| `bitwise_and` | `lhs & rhs`, `lhs &= rhs` | Phase 5 |
-| `bitwise_or` | `lhs \| rhs`, `lhs \|= rhs` | Phase 5 |
-| `bitwise_xor` | `lhs ^ rhs`, `lhs ^= rhs` | Phase 5 |
-| `bitwise_not` | `~value` | Phase 5 |
-| `bitwise_andnot` | `lhs.andnot(rhs)` with preserved polarity | Phase 5 |
-| `movemask` | `value.movemask()` with intrinsic-native granularity | Phase 5 |
-| `movemask_slim` | `value.lane_sign_bits()` with one bit per lane | Phase 5 |
-| `cmp_eq`, `cmp_eq_mask` | `lhs.compare_equal(rhs)` and `.bits()` | Phase 4 |
-| `cmp_gt` | `lhs.compare_greater(rhs)` | Phase 4 |
-| `cmp_ge` | `lhs.compare_greater_equal(rhs)` | Phase 4 |
-| `cmp_lt` | `lhs.compare_less(rhs)` | Phase 4 |
-| `cmp_le` | `lhs.compare_less_equal(rhs)` | Phase 4 |
+| `add` | `lhs + rhs`, `lhs += rhs` | Phase 6 |
+| `subtract` | `lhs - rhs`, `lhs -= rhs` | Phase 6 |
+| `multiply` | `lhs * rhs`, `lhs *= rhs` | Phase 6 |
+| `divide` | `lhs / rhs`, `lhs /= rhs` | Phase 6 |
+| `modulus` | `lhs % rhs`, `lhs %= rhs` | Phase 6 |
+| `negate` | `-value` | Phase 6 |
+| `min` | `lhs.min(rhs)` | Phase 7 |
+| `max` | `lhs.max(rhs)` | Phase 7 |
+| `multiply_add` | `lhs.multiply_add(rhs, addend)` | Phase 7 |
+| `widen` | `value.widen_low<target_t, target_bits>()` | Phase 8 |
+| `absolute` | `value.absolute()` | Phase 7 |
+| `sqrt` | `value.sqrt()` | Phase 7 |
+| `magnitude` | `value.magnitude()` | Phase 7 |
+| `normalize` | `value.normalize()` | Phase 7 |
+| `avg` | `lhs.average(rhs)` | Phase 7 |
+| `add_horizontal` | `lhs.horizontal_add(rhs)` | Phase 7 |
+| `subtract_horizontal` | `lhs.horizontal_subtract(rhs)` | Phase 7 |
+| `multiply_add_adjacent` | `lhs.multiply_add_adjacent(rhs)` with named result alias | Phase 7 |
+| `multiply_add_unsigned_signed_bytes` | Same named member with byte-multiply-add result alias | Phase 7 |
+| `sum_absolute_byte_differences` | Same named member with SAD result alias | Phase 7 |
+| `multi_sum_absolute_byte_differences` | Same named immediate member with multi-SAD result alias | Phase 7 |
+| `min_position` | `value.min_position()` | Phase 7 |
+| `max_position` | `value.max_position()` | Phase 7 |
+| `add_saturated` | `lhs.add_saturated(rhs)` | Phase 7 |
+| `subtract_saturated` | `lhs.subtract_saturated(rhs)` | Phase 7 |
+| `hadd_saturated` | `lhs.horizontal_add_saturated(rhs)` | Phase 7 |
+| `hsubtract_saturated` | `lhs.horizontal_subtract_saturated(rhs)` | Phase 7 |
+| `add_subtract` | `lhs.add_subtract(rhs)` | Phase 7 |
+| `dot_product` | `lhs.dot_product<imm8>(rhs)` | Phase 7 |
+| `bitwise_and` | `lhs & rhs`, `lhs &= rhs` | Phase 6 |
+| `bitwise_or` | `lhs \| rhs`, `lhs \|= rhs` | Phase 6 |
+| `bitwise_xor` | `lhs ^ rhs`, `lhs ^= rhs` | Phase 6 |
+| `bitwise_not` | `~value` | Phase 6 |
+| `bitwise_andnot` | `lhs.andnot(rhs)` with preserved polarity | Phase 6 |
+| `movemask` | `value.movemask()` with intrinsic-native granularity | Phase 6 |
+| `movemask_slim` | `value.lane_sign_bits()` with one bit per lane | Phase 6 |
+| `cmp_eq`, `cmp_eq_mask` | `lhs.compare_equal(rhs)` and `.bits()` | Phase 5 |
+| `cmp_gt` | `lhs.compare_greater(rhs)` | Phase 5 |
+| `cmp_ge` | `lhs.compare_greater_equal(rhs)` | Phase 5 |
+| `cmp_lt` | `lhs.compare_less(rhs)` | Phase 5 |
+| `cmp_le` | `lhs.compare_less_equal(rhs)` | Phase 5 |
 | `expand`, `compress` | No Register operation | Compatibility |
-| `extract<index>` | `value.lane<index>()` | Phase 3 |
+| `extract<index>` | `value.lane<index>()` | Phase 4 |
 | Runtime `extract` | No initial Register operation | Compatibility |
-| `lower_half` | `value.lower_half()` | Phase 7 |
-| `insert` | `value.with_lane<index>(lane)` | Phase 3 |
-| `unpack_lo` | `lhs.unpack_low(rhs)` | Phase 7 |
-| `unpack_hi` | `lhs.unpack_high(rhs)` | Phase 7 |
-| `shuffle<indices...>` | `value.shuffle<indices...>()` | Phase 7 |
+| `lower_half` | `value.lower_half()` | Phase 8 |
+| `insert` | `value.with_lane<index>(lane)` | Phase 4 |
+| `unpack_lo` | `lhs.unpack_low(rhs)` | Phase 8 |
+| `unpack_hi` | `lhs.unpack_high(rhs)` | Phase 8 |
+| `shuffle<indices...>` | `value.shuffle<indices...>()` | Phase 8 |
 | Generic `shuffle(args...)` | No initial Register operation | Compatibility |
-| `shuffle_lo` | `value.shuffle_low<imm8>()` | Phase 7 |
-| `shuffle_hi` | `value.shuffle_high<imm8>()` | Phase 7 |
-| `blend` | `lhs.blend<imm8>(rhs)`; predicate selection uses `mask.select()` | Phase 7 and Phase 4 |
-| `shift_left` | `value << count`, `value <<= count` | Phase 5 |
-| `shift_right` | `value.logical_shift_right(count)`; unsigned `operator>>` | Phase 5 |
-| `shift_right_arithmetic` | Signed `value >> count`, `value >>= count` | Phase 5 |
-| `byte_shift_left` | `value.byte_shift_left(count)` | Phase 5 |
-| `byte_shift_right` | `value.byte_shift_right(count)` | Phase 5 |
-| Runtime `bit_shift_left` | `value.bit_shift_left(count)` | Phase 5 |
-| Compile-time `bit_shift_left` | `value.bit_shift_left<count>()` | Phase 5 |
-| Runtime `bit_shift_right` | `value.bit_shift_right(count)` | Phase 5 |
-| Compile-time `bit_shift_right` | `value.bit_shift_right<count>()` | Phase 5 |
-| `convert_to_float` | `value.convert<float>()` | Phase 7 |
-| `convert_to_int` | `value.convert<int32_t>()` | Phase 7 |
-| `convert` | `value.convert<target_t>()` | Phase 7 |
+| `shuffle_lo` | `value.shuffle_low<imm8>()` | Phase 8 |
+| `shuffle_hi` | `value.shuffle_high<imm8>()` | Phase 8 |
+| `blend` | `lhs.blend<imm8>(rhs)`; predicate selection uses `mask.select()` | Phase 8 and Phase 5 |
+| `shift_left` | `value << count`, `value <<= count` | Phase 6 |
+| `shift_right` | `value.logical_shift_right(count)`; unsigned `operator>>` | Phase 6 |
+| `shift_right_arithmetic` | Signed `value >> count`, `value >>= count` | Phase 6 |
+| `byte_shift_left` | `value.byte_shift_left(count)` | Phase 6 |
+| `byte_shift_right` | `value.byte_shift_right(count)` | Phase 6 |
+| Runtime `bit_shift_left` | `value.bit_shift_left(count)` | Phase 6 |
+| Compile-time `bit_shift_left` | `value.bit_shift_left<count>()` | Phase 6 |
+| Runtime `bit_shift_right` | `value.bit_shift_right(count)` | Phase 6 |
+| Compile-time `bit_shift_right` | `value.bit_shift_right<count>()` | Phase 6 |
+| `convert_to_float` | `value.convert<float>()` | Phase 8 |
+| `convert_to_int` | `value.convert<int32_t>()` | Phase 8 |
+| `convert` | `value.convert<target_t>()` | Phase 8 |
 | `transform_pack` | No Register operation | Collection |
 | Unary and binary span `transform` overloads | No Register operation | Collection |
 | `FinishIntegerMagnitudeFromPairSums` | No Register operation | Internal |
@@ -204,7 +205,7 @@ surface. Every name appears in the matrix above. The six operations exposed
 through inherited `using impl::...` declarations—`add`, `divide`, `max`, `min`,
 `multiply`, and `subtract`—also appear explicitly. Overloaded `load`, `store`,
 `extract`, `shuffle`, `bit_shift_*`, and span `transform` families are split or
-collapsed only where their Register disposition is identical. Phase 8 repeats
+collapsed only where their Register disposition is identical. Phase 9 repeats
 this mechanical audit against the then-current `Api.h` so later additions cannot
 escape classification.
 
@@ -429,3 +430,36 @@ The focused GCC 14 evidence is reproducible from the repository root:
 ```powershell
 docker run --rm --volume "${PWD}:/src:ro" ubuntu:24.04 sh -lc "apt-get update >/tmp/apt-update.log && DEBIAN_FRONTEND=noninteractive apt-get install -y g++-14 >/tmp/apt-install.log && g++-14 -std=c++23 -Wall -Wextra -Wpedantic -Werror -I/src/include -DSIMDLIB_REQUIRE_REGISTER_INTERFACE=1 -c /src/tests/availability/RegisterEnabledProbe.cpp -o /tmp/RegisterEnabledProbe.o && g++-14 -std=c++23 -Wall -Wextra -Wpedantic -Werror -I/src/include -DSIMDLIB_REQUIRE_REGISTER_INTERFACE=1 -c /src/tests/headers/RegisterHeaderProbe.cpp -o /tmp/RegisterHeaderProbe.o && g++-14 -std=c++23 -Wall -Wextra -Wpedantic -Werror -I/src/include -DSIMDLIB_REQUIRE_REGISTER_INTERFACE=1 /src/tests/consumer/register.cpp -o /tmp/RegisterConsumer && /tmp/RegisterConsumer"
 ```
+
+## Phase 2 preliminary container-orchestration assessment
+
+Docker Compose is a strong candidate for the declarative part of the test
+matrix: compiler-image builds, shared read-only source mounts, isolated writable
+build and artifact volumes, common environment, and named focused or full
+service groups. YAML anchors and `x-` extensions should centralize common
+service mappings instead of duplicating each compiler definition.
+
+The compiler services should use the smallest maintained Linux images that can
+meet the matrix contract. Alpine Linux is the first candidate, with multi-stage
+builds and build-cache removal used to minimize transferred and runtime layers.
+Its musl C library, compiler-package availability, sanitizer/runtime support,
+debugging tools, CMake version, and full test behavior must be validated rather
+than assumed equivalent to a glibc distribution. Any decision to use a larger
+base must record the concrete failed requirement and evaluate the next-smallest
+viable maintained image.
+
+Compose profiles can make focused, full, sanitizer, and generated-code groups
+convenient to select. Explicitly targeting one profiled service does not imply
+that every other service in the same profile runs, however, so the accepted
+runner must validate or visibly report the exact matrix membership. A concise
+command must not silently omit required compiler services.
+
+Compose should not yet be assumed to be the complete matrix-result aggregator.
+Its fail-fast and selected-service exit-code modes may be sufficient for some
+workflows, but the prototype must demonstrate deterministic behavior for a
+clean matrix, one failing service, multiple failing services, cancellation,
+per-service logs, and artifact retention. The tentative architecture is Compose
+as the environment and service-definition layer plus a thin PowerShell wrapper
+for matrix selection, aggregate status, logs, artifacts, cancellation, and
+cleanup. Compose alone may replace that wrapper if the recorded experiments
+prove that it satisfies every gate.

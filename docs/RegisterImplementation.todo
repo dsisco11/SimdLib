@@ -54,7 +54,27 @@ SimdLib Register Implementation Plan:
       Evidence: `docs/RegisterImplementationMatrix.md` records the implemented boundary, generated language modes, focused diagnostics, and per-compiler results.
       Evidence: final main/consumer results are MSVC 197/197 and 2/2, clang-cl 200/200 and 2/2, Clang 200/200 and 2/2, and GCC 13.2 200/200 and 1/1; GCC 14.2 compiled and ran the focused C++23 probes in an ephemeral read-only container.
 
-  Phase 2 - Establish the Representation and Performance Harness:
+  Phase 2 - Establish Reproducible Containerized Compiler Environments:
+    ☐ Define the container boundary explicitly: use Linux containers for GCC and GNU-like Clang correctness, constexpr, constraint, sanitizer, and generated-code work; retain native Windows runners for MSVC, clang-cl, Windows ABI, and `VECTORCALL` evidence.
+    ☐ Audit the current unconditional Windows intrinsic-header dependencies, including `<intrin.h>`, and decide whether the container matrix supports the complete C++20/C++23 suite or a documented platform-independent subset.
+    ☐ If the complete Linux matrix is accepted, make the intrinsic include boundary portable without changing supported Windows behavior; otherwise identify every excluded target and prevent container results from being reported as full-suite evidence.
+    ☐ Add version-pinned GCC 14 and Clang 22 Dockerfiles with CMake 4.4, Ninja, required test dependencies, locale/time-zone determinism, and image metadata recording compiler and dependency provenance.
+    ☐ Minimize each Linux image and its transferred/runtime footprint: evaluate Alpine Linux first, use multi-stage builds and remove build-only packages and caches where applicable, and select a larger base only when recorded compiler, C++ runtime, sanitizer, debugger, CMake, or test compatibility evidence demonstrates that Alpine/musl cannot satisfy the required matrix.
+    ☐ When Alpine is accepted for a compiler service, explicitly validate musl-specific behavior against the project contract; when it is rejected, record the concrete incompatibility and evaluate the next-smallest maintained base instead of defaulting directly to a general-purpose distribution.
+    ☐ Pin base images by immutable digest or maintain an equivalent reviewed lock mechanism so rebuilding a named compiler environment cannot silently select a different distribution snapshot.
+    ☐ Run containers as a non-root user where practical, mount source read-only by default, and place build trees, compiler caches, coverage data, and reports in explicit writable volumes so container runs do not create root-owned or tracked repository files.
+    ☐ Add one canonical container entrypoint that accepts the CMake preset, build target, CTest selection, configuration, sanitizer mode, and output directory without duplicating compiler-specific shell logic.
+    ☐ Prototype a Docker Compose matrix with one service per compiler and shared extension fields or anchors for common mounts, environment, entrypoint, health, and artifact conventions.
+    ☐ Evaluate Compose profiles for focused probes, full correctness, sanitizers, and generated-code jobs, and verify that selecting a profile cannot silently omit a required compiler or validation gate.
+    ☐ Test Compose failure propagation for one and multiple failing services; do not accept a command whose exit status can hide a failed compiler behind the status of another service.
+    ☐ Compare `docker compose run --rm`, parallel `docker compose up`, and a thin PowerShell orchestration wrapper; select the smallest interface that provides deterministic aggregate exit status, readable per-compiler logs, cancellation, and artifact paths.
+    ☐ Keep Dockerfiles as the single environment definition used by both local Compose workflows and CI; prohibit a separate CI-only dependency installation path that can drift from local validation.
+    ☐ Add reproducibility checks that rebuild images without cache, print image/compiler/CMake/Ninja identities, rerun the same focused probes, and distinguish source changes from environment changes.
+    ☐ Add documented image refresh and security-update procedures that intentionally update pins, capture the resulting provenance diff, and rerun the full accepted container matrix.
+    ☐ Record exact local commands for building one image, running one compiler, running the accepted multi-compiler matrix, selecting a focused profile, preserving artifacts, and cleaning only project-owned container resources.
+    ☐ End Phase 2 only when the accepted container/Compose workflow is reproducible, uses the same images locally and in CI, reports aggregate failures correctly, preserves explicit Windows-only evidence boundaries, and has demonstrated clean and failing matrix runs.
+
+  Phase 3 - Establish the Representation and Performance Harness:
     ☐ Add declaration-complete skeletons for `Register<T, Bits>`, `RegisterMask<T, Bits>`, `RegisterAvailable<T, Bits>`, `is_register_available_v<T, Bits>`, and `NativeRegister<T>`.
     ☐ Constrain Register availability to the existing x86 128-bit SSE4.2 and 256-bit AVX2-backed `Api` specializations.
     ☐ Store exactly one native vector data member in each Register and RegisterMask specialization with no bases, virtual functions, allocation, metadata, active-lane state, or address-dependent proxy state.
@@ -68,9 +88,9 @@ SimdLib Register Implementation Plan:
     ☐ Add paired consumer-defined function probes using `VECTORCALL` and the platform default convention; require vector-convention parity where supported and record default-convention behavior separately.
     ☐ Make generated-code comparisons mandatory gates; keep benchmarks supplemental and prohibit them from substituting for missing machine-code evidence.
     ☐ Record complete provenance beside each generated-code and ABI artifact so results from incompatible configurations cannot be merged or compared as one profile.
-    ☐ End Phase 2 only when the minimal wrappers pass layout and call-boundary gates on each supported compiler before broad method implementation begins.
+    ☐ End Phase 3 only when the minimal wrappers pass layout and call-boundary gates on each supported compiler before broad method implementation begins.
 
-  Phase 3 - Implement Register Construction, Observation, and Transfer:
+  Phase 4 - Implement Register Construction, Observation, and Transfer:
     ☐ Implement the default constructor and `zero()` through `Api::setzero()` or the corresponding intrinsic-backed implementation path with no temporary array or memory clear.
     ☐ Implement the explicit native-value constructor and by-value `native()` observer without implicit native conversion or mutable native access.
     ☐ Implement `broadcast(value)` as the only initial scalar-to-register construction path.
@@ -84,9 +104,9 @@ SimdLib Register Implementation Plan:
     ☐ Add runtime and constexpr tests with distinctive values in every lane, especially the highest lane, for all construction and observation paths supported in constant evaluation.
     ☐ Add aligned, unaligned, exact-byte, canary, and sanitizer tests proving transfers neither omit active lanes nor access caller storage outside the fixed extent.
     ☐ Add generated-code comparisons for zero construction, broadcast reuse, native wrapping/observation, load-operate-store chains, arrays, lane access, and compiler-generated special members.
-    ☐ End Phase 3 only when every complete-register construction and transfer path has correctness, constraint, layout, and generated-code proof.
+    ☐ End Phase 4 only when every complete-register construction and transfer path has correctness, constraint, layout, and generated-code proof.
 
-  Phase 4 - Implement RegisterMask, Comparisons, and Selection:
+  Phase 5 - Implement RegisterMask, Comparisons, and Selection:
     ☐ Implement `RegisterMask<T, Bits>` with one native predicate register and the invariant that every lane is all-zero or all-one.
     ☐ Implement an intrinsic-backed all-false default constructor and keep the native predicate constructor private to Register and the internal comparison adapter.
     ☐ Define normalized unsigned `bits_type` from `lane_count`, using `uint32_t` for the initial 128/256-bit specializations rather than inheriting `Api::mask_t`.
@@ -101,9 +121,9 @@ SimdLib Register Implementation Plan:
     ☐ Add all-false, all-true, alternating, first-lane-only, highest-lane-only, combined-mask, selection-polarity, and unused-bit tests for every lane geometry.
     ☐ Add compile-time tests proving arbitrary native vectors, scalar bit fields, and numeric Registers cannot publicly construct a RegisterMask and that no implicit Boolean conversion exists.
     ☐ Add generated-code comparisons for compare/combine/select chains, Boolean reductions, compact bits, native observation, and mask pass/return boundaries.
-    ☐ End Phase 4 only when masks remain register-shaped until an explicit scalar reduction and every comparison matches its documented intrinsic semantics.
+    ☐ End Phase 5 only when masks remain register-shaped until an explicit scalar reduction and every comparison matches its documented intrinsic semantics.
 
-  Phase 5 - Implement Basic Arithmetic, Bitwise Operations, and Shifts:
+  Phase 6 - Implement Basic Arithmetic, Bitwise Operations, and Shifts:
     ☐ Implement register-register `+`, `-`, `*`, `/`, and `%` only for supported type/width combinations, with matching `+=`, `-=`, `*=`, `/=`, and `%=` forms where the proposal includes them.
     ☐ Implement unary negation with the existing backend edge behavior and availability constraints.
     ☐ Keep scalar arithmetic absent; require explicit `Register::broadcast()` at call sites.
@@ -115,9 +135,9 @@ SimdLib Register Implementation Plan:
     ☐ Add compile-time and runtime tests for counts `0`, `width - 1`, `width`, `width + 1`, negative invalid per-lane counts, nonpositive byte/whole-register counts, and oversized byte/whole-register counts.
     ☐ Add independent scalar-oracle parity tests covering overflow, signed minima/maxima, unsigned high-bit values, division/remainder edge cases, and floating special values where applicable.
     ☐ Add generated-code comparisons for individual methods, overloaded expressions, compound assignments, explicit broadcast chains, shift immediates, and runtime shift counts.
-    ☐ End Phase 5 only when every basic operator is constrained correctly, behaviorally matches `Api` and an independent oracle, and introduces no wrapper-only instructions.
+    ☐ End Phase 6 only when every basic operator is constrained correctly, behaviorally matches `Api` and an independent oracle, and introduces no wrapper-only instructions.
 
-  Phase 6 - Implement Specialized Arithmetic and Reductions:
+  Phase 7 - Implement Specialized Arithmetic and Reductions:
     ☐ Implement named `min()`, `max()`, `absolute()`, `sqrt()`, `average()`, and `multiply_add()` operations where supported.
     ☐ Implement `magnitude()` and `normalize()` with the existing grouping, type, and feature behavior.
     ☐ Implement `horizontal_add()`, `horizontal_subtract()`, `add_saturated()`, `subtract_saturated()`, `horizontal_add_saturated()`, `horizontal_subtract_saturated()`, and floating `add_subtract()` under backend availability constraints.
@@ -129,9 +149,9 @@ SimdLib Register Implementation Plan:
     ☐ Add compile-time result-type and unavailability assertions for every source type and width.
     ☐ Add independent lane-order, overflow, saturation, grouping, immediate, highest-lane, and result-signedness tests for every specialized family.
     ☐ Add generated-code comparisons for every supported specialized overload, including FMA-enabled and FMA-disabled profiles where applicable.
-    ☐ End Phase 6 only when every specialized arithmetic result has an explicit public Register type and complete behavioral and machine-code parity evidence.
+    ☐ End Phase 7 only when every specialized arithmetic result has an explicit public Register type and complete behavioral and machine-code parity evidence.
 
-  Phase 7 - Implement Rearrangement and Conversion Operations:
+  Phase 8 - Implement Rearrangement and Conversion Operations:
     ☐ Implement `lower_half()` from supported 256-bit sources without exposing an ambiguous generic width reduction.
     ☐ Implement `unpack_low()` and `unpack_high()` with documented logical lane ordering.
     ☐ Implement logical `shuffle<indices...>()` with the exact selector count and source-lane range constrained at overload resolution.
@@ -144,10 +164,10 @@ SimdLib Register Implementation Plan:
     ☐ Add compile-failure tests for out-of-range selectors, wrong selector counts, out-of-range immediates, unsupported target types, unavailable width changes, and ambiguous compatibility-only operations.
     ☐ Add runtime and constexpr lane-order tests with unique bit patterns, floating edge values, signed/unsigned boundaries, and highest-source-lane sentinels.
     ☐ Add generated-code comparisons for every rearrangement and conversion shape, rejecting wrapper-only temporaries, stores, reloads, or extra lane moves.
-    ☐ End Phase 7 only when lane order, consumed lanes, conversion meaning, selector domains, and excluded operations are explicit and mechanically enforced.
+    ☐ End Phase 8 only when lane order, consumed lanes, conversion meaning, selector domains, and excluded operations are explicit and mechanically enforced.
 
-  Phase 8 - Complete the Operation and Constraint Matrix:
-    ☐ Implement any remaining register-local operation in the proposal ledger that was not completed in Phases 3-7.
+  Phase 9 - Complete the Operation and Constraint Matrix:
+    ☐ Implement any remaining register-local operation in the proposal ledger that was not completed in Phases 4-8.
     ☐ Re-audit every current public `Api` declaration and mark it implemented on Register, intentionally compatibility-only, internal-only, or collection-owned.
     ☐ Verify each Register method uses a `requires` clause or concept that removes unsupported type/width/feature combinations before entering the implementation body.
     ☐ Verify all Register-facing traits, aliases, concepts, examples, and diagnostics use `<T, Bits>` ordering even when delegating internally to `Api<Bits, T>`.
@@ -156,9 +176,9 @@ SimdLib Register Implementation Plan:
     ☐ Verify no operation silently discards active lanes except the explicitly named and documented `widen_low()` contract.
     ☐ Verify unsupported partial, unsafe, scalar, native-order, runtime-selector, and collection operations are absent through compile-failure probes rather than merely undocumented.
     ☐ Extend the public-operation/type/width matrix with runtime, constexpr, constraint, code-generation, and ABI evidence links for every supported cell.
-    ☐ End Phase 8 only when the proposal ledger and implementation matrix agree with no unclassified `Api` operation or untested public Register declaration.
+    ☐ End Phase 9 only when the proposal ledger and implementation matrix agree with no unclassified `Api` operation or untested public Register declaration.
 
-  Phase 9 - Qualify Correctness, Constexpr, Preconditions, ABI, and Performance:
+  Phase 10 - Qualify Correctness, Constexpr, Preconditions, ABI, and Performance:
     ☐ Run runtime parity against independent scalar references and use `Api` only as an additional migration oracle so both interfaces cannot agree on the same defect unnoticed.
     ☐ Run constexpr probes for every Register and RegisterMask operation whose `Api` counterpart supports constant evaluation.
     ☐ Run checks-enabled negative tests for alignment and invalid runtime shift counts while verifying valid release paths add no wrapper-only validation branches.
@@ -171,9 +191,9 @@ SimdLib Register Implementation Plan:
     ☐ Run Debug and sanitizer wrapper-versus-raw differential checks under identical flags and record any wrapper-only difference even though optimized Release assembly is the primary machine-code gate.
     ☐ Run supplemental benchmarks only after generated-code gates pass, using runtime-derived inputs that prevent constant folding and dead-code elimination.
     ☐ Record all accepted and excluded compiler/type/width/configuration combinations and discuss every observed performance exception explicitly.
-    ☐ End Phase 9 only when every supported configuration has complete correctness and zero-overhead evidence and every exclusion has a reviewed written justification.
+    ☐ End Phase 10 only when every supported configuration has complete correctness and zero-overhead evidence and every exclusion has a reviewed written justification.
 
-  Phase 10 - Expose, Migrate, Document, and Close Out:
+  Phase 11 - Expose, Migrate, Document, and Close Out:
     ☐ Conditionally include `Register.h` from `SimdLib.h` only when `SIMDLIB_REGISTER_INTERFACE_AVAILABLE` is nonzero.
     ☐ Add Register as a first-and-only public-header probe and extend the umbrella, multi-translation-unit ODR, disabled-feature, and external-consumer gates.
     ☐ Update README and examples so C++23 complete-register workflows use `NativeRegister<T>` or explicit `Register<T, Bits>` rather than recommending `NativeApi<T>`.
@@ -188,17 +208,18 @@ SimdLib Register Implementation Plan:
     ☐ Update `docs/Validation.md` with exact commands, versions, configurations, test/assertion counts, artifact paths, code-generation results, exclusions, and any explicit exceptions.
     ☐ Reconcile `docs/RegisterProposal.md`, `docs/ApiOperationMatrix.md`, README examples, and this todo with the final implemented surface.
     ☐ Verify `git diff --check` passes and no generated build output, disassembly, profiles, logs, reports, or temporary probes are tracked.
-    ☐ End Phase 10 only when all earlier phase gates are checked, the complete supported matrix is green, documentation recommends Register in supported C++23 contexts, and no zero-overhead claim lacks matching evidence.
+    ☐ End Phase 11 only when all earlier phase gates are checked, the complete supported matrix is green, documentation recommends Register in supported C++23 contexts, and no zero-overhead claim lacks matching evidence.
 
   Execution Evidence:
     ☐ Phase 0 contract matrix, baseline commands, compiler/configuration provenance, and clean pre-change results recorded.
     ☐ Phase 1 availability, CMake target, language-mode, header-boundary, and external-consumer probes recorded.
-    ☐ Phase 2 layout, generated-code harness, ABI mirror, calling-convention, and register-pressure evidence recorded.
-    ☐ Phase 3 construction, transfer, lane, native-interoperation, sanitizer, and code-generation evidence recorded.
-    ☐ Phase 4 RegisterMask, comparison-intrinsic, selection, scalar-reduction, constraint, and code-generation evidence recorded.
-    ☐ Phase 5 basic arithmetic, bitwise, compound-assignment, shift-boundary, oracle, and generated-code evidence recorded.
-    ☐ Phase 6 specialized arithmetic, reduction, result-alias, feature-profile, oracle, and generated-code evidence recorded.
-    ☐ Phase 7 rearrangement, selector, conversion, width-change, compile-failure, lane-order, and generated-code evidence recorded.
-    ☐ Phase 8 final operation matrix, Doxygen audit, public-boundary audit, and compatibility-only classifications recorded.
-    ☐ Phase 9 complete correctness, constexpr, precondition, sanitizer, optimized code-generation, ABI, and exception ledger recorded.
-    ☐ Phase 10 umbrella exposure, migration, documentation, full compiler/configuration matrix, and close-out evidence recorded in `docs/Validation.md`.
+    ☐ Phase 2 pinned Dockerfiles, Compose evaluation, orchestration decision, reproducibility checks, failure-propagation proof, and Windows-only evidence boundaries recorded.
+    ☐ Phase 3 layout, generated-code harness, ABI mirror, calling-convention, and register-pressure evidence recorded.
+    ☐ Phase 4 construction, transfer, lane, native-interoperation, sanitizer, and code-generation evidence recorded.
+    ☐ Phase 5 RegisterMask, comparison-intrinsic, selection, scalar-reduction, constraint, and code-generation evidence recorded.
+    ☐ Phase 6 basic arithmetic, bitwise, compound-assignment, shift-boundary, oracle, and generated-code evidence recorded.
+    ☐ Phase 7 specialized arithmetic, reduction, result-alias, feature-profile, oracle, and generated-code evidence recorded.
+    ☐ Phase 8 rearrangement, selector, conversion, width-change, compile-failure, lane-order, and generated-code evidence recorded.
+    ☐ Phase 9 final operation matrix, Doxygen audit, public-boundary audit, and compatibility-only classifications recorded.
+    ☐ Phase 10 complete correctness, constexpr, precondition, sanitizer, optimized code-generation, ABI, and exception ledger recorded.
+    ☐ Phase 11 umbrella exposure, migration, documentation, full compiler/configuration matrix, and close-out evidence recorded in `docs/Validation.md`.
