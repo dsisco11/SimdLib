@@ -344,7 +344,7 @@ TEST_CASE("128-bit Api documentation examples produce their documented results",
 	ApiT::transform(std::array{1.0F, 2.0F, 3.0F}, transformed, [](auto lanes) { return ApiT::add(lanes, ApiT::set1(10.0F)); });
 	REQUIRE(transformed == std::array{11.0F, 12.0F, 13.0F});
 	std::array<std::uint8_t, 1> packed{};
-	ApiT::transform_pack<1>(std::span<const float, 4>{std::array{1.0F, -2.0F, 3.0F, -4.0F}}, packed,
+	ApiT::transform_pack<1>(std::span<const float, 4>{std::array{1.0F, -2.0F, 3.0F, -4.0F}}, std::span<std::uint8_t, 1>{packed},
 							[](auto lanes) { return ApiT::movemask_slim(lanes); });
 	REQUIRE(packed[0] == 0b0000'1010);
 	require_documented_register<ApiT>(ApiT::unpack_hi(ApiT::setr(1.0F, 2.0F, 3.0F, 4.0F), ApiT::setr(5.0F, 6.0F, 7.0F, 8.0F)),

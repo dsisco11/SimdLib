@@ -1363,12 +1363,15 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 				result_bit_count -= consumed_bit_count;
 
 				// memcpy permits a native-width store without imposing alignment or aliasing requirements on write_t.
-				if (pending_bit_count == native_word_width)
+				if constexpr (flushed_native_word_count != 0)
 				{
-					std::memcpy(write_bytes.data() + write_byte_offset, &pending, sizeof(pending));
-					write_byte_offset += sizeof(pending);
-					pending = 0;
-					pending_bit_count = 0;
+					if (pending_bit_count == native_word_width)
+					{
+						std::memcpy(write_bytes.data() + write_byte_offset, &pending, sizeof(pending));
+						write_byte_offset += sizeof(pending);
+						pending = 0;
+						pending_bit_count = 0;
+					}
 				}
 			}
 		};

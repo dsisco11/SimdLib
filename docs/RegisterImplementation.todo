@@ -24,15 +24,17 @@ SimdLib Register Implementation Plan:
     ☐ Do not deprecate or remove `Api` as part of this implementation.
 
   Phase 0 - Freeze the Contract and Record the Baseline:
-    ☐ Review `docs/RegisterProposal.md` and copy every accepted operation, exclusion, precondition, result type, compiler requirement, and validation gate into a traceable implementation matrix.
-    ☐ Inventory the public `Api` declarations and `docs/ApiOperationMatrix.md`; assign every operation to a Register implementation phase or an explicit compatibility-only classification.
-    ☐ Record the current clean C++20 build, CTest, constexpr, header-isolation, ODR, configuration, sanitizer, and external-consumer results before Register files are introduced.
-    ☐ Record compiler, CMake, architecture, ISA, optimization, calling-convention, and SimdLib configuration provenance for every baseline artifact.
-    ☐ Identify the exact test targets and source directories that will own Register runtime tests, constexpr probes, compile-failure probes, ABI mirrors, and generated-code comparisons.
-    ☐ Confirm that all ten supported element types are covered: `int8_t`, `uint8_t`, `int16_t`, `uint16_t`, `int32_t`, `uint32_t`, `int64_t`, `uint64_t`, `float`, and `double`.
-    ☐ Confirm the initial Register compiler matrix: MSVC 19.44, clang-cl 22, Clang 22, and GCC 14 or newer in their documented C++23 modes.
-    ☐ Confirm that the existing core matrix, including GCC 13.2 C++20, remains supported with the Register interface unavailable.
-    ☐ End Phase 0 only when the implementation matrix accounts for the complete proposal and the pre-change evidence is recorded with reproducible commands.
+    ☒ Review `docs/RegisterProposal.md` and copy every accepted operation, exclusion, precondition, result type, compiler requirement, and validation gate into a traceable implementation matrix.
+    ☒ Inventory the public `Api` declarations and `docs/ApiOperationMatrix.md`; assign every operation to a Register implementation phase or an explicit compatibility-only classification.
+    ☒ Record the current clean C++20 build, CTest, constexpr, header-isolation, ODR, configuration, sanitizer, and external-consumer results before Register files are introduced.
+    ☒ Record compiler, CMake, architecture, ISA, optimization, calling-convention, and SimdLib configuration provenance for every baseline artifact.
+    ☒ Identify the exact test targets and source directories that will own Register runtime tests, constexpr probes, compile-failure probes, ABI mirrors, and generated-code comparisons.
+    ☒ Confirm that all ten supported element types are covered: `int8_t`, `uint8_t`, `int16_t`, `uint16_t`, `int32_t`, `uint32_t`, `int64_t`, `uint64_t`, `float`, and `double`.
+    ☒ Confirm the initial Register compiler matrix: MSVC 19.44, clang-cl 22, Clang 22, and GCC 14 or newer in their documented C++23 modes.
+    ☒ Confirm that the existing core matrix, including GCC 13.2 C++20, remains supported with the Register interface unavailable.
+    ☒ End Phase 0 only when the implementation matrix accounts for the complete proposal and the pre-change evidence is recorded with reproducible commands.
+      Evidence: `docs/RegisterImplementationMatrix.md` is the traceable contract, operation inventory, test-ownership map, compiler matrix, provenance record, and command transcript.
+      Evidence: fresh final C++20 results are MSVC 197/197 plus consumer 1/1, clang-cl 200/200 plus consumer 1/1, GCC 13.2 200/200, and Clang ASan/UBSan 161/161 with no sanitizer diagnostics.
 
   Phase 1 - Add Language Availability and Build Integration:
     ☐ Define `SIMDLIB_REGISTER_INTERFACE_AVAILABLE` in `Config.h` from `__cpp_explicit_this_parameter >= 202110L` or the documented Microsoft C++ fallback of `_MSC_VER >= 1944` and `_MSVC_LANG > 202002L`.

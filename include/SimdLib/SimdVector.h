@@ -144,10 +144,7 @@ class SimdVector final
 	 */
 	SIMDLIB_FORCE_INLINE constexpr SimdVector() noexcept
 	{
-		if (std::is_constant_evaluated())
-			m_data = {};
-		else
-			m_data = simd::setzero();
+		m_data = simd::setzero();
 	}
 
 	/** @brief Constructs a new SIMD vector from a SIMD register.

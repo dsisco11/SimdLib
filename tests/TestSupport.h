@@ -363,10 +363,11 @@ void require_transform_overload_case()
 {
     using simd = Api<Width, std::uint32_t>;
     constexpr std::uint32_t guard = 0xDEADBEEFU;
-    std::array<std::uint32_t, Count + 2> unaryStorage{};
-    std::array<std::uint32_t, Count + 2> leftStorage{};
-    std::array<std::uint32_t, Count + 2> rightStorage{};
-    std::array<std::uint32_t, Count + 2> outputStorage{};
+    constexpr std::size_t storageCount = Count + 2 > simd::element_count + 1 ? Count + 2 : simd::element_count + 1;
+    std::array<std::uint32_t, storageCount> unaryStorage{};
+    std::array<std::uint32_t, storageCount> leftStorage{};
+    std::array<std::uint32_t, storageCount> rightStorage{};
+    std::array<std::uint32_t, storageCount> outputStorage{};
     unaryStorage.fill(guard);
     leftStorage.fill(guard);
     rightStorage.fill(guard);
@@ -388,14 +389,14 @@ void require_transform_overload_case()
     for (std::size_t index = 0; index < Count; ++index)
         REQUIRE(unary[index] == static_cast<std::uint32_t>(index * 7 + 22));
     REQUIRE(unaryStorage.front() == guard);
-    REQUIRE(unaryStorage.back() == guard);
+    REQUIRE(unaryStorage[Count + 1] == guard);
 
     simd::transform(std::span<const std::uint32_t>(left), output, Subtract13Transform<Width>{});
 
     for (std::size_t index = 0; index < Count; ++index)
         REQUIRE(output[index] == static_cast<std::uint32_t>(index * 7 + 37));
     REQUIRE(outputStorage.front() == guard);
-    REQUIRE(outputStorage.back() == guard);
+    REQUIRE(outputStorage[Count + 1] == guard);
 
     std::fill(output.begin(), output.end(), guard);
     simd::transform(std::span<const std::uint32_t>(left), std::span<const std::uint32_t>(right), output, SubtractTransform<Width>{});
@@ -403,7 +404,7 @@ void require_transform_overload_case()
     for (std::size_t index = 0; index < Count; ++index)
         REQUIRE(output[index] == static_cast<std::uint32_t>(index * 6 + 47));
     REQUIRE(outputStorage.front() == guard);
-    REQUIRE(outputStorage.back() == guard);
+    REQUIRE(outputStorage[Count + 1] == guard);
 }
 
 /**
