@@ -2,8 +2,10 @@
 
 #include <cassert>
 
-// All configuration macros are caller-overridable. Instruction-family values
-// describe compiler-enabled code-generation features, not runtime CPU support.
+// Configuration macros are caller-overridable except
+// SIMDLIB_REGISTER_INTERFACE_AVAILABLE, which reports a language capability
+// computed by SimdLib. Instruction-family values describe compiler-enabled
+// code-generation features, not runtime CPU support.
 
 #ifndef SIMDLIB_COMPILER_CLANG
 #if defined(__clang__)
@@ -27,6 +29,29 @@
 #else
 #define SIMDLIB_COMPILER_GCC 0
 #endif
+#endif
+
+#if defined(SIMDLIB_REGISTER_INTERFACE_AVAILABLE)
+#error "SIMDLIB_REGISTER_INTERFACE_AVAILABILITY_IS_COMPUTED: do not define SIMDLIB_REGISTER_INTERFACE_AVAILABLE"
+#undef SIMDLIB_REGISTER_INTERFACE_AVAILABLE
+#endif
+
+#if defined(__cpp_explicit_this_parameter) && __cpp_explicit_this_parameter >= 202110L
+#define SIMDLIB_REGISTER_INTERFACE_AVAILABLE 1
+#elif defined(_MSC_VER) && !defined(__clang__) && _MSC_VER >= 1944 && defined(_MSVC_LANG) && _MSVC_LANG > 202002L
+#define SIMDLIB_REGISTER_INTERFACE_AVAILABLE 1
+#else
+#define SIMDLIB_REGISTER_INTERFACE_AVAILABLE 0
+#endif
+
+// This caller-controlled signal requires the computed Register capability; it
+// cannot enable or override that capability.
+#ifndef SIMDLIB_REQUIRE_REGISTER_INTERFACE
+#define SIMDLIB_REQUIRE_REGISTER_INTERFACE 0
+#endif
+
+#if SIMDLIB_REQUIRE_REGISTER_INTERFACE && !SIMDLIB_REGISTER_INTERFACE_AVAILABLE
+#error "SIMDLIB_REGISTER_INTERFACE_UNAVAILABLE: SimdLib::Register requires C++23 explicit object parameter support"
 #endif
 
 #ifndef SIMDLIB_TARGET_X86

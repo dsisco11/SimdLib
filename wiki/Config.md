@@ -7,6 +7,7 @@
 - [Version constants](#version-constants)
 - [Compiler and target constants](#compiler-and-target-constants)
 - [Instruction constants](#instruction-constants)
+- [Register interface availability](#register-interface-availability)
 - [Customization macros](#customization-macros)
 
 ## Version constants
@@ -33,9 +34,15 @@ SimdLib::Config::target_x64; // => true when compiling for x64
 SimdLib::Config::has_avx2; // => true when AVX2 code generation is enabled
 ```
 
+## Register interface availability
+
+`SIMDLIB_REGISTER_INTERFACE_AVAILABLE` is `1` when the current translation unit supports the C++23 explicit-object syntax required by `<SimdLib/Register.h>`. SimdLib computes this macro from `__cpp_explicit_this_parameter >= 202110L`, or from the documented Microsoft C++ 19.44 fallback when `_MSVC_LANG` selects a post-C++20 mode. The Microsoft fallback intentionally excludes clang-cl.
+
+Unlike the customization macros below, this availability result is not caller-overridable. `SIMDLIB_REQUIRE_REGISTER_INTERFACE=1` can require the capability and produce a focused diagnostic when it is unavailable, but it cannot enable the interface. Linking the opt-in `SimdLib::Register` CMake target publishes this requirement and requests C++23; `SimdLib::SimdLib` remains C++20.
+
 ## Customization macros
 
-All `SIMDLIB_*` configuration macros are caller-overridable before including SimdLib. `SIMDLIB_PRECONDITION`, `SIMDLIB_ENABLE_CHECKS`, `SIMDLIB_FORCE_INLINE`, and `VECTORCALL` control contracts, diagnostics, inlining, and the public calling convention.
+Except for the computed `SIMDLIB_REGISTER_INTERFACE_AVAILABLE` result, `SIMDLIB_*` configuration macros are caller-overridable before including SimdLib. `SIMDLIB_PRECONDITION`, `SIMDLIB_ENABLE_CHECKS`, `SIMDLIB_FORCE_INLINE`, and `VECTORCALL` control contracts, diagnostics, inlining, and the public calling convention.
 
 ```cpp
 #define SIMDLIB_ENABLE_CHECKS 1

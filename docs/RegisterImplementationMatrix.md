@@ -366,3 +366,66 @@ the newer 200/200 `LastTest.log` in each tree is authoritative.
 Existing `docs/Validation.md` and CI history describe the broader x86/Debug
 matrix. They support the declared core contract but do not replace the fresh
 Phase 0 results above.
+
+## Phase 1 language and build-integration evidence
+
+Phase 1 introduces only the language boundary. `Register.h` deliberately
+contains no Register or RegisterMask declaration until the representation work
+begins. It also remains absent from `SimdLib.h`.
+
+| Requirement | Implemented evidence |
+| --- | --- |
+| Computed availability | `Config.h` computes `SIMDLIB_REGISTER_INTERFACE_AVAILABLE` from `__cpp_explicit_this_parameter >= 202110L`, or from non-clang Microsoft C++ 19.44 with `_MSVC_LANG > 202002L` |
+| Non-overridable result | Defining the availability macro is rejected with `SIMDLIB_REGISTER_INTERFACE_AVAILABILITY_IS_COMPUTED` |
+| Requirement signal | `SIMDLIB_REQUIRE_REGISTER_INTERFACE` defaults to zero and diagnoses unavailable required use without changing availability |
+| Core target | `SimdLib::SimdLib` retains only `cxx_std_20` |
+| Opt-in target | `SimdLib::Register` links the core target, requests `cxx_std_23`, and publishes `SIMDLIB_REQUIRE_REGISTER_INTERFACE=1` |
+| Microsoft language selection | Only Microsoft C++ receives `/std:c++latest`; clang-cl and GNU-like Clang use their CMake-selected C++23 modes |
+| Focused header | Direct unsupported inclusion of `Register.h` emits `SIMDLIB_REGISTER_HEADER_REQUIRES_CXX23` |
+| Positive syntax | The enabled probe compiles named, arithmetic, comparison, and reference-mutating explicit-object members using `VECTORCALL` |
+| Reproducible negative probes | The compile-failure inputs and public headers are configure dependencies; every fresh or affected configuration reruns each `try_compile` and records its compiler output |
+| External consumers | The core consumer explicitly remains C++20; the separate Register consumer receives C++23 only by linking `SimdLib::Register` |
+
+### Phase 1 compiler results
+
+| Profile | Core result | Register result | Evidence |
+| --- | --- | --- | --- |
+| MSVC 19.44.35222 x64 Release | 197/197 | Enabled and MSVC-fallback probes built; external consumers 2/2 | `build-register-phase1-msvc`, `build-register-phase1-consumer-msvc` |
+| clang-cl 22.1.8 x64 Release | 200/200 | Standard-macro and fallback-exclusion probes built; external consumers 2/2 | `build-register-phase1-clangcl`, `build-register-phase1-consumer-clangcl` |
+| Clang 22.1.8 GNU-like x64 Release | 200/200 | Standard-macro probe built; external consumers 2/2 | `build-register-phase1-clang`, `build-register-phase1-consumer-clang` |
+| GCC 13.2 MSYS2 UCRT64 x64 Release | 200/200; normal consumer 1/1 | Unavailable as required; forced consumer rejected | `build-register-phase1-gcc`, `build-register-phase1-consumer-gcc`, `build-register-phase1-consumer-gcc-unsupported` |
+| GCC 14.2 Ubuntu 24.04 container | Platform-independent focused headers only | Enabled/header probes and external Register consumer compiled and ran under `-std=c++23 -Werror` | Ephemeral read-only Docker validation described below |
+
+The MSVC generated `.vcxproj` and compiler-command logs contain
+`/std:c++latest` for enabled Register, header, fallback, and consumer targets;
+the fallback source successfully asserts `_MSVC_LANG > 202002L`. The core
+consumer contains `/std:c++20`. clang-cl generated commands contain zero
+`/std:c++latest` occurrences, compile Register probes with
+`-clang:-std=c++23`, and compile the core consumer as C++20. GNU-like Clang
+uses `-std=c++23` for the strict positive probe and C++20 for the core consumer.
+
+Each main build records successful expected-failure output in:
+
+- `RegisterHeaderCxx20Failure.log`
+- `RegisterRequirementCxx20Failure.log`
+- `RegisterAvailabilityOverrideFailure.log`
+
+GCC 13.2 additionally records `RegisterUnsupportedCompilerFailure.log`. Its
+forced external Register consumer compiles with C++23 and fails with only the
+focused `SIMDLIB_REGISTER_INTERFACE_UNAVAILABLE` library diagnostic.
+
+No GCC 14-or-newer host compiler is installed. The GCC 14 standard-macro path
+was therefore validated without mutating the host: an existing Ubuntu 24.04
+image installed GCC 14.2 in an ephemeral container, mounted this repository
+read-only, and compiled `RegisterEnabledProbe.cpp`, `RegisterHeaderProbe.cpp`,
+and `tests/consumer/register.cpp` with `-std=c++23 -Wall -Wextra -Wpedantic
+-Werror`. The consumer ran successfully and the container was removed. The
+complete C++20 umbrella was not treated as Linux evidence because existing
+non-Register implementation headers depend on the Windows `intrin.h`; the
+required Windows GCC 13.2 core result remains the authoritative core baseline.
+
+The focused GCC 14 evidence is reproducible from the repository root:
+
+```powershell
+docker run --rm --volume "${PWD}:/src:ro" ubuntu:24.04 sh -lc "apt-get update >/tmp/apt-update.log && DEBIAN_FRONTEND=noninteractive apt-get install -y g++-14 >/tmp/apt-install.log && g++-14 -std=c++23 -Wall -Wextra -Wpedantic -Werror -I/src/include -DSIMDLIB_REQUIRE_REGISTER_INTERFACE=1 -c /src/tests/availability/RegisterEnabledProbe.cpp -o /tmp/RegisterEnabledProbe.o && g++-14 -std=c++23 -Wall -Wextra -Wpedantic -Werror -I/src/include -DSIMDLIB_REQUIRE_REGISTER_INTERFACE=1 -c /src/tests/headers/RegisterHeaderProbe.cpp -o /tmp/RegisterHeaderProbe.o && g++-14 -std=c++23 -Wall -Wextra -Wpedantic -Werror -I/src/include -DSIMDLIB_REQUIRE_REGISTER_INTERFACE=1 /src/tests/consumer/register.cpp -o /tmp/RegisterConsumer && /tmp/RegisterConsumer"
+```

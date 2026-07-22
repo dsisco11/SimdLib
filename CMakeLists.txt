@@ -38,6 +38,26 @@ target_include_directories(SimdLib INTERFACE
 target_sources(SimdLib INTERFACE
 	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/visualizers/SimdLib.natvis>)
 
+add_library(SimdLibRegister INTERFACE)
+add_library(SimdLib::Register ALIAS SimdLibRegister)
+target_link_libraries(SimdLibRegister INTERFACE SimdLib::SimdLib)
+target_compile_features(SimdLibRegister INTERFACE cxx_std_23)
+target_compile_definitions(SimdLibRegister INTERFACE
+	SIMDLIB_REQUIRE_REGISTER_INTERFACE=1)
+target_compile_options(SimdLibRegister INTERFACE
+	$<$<COMPILE_LANG_AND_ID:CXX,MSVC>:/std:c++latest>)
+
+set(SIMDLIB_REGISTER_COMPILER_SUPPORTED OFF)
+if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 19.44)
+	set(SIMDLIB_REGISTER_COMPILER_SUPPORTED ON)
+elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 22)
+	set(SIMDLIB_REGISTER_COMPILER_SUPPORTED ON)
+elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 14)
+	set(SIMDLIB_REGISTER_COMPILER_SUPPORTED ON)
+endif()
+set_property(TARGET SimdLibRegister PROPERTY
+	SIMDLIB_REGISTER_COMPILER_SUPPORTED ${SIMDLIB_REGISTER_COMPILER_SUPPORTED})
+
 # Consumer-facing examples and probes may use focused public headers, but must
 # never depend on implementation-only Detail declarations or include paths.
 file(GLOB_RECURSE SIMDLIB_PUBLIC_CONSUMER_SOURCES CONFIGURE_DEPENDS
@@ -237,6 +257,93 @@ if(SIMDLIB_BUILD_HEADER_TESTS)
         target_link_libraries(SimdLibHeader${header_probe}Probe PRIVATE SimdLib::SimdLib)
         simdlib_enable_development_warnings(SimdLibHeader${header_probe}Probe)
     endforeach()
+
+	if(SIMDLIB_REGISTER_COMPILER_SUPPORTED)
+		add_library(SimdLibHeaderRegisterProbe OBJECT
+			tests/headers/RegisterHeaderProbe.cpp)
+		target_link_libraries(SimdLibHeaderRegisterProbe PRIVATE SimdLib::Register)
+		simdlib_enable_development_warnings(SimdLibHeaderRegisterProbe)
+	endif()
+endif()
+
+# @brief Adds a compile-only language-availability probe with an exact standard mode.
+# @param target Target name used in compiler diagnostics.
+# @param source Translation unit containing the availability assertions.
+# @param standard C++ standard level requested for the probe.
+# @param dependency Public SimdLib target whose usage requirements are under test.
+function(simdlib_add_language_probe target source standard dependency)
+	add_library(${target} OBJECT ${source})
+	target_link_libraries(${target} PRIVATE ${dependency})
+	set_target_properties(${target} PROPERTIES
+		CXX_STANDARD ${standard}
+		CXX_STANDARD_REQUIRED ON
+		CXX_EXTENSIONS OFF)
+	simdlib_enable_development_warnings(${target})
+endfunction()
+
+# @brief Verifies that one intentionally invalid translation unit fails with the focused diagnostic.
+# @param probe_name Stable name used for the try-compile directory and log.
+# @param source Translation unit that must fail to compile.
+# @param standard Exact C++ standard level used for the negative probe.
+# @param expected_diagnostic Stable diagnostic token required in compiler output.
+function(simdlib_expect_language_probe_failure probe_name source standard expected_diagnostic)
+	try_compile(probe_compiled
+		SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/${source}
+		NO_CACHE
+		CXX_STANDARD ${standard}
+		CXX_STANDARD_REQUIRED ON
+		CXX_EXTENSIONS OFF
+		CMAKE_FLAGS
+			-DINCLUDE_DIRECTORIES=${CMAKE_CURRENT_SOURCE_DIR}/include
+		OUTPUT_VARIABLE probe_output)
+	file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/${probe_name}.log" "${probe_output}")
+	if(probe_compiled)
+		message(FATAL_ERROR "${probe_name} unexpectedly compiled successfully")
+	endif()
+	if(NOT probe_output MATCHES "${expected_diagnostic}")
+		message(FATAL_ERROR
+			"${probe_name} did not emit ${expected_diagnostic}; see ${CMAKE_CURRENT_BINARY_DIR}/${probe_name}.log")
+	endif()
+endfunction()
+
+if(SIMDLIB_BUILD_CONFIGURATION_TESTS)
+	set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+		${CMAKE_CURRENT_SOURCE_DIR}/include/SimdLib/Config.h
+		${CMAKE_CURRENT_SOURCE_DIR}/include/SimdLib/Register.h
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/RegisterHeaderCxx20.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/RegisterRequirementCxx20.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/RegisterAvailabilityOverride.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/RegisterUnsupportedCompiler.cpp)
+
+	simdlib_add_language_probe(SimdLibRegisterCxx20UmbrellaProbe
+		tests/availability/RegisterCxx20UmbrellaProbe.cpp 20 SimdLib::SimdLib)
+
+	if(SIMDLIB_REGISTER_COMPILER_SUPPORTED)
+		simdlib_add_language_probe(SimdLibRegisterEnabledProbe
+			tests/availability/RegisterEnabledProbe.cpp 23 SimdLib::Register)
+		if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+			simdlib_add_language_probe(SimdLibRegisterMsvcFallbackProbe
+				tests/availability/RegisterMsvcFallbackProbe.cpp 23 SimdLib::Register)
+		elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND SIMDLIB_MSVC_STYLE_DRIVER)
+			simdlib_add_language_probe(SimdLibRegisterClangClFallbackExclusionProbe
+				tests/availability/RegisterClangClFallbackExclusionProbe.cpp 23 SimdLib::SimdLib)
+		endif()
+	endif()
+
+	simdlib_expect_language_probe_failure(RegisterHeaderCxx20Failure
+		tests/compile_fail/register/RegisterHeaderCxx20.cpp 20
+		SIMDLIB_REGISTER_HEADER_REQUIRES_CXX23)
+	simdlib_expect_language_probe_failure(RegisterRequirementCxx20Failure
+		tests/compile_fail/register/RegisterRequirementCxx20.cpp 20
+		SIMDLIB_REGISTER_INTERFACE_UNAVAILABLE)
+	simdlib_expect_language_probe_failure(RegisterAvailabilityOverrideFailure
+		tests/compile_fail/register/RegisterAvailabilityOverride.cpp 20
+		SIMDLIB_REGISTER_INTERFACE_AVAILABILITY_IS_COMPUTED)
+	if(NOT SIMDLIB_REGISTER_COMPILER_SUPPORTED)
+		simdlib_expect_language_probe_failure(RegisterUnsupportedCompilerFailure
+			tests/compile_fail/register/RegisterUnsupportedCompiler.cpp 23
+			SIMDLIB_REGISTER_INTERFACE_UNAVAILABLE)
+	endif()
 endif()
 
 add_library(SimdLibAvailabilityDisabledProbe OBJECT tests/availability/ApiDisabledProbe.cpp)

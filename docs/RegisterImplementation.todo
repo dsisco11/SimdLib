@@ -37,20 +37,22 @@ SimdLib Register Implementation Plan:
       Evidence: fresh final C++20 results are MSVC 197/197 plus consumer 1/1, clang-cl 200/200 plus consumer 1/1, GCC 13.2 200/200, and Clang ASan/UBSan 161/161 with no sanitizer diagnostics.
 
   Phase 1 - Add Language Availability and Build Integration:
-    ☐ Define `SIMDLIB_REGISTER_INTERFACE_AVAILABLE` in `Config.h` from `__cpp_explicit_this_parameter >= 202110L` or the documented Microsoft C++ fallback of `_MSC_VER >= 1944` and `_MSVC_LANG > 202002L`.
-    ☐ Exclude clang-cl from the Microsoft C++ fallback even though it defines `_MSC_VER`.
-    ☐ Keep the availability result computed and non-overridable; update the Config documentation to identify it as an exception to caller-overridable configuration macros.
-    ☐ Do not add a namespace-scope constexpr availability variable or a generalized SimdLib language-version macro.
-    ☐ Add `SIMDLIB_REQUIRE_REGISTER_INTERFACE=1` as a requirement signal that diagnoses an unavailable Register interface without overriding availability.
-    ☐ Add the `SimdLibRegister` INTERFACE target and `SimdLib::Register` alias, link `SimdLib::SimdLib`, request `cxx_std_23`, publish the requirement signal, and select `/std:c++latest` only for Microsoft C++.
-    ☐ Verify the generated Microsoft C++ command line and `_MSVC_LANG > 202002L` instead of assuming CMake's standard-feature mapping is sufficient.
-    ☐ Add a focused `include/SimdLib/Register.h` boundary that emits a clear diagnostic when directly included without the required language feature.
-    ☐ Keep `Register.h` out of `SimdLib.h` until the final migration phase.
-    ☐ Add C++20 umbrella probes proving availability is zero and all existing public headers and targets remain usable without C++23.
-    ☐ Add C++23 positive probes for the standard feature-test path on clang-cl, Clang, and GCC and the version/language fallback on Microsoft C++.
-    ☐ Add negative probes for direct Register-header inclusion, disabled language mode, clang-cl fallback exclusion, and unsupported compiler floors.
-    ☐ Add an external consumer probe that links `SimdLib::Register` without changing the language requirement inherited from `SimdLib::SimdLib`.
-    ☐ End Phase 1 only when both C++20 and C++23 consumer paths select the intended surface and unsupported configurations fail with focused diagnostics.
+    ☒ Define `SIMDLIB_REGISTER_INTERFACE_AVAILABLE` in `Config.h` from `__cpp_explicit_this_parameter >= 202110L` or the documented Microsoft C++ fallback of `_MSC_VER >= 1944` and `_MSVC_LANG > 202002L`.
+    ☒ Exclude clang-cl from the Microsoft C++ fallback even though it defines `_MSC_VER`.
+    ☒ Keep the availability result computed and non-overridable; update the Config documentation to identify it as an exception to caller-overridable configuration macros.
+    ☒ Do not add a namespace-scope constexpr availability variable or a generalized SimdLib language-version macro.
+    ☒ Add `SIMDLIB_REQUIRE_REGISTER_INTERFACE=1` as a requirement signal that diagnoses an unavailable Register interface without overriding availability.
+    ☒ Add the `SimdLibRegister` INTERFACE target and `SimdLib::Register` alias, link `SimdLib::SimdLib`, request `cxx_std_23`, publish the requirement signal, and select `/std:c++latest` only for Microsoft C++.
+    ☒ Verify the generated Microsoft C++ command line and `_MSVC_LANG > 202002L` instead of assuming CMake's standard-feature mapping is sufficient.
+    ☒ Add a focused `include/SimdLib/Register.h` boundary that emits a clear diagnostic when directly included without the required language feature.
+    ☒ Keep `Register.h` out of `SimdLib.h` until the final migration phase.
+    ☒ Add C++20 umbrella probes proving availability is zero and all existing public headers and targets remain usable without C++23.
+    ☒ Add C++23 positive probes for the standard feature-test path on clang-cl, Clang, and GCC and the version/language fallback on Microsoft C++.
+    ☒ Add negative probes for direct Register-header inclusion, disabled language mode, clang-cl fallback exclusion, and unsupported compiler floors.
+    ☒ Add an external consumer probe that links `SimdLib::Register` without changing the language requirement inherited from `SimdLib::SimdLib`.
+    ☒ End Phase 1 only when both C++20 and C++23 consumer paths select the intended surface and unsupported configurations fail with focused diagnostics.
+      Evidence: `docs/RegisterImplementationMatrix.md` records the implemented boundary, generated language modes, focused diagnostics, and per-compiler results.
+      Evidence: final main/consumer results are MSVC 197/197 and 2/2, clang-cl 200/200 and 2/2, Clang 200/200 and 2/2, and GCC 13.2 200/200 and 1/1; GCC 14.2 compiled and ran the focused C++23 probes in an ephemeral read-only container.
 
   Phase 2 - Establish the Representation and Performance Harness:
     ☐ Add declaration-complete skeletons for `Register<T, Bits>`, `RegisterMask<T, Bits>`, `RegisterAvailable<T, Bits>`, `is_register_available_v<T, Bits>`, and `NativeRegister<T>`.
