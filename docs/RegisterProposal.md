@@ -64,7 +64,7 @@ using FloatRegister = SimdLib::NativeRegister<float>;
 const auto scale = FloatRegister::broadcast(0.02F);
 const auto offset = FloatRegister::broadcast(64.0F);
 const auto output = FloatRegister::load(source) * scale + offset;
-store(output, destination);
+output.store(destination);
 ```
 
 ## Goals
@@ -229,6 +229,9 @@ add_library(SimdLibRegister INTERFACE)
 add_library(SimdLib::Register ALIAS SimdLibRegister)
 target_link_libraries(SimdLibRegister INTERFACE SimdLib::SimdLib)
 target_compile_features(SimdLibRegister INTERFACE cxx_std_23)
+target_compile_options(
+	SimdLibRegister
+	INTERFACE $<$<CXX_COMPILER_ID:MSVC>:/std:c++latest>)
 target_compile_definitions(
 	SimdLibRegister
 	INTERFACE SIMDLIB_REQUIRE_REGISTER_INTERFACE=1)
@@ -241,9 +244,13 @@ target_compile_definitions(
 #endif
 ```
 
-The CMake target requests the language mode but does not define or override the
-computed availability result. A consumer that only links `SimdLib::SimdLib`
-does not inherit a C++23 requirement.
+The CMake target requests C++23 generally and explicitly selects
+`/std:c++latest` for Microsoft C++, which is the language mode used to validate
+the MSVC fallback. Configuration probes must inspect the generated compiler
+command and `_MSVC_LANG` so a future CMake or compiler change cannot silently
+select a mode that lacks the required explicit-object syntax. The target does
+not define or override the computed availability result. A consumer that only
+links `SimdLib::SimdLib` does not inherit a C++23 requirement.
 
 Translation units may use different language modes provided no C++20 unit names
 or exchanges a `Register` type. All translation units that exchange `Register`
@@ -624,7 +631,10 @@ class RegisterMask final
 	using register_type = Register<element_t, bits>;
 	using api_type = typename register_type::api_type;
 	using native_type = typename register_type::native_type;
-	using bits_type = typename api_type::mask_t;
+	using bits_type = std::conditional_t<
+		(register_type::lane_count <= 32),
+		std::uint32_t,
+		std::uint64_t>;
 
 	constexpr static inline std::size_t register_width = bits;
 	constexpr static inline std::size_t lane_count = register_type::lane_count;
@@ -662,6 +672,15 @@ class RegisterMask final
 	 * @return Bit `i` set exactly when lane `i` is true.
 	 */
 	[[nodiscard]] SIMDLIB_FORCE_INLINE constexpr bits_type VECTORCALL bits(
+		this RegisterMask value) noexcept;
+
+	/**
+	 * @brief Returns the wrapped native predicate register for intrinsic
+	 *        interoperation.
+	 * @param value Predicate register to unwrap.
+	 * @return Complete native predicate register value.
+	 */
+	[[nodiscard]] SIMDLIB_FORCE_INLINE constexpr native_type VECTORCALL native(
 		this RegisterMask value) noexcept;
 
 	/**
@@ -760,13 +779,25 @@ class RegisterMask final
 ```
 
 The default constructor invokes the same native zero-register operation as
-`Register` and therefore creates an all-false mask. `mask.bits()` uses the
-element-granular movemask operation and guarantees that bits at indices greater
-than or equal to `lane_count` are zero.
+`Register` and therefore creates an all-false mask. `bits_type` is a normalized
+public unsigned type selected from `lane_count`; it does not inherit the legacy
+backend `Api::mask_t` type. The initial 128-bit and 256-bit specializations have
+at most 32 lanes and therefore use `std::uint32_t`. The 64-bit alternative keeps
+the alias well-defined if a future supported width has between 33 and 64 lanes.
+`mask.bits()` uses the element-granular movemask operation and guarantees that
+bits at indices greater than or equal to `lane_count` are zero.
 `mask.select(when_true, when_false)` chooses `when_true` for all-one predicate
 lanes and `when_false` for all-zero predicate lanes. It can be implemented with
 register bitwise operations when no direct blend instruction accepts the
 predicate representation.
+
+`mask.native()` is a read-only interoperation boundary and returns the complete
+predicate register by value. It does not weaken the mask invariant because the
+consumer cannot write through the result. There is no public native-value
+constructor, `from_native_unchecked()`, or initial `from_bits()` factory.
+Arbitrary native and numeric registers therefore cannot be introduced as masks;
+safe scalar-to-mask construction may be considered later as an additive API if
+real call sites justify its expansion cost.
 
 `RegisterMask` must not provide an implicit conversion to `bool`; control-flow
 decisions must spell `mask.any()`, `mask.all()`, or `mask.none()`.
@@ -1123,6 +1154,29 @@ as a one-element homogeneous vector aggregate, but that classification is a
 compiler ABI property and must be verified. GCC uses its target ABI and must be
 validated independently against the same raw-vector baseline.
 
+The calling convention on Register members does not propagate into an ordinary
+consumer-defined function. A non-inlined consumer function that passes or
+returns `Register` or `RegisterMask` must declare `VECTORCALL` to participate in
+the vector-calling-convention guarantee where that convention is supported:
+
+```cpp
+using FloatRegister = SimdLib::Register<float, 128>;
+
+/**
+ * @brief Applies a consumer-defined complete-register transformation.
+ * @param value Input register.
+ * @return Transformed register.
+ */
+FloatRegister VECTORCALL transform_register(FloatRegister value) noexcept;
+```
+
+Consumer functions using the platform's default convention receive no stronger
+call-boundary guarantee than equivalent raw native-vector functions under that
+same convention. The validation suite compares wrapper and raw signatures under
+both the supported vector convention and the platform default. Any wrapper-only
+default-convention overhead is documented explicitly; it cannot be attributed
+to Register member chaining or hidden by a `VECTORCALL` result.
+
 Ordinary non-static member functions carry an implicit `this` pointer. If such
 a function is not inlined, the left operand may need an addressable object even
 when a by-value operation could receive it in a vector register. Focused
@@ -1244,7 +1298,9 @@ The implementation requires evidence in each of these areas:
   the focused diagnostic when the feature is unavailable.
 - CMake consumer probes proving that `SimdLib::SimdLib` retains its C++20
   requirement, `SimdLib::Register` requests C++23 and the requirement macro,
-  and an unsupported compiler receives the focused diagnostic.
+  Microsoft C++ receives `/std:c++latest`, and an unsupported compiler receives
+  the focused diagnostic. The Microsoft probe verifies the generated compiler
+  command, `_MSVC_LANG > 202002L`, and the required explicit-object syntax.
 - Dedicated availability probes for both detection paths: the standardized
   `__cpp_explicit_this_parameter >= 202110L` path on clang-cl, Clang, and GCC,
   and the `_MSC_VER >= 1944` plus `_MSVC_LANG > 202002L` fallback on Microsoft
@@ -1274,7 +1330,13 @@ The implementation requires evidence in each of these areas:
   operation and supported type/width combination.
 - Mask tests covering all-false, all-true, alternating, first-lane-only, and
   highest-lane-only predicates, compact lane bits, bitwise composition,
-  selection polarity, and cleared unused scalar bits.
+  selection polarity, and cleared unused scalar bits. Static assertions verify
+  that `bits_type` is the documented unsigned type for every supported width
+  and lane geometry.
+- Mask-native interoperation tests proving that `native()` returns the complete
+  predicate bits by value without a store/reload round trip, while arbitrary
+  native registers, scalar bit fields, and numeric Registers cannot publicly
+  construct a `RegisterMask`.
 - Backend-adapter tests proving that runtime, portable, emulated, and
   constant-evaluated comparisons produce the same intrinsic-defined predicate
   lanes.
@@ -1308,6 +1370,11 @@ The implementation requires evidence in each of these areas:
   native-result, store, and mutating-reference operations. These compare `Register`,
   `RegisterMask`, `Api::vector_t`, and direct-intrinsic calling conventions for
   every supported compiler, element type, and register width.
+- Paired consumer-defined function probes using `VECTORCALL` and the platform
+  default convention. The vector-convention gate rejects any wrapper-only ABI
+  overhead. Default-convention differences are recorded explicitly and remain
+  outside the supported call-boundary guarantee unless that compiler and
+  signature also pass the raw-vector comparison.
 - Controlled register-pressure and opaque-call probes that distinguish spills
   required equally by raw values from additional spills introduced by the
   wrapper.
@@ -1334,7 +1401,9 @@ are accepted:
   general language-version macro is introduced, and `_HAS_CXX23` is not used.
 - Availability is computed by SimdLib, cannot be overridden, and has no initial
   opt-out. `SimdLib::Register` is the C++23 opt-in target; the base target does
-  not impose that requirement.
+  not impose that requirement. The opt-in target explicitly selects
+  `/std:c++latest` for Microsoft C++ and compile-probes the resulting language
+  mode.
 - Register support has a separate validated compiler matrix from the C++20 core
   matrix. A compiler's language-feature support alone does not admit it to the
   zero-overhead support claim.
@@ -1351,7 +1420,9 @@ are accepted:
   `bool`.
 - `RegisterMask` contains one native predicate register, has no public
   arbitrary-native constructor, and exposes compact lane bits, Boolean
-  reductions, bitwise composition, and lane selection.
+  reductions, bitwise composition, lane selection, and a by-value native
+  observer. Its normalized unsigned `bits_type` is selected from `lane_count`
+  rather than inherited from `Api::mask_t`.
 - Comparison behavior exactly matches the selected underlying hardware
   intrinsic, including floating-point edge cases and predicate-lane bit
   patterns.
@@ -1381,6 +1452,10 @@ are accepted:
 - Call-boundary behavior is validated separately for MSVC, clang-cl, Clang,
   and GCC because `VECTORCALL` is a calling-convention tool, not a physical
   register-residency guarantee.
+- Non-inlined consumer-defined functions must declare `VECTORCALL` where it is
+  supported to participate in the vector-calling-convention guarantee. Default
+  convention signatures are compared with raw vectors separately and are not
+  included unless they independently pass the zero-overhead gate.
 - Generated-code comparisons are mandatory for every public operation family,
   overload shape, supported type, width, and ISA profile under identical
   optimized settings; benchmarks are supplemental only, and each artifact
