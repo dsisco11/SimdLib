@@ -365,9 +365,14 @@ endif()
 # @param register_width Width of the compared native and wrapped register values.
 function(simdlib_add_register_codegen_gate register_width)
 	set(vectorcall_enabled 0)
+	set(stack_protector_mode "compiler-default")
 	if(WIN32 AND CMAKE_SYSTEM_PROCESSOR MATCHES "^(AMD64|amd64|x86_64|i[3-6]86)$" AND
 		(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang"))
 		set(vectorcall_enabled 1)
+	endif()
+	if(NOT SIMDLIB_MSVC_STYLE_DRIVER AND
+		(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang"))
+		set(stack_protector_mode "strong")
 	endif()
 	set(wrapper_target SimdLibRegisterCodegenWrapper${register_width})
 	set(raw_target SimdLibRegisterCodegenRaw${register_width})
@@ -389,7 +394,7 @@ function(simdlib_add_register_codegen_gate register_width)
 		if(SIMDLIB_MSVC_STYLE_DRIVER)
 			target_compile_options(${target} PRIVATE /O2 /arch:AVX2)
 		else()
-			target_compile_options(${target} PRIVATE -O2 -mavx2)
+			target_compile_options(${target} PRIVATE -O2 -mavx2 -fstack-protector-strong)
 		endif()
 	endforeach()
 
@@ -413,6 +418,7 @@ function(simdlib_add_register_codegen_gate register_width)
 			-DCONFIGURATION=$<CONFIG>
 			-DREGISTER_WIDTH=${register_width}
 			-DVECTORCALL_ENABLED=${vectorcall_enabled}
+			-DSTACK_PROTECTOR_MODE=${stack_protector_mode}
 			-P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/CompareRegisterCodegen.cmake
 		COMMAND ${CMAKE_COMMAND} -E touch "${stamp_file}"
 		DEPENDS ${wrapper_target} ${raw_target} cmake/CompareRegisterCodegen.cmake
@@ -434,6 +440,7 @@ function(simdlib_add_register_codegen_gate register_width)
 			-DCONFIGURATION=$<CONFIG>
 			-DREGISTER_WIDTH=${register_width}
 			-DVECTORCALL_ENABLED=${vectorcall_enabled}
+			-DSTACK_PROTECTOR_MODE=${stack_protector_mode}
 			-DSYMBOL_PATTERN=simdlib_abi_
 			-P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/CompareRegisterCodegen.cmake
 		COMMAND ${CMAKE_COMMAND} -E touch "${abi_stamp_file}"
@@ -456,6 +463,7 @@ function(simdlib_add_register_codegen_gate register_width)
 			-DCONFIGURATION=$<CONFIG>
 			-DREGISTER_WIDTH=${register_width}
 			-DVECTORCALL_ENABLED=${vectorcall_enabled}
+			-DSTACK_PROTECTOR_MODE=${stack_protector_mode}
 			-P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/RecordRegisterDefaultAbi.cmake
 		COMMAND ${CMAKE_COMMAND} -E touch "${default_abi_stamp_file}"
 		DEPENDS ${default_wrapper_target} ${default_raw_target} cmake/RecordRegisterDefaultAbi.cmake

@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 4.4)
 foreach(required_variable IN ITEMS
 	WRAPPER_OBJECT RAW_OBJECT OBJDUMP ARTIFACT_DIRECTORY COMPILER_ID
 	COMPILER_VERSION COMPILER_PATH SYSTEM_NAME SYSTEM_PROCESSOR CONFIGURATION REGISTER_WIDTH
-	VECTORCALL_ENABLED)
+	VECTORCALL_ENABLED STACK_PROTECTOR_MODE)
 	if(NOT DEFINED ${required_variable} OR "${${required_variable}}" STREQUAL "")
 		message(FATAL_ERROR "CompareRegisterCodegen requires ${required_variable}")
 	endif()
@@ -54,6 +54,7 @@ function(simdlib_normalize_disassembly input_text output_variable)
 	string(REGEX REPLACE "(^|\n)[ \t]*[0-9A-Fa-f]+[ \t]+<" "\\1<" normalized "${normalized}")
 	string(REGEX REPLACE "(^|\n)[ \t]*[0-9A-Fa-f]+:[ \t]+([0-9A-Fa-f][0-9A-Fa-f][ \t]+)+" "\\1" normalized "${normalized}")
 	string(REGEX REPLACE "<[^>]+>" "<symbol>" normalized "${normalized}")
+	string(REGEX REPLACE "[0-9A-Fa-f]+[ \t]+<symbol>" "<target>" normalized "${normalized}")
 	string(REGEX REPLACE "[ \t]+\n" "\n" normalized "${normalized}")
 	string(REGEX REPLACE "\n+" "\n" normalized "${normalized}")
 	string(STRIP "${normalized}" normalized)
@@ -91,6 +92,7 @@ file(WRITE "${ARTIFACT_DIRECTORY}/provenance.txt"
 	"configuration=${CONFIGURATION}\n"
 	"register_width=${REGISTER_WIDTH}\n"
 	"vectorcall_enabled=${VECTORCALL_ENABLED}\n"
+	"stack_protector_mode=${STACK_PROTECTOR_MODE}\n"
 	"wrapper_object=${WRAPPER_OBJECT}\n"
 	"raw_object=${RAW_OBJECT}\n")
 
