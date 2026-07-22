@@ -113,7 +113,7 @@ rows are verified absent from the preferred surface in Phase 9.
 | `store_aligned` | `value.store_aligned(fixed_span)` | Phase 4 |
 | `store_unaligned` | Canonicalized to `value.store(fixed_span)` | Phase 4 |
 | Byte `store` | `value.store_bytes(fixed_byte_span)` | Phase 4 |
-| No byte-load counterpart | `Register::load_bytes(fixed_byte_span)` | Phase 4 |
+| Fixed-byte `load` | `Register::load_bytes(fixed_byte_span)` | Phase 4 |
 | `construct(array)` | `Register::from_array(array)` | Phase 4 |
 | `to_array` | `value.to_array()` | Phase 4 |
 | `setzero` | Default construction and `Register::zero()` | Phase 4 |
@@ -242,20 +242,20 @@ the complete correctness, layout, ABI, and generated-code gates pass.
 
 | Evidence family | Planned source owner | Planned CMake/CTest owner |
 | --- | --- | --- |
-| Runtime Register correctness | `tests/Register.tests.cpp` | `SimdLibTestsRegister128`, `SimdLibTestsRegister256` |
+| Runtime Register correctness | `tests/Register.tests.cpp` | `SimdLibTestsRegister` |
 | Runtime mask/comparison correctness | `tests/RegisterMask.tests.cpp` | Register runtime targets, split by width/profile |
 | Shared independent scalar oracles | `tests/RegisterTestSupport.h` | Included only by public Register tests |
-| Constexpr contracts | `tests/constexpr/Register128Constexpr.tests.cpp`, `Register256Constexpr.tests.cpp` | `SimdLibConstexprRegister128`, `SimdLibConstexprRegister256` |
+| Constexpr contracts | `tests/constexpr/RegisterConstexpr.tests.cpp` | `SimdLibRegisterConstexpr128`, `SimdLibRegisterConstexpr256` |
 | Availability and language modes | `tests/availability/Register*.cpp` | Compile-only Register availability targets |
 | Configuration fallback/exclusion | `tests/config/Register*.cpp` | Compile-only Register configuration targets |
 | First-and-only header | `tests/headers/RegisterHeaderProbe.cpp` | `SimdLibHeaderRegisterProbe` |
 | Invalid declarations | `tests/compile_fail/register/*.cpp` | CMake `try_compile`/CTest compile-failure driver |
 | ODR and multi-TU use | `tests/smoke/register_*.cpp` | `SimdLibHeaderOnlySmoke` extension |
 | External consumer | `tests/consumer/register.cpp` and consumer CMake target | Existing consumer CTest project linked through `SimdLib::Register` |
-| Forced-inline code generation | `tests/codegen/RegisterCodegen.cpp` generated from the operation matrix | `SimdLibRegisterCodegen` plus compiler-specific extraction scripts |
-| Raw code-generation baselines | `tests/codegen/RegisterCodegenRaw.cpp` generated from the same matrix | Paired with `SimdLibRegisterCodegen` under identical flags |
+| Forced-inline code generation | `tests/codegen/RegisterCodegen.cpp` and `RegisterCodegenFixture.h` | `SimdLibRegisterCodegen` plus compiler-specific extraction scripts |
+| Raw code-generation baselines | `tests/codegen/RegisterCodegenRaw.cpp` and `RegisterCodegenFixture.h` | Paired with `SimdLibRegisterCodegen` under identical flags |
 | Non-inlined ABI mirrors | `tests/codegen/RegisterAbi.cpp`, `RegisterAbiRaw.cpp` | `SimdLibRegisterAbi` comparison gate |
-| Register pressure and opaque calls | `tests/codegen/RegisterPressure.cpp`, `RegisterPressureRaw.cpp` | Register code-generation gate |
+| Register pressure and opaque calls | `tests/codegen/RegisterCodegenFixture.h` | Register code-generation gate |
 | Code-generation comparison | `cmake/CompareRegisterCodegen.cmake` and checked-in allowlisted normalization rules | CTest mandatory performance gate |
 | Checks-enabled preconditions | `tests/RegisterPreconditionFailure.tests.cpp` | Existing precondition death-test infrastructure |
 | Sanitizers | Runtime Register and mask sources | Fresh Clang ASan/UBSan configuration |

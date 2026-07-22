@@ -2080,6 +2080,22 @@ template <class element_t> struct SimdMappings<128, element_t> : public SimdImpl
 #pragma endregion
 
 #pragma region Load
+	/**
+	 * @brief Loads a complete 128-bit object representation without an alignment requirement.
+	 * @param ptr Source containing at least 16 accessible bytes.
+	 * @return Native register preserving every source bit.
+	 */
+	SIMDLIB_FORCE_INLINE static vector_t VECTORCALL load_bytes(const void *ptr) noexcept
+	{
+		const int_vector_t bits = _mm_loadu_si128(reinterpret_cast<const int_vector_t *>(ptr));
+		if constexpr (std::is_integral_v<element_t>)
+			return bits;
+		else if constexpr (std::is_same_v<element_t, float>)
+			return _mm_castsi128_ps(bits);
+		else
+			return _mm_castsi128_pd(bits);
+	}
+
 	/// <summary>Loads a full register from memory. Pointer must be appropriately aligned for the register width.</summary>
 	SIMDLIB_FORCE_INLINE static int_vector_t VECTORCALL load(const element_t *ptr) noexcept
 		requires std::is_integral_v<element_t>
@@ -4385,6 +4401,22 @@ template <class element_t> struct SimdMappings<256, element_t> : public SimdImpl
 #pragma endregion
 
 #pragma region Load
+	/**
+	 * @brief Loads a complete 256-bit object representation without an alignment requirement.
+	 * @param ptr Source containing at least 32 accessible bytes.
+	 * @return Native register preserving every source bit.
+	 */
+	SIMDLIB_FORCE_INLINE static vector_t VECTORCALL load_bytes(const void *ptr) noexcept
+	{
+		const int_vector_t bits = _mm256_loadu_si256(reinterpret_cast<const int_vector_t *>(ptr));
+		if constexpr (std::is_integral_v<element_t>)
+			return bits;
+		else if constexpr (std::is_same_v<element_t, float>)
+			return _mm256_castsi256_ps(bits);
+		else
+			return _mm256_castsi256_pd(bits);
+	}
+
 	/// <summary>Loads a full register from memory. Pointer must be appropriately aligned for the register width.</summary>
 	SIMDLIB_FORCE_INLINE static int_vector_t VECTORCALL load(const element_t *ptr) noexcept
 		requires std::is_integral_v<element_t>

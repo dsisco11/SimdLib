@@ -72,9 +72,16 @@ void require_transfer_contracts()
     simd::store_unaligned(unaligned_register, unaligned_output);
     REQUIRE(std::equal(aligned.begin(), aligned.end(), unaligned_output.begin()));
 
-    std::array<std::byte, simd::byte_count> bytes{};
-    simd::store(unaligned_register, std::span<std::byte>{bytes});
-    REQUIRE(bytes.size() == simd::byte_count);
+	std::array<std::byte, simd::byte_count> bytes{};
+	simd::store(unaligned_register, std::span<std::byte>{bytes});
+	REQUIRE(bytes.size() == simd::byte_count);
+	const auto byte_loaded = simd::load(std::span<const std::byte, simd::byte_count>{bytes});
+	std::array<std::byte, simd::byte_count> exact_bytes{};
+	simd::store(byte_loaded, std::span<std::byte, simd::byte_count>{exact_bytes});
+	for (std::size_t index = 0; index < bytes.size(); ++index)
+		REQUIRE(std::to_integer<unsigned int>(exact_bytes[index]) ==
+			std::to_integer<unsigned int>(bytes[index]));
+	REQUIRE(simd::to_array(byte_loaded) == aligned);
 
     std::array<std::byte, simd::byte_count + 8> oversized_bytes{};
     simd::store(unaligned_register, std::span<std::byte>{oversized_bytes});

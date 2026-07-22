@@ -123,6 +123,17 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 		return impl::load_unaligned(data.data());
 	}
 
+	/**
+	 * @brief Loads one complete register bit pattern from an exact byte span.
+	 * @param data Source containing exactly one register of bytes.
+	 * @return Register containing the source object representation.
+	 */
+	SIMDLIB_FORCE_INLINE static vector_t VECTORCALL load(
+		std::span<const std::byte, byte_count> data) noexcept
+	{
+		return impl::load_bytes(data.data());
+	}
+
 	/** @brief Loads a full register from storage aligned to the register byte width. */
 	SIMDLIB_FORCE_INLINE static vector_t VECTORCALL load_aligned(std::span<const element_t, element_count> data) noexcept
 	{
@@ -176,6 +187,18 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @return None.
 	 */
 	SIMDLIB_FORCE_INLINE static void VECTORCALL store(vector_t vector, std::span<element_t, element_count> data) noexcept
+	{
+		impl::store_unaligned(vector, data.data());
+	}
+
+	/**
+	 * @brief Stores one complete register bit pattern to an exact byte span.
+	 * @param vector Register value to store.
+	 * @param data Destination containing exactly one register of bytes.
+	 */
+	SIMDLIB_FORCE_INLINE static void VECTORCALL store(
+		vector_t vector,
+		std::span<std::byte, byte_count> data) noexcept
 	{
 		impl::store_unaligned(vector, data.data());
 	}

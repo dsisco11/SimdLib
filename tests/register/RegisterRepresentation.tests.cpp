@@ -6,6 +6,16 @@
 namespace
 {
 
+/** @brief Reports whether a compile-time lane outside the logical register is observable. */
+template <class value_t>
+concept has_out_of_range_lane = requires(value_t value) { value.template lane<value_t::lane_count>(); };
+
+/** @brief Reports whether a compile-time lane outside the logical register is replaceable. */
+template <class value_t>
+concept has_out_of_range_with_lane = requires(value_t value) {
+	value.template with_lane<value_t::lane_count>(typename value_t::element_type{});
+};
+
 /** @brief Checks the required object-model traits for one register-shaped value type. */
 template <class value_t>
 consteval bool has_complete_register_value_traits()
@@ -13,6 +23,7 @@ consteval bool has_complete_register_value_traits()
 	using native_type = typename value_t::native_type;
 	return sizeof(value_t) == sizeof(native_type) && alignof(value_t) == alignof(native_type) &&
 		std::is_standard_layout_v<value_t> && std::is_trivially_copy_constructible_v<value_t> &&
+		!std::is_trivially_default_constructible_v<value_t> &&
 		std::is_trivially_move_constructible_v<value_t> && std::is_trivially_copy_assignable_v<value_t> &&
 		std::is_trivially_move_assignable_v<value_t> && std::is_trivially_destructible_v<value_t> &&
 		std::is_trivially_copyable_v<value_t>;
@@ -28,6 +39,7 @@ consteval bool has_complete_register_shapes()
 		SimdLib::is_register_available_v<element_t, bits> &&
 		has_complete_register_value_traits<register_type>() &&
 		has_complete_register_value_traits<mask_type>() &&
+		!has_out_of_range_lane<register_type> && !has_out_of_range_with_lane<register_type> &&
 		register_type::register_width == bits && register_type::byte_count == bits / 8 &&
 		register_type::lane_count == bits / (sizeof(element_t) * 8);
 }

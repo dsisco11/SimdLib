@@ -315,7 +315,14 @@ if(SIMDLIB_BUILD_CONFIGURATION_TESTS)
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/RegisterHeaderCxx20.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/RegisterRequirementCxx20.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/RegisterAvailabilityOverride.cpp
-		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/RegisterUnsupportedCompiler.cpp)
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/RegisterUnsupportedCompiler.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/RegisterPartialLaneList.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/RegisterOversizedLaneList.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/RegisterDynamicTransfer.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/RegisterImplicitScalar.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/RegisterImplicitNative.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/RegisterNativeOrder.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/RegisterUninitialized.cpp)
 
 	simdlib_add_language_probe(SimdLibRegisterCxx20UmbrellaProbe
 		tests/availability/RegisterCxx20UmbrellaProbe.cpp 20 SimdLib::SimdLib)
@@ -327,16 +334,46 @@ if(SIMDLIB_BUILD_CONFIGURATION_TESTS)
 		foreach(register_width IN ITEMS 128 256)
 			add_library(SimdLibRegisterRepresentation${register_width} OBJECT
 				tests/register/RegisterRepresentation.tests.cpp)
+			add_library(SimdLibRegisterConstexpr${register_width} OBJECT
+				tests/constexpr/RegisterConstexpr.tests.cpp)
 			target_link_libraries(SimdLibRegisterRepresentation${register_width} PRIVATE SimdLib::Register)
+			target_link_libraries(SimdLibRegisterConstexpr${register_width} PRIVATE SimdLib::Register)
 			target_compile_definitions(SimdLibRegisterRepresentation${register_width} PRIVATE
 				SIMDLIB_REGISTER_TEST_WIDTH=${register_width})
+			target_compile_definitions(SimdLibRegisterConstexpr${register_width} PRIVATE
+				SIMDLIB_REGISTER_TEST_WIDTH=${register_width})
 			simdlib_enable_development_warnings(SimdLibRegisterRepresentation${register_width})
+			simdlib_enable_development_warnings(SimdLibRegisterConstexpr${register_width})
 			if(SIMDLIB_MSVC_STYLE_DRIVER)
 				target_compile_options(SimdLibRegisterRepresentation${register_width} PRIVATE /arch:AVX2)
+				target_compile_options(SimdLibRegisterConstexpr${register_width} PRIVATE /arch:AVX2)
 			else()
 				target_compile_options(SimdLibRegisterRepresentation${register_width} PRIVATE -mavx2)
+				target_compile_options(SimdLibRegisterConstexpr${register_width} PRIVATE -mavx2)
 			endif()
 		endforeach()
+
+		simdlib_expect_language_probe_failure(RegisterPartialLaneListFailure
+			tests/compile_fail/register/RegisterPartialLaneList.cpp 23
+			SIMDLIB_REGISTER_REJECTS_PARTIAL_LANE_LIST)
+		simdlib_expect_language_probe_failure(RegisterOversizedLaneListFailure
+			tests/compile_fail/register/RegisterOversizedLaneList.cpp 23
+			SIMDLIB_REGISTER_REJECTS_OVERSIZED_LANE_LIST)
+		simdlib_expect_language_probe_failure(RegisterDynamicTransferFailure
+			tests/compile_fail/register/RegisterDynamicTransfer.cpp 23
+			SIMDLIB_REGISTER_REJECTS_DYNAMIC_TRANSFER)
+		simdlib_expect_language_probe_failure(RegisterImplicitScalarFailure
+			tests/compile_fail/register/RegisterImplicitScalar.cpp 23
+			SIMDLIB_REGISTER_REJECTS_IMPLICIT_SCALAR)
+		simdlib_expect_language_probe_failure(RegisterImplicitNativeFailure
+			tests/compile_fail/register/RegisterImplicitNative.cpp 23
+			SIMDLIB_REGISTER_REJECTS_IMPLICIT_NATIVE)
+		simdlib_expect_language_probe_failure(RegisterNativeOrderFailure
+			tests/compile_fail/register/RegisterNativeOrder.cpp 23
+			SIMDLIB_REGISTER_REJECTS_NATIVE_ORDER_CONSTRUCTION)
+		simdlib_expect_language_probe_failure(RegisterUninitializedFailure
+			tests/compile_fail/register/RegisterUninitialized.cpp 23
+			SIMDLIB_REGISTER_REJECTS_UNINITIALIZED_CONSTRUCTION)
 		if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
 			simdlib_add_language_probe(SimdLibRegisterMsvcFallbackProbe
 				tests/availability/RegisterMsvcFallbackProbe.cpp 23 SimdLib::Register)
@@ -554,6 +591,17 @@ if(SIMDLIB_BUILD_TESTS)
             TEST_LIST ${test_list_variable})
         simdlib_label_discovered_tests(${test_list_variable} "${labels}")
     endfunction()
+
+	if(SIMDLIB_REGISTER_COMPILER_SUPPORTED)
+		simdlib_add_catch_test(SimdLibTestsRegister tests/Register.tests.cpp
+			SimdLib.Tests.Register "REGISTER;AVX2")
+		target_link_libraries(SimdLibTestsRegister PRIVATE SimdLib::Register)
+		if(SIMDLIB_MSVC_STYLE_DRIVER)
+			target_compile_options(SimdLibTestsRegister PRIVATE /arch:AVX2)
+		else()
+			target_compile_options(SimdLibTestsRegister PRIVATE -mavx2)
+		endif()
+	endif()
 
     simdlib_add_catch_test(SimdLibTestsBmiPortable tests/Bmi.tests.cpp
         SimdLib.Tests.BmiPortable "BMI;PORTABLE")

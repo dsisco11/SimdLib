@@ -90,20 +90,22 @@ SimdLib Register Implementation Plan:
       Accepted exception: MSVC may add only the exact `/GS` security-cookie prologue and epilogue recognized for the wrapper `simdlib_codegen_scalar` fixture at 128 and 256 bits. The gate preserves the original profiles, records the exception, compares the remaining instructions with the raw mirror, and rejects every other difference.
 
   Phase 4 - Implement Register Construction, Observation, and Transfer:
-    ☐ Implement the default constructor and `zero()` through `Api::setzero()` or the corresponding intrinsic-backed implementation path with no temporary array or memory clear.
-    ☐ Implement the explicit native-value constructor and by-value `native()` observer without implicit native conversion or mutable native access.
-    ☐ Implement `broadcast(value)` as the only initial scalar-to-register construction path.
-    ☐ Implement `from_lanes(...)` with exactly `lane_count` low-to-high logical lane arguments and compile-time rejection of partial or oversized lists.
-    ☐ Implement `from_array()` and `to_array()` for one complete logical lane array.
-    ☐ Implement unaligned `load()` and `store()` over fixed-extent element spans of exactly `lane_count`.
-    ☐ Implement `load_aligned()` and `store_aligned()` with the documented `byte_count` alignment precondition and no release-only wrapper branch beyond the raw operation.
-    ☐ Implement `load_bytes()` and `store_bytes()` over fixed-extent byte spans of exactly `byte_count`, preserving every register bit.
-    ☐ Implement compile-time `lane<index>()` and `with_lane<index>()` with `index < lane_count` constraints.
-    ☐ Add compile-failure probes proving there are no partial, dynamic-extent unsafe, implicit scalar, implicit native, native-order, or uninitialized construction paths.
-    ☐ Add runtime and constexpr tests with distinctive values in every lane, especially the highest lane, for all construction and observation paths supported in constant evaluation.
-    ☐ Add aligned, unaligned, exact-byte, canary, and sanitizer tests proving transfers neither omit active lanes nor access caller storage outside the fixed extent.
-    ☐ Add generated-code comparisons for zero construction, broadcast reuse, native wrapping/observation, load-operate-store chains, arrays, lane access, and compiler-generated special members.
-    ☐ End Phase 4 only when every complete-register construction and transfer path has correctness, constraint, layout, and generated-code proof.
+    ☒ Implement the default constructor and `zero()` through `Api::setzero()` or the corresponding intrinsic-backed implementation path with no temporary array or memory clear.
+    ☒ Implement the explicit native-value constructor and by-value `native()` observer without implicit native conversion or mutable native access.
+    ☒ Implement `broadcast(value)` as the only initial scalar-to-register construction path.
+    ☒ Implement `from_lanes(...)` with exactly `lane_count` low-to-high logical lane arguments and compile-time rejection of partial or oversized lists.
+    ☒ Implement `from_array()` and `to_array()` for one complete logical lane array.
+    ☒ Implement unaligned `load()` and `store()` over fixed-extent element spans of exactly `lane_count`.
+    ☒ Implement `load_aligned()` and `store_aligned()` with the documented `byte_count` alignment precondition and no release-only wrapper branch beyond the raw operation.
+    ☒ Implement `load_bytes()` and `store_bytes()` over fixed-extent byte spans of exactly `byte_count`, preserving every register bit.
+    ☒ Implement compile-time `lane<index>()` and `with_lane<index>()` with `index < lane_count` constraints.
+    ☒ Add compile-failure probes proving there are no partial, dynamic-extent unsafe, implicit scalar, implicit native, native-order, or uninitialized construction paths.
+    ☒ Add runtime and constexpr tests with distinctive values in every lane, especially the highest lane, for all construction and observation paths supported in constant evaluation.
+    ☒ Add aligned, unaligned, exact-byte, canary, and sanitizer tests proving transfers neither omit active lanes nor access caller storage outside the fixed extent.
+    ☒ Add generated-code comparisons for zero construction, broadcast reuse, native wrapping/observation, load-operate-store chains, arrays, lane access, and compiler-generated special members.
+    ☒ End Phase 4 only when every complete-register construction and transfer path has correctness, constraint, layout, and generated-code proof.
+      Evidence: `include/SimdLib/Register.h`, `tests/Register.tests.cpp`, `tests/constexpr/RegisterConstexpr.tests.cpp`, `tests/register/RegisterRepresentation.tests.cpp`, and `tests/compile_fail/register` cover the Phase 4 surface at 128 and 256 bits for every supported element type; the paired `tests/codegen/RegisterCodegenFixture.h` profiles cover each required machine-code shape.
+      Compiler limitation: MSVC 19.44 internally crashes when constant evaluation observes a native vector through the required by-value explicit-object boundary. Its constexpr probe therefore covers construction, factories, and native interoperation; the same observation semantics are covered at runtime on MSVC and in constant evaluation on GCC and Clang.
 
   Phase 5 - Implement RegisterMask, Comparisons, and Selection:
     ☐ Implement `RegisterMask<T, Bits>` with one native predicate register and the invariant that every lane is all-zero or all-one.
@@ -214,7 +216,7 @@ SimdLib Register Implementation Plan:
     ☐ Phase 1 availability, CMake target, language-mode, header-boundary, and external-consumer probes recorded.
     ☒ Phase 2 pinned Dockerfiles, Compose evaluation, orchestration decision, reproducibility checks, failure-propagation proof, and Windows-only evidence boundaries recorded.
     ☒ Phase 3 layout, generated-code harness, ABI mirror, calling-convention, and register-pressure evidence recorded.
-    ☐ Phase 4 construction, transfer, lane, native-interoperation, sanitizer, and code-generation evidence recorded.
+    ☒ Phase 4 construction, transfer, lane, native-interoperation, sanitizer, and code-generation evidence recorded.
     ☐ Phase 5 RegisterMask, comparison-intrinsic, selection, scalar-reduction, constraint, and code-generation evidence recorded.
     ☐ Phase 6 basic arithmetic, bitwise, compound-assignment, shift-boundary, oracle, and generated-code evidence recorded.
     ☐ Phase 7 specialized arithmetic, reduction, result-alias, feature-profile, oracle, and generated-code evidence recorded.

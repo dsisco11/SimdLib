@@ -870,7 +870,7 @@ the explicit-object surface by generated-code and ABI tests.
 | `store_aligned` | `value.store_aligned(fixed_span)` | Retained with alignment precondition |
 | `store_unaligned` | `value.store(fixed_span)` | Redundant spelling omitted |
 | `store` to byte span | `value.store_bytes(fixed_byte_span)` | Renamed to make bit-pattern transfer explicit |
-| No byte-load counterpart | `Register::load_bytes(fixed_byte_span)` | Added symmetric bit-pattern transfer |
+| Fixed-byte `load` | `Register::load_bytes(fixed_byte_span)` | Symmetric bit-pattern transfer |
 | `construct(array)` | `Register::from_array(array)` | Static factory; no ambiguous storage constructor |
 | `to_array` | `value.to_array()` | Retained as a value conversion |
 | `setzero` | Default construction and `Register::zero()` | Uses intrinsic-backed zero construction |

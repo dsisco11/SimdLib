@@ -2,7 +2,11 @@
 
 #include <SimdLib/Register.h>
 
+#include <array>
+#include <cstddef>
 #include <cstdint>
+#include <cstring>
+#include <span>
 
 #if SIMDLIB_COMPILER_MSVC
 #define SIMDLIB_CODEGEN_NOINLINE __declspec(noinline)
@@ -131,9 +135,148 @@ SIMDLIB_DETAIL_MSVC_SAFE_BUFFERS SIMDLIB_CODEGEN_NOINLINE native_type VECTORCALL
 
 /** @brief Native-result fixture. */
 SIMDLIB_DETAIL_MSVC_SAFE_BUFFERS SIMDLIB_CODEGEN_NOINLINE native_type VECTORCALL
-	simdlib_codegen_native(native_type value) noexcept
+simdlib_codegen_native(native_type value) noexcept
 {
 	return SimdLibCodegen::unwrap(SimdLibCodegen::wrap(value));
+}
+
+/** @brief Zero-construction fixture. */
+SIMDLIB_DETAIL_MSVC_SAFE_BUFFERS SIMDLIB_CODEGEN_NOINLINE native_type VECTORCALL
+	simdlib_codegen_zero() noexcept
+{
+#if SIMDLIB_CODEGEN_USE_WRAPPER
+	return SimdLibCodegen::register_type::zero().native();
+#else
+	return SimdLibCodegen::api_type::setzero();
+#endif
+}
+
+/** @brief Broadcast-reuse fixture. */
+SIMDLIB_DETAIL_MSVC_SAFE_BUFFERS SIMDLIB_CODEGEN_NOINLINE native_type VECTORCALL
+	simdlib_codegen_broadcast_reuse(float value) noexcept
+{
+#if SIMDLIB_CODEGEN_USE_WRAPPER
+	const auto broadcast = SimdLibCodegen::register_type::broadcast(value);
+	return SimdLibCodegen::api_type::add(broadcast.native(), broadcast.native());
+#else
+	const auto broadcast = SimdLibCodegen::api_type::set1(value);
+	return SimdLibCodegen::api_type::add(broadcast, broadcast);
+#endif
+}
+
+/** @brief Fixed-array construction fixture. */
+SIMDLIB_DETAIL_MSVC_SAFE_BUFFERS SIMDLIB_CODEGEN_NOINLINE native_type VECTORCALL simdlib_codegen_from_array(
+	const std::array<float, SimdLibCodegen::api_type::element_count> &source) noexcept
+{
+#if SIMDLIB_CODEGEN_USE_WRAPPER
+	return SimdLibCodegen::register_type::from_array(source).native();
+#else
+	return SimdLibCodegen::api_type::construct(source);
+#endif
+}
+
+/** @brief Fixed-array observation fixture. */
+SIMDLIB_DETAIL_MSVC_SAFE_BUFFERS SIMDLIB_CODEGEN_NOINLINE void VECTORCALL simdlib_codegen_to_array(
+	native_type value,
+	std::array<float, SimdLibCodegen::api_type::element_count> &destination) noexcept
+{
+#if SIMDLIB_CODEGEN_USE_WRAPPER
+	destination = SimdLibCodegen::register_type(value).to_array();
+#else
+	destination = SimdLibCodegen::api_type::to_array(value);
+#endif
+}
+
+/** @brief Lowest-lane observation fixture. */
+SIMDLIB_DETAIL_MSVC_SAFE_BUFFERS SIMDLIB_CODEGEN_NOINLINE float VECTORCALL
+	simdlib_codegen_lane_first(native_type value) noexcept
+{
+#if SIMDLIB_CODEGEN_USE_WRAPPER
+	return SimdLibCodegen::register_type(value).template lane<0>();
+#else
+	return SimdLibCodegen::api_type::to_array(value)[0];
+#endif
+}
+
+/** @brief Highest-lane replacement fixture. */
+SIMDLIB_DETAIL_MSVC_SAFE_BUFFERS SIMDLIB_CODEGEN_NOINLINE native_type VECTORCALL
+	simdlib_codegen_with_lane_last(native_type value, float replacement) noexcept
+{
+#if SIMDLIB_CODEGEN_USE_WRAPPER
+	return SimdLibCodegen::register_type(value)
+		.template with_lane<SimdLibCodegen::register_type::lane_count - 1>(replacement)
+		.native();
+#else
+	auto lanes = SimdLibCodegen::api_type::to_array(value);
+	lanes.back() = replacement;
+	return SimdLibCodegen::api_type::construct(lanes);
+#endif
+}
+
+/** @brief Full-register load, operation, and store fixture. */
+SIMDLIB_DETAIL_MSVC_SAFE_BUFFERS SIMDLIB_CODEGEN_NOINLINE void simdlib_codegen_load_operate_store(
+	const float *source,
+	float *destination) noexcept
+{
+	constexpr auto count = SimdLibCodegen::api_type::element_count;
+#if SIMDLIB_CODEGEN_USE_WRAPPER
+	const auto value = SimdLibCodegen::register_type::load(std::span<const float, count>{source, count});
+	SimdLibCodegen::register_type(SimdLibCodegen::api_type::add(value.native(), value.native()))
+		.store(std::span<float, count>{destination, count});
+#else
+	const auto value = SimdLibCodegen::api_type::load(std::span<const float, count>{source, count});
+	SimdLibCodegen::api_type::store(SimdLibCodegen::api_type::add(value, value),
+		std::span<float, count>{destination, count});
+#endif
+}
+
+/** @brief Aligned full-register load/store fixture. */
+SIMDLIB_DETAIL_MSVC_SAFE_BUFFERS SIMDLIB_CODEGEN_NOINLINE void simdlib_codegen_aligned_transfer(
+	const float *source,
+	float *destination) noexcept
+{
+	constexpr auto count = SimdLibCodegen::api_type::element_count;
+#if SIMDLIB_CODEGEN_USE_WRAPPER
+	SimdLibCodegen::register_type::load_aligned(std::span<const float, count>{source, count})
+		.store_aligned(std::span<float, count>{destination, count});
+#else
+	SimdLibCodegen::api_type::store_aligned(
+		SimdLibCodegen::api_type::load_aligned(std::span<const float, count>{source, count}),
+		std::span<float, count>{destination, count});
+#endif
+}
+
+/** @brief Exact-byte load/store fixture. */
+SIMDLIB_DETAIL_MSVC_SAFE_BUFFERS SIMDLIB_CODEGEN_NOINLINE void simdlib_codegen_byte_transfer(
+	const std::byte *source,
+	std::byte *destination) noexcept
+{
+	constexpr auto count = SimdLibCodegen::api_type::byte_count;
+#if SIMDLIB_CODEGEN_USE_WRAPPER
+	SimdLibCodegen::register_type::load_bytes(std::span<const std::byte, count>{source, count})
+		.store_bytes(std::span<std::byte, count>{destination, count});
+#else
+	native_type value = SimdLibCodegen::api_type::setzero();
+	std::memcpy(&value, source, count);
+	std::memcpy(destination, &value, count);
+#endif
+}
+
+/** @brief Copy/move special-member fixture. */
+SIMDLIB_DETAIL_MSVC_SAFE_BUFFERS SIMDLIB_CODEGEN_NOINLINE native_type VECTORCALL
+	simdlib_codegen_special_members(native_type value) noexcept
+{
+#if SIMDLIB_CODEGEN_USE_WRAPPER
+	SimdLibCodegen::register_type first(value);
+	const SimdLibCodegen::register_type second(first);
+	first = second;
+	return first.native();
+#else
+	native_type first = value;
+	const native_type second = first;
+	first = second;
+	return first;
+#endif
 }
 
 /** @brief Store fixture. */

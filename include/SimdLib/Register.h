@@ -8,7 +8,11 @@
 
 #include <SimdLib/Api.h>
 
+#include <array>
+#include <concepts>
 #include <cstddef>
+#include <span>
+#include <utility>
 
 namespace SimdLib
 {
@@ -106,6 +110,85 @@ class Register final
 	{
 	}
 
+	/**
+	 * @brief Returns a register with every active lane set to zero.
+	 * @return Fully initialized zero register.
+	 */
+	[[nodiscard]] SIMDLIB_FORCE_INLINE SIMDLIB_DETAIL_MSVC_SAFE_BUFFERS constexpr static Register zero() noexcept
+	{
+		return Register{api_type::setzero()};
+	}
+
+	/**
+	 * @brief Broadcasts one scalar value to every active lane.
+	 * @param value Scalar value to broadcast.
+	 * @return Register containing `value` in every lane.
+	 */
+	[[nodiscard]] SIMDLIB_FORCE_INLINE SIMDLIB_DETAIL_MSVC_SAFE_BUFFERS constexpr static Register broadcast(
+		element_type value) noexcept
+	{
+		return Register{api_type::set1(value)};
+	}
+
+	/**
+	 * @brief Constructs a register from exactly one complete logical lane list.
+	 * @tparam lane_types Scalar argument types convertible to `element_type`.
+	 * @param lanes Values in low-to-high logical lane order.
+	 * @return Register containing all supplied lane values.
+	 */
+	template <std::convertible_to<element_type>... lane_types>
+		requires(sizeof...(lane_types) == lane_count)
+	[[nodiscard]] SIMDLIB_FORCE_INLINE SIMDLIB_DETAIL_MSVC_SAFE_BUFFERS constexpr static Register from_lanes(
+		lane_types &&...lanes) noexcept
+	{
+		return Register{api_type::setr(static_cast<element_type>(std::forward<lane_types>(lanes))...)};
+	}
+
+	/**
+	 * @brief Constructs a register from one complete fixed-size lane array.
+	 * @param source Source containing every active lane in logical order.
+	 * @return Register containing all source lane values.
+	 */
+	[[nodiscard]] SIMDLIB_FORCE_INLINE constexpr static Register from_array(
+		const std::array<element_type, lane_count> &source) noexcept
+	{
+		return Register{api_type::construct(source)};
+	}
+
+	/**
+	 * @brief Loads a complete register from potentially unaligned storage.
+	 * @param source Source containing exactly one register of elements.
+	 * @return Register loaded from `source`.
+	 */
+	[[nodiscard]] SIMDLIB_FORCE_INLINE static Register load(
+		std::span<const element_type, lane_count> source) noexcept
+	{
+		return Register{api_type::load(source)};
+	}
+
+	/**
+	 * @brief Loads a complete register from register-aligned storage.
+	 * @param source Aligned source containing exactly one register of elements.
+	 * @return Register loaded from `source`.
+	 * @pre `source.data()` is aligned to `byte_count` bytes.
+	 */
+	[[nodiscard]] SIMDLIB_FORCE_INLINE static Register load_aligned(
+		std::span<const element_type, lane_count> source) noexcept
+	{
+		return Register{api_type::load_aligned(source)};
+	}
+
+	/**
+	 * @brief Loads one complete register bit pattern from raw bytes.
+	 * @param source Source containing exactly one register of bytes.
+	 * @return Register containing the source bit pattern.
+	 */
+	[[nodiscard]] SIMDLIB_FORCE_INLINE static Register load_bytes(
+		std::span<const std::byte, byte_count> source) noexcept
+	{
+		return Register{api_type::load(source)};
+	}
+
 	/** @brief Copies one complete register. */
 	constexpr Register(const Register &) noexcept = default;
 
@@ -120,6 +203,86 @@ class Register final
 
 	/** @brief Destroys the register value. */
 	~Register() = default;
+
+	/**
+	 * @brief Stores every active lane to potentially unaligned storage.
+	 * @param value Register to store.
+	 * @param destination Destination for exactly one register of elements.
+	 */
+	SIMDLIB_FORCE_INLINE void VECTORCALL store(
+		this Register value,
+		std::span<element_type, lane_count> destination) noexcept
+	{
+		api_type::store(value.m_data, destination);
+	}
+
+	/**
+	 * @brief Stores every active lane to register-aligned storage.
+	 * @param value Register to store.
+	 * @param destination Aligned destination for one complete register.
+	 * @pre `destination.data()` is aligned to `byte_count` bytes.
+	 */
+	SIMDLIB_FORCE_INLINE void VECTORCALL store_aligned(
+		this Register value,
+		std::span<element_type, lane_count> destination) noexcept
+	{
+		api_type::store_aligned(value.m_data, destination);
+	}
+
+	/**
+	 * @brief Stores the complete register bit pattern to raw bytes.
+	 * @param value Register to store.
+	 * @param destination Destination containing exactly one register of bytes.
+	 */
+	SIMDLIB_FORCE_INLINE void VECTORCALL store_bytes(
+		this Register value,
+		std::span<std::byte, byte_count> destination) noexcept
+	{
+		api_type::store(value.m_data, destination);
+	}
+
+	/**
+	 * @brief Copies every active lane into a fixed-size array.
+	 * @param value Register to copy.
+	 * @return Array containing all lanes in low-to-high logical order.
+	 */
+	[[nodiscard]] SIMDLIB_FORCE_INLINE constexpr std::array<element_type, lane_count> VECTORCALL to_array(
+		this Register value) noexcept
+	{
+		return api_type::to_array(value.m_data);
+	}
+
+	/**
+	 * @brief Returns one compile-time-selected lane.
+	 * @tparam index Logical lane index.
+	 * @param value Register containing the selected lane.
+	 * @return Copy of the selected lane.
+	 */
+	template <std::size_t index>
+		requires(index < lane_count)
+	[[nodiscard]] SIMDLIB_FORCE_INLINE constexpr element_type VECTORCALL lane(
+		this Register value) noexcept
+	{
+		return value.to_array()[index];
+	}
+
+	/**
+	 * @brief Returns a copy with one compile-time-selected lane replaced.
+	 * @tparam index Logical lane index.
+	 * @param value Register containing the lanes to copy.
+	 * @param replacement Replacement value for the selected lane.
+	 * @return Register with lane `index` replaced.
+	 */
+	template <std::size_t index>
+		requires(index < lane_count)
+	[[nodiscard]] SIMDLIB_FORCE_INLINE constexpr Register VECTORCALL with_lane(
+		this Register value,
+		element_type replacement) noexcept
+	{
+		auto lanes = value.to_array();
+		lanes[index] = replacement;
+		return from_array(lanes);
+	}
 
 	/**
 	 * @brief Returns the wrapped native register by value.
