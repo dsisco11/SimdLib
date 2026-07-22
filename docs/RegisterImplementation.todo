@@ -72,20 +72,22 @@ SimdLib Register Implementation Plan:
     ☒ End Phase 2 only when the accepted container/Compose workflow is reproducible, uses the same images locally and in CI, reports aggregate failures correctly, preserves explicit Windows-only evidence boundaries, and has demonstrated clean and failing matrix runs.
 
   Phase 3 - Establish the Representation and Performance Harness:
-    ☐ Add declaration-complete skeletons for `Register<T, Bits>`, `RegisterMask<T, Bits>`, `RegisterAvailable<T, Bits>`, `is_register_available_v<T, Bits>`, and `NativeRegister<T>`.
-    ☐ Constrain Register availability to the existing x86 128-bit SSE4.2 and 256-bit AVX2-backed `Api` specializations.
-    ☐ Store exactly one native vector data member in each Register and RegisterMask specialization with no bases, virtual functions, allocation, metadata, active-lane state, or address-dependent proxy state.
-    ☐ Add compile-time checks for exact native size and alignment, standard layout, trivial copy/move construction and assignment, trivial destruction, and trivial copyability across every supported type and width.
-    ☐ Default compiler-generated copy/move operations and confirm that the intrinsic-backed default constructor does not invalidate required value-type traits.
-    ☐ Build paired wrapper and raw-intrinsic generated-code fixtures before implementing the broad operation surface.
-    ☐ Generate forced-inline expression probes and separately compiled no-inline ABI mirrors for unary, binary, ternary, scalar-result, mask-result, native-result, store, and mutating-reference signatures.
-    ☐ Compare wrapper and raw fixtures compiled with identical compiler, architecture, ISA, optimization, calling-convention, and configuration settings.
-    ☐ Detect wrapper-only stack traffic, hidden copies, branches, register moves, spills, reloads, temporaries, return buffers, or indirection.
-    ☐ Add controlled register-pressure and opaque-call probes that distinguish unavoidable raw-value spills from wrapper-introduced spills.
-    ☐ Add paired consumer-defined function probes using `VECTORCALL` and the platform default convention; require vector-convention parity where supported and record default-convention behavior separately.
-    ☐ Make generated-code comparisons mandatory gates; keep benchmarks supplemental and prohibit them from substituting for missing machine-code evidence.
-    ☐ Record complete provenance beside each generated-code and ABI artifact so results from incompatible configurations cannot be merged or compared as one profile.
+    ☒ Add declaration-complete skeletons for `Register<T, Bits>`, `RegisterMask<T, Bits>`, `RegisterAvailable<T, Bits>`, `is_register_available_v<T, Bits>`, and `NativeRegister<T>`.
+    ☒ Constrain Register availability to the existing x86 128-bit SSE4.2 and 256-bit AVX2-backed `Api` specializations.
+    ☒ Store exactly one native vector data member in each Register and RegisterMask specialization with no bases, virtual functions, allocation, metadata, active-lane state, or address-dependent proxy state.
+    ☒ Add compile-time checks for exact native size and alignment, standard layout, trivial copy/move construction and assignment, trivial destruction, and trivial copyability across every supported type and width.
+    ☒ Default compiler-generated copy/move operations and confirm that the intrinsic-backed default constructor does not invalidate required value-type traits.
+    ☒ Build paired wrapper and raw-intrinsic generated-code fixtures before implementing the broad operation surface.
+    ☒ Generate forced-inline expression probes and separately compiled no-inline ABI mirrors for unary, binary, ternary, scalar-result, mask-result, native-result, store, and mutating-reference signatures.
+    ☒ Compare wrapper and raw fixtures compiled with identical compiler, architecture, ISA, optimization, calling-convention, and configuration settings.
+    ☒ Detect wrapper-only stack traffic, hidden copies, branches, register moves, spills, reloads, temporaries, return buffers, or indirection.
+    ☒ Add controlled register-pressure and opaque-call probes that distinguish unavoidable raw-value spills from wrapper-introduced spills.
+    ☒ Add paired consumer-defined function probes using `VECTORCALL` and the platform default convention; require vector-convention parity where supported and record default-convention behavior separately.
+    ☒ Make generated-code comparisons mandatory gates; keep benchmarks supplemental and prohibit them from substituting for missing machine-code evidence.
+    ☒ Record complete provenance beside each generated-code and ABI artifact so results from incompatible configurations cannot be merged or compared as one profile.
     ☐ End Phase 3 only when the minimal wrappers pass layout and call-boundary gates on each supported compiler before broad method implementation begins.
+      Evidence: `include/SimdLib/Register.h`, `tests/register/RegisterRepresentation.tests.cpp`, the paired fixtures and ABI mirrors under `tests/codegen`, and the `SimdLibRegisterCodegen` CMake/CTest gates establish the representation, generated-code comparison, calling-convention coverage, and per-artifact provenance.
+      Remaining gate: MSVC adds a `/GS` security-cookie prologue and epilogue to the wrapper `simdlib_codegen_scalar` fixture at both 128 and 256 bits while the raw mirror remains register-only, so wrapper/raw parity is not yet satisfied on every supported compiler.
 
   Phase 4 - Implement Register Construction, Observation, and Transfer:
     ☐ Implement the default constructor and `zero()` through `Api::setzero()` or the corresponding intrinsic-backed implementation path with no temporary array or memory clear.
