@@ -750,20 +750,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	SIMDLIB_FORCE_INLINE constexpr static mask_t VECTORCALL movemask(const vector_t lhs) noexcept
 	{
 		if (std::is_constant_evaluated())
-		{
-			const auto lanes = to_array(lhs);
-			mask_t result = 0;
-			for (std::size_t laneIndex = 0; laneIndex < element_count; ++laneIndex)
-			{
-				const auto laneBytes = std::bit_cast<std::array<std::uint8_t, sizeof(element_t)>>(lanes[laneIndex]);
-				for (std::size_t byteIndex = 0; byteIndex < sizeof(element_t); ++byteIndex)
-				{
-					const std::size_t maskIndex = laneIndex * sizeof(element_t) + byteIndex;
-					result |= static_cast<mask_t>((laneBytes[byteIndex] >> 7) & 1u) << maskIndex;
-				}
-			}
-			return result;
-		}
+			return movemask_constexpr(lhs);
 		else
 		{
 			return impl::movemask(lhs);
@@ -1505,6 +1492,26 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 
 #pragma region Internal
   protected:
+	/** @brief Computes the byte-granular movemask during constant evaluation.
+	 *  @param lhs Input register represented in constant evaluation.
+	 *  @return Byte-granular movemask for the register contents.
+	 */
+	constexpr static mask_t movemask_constexpr(const vector_t lhs) noexcept
+	{
+		const auto lanes = to_array(lhs);
+		mask_t result = 0;
+		for (std::size_t laneIndex = 0; laneIndex < element_count; ++laneIndex)
+		{
+			const auto laneBytes = std::bit_cast<std::array<std::uint8_t, sizeof(element_t)>>(lanes[laneIndex]);
+			for (std::size_t byteIndex = 0; byteIndex < sizeof(element_t); ++byteIndex)
+			{
+				const std::size_t maskIndex = laneIndex * sizeof(element_t) + byteIndex;
+				result |= static_cast<mask_t>((laneBytes[byteIndex] >> 7) & 1u) << maskIndex;
+			}
+		}
+		return result;
+	}
+
 	/** @brief Re-encodes integer lanes so a minimum-position backend yields the first maximum index.
 	 *  @param lhs Input integer register.
 	 *  @return Transformed register whose first minimum corresponds to the original first maximum.
