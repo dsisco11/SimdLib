@@ -201,6 +201,19 @@
 #endif
 #endif
 
+// Requests recursive inlining of calls made from the annotated function.
+// Unlike SIMDLIB_FORCE_INLINE, this does not request that the annotated
+// function itself be inlined into its caller.
+#ifndef SIMDLIB_FLATTEN
+#if SIMDLIB_COMPILER_MSVC
+#define SIMDLIB_FLATTEN [[msvc::flatten]]
+#elif SIMDLIB_COMPILER_CLANG || SIMDLIB_COMPILER_GCC
+#define SIMDLIB_FLATTEN [[gnu::flatten]]
+#else
+#define SIMDLIB_FLATTEN
+#endif
+#endif
+
 #ifndef SIMDLIB_PRECONDITION
 #define SIMDLIB_PRECONDITION(condition, message) assert((condition) && (message))
 #endif

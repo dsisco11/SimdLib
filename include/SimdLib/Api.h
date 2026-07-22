@@ -1183,16 +1183,16 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	/** @brief Applies a SIMD transform whose fixed-width lane results are packed contiguously into integer storage.
 	 *  @tparam result_bit_width Number of logical result bits produced per source element.
 	 *  @tparam count Number of source elements.
-	 *  @tparam Func Callable that accepts `vector_t` and returns an unsigned integer containing packed lane results, with lane zero in the least-significant bits.
+	 *  @tparam Func Callable that accepts `vector_t` and returns an unsigned integer containing packed lane results, with lane zero in the least-significant
+	 * bits.
 	 *  @param read Source elements to transform.
 	 *  @param write Destination storage for the packed result bit stream.
 	 *  @param func SIMD transformation that returns one packed result for each loaded register.
 	 *  @return None.
 	 */
 	template <std::size_t result_bit_width, std::size_t count, std::invocable<vector_t> Func>
-	SIMDLIB_FORCE_INLINE constexpr static void transform_pack(
-		std::span<const element_t, count> read,
-		std::span<packed_element_t<result_bit_width>, packed_element_count<result_bit_width, count>> write,
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr static void transform_pack(
+		std::span<const element_t, count> read, std::span<packed_element_t<result_bit_width>, packed_element_count<result_bit_width, count>> write,
 		Func &&func) noexcept
 		requires(result_bit_width > 0 && result_bit_width <= 64)
 	{
@@ -1293,7 +1293,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param func Unary SIMD transform to apply.
 	 *  @return None.
 	 */
-	template <std::invocable<vector_t> Func> static inline void transform(std::span<element_t> data, Func &&func) noexcept
+	template <std::invocable<vector_t> Func> SIMDLIB_FLATTEN static inline void transform(std::span<element_t> data, Func &&func) noexcept
 	{
 		const auto Length = data.size();
 		for (std::size_t i = 0; i < Length / element_count; ++i)
@@ -1323,7 +1323,8 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param func Unary SIMD transform to apply.
 	 *  @return None.
 	 */
-	template <std::invocable<vector_t> Func> static inline void transform(std::span<const element_t> lhs, std::span<element_t> write, Func &&func) noexcept
+	template <std::invocable<vector_t> Func>
+	SIMDLIB_FLATTEN static inline void transform(std::span<const element_t> lhs, std::span<element_t> write, Func &&func) noexcept
 	{
 		static_assert(std::is_invocable_r_v<vector_t, Func, vector_t>, "Function must return a value of vector_t");
 		const auto Length = lhs.size();
@@ -1355,7 +1356,8 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @return None.
 	 */
 	template <std::invocable<vector_t, vector_t> Func>
-	static inline void transform(std::span<const element_t> lhs, std::span<const element_t> rhs, std::span<element_t> write, Func &&func) noexcept
+	SIMDLIB_FLATTEN static inline void transform(std::span<const element_t> lhs, std::span<const element_t> rhs, std::span<element_t> write,
+												 Func &&func) noexcept
 	{
 		static_assert(std::is_invocable_r_v<vector_t, Func, vector_t, vector_t>, "Function must return an vector_t");
 		const auto Length = lhs.size();

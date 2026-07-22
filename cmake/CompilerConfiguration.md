@@ -14,6 +14,10 @@ it before including any SimdLib header.
   use the same definition to avoid an ABI mismatch.
 - `SIMDLIB_FORCE_INLINE` defaults to the supported C++11 vendor attribute plus
   `inline`; callers may set it to ordinary `inline`.
+- `SIMDLIB_FLATTEN` defaults to the compiler's recursive-inlining attribute;
+  callers may set it to an empty replacement. It requests inlining of calls
+  made from the annotated function, while `SIMDLIB_FORCE_INLINE` requests that
+  the annotated function be inlined into its caller.
 - `SIMDLIB_PRECONDITION(condition, message)` defaults to `assert` and is the
   sole standalone replacement point for runtime preconditions.
 - `SIMDLIB_TARGET_X86` and `SIMDLIB_TARGET_X64` report the selected compiler

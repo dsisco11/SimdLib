@@ -326,7 +326,7 @@ template <std::size_t ReadWidth, std::size_t WriteWidth> struct SimdAlgo final
 	};
 
 	template <std::invocable<simd_128_tag> Select128, std::invocable<simd_256_tag> Select256>
-	SIMDLIB_FORCE_INLINE constexpr static void ChooseSimd(std::size_t element_count, Select128 &&select128, Select256 &&select256) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr static void ChooseSimd(std::size_t element_count, Select128 &&select128, Select256 &&select256) noexcept
 	{
 		if (element_count * read_data_size >= 256)
 			std::invoke(select256, simd_256_tag{});

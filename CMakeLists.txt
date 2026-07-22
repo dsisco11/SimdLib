@@ -129,6 +129,7 @@ if(SIMDLIB_BUILD_CONFIGURATION_TESTS)
         ConfigDefaultProbe
         ConfigOverrideVectorcallProbe
         ConfigOverrideForceInlineProbe
+        ConfigOverrideFlattenProbe
         ConfigOverridePreconditionProbe
         ConfigDisabledInstructionsProbe
         ConfigDisabledPublicHeadersProbe

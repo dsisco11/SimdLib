@@ -19,11 +19,17 @@ struct ConfigProbe
 	}
 };
 
-using ConfigFunctionPointer = int(VECTORCALL*)(int);
+using ConfigFunctionPointer = int(VECTORCALL *)(int);
 
 SIMDLIB_FORCE_INLINE int ForceInlineFunction(const int value) noexcept
 {
 	return value + 1;
+}
+
+/** @brief Exercises the default recursive-inlining annotation. */
+SIMDLIB_FLATTEN int FlattenFunction(const int value) noexcept
+{
+	return ForceInlineFunction(value);
 }
 
 static_assert(SimdLib::Config::target_x86 == (SIMDLIB_TARGET_X86 != 0));
@@ -54,5 +60,5 @@ static_assert(!SimdLib::Config::vectorcall_enabled);
 int ConfigDefaultProbe() noexcept
 {
 	const ConfigFunctionPointer function = &ConfigFreeFunction;
-	return function(ConfigProbe::StaticFunction(ConfigProbe::TemplateFunction(ForceInlineFunction(0))));
+	return function(ConfigProbe::StaticFunction(ConfigProbe::TemplateFunction(FlattenFunction(0))));
 }

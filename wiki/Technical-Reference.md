@@ -153,6 +153,8 @@ first SimdLib include.
   detection.
 - `SIMDLIB_FORCE_INLINE` selects the supported compiler attribute together
   with `inline` and may be replaced with ordinary `inline`.
+- `SIMDLIB_FLATTEN` selects the supported recursive-inlining attribute and
+  may be replaced with an empty definition.
 - `SIMDLIB_PRECONDITION(condition, message)` is the assertion replacement
   point and defaults to standard `assert`.
 - `SIMDLIB_ENABLE_CHECKS` defaults to enabled without `NDEBUG` and disabled

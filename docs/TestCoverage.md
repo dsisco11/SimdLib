@@ -61,11 +61,11 @@ Compile-only targets cover:
 - `ApiDisabledProbe` and `ApiEnabledProbe` for API availability, supported lane
   types, register widths, and conversion constraints;
 - `ConfigDefaultProbe`, `ConfigDisabledInstructionsProbe`,
-  `ConfigDisabledPublicHeadersProbe`, `ConfigOverrideForceInlineProbe`,
-  `ConfigOverridePreconditionProbe`, `ConfigOverrideVectorcallProbe`,
-  `ConfigVendorAttributeProbe`, `ConfigClangUnsupportedTargetProbe`, and
-  `ConstexprProbe` for detection, override, disabled, attribute, target, and
-  constant-evaluation paths;
+  `ConfigDisabledPublicHeadersProbe`, `ConfigOverrideFlattenProbe`,
+  `ConfigOverrideForceInlineProbe`, `ConfigOverridePreconditionProbe`,
+  `ConfigOverrideVectorcallProbe`, `ConfigVendorAttributeProbe`,
+  `ConfigClangUnsupportedTargetProbe`, and `ConstexprProbe` for detection,
+  override, disabled, attribute, target, and constant-evaluation paths;
 - first-and-only include probes for `Api.h`, `Bmi.h`, `Config.h`, `Format.h`,
   `SimdAlgo.h`, the deprecated `SimdApi.h` compatibility include, `SimdLib.h`,
   `SimdResample.h`, `SimdVector.h`, `TemplateTools.h`, and `UInt128.h`; and

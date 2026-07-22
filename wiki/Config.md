@@ -46,7 +46,13 @@ Unlike the customization macros below, this availability result is not caller-ov
 
 ## Customization macros
 
-Except for the computed `SIMDLIB_REGISTER_INTERFACE_AVAILABLE` result, `SIMDLIB_*` configuration macros are caller-overridable before including SimdLib. `SIMDLIB_PRECONDITION`, `SIMDLIB_ENABLE_CHECKS`, `SIMDLIB_FORCE_INLINE`, and `VECTORCALL` control contracts, diagnostics, inlining, and the public calling convention.
+Except for the computed `SIMDLIB_REGISTER_INTERFACE_AVAILABLE` result, `SIMDLIB_*` configuration macros are caller-overridable before including SimdLib. `SIMDLIB_PRECONDITION`, `SIMDLIB_ENABLE_CHECKS`, `SIMDLIB_FORCE_INLINE`, `SIMDLIB_FLATTEN`, and `VECTORCALL` control contracts, diagnostics, inlining, and the public calling convention.
+
+`SIMDLIB_FORCE_INLINE` requests that an annotated function be inlined into
+its caller. `SIMDLIB_FLATTEN` instead requests recursive inlining of calls
+made from an annotated function. Its default spelling is
+`[[msvc::flatten]]` on MSVC and `[[gnu::flatten]]` on Clang and GCC.
+Either macro may be replaced by a consumer before including SimdLib.
 
 ```cpp
 #define SIMDLIB_ENABLE_CHECKS 1
