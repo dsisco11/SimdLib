@@ -15,9 +15,17 @@ x-simdlib-service: &simdlib-service
   cap_drop:
     - ALL
   environment:
+    BUILDKITE: "${BUILDKITE:-}"
+    CI: "${CI:-}"
+    CIRCLECI: "${CIRCLECI:-}"
     CMAKE_BUILD_PARALLEL_LEVEL: "${SIMDLIB_PARALLEL_LEVEL:-2}"
     CTEST_PARALLEL_LEVEL: "${SIMDLIB_PARALLEL_LEVEL:-2}"
+    GITHUB_ACTIONS: "${GITHUB_ACTIONS:-}"
+    GITLAB_CI: "${GITLAB_CI:-}"
     HOME: /tmp
+    JENKINS_URL: "${JENKINS_URL:-}"
+    TEAMCITY_VERSION: "${TEAMCITY_VERSION:-}"
+    TF_BUILD: "${TF_BUILD:-}"
   command:
     - --preset
     - "${SIMDLIB_CONTAINER_PRESET:-container-full}"

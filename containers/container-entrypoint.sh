@@ -105,10 +105,27 @@ if [ "$sanitizer" = address-undefined ]; then
 	linker_flags="${linker_flags:+$linker_flags }-fsanitize=address,undefined"
 fi
 
-set -- --fresh --preset "$preset" -S "$source_directory" \
+set -- --preset "$preset" -S "$source_directory" \
 	-DFETCHCONTENT_SOURCE_DIR_CATCH2="$SIMDLIB_CATCH2_SOURCE" \
 	-DCMAKE_CXX_FLAGS="$cxx_flags" \
 	-DCMAKE_EXE_LINKER_FLAGS="$linker_flags"
+
+for ci_indicator in \
+	"${CI:-}" \
+	"${GITHUB_ACTIONS:-}" \
+	"${GITLAB_CI:-}" \
+	"${TF_BUILD:-}" \
+	"${BUILDKITE:-}" \
+	"${CIRCLECI:-}" \
+	"${JENKINS_URL:-}" \
+	"${TEAMCITY_VERSION:-}"
+do
+	[ -z "$ci_indicator" ] || {
+		set -- --fresh "$@"
+		break
+	}
+done
+
 cmake "$@"
 
 set -- --build "$build_directory" --parallel
