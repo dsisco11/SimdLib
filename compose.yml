@@ -1,0 +1,48 @@
+name: simdlib-register
+
+x-simdlib-service: &simdlib-service
+  init: true
+  working_dir: /workspace/source
+  read_only: true
+  user: "${SIMDLIB_HOST_UID:-1000}:${SIMDLIB_HOST_GID:-1000}"
+  volumes:
+    - ./:/workspace/source:ro
+    - ./out/container:/workspace/out:rw
+  tmpfs:
+    - /tmp:exec,mode=1777
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+  environment:
+    CMAKE_BUILD_PARALLEL_LEVEL: "${SIMDLIB_PARALLEL_LEVEL:-2}"
+    CTEST_PARALLEL_LEVEL: "${SIMDLIB_PARALLEL_LEVEL:-2}"
+    HOME: /tmp
+  command:
+    - --preset
+    - "${SIMDLIB_CONTAINER_PRESET:-container-full}"
+    - --configuration
+    - "${SIMDLIB_CONTAINER_CONFIGURATION:-Release}"
+    - --sanitizer
+    - "${SIMDLIB_CONTAINER_SANITIZER:-none}"
+
+services:
+  gcc14:
+    <<: *simdlib-service
+    image: simdlib/gcc14:local
+    build:
+      context: .
+      dockerfile: containers/Dockerfile.gcc14
+      args:
+        BUILD_REVISION: "${SIMDLIB_BUILD_REVISION:-unknown}"
+    profiles: [focused, full, feature, codegen]
+
+  clang22:
+    <<: *simdlib-service
+    image: simdlib/clang22:local
+    build:
+      context: .
+      dockerfile: containers/Dockerfile.clang22
+      args:
+        BUILD_REVISION: "${SIMDLIB_BUILD_REVISION:-unknown}"
+    profiles: [focused, full, feature, sanitizer, codegen]

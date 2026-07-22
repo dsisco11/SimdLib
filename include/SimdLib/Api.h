@@ -11,7 +11,9 @@
 #include <cstring>
 #include <functional>
 #include <immintrin.h>
+#if SIMDLIB_COMPILER_MSVC && SIMDLIB_TARGET_X86
 #include <intrin.h>
+#endif
 #include <limits>
 #include <span>
 #include <type_traits>

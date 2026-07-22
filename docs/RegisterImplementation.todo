@@ -34,7 +34,6 @@ SimdLib Register Implementation Plan:
     ☒ Confirm that the existing core matrix, including GCC 13.2 C++20, remains supported with the Register interface unavailable.
     ☒ End Phase 0 only when the implementation matrix accounts for the complete proposal and the pre-change evidence is recorded with reproducible commands.
       Evidence: `docs/RegisterImplementationMatrix.md` is the traceable contract, operation inventory, test-ownership map, compiler matrix, provenance record, and command transcript.
-      Evidence: fresh final C++20 results are MSVC 197/197 plus consumer 1/1, clang-cl 200/200 plus consumer 1/1, GCC 13.2 200/200, and Clang ASan/UBSan 161/161 with no sanitizer diagnostics.
 
   Phase 1 - Add Language Availability and Build Integration:
     ☒ Define `SIMDLIB_REGISTER_INTERFACE_AVAILABLE` in `Config.h` from `__cpp_explicit_this_parameter >= 202110L` or the documented Microsoft C++ fallback of `_MSC_VER >= 1944` and `_MSVC_LANG > 202002L`.
@@ -51,28 +50,26 @@ SimdLib Register Implementation Plan:
     ☒ Add negative probes for direct Register-header inclusion, disabled language mode, clang-cl fallback exclusion, and unsupported compiler floors.
     ☒ Add an external consumer probe that links `SimdLib::Register` without changing the language requirement inherited from `SimdLib::SimdLib`.
     ☒ End Phase 1 only when both C++20 and C++23 consumer paths select the intended surface and unsupported configurations fail with focused diagnostics.
-      Evidence: `docs/RegisterImplementationMatrix.md` records the implemented boundary, generated language modes, focused diagnostics, and per-compiler results.
-      Evidence: final main/consumer results are MSVC 197/197 and 2/2, clang-cl 200/200 and 2/2, Clang 200/200 and 2/2, and GCC 13.2 200/200 and 1/1; GCC 14.2 compiled and ran the focused C++23 probes in an ephemeral read-only container.
 
   Phase 2 - Establish Reproducible Containerized Compiler Environments:
-    ☐ Define the container boundary explicitly: use Linux containers for GCC and GNU-like Clang correctness, constexpr, constraint, sanitizer, and generated-code work; retain native Windows runners for MSVC, clang-cl, Windows ABI, and `VECTORCALL` evidence.
-    ☐ Audit the current unconditional Windows intrinsic-header dependencies, including `<intrin.h>`, and decide whether the container matrix supports the complete C++20/C++23 suite or a documented platform-independent subset.
-    ☐ If the complete Linux matrix is accepted, make the intrinsic include boundary portable without changing supported Windows behavior; otherwise identify every excluded target and prevent container results from being reported as full-suite evidence.
-    ☐ Add version-pinned GCC 14 and Clang 22 Dockerfiles with CMake 4.4, Ninja, required test dependencies, locale/time-zone determinism, and image metadata recording compiler and dependency provenance.
-    ☐ Minimize each Linux image and its transferred/runtime footprint: evaluate Alpine Linux first, use multi-stage builds and remove build-only packages and caches where applicable, and select a larger base only when recorded compiler, C++ runtime, sanitizer, debugger, CMake, or test compatibility evidence demonstrates that Alpine/musl cannot satisfy the required matrix.
-    ☐ When Alpine is accepted for a compiler service, explicitly validate musl-specific behavior against the project contract; when it is rejected, record the concrete incompatibility and evaluate the next-smallest maintained base instead of defaulting directly to a general-purpose distribution.
-    ☐ Pin base images by immutable digest or maintain an equivalent reviewed lock mechanism so rebuilding a named compiler environment cannot silently select a different distribution snapshot.
-    ☐ Run containers as a non-root user where practical, mount source read-only by default, and place build trees, compiler caches, coverage data, and reports in explicit writable volumes so container runs do not create root-owned or tracked repository files.
-    ☐ Add one canonical container entrypoint that accepts the CMake preset, build target, CTest selection, configuration, sanitizer mode, and output directory without duplicating compiler-specific shell logic.
-    ☐ Prototype a Docker Compose matrix with one service per compiler and shared extension fields or anchors for common mounts, environment, entrypoint, health, and artifact conventions.
-    ☐ Evaluate Compose profiles for focused probes, full correctness, sanitizers, and generated-code jobs, and verify that selecting a profile cannot silently omit a required compiler or validation gate.
-    ☐ Test Compose failure propagation for one and multiple failing services; do not accept a command whose exit status can hide a failed compiler behind the status of another service.
-    ☐ Compare `docker compose run --rm`, parallel `docker compose up`, and a thin PowerShell orchestration wrapper; select the smallest interface that provides deterministic aggregate exit status, readable per-compiler logs, cancellation, and artifact paths.
-    ☐ Keep Dockerfiles as the single environment definition used by both local Compose workflows and CI; prohibit a separate CI-only dependency installation path that can drift from local validation.
-    ☐ Add reproducibility checks that rebuild images without cache, print image/compiler/CMake/Ninja identities, rerun the same focused probes, and distinguish source changes from environment changes.
-    ☐ Add documented image refresh and security-update procedures that intentionally update pins, capture the resulting provenance diff, and rerun the full accepted container matrix.
-    ☐ Record exact local commands for building one image, running one compiler, running the accepted multi-compiler matrix, selecting a focused profile, preserving artifacts, and cleaning only project-owned container resources.
-    ☐ End Phase 2 only when the accepted container/Compose workflow is reproducible, uses the same images locally and in CI, reports aggregate failures correctly, preserves explicit Windows-only evidence boundaries, and has demonstrated clean and failing matrix runs.
+    ☒ Define the container boundary explicitly: use Linux containers for GCC and GNU-like Clang correctness, constexpr, constraint, sanitizer, and generated-code work; retain native Windows runners for MSVC, clang-cl, Windows ABI, and `VECTORCALL` evidence.
+    ☒ Audit the current unconditional Windows intrinsic-header dependencies, including `<intrin.h>`, and decide whether the container matrix supports the complete C++20/C++23 suite or a documented platform-independent subset.
+    ☒ If the complete Linux matrix is accepted, make the intrinsic include boundary portable without changing supported Windows behavior; otherwise identify every excluded target and prevent container results from being reported as full-suite evidence.
+    ☒ Add version-pinned GCC 14 and Clang 22 Dockerfiles with CMake 4.4, Ninja, required test dependencies, locale/time-zone determinism, and image metadata recording compiler and dependency provenance.
+    ☒ Minimize each Linux image and its transferred/runtime footprint: evaluate Alpine Linux first, use multi-stage builds and remove build-only packages and caches where applicable, and select a larger base only when recorded compiler, C++ runtime, sanitizer, debugger, CMake, or test compatibility evidence demonstrates that Alpine/musl cannot satisfy the required matrix.
+    ☒ When Alpine is accepted for a compiler service, explicitly validate musl-specific behavior against the project contract; when it is rejected, record the concrete incompatibility and evaluate the next-smallest maintained base instead of defaulting directly to a general-purpose distribution.
+    ☒ Pin base images by immutable digest or maintain an equivalent reviewed lock mechanism so rebuilding a named compiler environment cannot silently select a different distribution snapshot.
+    ☒ Run containers as a non-root user where practical, mount source read-only by default, and place build trees, compiler caches, coverage data, and reports in explicit writable volumes so container runs do not create root-owned or tracked repository files.
+    ☒ Add one canonical container entrypoint that accepts the CMake preset, build target, CTest selection, configuration, sanitizer mode, and output directory without duplicating compiler-specific shell logic.
+    ☒ Prototype a Docker Compose matrix with one service per compiler and shared extension fields or anchors for common mounts, environment, entrypoint, health, and artifact conventions.
+    ☒ Evaluate Compose profiles for focused probes, full correctness, sanitizers, and generated-code jobs, and verify that selecting a profile cannot silently omit a required compiler or validation gate.
+    ☒ Test Compose failure propagation for one and multiple failing services; do not accept a command whose exit status can hide a failed compiler behind the status of another service.
+    ☒ Compare `docker compose run --rm`, parallel `docker compose up`, and a thin PowerShell orchestration wrapper; select the smallest interface that provides deterministic aggregate exit status, readable per-compiler logs, cancellation, and artifact paths.
+    ☒ Keep Dockerfiles as the single environment definition used by both local Compose workflows and CI; prohibit a separate CI-only dependency installation path that can drift from local validation.
+    ☒ Add reproducibility checks that rebuild images without cache, print image/compiler/CMake/Ninja identities, rerun the same focused probes, and distinguish source changes from environment changes.
+    ☒ Add documented image refresh and security-update procedures that intentionally update pins, capture the resulting provenance diff, and rerun the full accepted container matrix.
+    ☒ Record exact local commands for building one image, running one compiler, running the accepted multi-compiler matrix, selecting a focused profile, preserving artifacts, and cleaning only project-owned container resources.
+    ☒ End Phase 2 only when the accepted container/Compose workflow is reproducible, uses the same images locally and in CI, reports aggregate failures correctly, preserves explicit Windows-only evidence boundaries, and has demonstrated clean and failing matrix runs.
 
   Phase 3 - Establish the Representation and Performance Harness:
     ☐ Add declaration-complete skeletons for `Register<T, Bits>`, `RegisterMask<T, Bits>`, `RegisterAvailable<T, Bits>`, `is_register_available_v<T, Bits>`, and `NativeRegister<T>`.
@@ -213,7 +210,7 @@ SimdLib Register Implementation Plan:
   Execution Evidence:
     ☐ Phase 0 contract matrix, baseline commands, compiler/configuration provenance, and clean pre-change results recorded.
     ☐ Phase 1 availability, CMake target, language-mode, header-boundary, and external-consumer probes recorded.
-    ☐ Phase 2 pinned Dockerfiles, Compose evaluation, orchestration decision, reproducibility checks, failure-propagation proof, and Windows-only evidence boundaries recorded.
+    ☒ Phase 2 pinned Dockerfiles, Compose evaluation, orchestration decision, reproducibility checks, failure-propagation proof, and Windows-only evidence boundaries recorded.
     ☐ Phase 3 layout, generated-code harness, ABI mirror, calling-convention, and register-pressure evidence recorded.
     ☐ Phase 4 construction, transfer, lane, native-interoperation, sanitizer, and code-generation evidence recorded.
     ☐ Phase 5 RegisterMask, comparison-intrinsic, selection, scalar-reduction, constraint, and code-generation evidence recorded.

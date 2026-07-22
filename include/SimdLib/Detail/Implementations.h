@@ -4,7 +4,9 @@
 #include <SimdLib/TemplateTools.h>
 #include <array>
 #include <concepts>
+#if SIMDLIB_COMPILER_MSVC && SIMDLIB_TARGET_X86
 #include <intrin.h>
+#endif
 #include <span>
 
 namespace SimdLib::Detail
@@ -4698,7 +4700,7 @@ template <class element_t> struct SimdMappings<256, element_t> : public SimdImpl
 	/// <summary> Returns the shuffle order to move the most significant byte of each element into the least significant bytes. </summary>
 	constexpr static int_vector_t get_msb_swizzle_order() noexcept
 	{
-		int_vector_t seq;
+		int_vector_t seq{};
 		constexpr const auto elem_size = sizeof(element_t);
 		constexpr const auto elems_per_lane = 16 / elem_size;
 

@@ -158,7 +158,8 @@ first SimdLib include.
 - `SIMDLIB_ENABLE_CHECKS` defaults to enabled without `NDEBUG` and disabled
   with `NDEBUG`.
 - `VECTORCALL` affects the ABI. It is `__vectorcall` on supported MSVC and
-  Clang x86/x64 targets and empty elsewhere.
+  Clang Windows x86/x64 targets and empty on non-Windows Clang and other
+  unsupported targets.
 
 A caller that overrides `VECTORCALL` with an empty definition must also set
 `SIMDLIB_VECTORCALL_ENABLED=0` consistently in every translation unit. An

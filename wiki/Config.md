@@ -22,6 +22,10 @@ SimdLib::Config::version_major; // => 0 for version 0.2.0
 
 `compiler_clang`, `compiler_msvc`, `compiler_gcc`, `target_x86`, `target_x64`, and `vectorcall_enabled` describe the active compiler and ABI target.
 
+`vectorcall_enabled` is true for supported MSVC and Clang Windows x86/x64
+targets. GNU-like Clang on Linux leaves `VECTORCALL` empty because
+`__vectorcall` is a Windows ABI boundary, not a portable x86 convention.
+
 ```cpp
 SimdLib::Config::target_x64; // => true when compiling for x64
 ```

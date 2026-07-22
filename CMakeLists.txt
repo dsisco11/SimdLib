@@ -376,7 +376,7 @@ if(SIMDLIB_BUILD_TESTS)
         include(FetchContent)
         FetchContent_Declare(Catch2
             GIT_REPOSITORY https://github.com/catchorg/Catch2.git
-            GIT_TAG v3.8.1
+            GIT_TAG 2b60af89e23d28eefc081bc930831ee9d45ea58b
             GIT_SHALLOW TRUE)
         FetchContent_MakeAvailable(Catch2)
     endif()
@@ -636,7 +636,7 @@ if(SIMDLIB_BUILD_BENCHMARKS)
         include(FetchContent)
         FetchContent_Declare(Catch2
             GIT_REPOSITORY https://github.com/catchorg/Catch2.git
-            GIT_TAG v3.8.1
+            GIT_TAG 2b60af89e23d28eefc081bc930831ee9d45ea58b
             GIT_SHALLOW TRUE)
         FetchContent_MakeAvailable(Catch2)
     endif()

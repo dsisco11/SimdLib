@@ -6,7 +6,12 @@
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
+#if SIMDLIB_TARGET_X86
+#include <immintrin.h>
+#endif
+#if SIMDLIB_COMPILER_MSVC && SIMDLIB_TARGET_X86
 #include <intrin.h>
+#endif
 #include <limits>
 #include <type_traits>
 

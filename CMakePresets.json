@@ -36,6 +36,57 @@
                 "SIMDLIB_STRICT_WARNINGS": "ON",
                 "SIMDLIB_ENABLE_COVERAGE": "ON"
             }
+        },
+        {
+            "name": "container-base",
+            "hidden": true,
+            "generator": "Ninja",
+            "binaryDir": "$env{SIMDLIB_BUILD_ROOT}/${presetName}",
+            "cacheVariables": {
+                "CMAKE_CXX_STANDARD": "20",
+                "CMAKE_CXX_STANDARD_REQUIRED": "ON",
+                "CMAKE_CXX_EXTENSIONS": "OFF",
+                "CMAKE_CXX_SCAN_FOR_MODULES": "OFF",
+                "SIMDLIB_BUILD_BENCHMARKS": "OFF",
+                "SIMDLIB_BUILD_CONFIGURATION_TESTS": "ON",
+                "SIMDLIB_BUILD_HEADER_TESTS": "ON",
+                "SIMDLIB_BUILD_SMOKE_TESTS": "ON",
+                "SIMDLIB_FETCH_TEST_DEPENDENCIES": "ON",
+                "SIMDLIB_STRICT_WARNINGS": "ON"
+            }
+        },
+        {
+            "name": "container-focused",
+            "inherits": "container-base",
+            "displayName": "Container focused contracts",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release",
+                "SIMDLIB_BUILD_TESTS": "OFF",
+                "SIMDLIB_BUILD_TESTS_OPTIONAL": "OFF",
+                "SIMDLIB_BUILD_EXAMPLES": "OFF"
+            }
+        },
+        {
+            "name": "container-full",
+            "inherits": "container-base",
+            "displayName": "Container full validation",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release",
+                "SIMDLIB_BUILD_TESTS": "ON",
+                "SIMDLIB_BUILD_TESTS_OPTIONAL": "ON",
+                "SIMDLIB_BUILD_EXAMPLES": "ON"
+            }
+        },
+        {
+            "name": "container-sanitize",
+            "inherits": "container-base",
+            "displayName": "Container Clang sanitizers",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "SIMDLIB_BUILD_TESTS": "ON",
+                "SIMDLIB_BUILD_TESTS_OPTIONAL": "OFF",
+                "SIMDLIB_BUILD_EXAMPLES": "ON"
+            }
         }
     ],
     "buildPresets": [

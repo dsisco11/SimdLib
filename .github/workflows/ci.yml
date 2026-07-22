@@ -3,6 +3,7 @@ name: SimdLib CI
 on:
   push:
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -58,112 +59,24 @@ jobs:
       - name: Test
         run: ctest --test-dir build --output-on-failure
 
-  linux:
-    name: ${{ matrix.compiler }} ${{ matrix.arch }} ${{ matrix.config }}
-    runs-on: ubuntu-24.04
-    strategy:
-      fail-fast: false
-      matrix:
-        compiler: [gcc, clang]
-        arch: [x64, x86]
-        config: [Debug, Release]
-    steps:
-      - uses: actions/checkout@v4
-      - name: Install x86 multilib support
-        if: matrix.arch == 'x86'
-        run: sudo apt-get update && sudo apt-get install -y g++-multilib
-      - name: Select compiler and architecture
-        shell: bash
-        run: |
-          if [[ '${{ matrix.compiler }}' == 'clang' ]]; then
-            echo 'CXX=clang++' >> "$GITHUB_ENV"
-          else
-            echo 'CXX=g++' >> "$GITHUB_ENV"
-          fi
-          if [[ '${{ matrix.arch }}' == 'x86' ]]; then
-            echo 'ARCH_FLAGS=-m32' >> "$GITHUB_ENV"
-          else
-            echo 'ARCH_FLAGS=' >> "$GITHUB_ENV"
-          fi
-      - name: Configure
-        run: >-
-          cmake -S . -B build -G Ninja
-          -DCMAKE_BUILD_TYPE=${{ matrix.config }}
-          -DCMAKE_CXX_FLAGS="${ARCH_FLAGS}"
-          -DCMAKE_EXE_LINKER_FLAGS="${ARCH_FLAGS}"
-          -DSIMDLIB_BUILD_TESTS=ON
-          -DSIMDLIB_BUILD_TESTS_OPTIONAL=OFF
-          -DSIMDLIB_BUILD_EXAMPLES=ON
-          -DSIMDLIB_STRICT_WARNINGS=ON
-      - name: Build
-        run: cmake --build build --parallel
-      - name: Test
-        run: ctest --test-dir build --output-on-failure
-
-  feature-matrix:
-    name: AVX2 FMA BMI1 BMI2 enabled and disabled
+  linux-containers:
+    name: GCC 14 and Clang 22 containers
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
-      - name: Configure strict Release matrix
-        run: >-
-          cmake -S . -B build -G Ninja
-          -DCMAKE_BUILD_TYPE=Release
-          -DSIMDLIB_BUILD_TESTS=ON
-          -DSIMDLIB_BUILD_TESTS_OPTIONAL=ON
-          -DSIMDLIB_BUILD_EXAMPLES=ON
-          -DSIMDLIB_STRICT_WARNINGS=ON
-      - name: Build
-        run: cmake --build build --parallel
-      - name: Run feature profiles
-        run: ctest --test-dir build --output-on-failure -L 'AVX2|FMA|BMI|SCALAR'
-
-  sanitizer:
-    name: Clang ASan and UBSan
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@v4
-      - name: Configure
-        env:
-          CXX: clang++
-        run: >-
-          cmake -S . -B build -G Ninja
-          -DCMAKE_BUILD_TYPE=Debug
-          -DCMAKE_CXX_FLAGS='-fsanitize=address,undefined -fno-omit-frame-pointer'
-          -DCMAKE_EXE_LINKER_FLAGS='-fsanitize=address,undefined'
-          -DSIMDLIB_BUILD_TESTS=ON
-          -DSIMDLIB_BUILD_TESTS_OPTIONAL=OFF
-          -DSIMDLIB_BUILD_EXAMPLES=ON
-          -DSIMDLIB_STRICT_WARNINGS=ON
-      - name: Build
-        run: cmake --build build --parallel
-      - name: Test
-        run: ctest --test-dir build --output-on-failure
-
-  contract-gates:
-    name: constexpr, header hygiene, ODR, and consumer
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@v4
-      - name: Configure header and constexpr probes
-        run: >-
-          cmake -S . -B build/contracts -G Ninja
-          -DCMAKE_BUILD_TYPE=Release
-          -DSIMDLIB_BUILD_TESTS=OFF
-          -DSIMDLIB_BUILD_CONFIGURATION_TESTS=ON
-          -DSIMDLIB_BUILD_HEADER_TESTS=ON
-          -DSIMDLIB_BUILD_SMOKE_TESTS=ON
-          -DSIMDLIB_STRICT_WARNINGS=ON
-      - name: Build compile-time contracts
-        run: cmake --build build/contracts --parallel
-      - name: Run multi-translation-unit ODR smoke test
-        run: ctest --test-dir build/contracts --output-on-failure -R SimdLib.HeaderOnlySmoke
-      - name: Configure add_subdirectory consumer
-        run: >-
-          cmake -S tests/consumer -B build/consumer -G Ninja
-          -DCMAKE_BUILD_TYPE=Release
-          -DSIMDLIB_SOURCE_DIR=${{ github.workspace }}
-      - name: Build and test header-only consumer
-        run: |
-          cmake --build build/consumer --parallel
-          ctest --test-dir build/consumer --output-on-failure
+      - name: Build and run the full compiler matrix
+        shell: pwsh
+        run: tools/Run-ContainerMatrix.ps1 -Mode Full
+      - name: Run feature-profile tests from the same images
+        shell: pwsh
+        run: tools/Run-ContainerMatrix.ps1 -Mode Feature -NoBuild
+      - name: Run Clang sanitizers from the same image
+        shell: pwsh
+        run: tools/Run-ContainerMatrix.ps1 -Mode Sanitizer -NoBuild
+      - name: Upload container evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-container-evidence
+          path: out/container
+          if-no-files-found: error

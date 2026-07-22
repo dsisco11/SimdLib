@@ -47,6 +47,9 @@ static_assert(SimdLib::version_major == 0 && SimdLib::version_minor == 2 && Simd
 #if SIMDLIB_COMPILER_MSVC && SIMDLIB_TARGET_X86
 static_assert(SimdLib::Config::vectorcall_enabled);
 #endif
+#if SIMDLIB_COMPILER_CLANG && !defined(_WIN32)
+static_assert(!SimdLib::Config::vectorcall_enabled);
+#endif
 
 int ConfigDefaultProbe() noexcept
 {
