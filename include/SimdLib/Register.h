@@ -48,7 +48,10 @@ class RegisterMask final
 	constexpr static inline std::size_t lane_count = api_type::element_count;
 
 	/** @brief Constructs an all-false predicate through the native zero-register operation. */
-	SIMDLIB_FORCE_INLINE constexpr RegisterMask() noexcept : m_data(api_type::setzero()) {}
+	SIMDLIB_FORCE_INLINE SIMDLIB_DETAIL_MSVC_SAFE_BUFFERS constexpr RegisterMask() noexcept
+		: m_data(api_type::setzero())
+	{
+	}
 
 	/** @brief Copies one complete predicate register. */
 	constexpr RegisterMask(const RegisterMask &) noexcept = default;
@@ -89,13 +92,19 @@ class Register final
 	constexpr static inline std::size_t lane_count = api_type::element_count;
 
 	/** @brief Constructs a register with every active lane set to zero through the native zero-register operation. */
-	SIMDLIB_FORCE_INLINE constexpr Register() noexcept : m_data(api_type::setzero()) {}
+	SIMDLIB_FORCE_INLINE SIMDLIB_DETAIL_MSVC_SAFE_BUFFERS constexpr Register() noexcept
+		: m_data(api_type::setzero())
+	{
+	}
 
 	/**
 	 * @brief Wraps one complete native register without changing its bits.
 	 * @param value Complete native register value.
 	 */
-	SIMDLIB_FORCE_INLINE constexpr explicit Register(native_type value) noexcept : m_data(value) {}
+	SIMDLIB_FORCE_INLINE SIMDLIB_DETAIL_MSVC_SAFE_BUFFERS constexpr explicit Register(native_type value) noexcept
+		: m_data(value)
+	{
+	}
 
 	/** @brief Copies one complete register. */
 	constexpr Register(const Register &) noexcept = default;
@@ -117,7 +126,8 @@ class Register final
 	 * @param value Register to unwrap.
 	 * @return Complete native register value.
 	 */
-	[[nodiscard]] SIMDLIB_FORCE_INLINE constexpr native_type VECTORCALL native(this Register value) noexcept
+	[[nodiscard]] SIMDLIB_FORCE_INLINE SIMDLIB_DETAIL_MSVC_SAFE_BUFFERS constexpr native_type VECTORCALL
+		native(this Register value) noexcept
 	{
 		return value.m_data;
 	}

@@ -116,6 +116,28 @@ The executable [API example](examples/ApiExamples.cpp) shows the register
 facade, vectors, algorithms, bit helpers, `uint128_t`, resampling, and
 formatting together in one short program.
 
+## MSVC stack-cookie behavior
+
+> [!WARNING]
+> [MSVC's default `/GS` heuristic](https://learn.microsoft.com/en-us/cpp/build/reference/gs-buffer-security-check?view=msvc-170)
+> treats any pointer-free data structure larger than eight bytes as a
+> security-sensitive buffer. Consequently, a non-inlined
+> function that creates or accepts `Register<T, bits>` by value may receive a
+> security-cookie prologue and epilogue even when `__vectorcall` transports the
+> value entirely in SIMD registers. This is compiler-generated overhead, not a
+> spill required by the `Register` representation.
+
+SimdLib uses
+[`__declspec(safebuffers)`](https://learn.microsoft.com/en-us/cpp/cpp/safebuffers?view=msvc-170)
+only on narrowly audited, register-only internal functions where no stack
+buffer can be overwritten.
+
+Consumer-defined, non-inlined functions can therefore still encounter this
+MSVC behavior. Keep `/GS` enabled globally. Only after reviewing an individual
+hot function and its generated code should a consumer consider applying
+`__declspec(safebuffers)` to that function; the annotation disables `/GS`
+protection for the entire annotated function.
+
 ## Learn more
 
 - The [wiki](wiki/Home.md) contains API documentation for every

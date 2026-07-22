@@ -179,6 +179,16 @@
 #endif
 #endif
 
+// This annotation is deliberately separate from VECTORCALL. It is reserved
+// for audited register-only functions that cannot overwrite a stack buffer;
+// composing it with the public calling-convention macro would suppress /GS in
+// unrelated pointer- and span-processing functions.
+#if SIMDLIB_COMPILER_MSVC
+#define SIMDLIB_DETAIL_MSVC_SAFE_BUFFERS __declspec(safebuffers)
+#else
+#define SIMDLIB_DETAIL_MSVC_SAFE_BUFFERS
+#endif
+
 #ifndef SIMDLIB_FORCE_INLINE
 #if SIMDLIB_COMPILER_MSVC
 #define SIMDLIB_FORCE_INLINE [[msvc::forceinline]] inline

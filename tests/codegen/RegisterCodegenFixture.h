@@ -27,7 +27,7 @@ using predicate_type = native_type;
 #endif
 
 /** @brief Converts the fixture value to its native vector representation. */
-SIMDLIB_FORCE_INLINE native_type VECTORCALL unwrap(value_type value) noexcept
+SIMDLIB_FORCE_INLINE SIMDLIB_DETAIL_MSVC_SAFE_BUFFERS native_type VECTORCALL unwrap(value_type value) noexcept
 {
 #if SIMDLIB_CODEGEN_USE_WRAPPER
 	return value.native();
@@ -37,7 +37,7 @@ SIMDLIB_FORCE_INLINE native_type VECTORCALL unwrap(value_type value) noexcept
 }
 
 /** @brief Converts a native vector to the fixture value representation. */
-SIMDLIB_FORCE_INLINE value_type VECTORCALL wrap(native_type value) noexcept
+SIMDLIB_FORCE_INLINE SIMDLIB_DETAIL_MSVC_SAFE_BUFFERS value_type VECTORCALL wrap(native_type value) noexcept
 {
 #if SIMDLIB_CODEGEN_USE_WRAPPER
 	return value_type(value);
@@ -47,7 +47,7 @@ SIMDLIB_FORCE_INLINE value_type VECTORCALL wrap(native_type value) noexcept
 }
 
 /** @brief Converts a native predicate vector to the fixture predicate representation. */
-SIMDLIB_FORCE_INLINE predicate_type VECTORCALL zero_predicate() noexcept
+SIMDLIB_FORCE_INLINE SIMDLIB_DETAIL_MSVC_SAFE_BUFFERS predicate_type VECTORCALL zero_predicate() noexcept
 {
 #if SIMDLIB_CODEGEN_USE_WRAPPER
 	return predicate_type{};
@@ -57,7 +57,8 @@ SIMDLIB_FORCE_INLINE predicate_type VECTORCALL zero_predicate() noexcept
 }
 
 /** @brief Stores a native register to potentially unaligned storage. */
-SIMDLIB_FORCE_INLINE void VECTORCALL store_native(native_type value, float *destination) noexcept
+SIMDLIB_FORCE_INLINE SIMDLIB_DETAIL_MSVC_SAFE_BUFFERS void VECTORCALL
+	store_native(native_type value, float *destination) noexcept
 {
 #if SIMDLIB_REGISTER_TEST_WIDTH == 128
 	_mm_storeu_ps(destination, value);
@@ -73,10 +74,12 @@ using SimdLibCodegen::predicate_type;
 using SimdLibCodegen::value_type;
 
 /** @brief Opaque call boundary used to keep a register value live across a separately compiled call. */
-SIMDLIB_CODEGEN_NOINLINE void VECTORCALL simdlib_codegen_opaque_sink(native_type value) noexcept;
+SIMDLIB_DETAIL_MSVC_SAFE_BUFFERS SIMDLIB_CODEGEN_NOINLINE void VECTORCALL
+	simdlib_codegen_opaque_sink(native_type value) noexcept;
 
 /** @brief Forced-inline unary expression fixture. */
-SIMDLIB_CODEGEN_NOINLINE native_type VECTORCALL simdlib_codegen_unary(native_type value) noexcept
+SIMDLIB_DETAIL_MSVC_SAFE_BUFFERS SIMDLIB_CODEGEN_NOINLINE native_type VECTORCALL
+	simdlib_codegen_unary(native_type value) noexcept
 {
 	const value_type wrapped = SimdLibCodegen::wrap(value);
 	return SimdLibCodegen::unwrap(
@@ -84,7 +87,8 @@ SIMDLIB_CODEGEN_NOINLINE native_type VECTORCALL simdlib_codegen_unary(native_typ
 }
 
 /** @brief Forced-inline binary expression fixture. */
-SIMDLIB_CODEGEN_NOINLINE native_type VECTORCALL simdlib_codegen_binary(native_type lhs, native_type rhs) noexcept
+SIMDLIB_DETAIL_MSVC_SAFE_BUFFERS SIMDLIB_CODEGEN_NOINLINE native_type VECTORCALL
+	simdlib_codegen_binary(native_type lhs, native_type rhs) noexcept
 {
 	const value_type wrapped_lhs = SimdLibCodegen::wrap(lhs);
 	const value_type wrapped_rhs = SimdLibCodegen::wrap(rhs);
@@ -93,7 +97,7 @@ SIMDLIB_CODEGEN_NOINLINE native_type VECTORCALL simdlib_codegen_binary(native_ty
 }
 
 /** @brief Forced-inline ternary expression fixture. */
-SIMDLIB_CODEGEN_NOINLINE native_type VECTORCALL simdlib_codegen_ternary(
+SIMDLIB_DETAIL_MSVC_SAFE_BUFFERS SIMDLIB_CODEGEN_NOINLINE native_type VECTORCALL simdlib_codegen_ternary(
 	native_type lhs,
 	native_type rhs,
 	native_type addend) noexcept
@@ -108,13 +112,15 @@ SIMDLIB_CODEGEN_NOINLINE native_type VECTORCALL simdlib_codegen_ternary(
 }
 
 /** @brief Scalar-result fixture. */
-SIMDLIB_CODEGEN_NOINLINE std::uint32_t VECTORCALL simdlib_codegen_scalar(native_type value) noexcept
+SIMDLIB_DETAIL_MSVC_SAFE_BUFFERS SIMDLIB_CODEGEN_NOINLINE std::uint32_t VECTORCALL
+	simdlib_codegen_scalar(native_type value) noexcept
 {
 	return SimdLibCodegen::api_type::movemask(SimdLibCodegen::unwrap(SimdLibCodegen::wrap(value)));
 }
 
 /** @brief Register-shaped mask-result fixture. */
-SIMDLIB_CODEGEN_NOINLINE native_type VECTORCALL simdlib_codegen_mask(native_type lhs, native_type rhs) noexcept
+SIMDLIB_DETAIL_MSVC_SAFE_BUFFERS SIMDLIB_CODEGEN_NOINLINE native_type VECTORCALL
+	simdlib_codegen_mask(native_type lhs, native_type rhs) noexcept
 {
 	(void)lhs;
 	(void)rhs;
@@ -124,13 +130,14 @@ SIMDLIB_CODEGEN_NOINLINE native_type VECTORCALL simdlib_codegen_mask(native_type
 }
 
 /** @brief Native-result fixture. */
-SIMDLIB_CODEGEN_NOINLINE native_type VECTORCALL simdlib_codegen_native(native_type value) noexcept
+SIMDLIB_DETAIL_MSVC_SAFE_BUFFERS SIMDLIB_CODEGEN_NOINLINE native_type VECTORCALL
+	simdlib_codegen_native(native_type value) noexcept
 {
 	return SimdLibCodegen::unwrap(SimdLibCodegen::wrap(value));
 }
 
 /** @brief Store fixture. */
-SIMDLIB_CODEGEN_NOINLINE void VECTORCALL simdlib_codegen_store(
+SIMDLIB_DETAIL_MSVC_SAFE_BUFFERS SIMDLIB_CODEGEN_NOINLINE void VECTORCALL simdlib_codegen_store(
 	native_type value,
 	float *destination) noexcept
 {
@@ -138,7 +145,7 @@ SIMDLIB_CODEGEN_NOINLINE void VECTORCALL simdlib_codegen_store(
 }
 
 /** @brief Mutating-reference fixture. */
-SIMDLIB_CODEGEN_NOINLINE void VECTORCALL simdlib_codegen_mutate(
+SIMDLIB_DETAIL_MSVC_SAFE_BUFFERS SIMDLIB_CODEGEN_NOINLINE void VECTORCALL simdlib_codegen_mutate(
 	native_type &lhs,
 	native_type rhs) noexcept
 {
@@ -150,7 +157,7 @@ SIMDLIB_CODEGEN_NOINLINE void VECTORCALL simdlib_codegen_mutate(
 }
 
 /** @brief Controlled register-pressure fixture. */
-SIMDLIB_CODEGEN_NOINLINE native_type VECTORCALL simdlib_codegen_pressure(
+SIMDLIB_DETAIL_MSVC_SAFE_BUFFERS SIMDLIB_CODEGEN_NOINLINE native_type VECTORCALL simdlib_codegen_pressure(
 	native_type a,
 	native_type b,
 	native_type c,
@@ -169,7 +176,8 @@ SIMDLIB_CODEGEN_NOINLINE native_type VECTORCALL simdlib_codegen_pressure(
 }
 
 /** @brief Opaque-call fixture used to compare wrapper and raw spill behavior. */
-SIMDLIB_CODEGEN_NOINLINE native_type VECTORCALL simdlib_codegen_opaque(native_type value) noexcept
+SIMDLIB_DETAIL_MSVC_SAFE_BUFFERS SIMDLIB_CODEGEN_NOINLINE native_type VECTORCALL
+	simdlib_codegen_opaque(native_type value) noexcept
 {
 	const value_type wrapped = SimdLibCodegen::wrap(value);
 	simdlib_codegen_opaque_sink(SimdLibCodegen::unwrap(wrapped));
