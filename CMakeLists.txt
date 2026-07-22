@@ -16,6 +16,7 @@ option(SIMDLIB_BUILD_HEADER_TESTS "Build first-and-only public-header probes" ON
 option(SIMDLIB_FETCH_TEST_DEPENDENCIES "Fetch missing test-only dependencies" ON)
 option(SIMDLIB_STRICT_WARNINGS "Treat warnings in SimdLib-owned targets as errors" OFF)
 option(SIMDLIB_ENABLE_COVERAGE "Instrument SimdLib-owned targets for source coverage" OFF)
+option(SIMDLIB_BUILD_REGISTER_CODEGEN "Build mandatory Register generated-code comparisons" OFF)
 
 # CTest 4.4 uses this setting during its dashboard Test step to assign a
 # collision-free LLVM_PROFILE_FILE to every discovered test invocation.
@@ -321,6 +322,20 @@ if(SIMDLIB_BUILD_CONFIGURATION_TESTS)
 	if(SIMDLIB_REGISTER_COMPILER_SUPPORTED)
 		simdlib_add_language_probe(SimdLibRegisterEnabledProbe
 			tests/availability/RegisterEnabledProbe.cpp 23 SimdLib::Register)
+
+		foreach(register_width IN ITEMS 128 256)
+			add_library(SimdLibRegisterRepresentation${register_width} OBJECT
+				tests/register/RegisterRepresentation.tests.cpp)
+			target_link_libraries(SimdLibRegisterRepresentation${register_width} PRIVATE SimdLib::Register)
+			target_compile_definitions(SimdLibRegisterRepresentation${register_width} PRIVATE
+				SIMDLIB_REGISTER_TEST_WIDTH=${register_width})
+			simdlib_enable_development_warnings(SimdLibRegisterRepresentation${register_width})
+			if(SIMDLIB_MSVC_STYLE_DRIVER)
+				target_compile_options(SimdLibRegisterRepresentation${register_width} PRIVATE /arch:AVX2)
+			else()
+				target_compile_options(SimdLibRegisterRepresentation${register_width} PRIVATE -mavx2)
+			endif()
+		endforeach()
 		if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
 			simdlib_add_language_probe(SimdLibRegisterMsvcFallbackProbe
 				tests/availability/RegisterMsvcFallbackProbe.cpp 23 SimdLib::Register)
@@ -344,6 +359,128 @@ if(SIMDLIB_BUILD_CONFIGURATION_TESTS)
 			tests/compile_fail/register/RegisterUnsupportedCompiler.cpp 23
 			SIMDLIB_REGISTER_INTERFACE_UNAVAILABLE)
 	endif()
+endif()
+
+# @brief Adds paired wrapper/raw object fixtures and a mandatory disassembly comparison.
+# @param register_width Width of the compared native and wrapped register values.
+function(simdlib_add_register_codegen_gate register_width)
+	set(vectorcall_enabled 0)
+	if(WIN32 AND CMAKE_SYSTEM_PROCESSOR MATCHES "^(AMD64|amd64|x86_64|i[3-6]86)$" AND
+		(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang"))
+		set(vectorcall_enabled 1)
+	endif()
+	set(wrapper_target SimdLibRegisterCodegenWrapper${register_width})
+	set(raw_target SimdLibRegisterCodegenRaw${register_width})
+	set(default_wrapper_target SimdLibRegisterDefaultAbiWrapper${register_width})
+	set(default_raw_target SimdLibRegisterDefaultAbiRaw${register_width})
+	set(abi_wrapper_target SimdLibRegisterAbiWrapper${register_width})
+	set(abi_raw_target SimdLibRegisterAbiRaw${register_width})
+	add_library(${wrapper_target} OBJECT tests/codegen/RegisterCodegen.cpp)
+	add_library(${raw_target} OBJECT tests/codegen/RegisterCodegenRaw.cpp)
+	add_library(${default_wrapper_target} OBJECT tests/codegen/RegisterDefaultAbi.cpp)
+	add_library(${default_raw_target} OBJECT tests/codegen/RegisterDefaultAbiRaw.cpp)
+	add_library(${abi_wrapper_target} OBJECT tests/codegen/RegisterAbi.cpp)
+	add_library(${abi_raw_target} OBJECT tests/codegen/RegisterAbiRaw.cpp)
+	foreach(target IN ITEMS ${wrapper_target} ${raw_target} ${default_wrapper_target} ${default_raw_target}
+		${abi_wrapper_target} ${abi_raw_target})
+		target_link_libraries(${target} PRIVATE SimdLib::Register)
+		target_compile_definitions(${target} PRIVATE SIMDLIB_REGISTER_TEST_WIDTH=${register_width})
+		simdlib_enable_development_warnings(${target})
+		if(SIMDLIB_MSVC_STYLE_DRIVER)
+			target_compile_options(${target} PRIVATE /O2 /arch:AVX2)
+		else()
+			target_compile_options(${target} PRIVATE -O2 -mavx2)
+		endif()
+	endforeach()
+
+	set(artifact_directory "${CMAKE_CURRENT_BINARY_DIR}/register-codegen/${register_width}")
+	set(stamp_file "${artifact_directory}/comparison.stamp")
+	set(default_abi_stamp_file "${artifact_directory}/default-abi.stamp")
+	set(abi_stamp_file "${artifact_directory}/abi-comparison.stamp")
+	add_custom_command(
+		OUTPUT "${stamp_file}"
+		COMMAND ${CMAKE_COMMAND} -E make_directory "${artifact_directory}"
+		COMMAND ${CMAKE_COMMAND}
+			-DWRAPPER_OBJECT=$<TARGET_OBJECTS:${wrapper_target}>
+			-DRAW_OBJECT=$<TARGET_OBJECTS:${raw_target}>
+			-DOBJDUMP=${CMAKE_OBJDUMP}
+			-DARTIFACT_DIRECTORY=${artifact_directory}
+			-DCOMPILER_ID=${CMAKE_CXX_COMPILER_ID}
+			-DCOMPILER_VERSION=${CMAKE_CXX_COMPILER_VERSION}
+			-DCOMPILER_PATH=${CMAKE_CXX_COMPILER}
+			-DSYSTEM_NAME=${CMAKE_SYSTEM_NAME}
+			-DSYSTEM_PROCESSOR=${CMAKE_SYSTEM_PROCESSOR}
+			-DCONFIGURATION=$<CONFIG>
+			-DREGISTER_WIDTH=${register_width}
+			-DVECTORCALL_ENABLED=${vectorcall_enabled}
+			-P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/CompareRegisterCodegen.cmake
+		COMMAND ${CMAKE_COMMAND} -E touch "${stamp_file}"
+		DEPENDS ${wrapper_target} ${raw_target} cmake/CompareRegisterCodegen.cmake
+		COMMENT "Comparing ${register_width}-bit Register and raw generated code"
+		VERBATIM)
+	add_custom_command(
+		OUTPUT "${abi_stamp_file}"
+		COMMAND ${CMAKE_COMMAND} -E make_directory "${artifact_directory}/abi"
+		COMMAND ${CMAKE_COMMAND}
+			-DWRAPPER_OBJECT=$<TARGET_OBJECTS:${abi_wrapper_target}>
+			-DRAW_OBJECT=$<TARGET_OBJECTS:${abi_raw_target}>
+			-DOBJDUMP=${CMAKE_OBJDUMP}
+			-DARTIFACT_DIRECTORY=${artifact_directory}/abi
+			-DCOMPILER_ID=${CMAKE_CXX_COMPILER_ID}
+			-DCOMPILER_VERSION=${CMAKE_CXX_COMPILER_VERSION}
+			-DCOMPILER_PATH=${CMAKE_CXX_COMPILER}
+			-DSYSTEM_NAME=${CMAKE_SYSTEM_NAME}
+			-DSYSTEM_PROCESSOR=${CMAKE_SYSTEM_PROCESSOR}
+			-DCONFIGURATION=$<CONFIG>
+			-DREGISTER_WIDTH=${register_width}
+			-DVECTORCALL_ENABLED=${vectorcall_enabled}
+			-DSYMBOL_PATTERN=simdlib_abi_
+			-P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/CompareRegisterCodegen.cmake
+		COMMAND ${CMAKE_COMMAND} -E touch "${abi_stamp_file}"
+		DEPENDS ${abi_wrapper_target} ${abi_raw_target} cmake/CompareRegisterCodegen.cmake
+		COMMENT "Comparing ${register_width}-bit explicit-object and raw ABI mirrors"
+		VERBATIM)
+	add_custom_command(
+		OUTPUT "${default_abi_stamp_file}"
+		COMMAND ${CMAKE_COMMAND} -E make_directory "${artifact_directory}"
+		COMMAND ${CMAKE_COMMAND}
+			-DWRAPPER_OBJECT=$<TARGET_OBJECTS:${default_wrapper_target}>
+			-DRAW_OBJECT=$<TARGET_OBJECTS:${default_raw_target}>
+			-DOBJDUMP=${CMAKE_OBJDUMP}
+			-DARTIFACT_DIRECTORY=${artifact_directory}
+			-DCOMPILER_ID=${CMAKE_CXX_COMPILER_ID}
+			-DCOMPILER_VERSION=${CMAKE_CXX_COMPILER_VERSION}
+			-DCOMPILER_PATH=${CMAKE_CXX_COMPILER}
+			-DSYSTEM_NAME=${CMAKE_SYSTEM_NAME}
+			-DSYSTEM_PROCESSOR=${CMAKE_SYSTEM_PROCESSOR}
+			-DCONFIGURATION=$<CONFIG>
+			-DREGISTER_WIDTH=${register_width}
+			-DVECTORCALL_ENABLED=${vectorcall_enabled}
+			-P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/RecordRegisterDefaultAbi.cmake
+		COMMAND ${CMAKE_COMMAND} -E touch "${default_abi_stamp_file}"
+		DEPENDS ${default_wrapper_target} ${default_raw_target} cmake/RecordRegisterDefaultAbi.cmake
+		COMMENT "Recording ${register_width}-bit platform-default Register ABI"
+		VERBATIM)
+	add_custom_target(SimdLibRegisterCodegen${register_width} ALL DEPENDS
+		"${stamp_file}" "${abi_stamp_file}" "${default_abi_stamp_file}")
+	add_test(NAME SimdLib.RegisterCodegen.${register_width}
+		COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --config $<CONFIG>
+			--target SimdLibRegisterCodegen${register_width})
+	set_tests_properties(SimdLib.RegisterCodegen.${register_width} PROPERTIES
+		LABELS "REGISTER;CODEGEN;ABI" RUN_SERIAL TRUE)
+endfunction()
+
+if(SIMDLIB_BUILD_REGISTER_CODEGEN AND SIMDLIB_REGISTER_COMPILER_SUPPORTED)
+	if(NOT CMAKE_OBJDUMP)
+		find_program(CMAKE_OBJDUMP NAMES llvm-objdump llvm-objdump.exe)
+	endif()
+	if(NOT CMAKE_OBJDUMP)
+		message(FATAL_ERROR "Register generated-code gates require an objdump-compatible disassembler")
+	endif()
+	simdlib_add_register_codegen_gate(128)
+	simdlib_add_register_codegen_gate(256)
+	add_custom_target(SimdLibRegisterCodegen DEPENDS
+		SimdLibRegisterCodegen128 SimdLibRegisterCodegen256)
 endif()
 
 add_library(SimdLibAvailabilityDisabledProbe OBJECT tests/availability/ApiDisabledProbe.cpp)

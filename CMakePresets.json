@@ -67,6 +67,14 @@
             }
         },
         {
+            "name": "container-codegen",
+            "inherits": "container-focused",
+            "displayName": "Container Register generated-code gates",
+            "cacheVariables": {
+                "SIMDLIB_BUILD_REGISTER_CODEGEN": "ON"
+            }
+        },
+        {
             "name": "container-full",
             "inherits": "container-base",
             "displayName": "Container full validation",

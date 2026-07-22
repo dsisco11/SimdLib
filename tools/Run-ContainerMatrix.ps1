@@ -155,7 +155,7 @@ $profile = $Mode.ToLowerInvariant()
 $preset = switch ($Mode) {
     'Focused' { 'container-focused' }
     'Sanitizer' { 'container-sanitize' }
-    'Codegen' { 'container-focused' }
+    'Codegen' { 'container-codegen' }
     default { 'container-full' }
 }
 $configuration = if ($Mode -eq 'Sanitizer') { 'Debug' } else { 'Release' }
