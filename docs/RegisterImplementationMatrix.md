@@ -156,11 +156,10 @@ rows are verified absent from the preferred surface in Phase 9.
 | `bitwise_andnot` | `lhs.andnot(rhs)` with preserved polarity | Phase 6 |
 | `movemask` | `value.movemask()` with intrinsic-native granularity | Phase 6 |
 | `movemask_slim` | `value.lane_sign_bits()` with one bit per lane | Phase 6 |
-| `cmp_eq`, `cmp_eq_mask` | `lhs.compare_equal(rhs)` and `.bits()` | Phase 5 |
-| `cmp_gt` | `lhs.compare_greater(rhs)` | Phase 5 |
-| `cmp_ge` | `lhs.compare_greater_equal(rhs)` | Phase 5 |
-| `cmp_lt` | `lhs.compare_less(rhs)` | Phase 5 |
-| `cmp_le` | `lhs.compare_less_equal(rhs)` | Phase 5 |
+| `compare_equal`, `compare_greater`, `compare_greater_equal`, `compare_less`, `compare_less_equal` | Corresponding named comparison | Phase 5 |
+| `cmp_*_mask` | No compact-mask Register counterpart | Compatibility |
+| `cmp_*_slim` | Corresponding named comparison followed by `.bits()` | Phase 5 |
+| Deprecated `cmp_eq`, `cmp_gt`, `cmp_ge`, `cmp_lt`, `cmp_le` | Corresponding `cmp_*_mask` method | Compatibility |
 | `expand`, `compress` | No Register operation | Compatibility |
 | `extract<index>` | `value.lane<index>()` | Phase 4 |
 | Runtime `extract` | No initial Register operation | Compatibility |

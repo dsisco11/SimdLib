@@ -178,31 +178,58 @@ void require_comparison_contract()
     typename simd::mask_t ge = 0;
     typename simd::mask_t lt = 0;
     typename simd::mask_t le = 0;
+    typename simd::mask_t eqSlim = 0;
+    typename simd::mask_t gtSlim = 0;
+    typename simd::mask_t geSlim = 0;
+    typename simd::mask_t ltSlim = 0;
+    typename simd::mask_t leSlim = 0;
+    std::array<Element, simd::element_count> selected{};
     constexpr typename simd::mask_t lane_mask =
         static_cast<typename simd::mask_t>((typename simd::mask_t{1} << sizeof(Element)) - 1);
     for (std::size_t index = 0; index < simd::element_count; ++index)
     {
         const auto mask = static_cast<typename simd::mask_t>(lane_mask << (index * sizeof(Element)));
         if (lhs[index] == rhs[index])
+        {
             eq |= mask;
+            eqSlim |= typename simd::mask_t{1} << index;
+        }
         if (lhs[index] > rhs[index])
+        {
             gt |= mask;
+            gtSlim |= typename simd::mask_t{1} << index;
+        }
         if (lhs[index] >= rhs[index])
+        {
             ge |= mask;
+            geSlim |= typename simd::mask_t{1} << index;
+        }
         if (lhs[index] < rhs[index])
+        {
             lt |= mask;
+            ltSlim |= typename simd::mask_t{1} << index;
+        }
         if (lhs[index] <= rhs[index])
+        {
             le |= mask;
+            leSlim |= typename simd::mask_t{1} << index;
+        }
+        selected[index] = lhs[index] == rhs[index] ? lhs[index] : rhs[index];
     }
 
     const auto left = simd::construct(lhs);
     const auto right = simd::construct(rhs);
-    REQUIRE(simd::cmp_eq(left, right) == eq);
     REQUIRE(simd::cmp_eq_mask(left, right) == eq);
-    REQUIRE(simd::cmp_gt(left, right) == gt);
-    REQUIRE(simd::cmp_ge(left, right) == ge);
-    REQUIRE(simd::cmp_lt(left, right) == lt);
-    REQUIRE(simd::cmp_le(left, right) == le);
+    REQUIRE(simd::cmp_gt_mask(left, right) == gt);
+    REQUIRE(simd::cmp_ge_mask(left, right) == ge);
+    REQUIRE(simd::cmp_lt_mask(left, right) == lt);
+    REQUIRE(simd::cmp_le_mask(left, right) == le);
+    REQUIRE(simd::cmp_eq_slim(left, right) == eqSlim);
+    REQUIRE(simd::cmp_gt_slim(left, right) == gtSlim);
+    REQUIRE(simd::cmp_ge_slim(left, right) == geSlim);
+    REQUIRE(simd::cmp_lt_slim(left, right) == ltSlim);
+    REQUIRE(simd::cmp_le_slim(left, right) == leSlim);
+    REQUIRE(simd::to_array(simd::select(simd::compare_equal(left, right), left, right)) == selected);
 }
 
 template <std::size_t Width>

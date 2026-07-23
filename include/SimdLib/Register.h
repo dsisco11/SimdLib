@@ -6,7 +6,8 @@
 #error "SIMDLIB_REGISTER_HEADER_REQUIRES_CXX23: <SimdLib/Register.h> requires C++23 explicit object parameter support"
 #endif
 
-#include <SimdLib/Api.h>
+#include <SimdLib/RegisterFwd.h>
+#include <SimdLib/RegisterMask.h>
 
 #include <array>
 #include <concepts>
@@ -16,65 +17,6 @@
 
 namespace SimdLib
 {
-
-/**
- * @brief Reports whether a complete SIMD register is available for an element type and width.
- * @tparam element_t Scalar interpretation of the register lanes.
- * @tparam bits Width of the native register in bits.
- */
-template <class element_t, std::size_t bits>
-inline constexpr bool is_register_available_v = is_api_available_v<bits, element_t>;
-
-/**
- * @brief Constrains a type and width to an available complete SIMD register.
- * @tparam element_t Scalar interpretation of the register lanes.
- * @tparam bits Width of the native register in bits.
- */
-template <class element_t, std::size_t bits>
-concept RegisterAvailable = is_register_available_v<element_t, bits>;
-
-/**
- * @brief Stores one Boolean predicate for every lane in a complete register.
- * @tparam element_t Scalar geometry associated with each predicate lane.
- * @tparam bits Width of the associated register in bits.
- */
-template <class element_t, std::size_t bits>
-	requires RegisterAvailable<element_t, bits>
-class RegisterMask final
-{
-  public:
-	using element_type = element_t;
-	using api_type = Api<bits, element_type>;
-	using native_type = typename api_type::vector_t;
-
-	constexpr static inline std::size_t register_width = bits;
-	constexpr static inline std::size_t byte_count = api_type::byte_count;
-	constexpr static inline std::size_t lane_count = api_type::element_count;
-
-	/** @brief Constructs an all-false predicate through the native zero-register operation. */
-	SIMDLIB_FORCE_INLINE SIMDLIB_DETAIL_MSVC_SAFE_BUFFERS constexpr RegisterMask() noexcept
-		: m_data(api_type::setzero())
-	{
-	}
-
-	/** @brief Copies one complete predicate register. */
-	constexpr RegisterMask(const RegisterMask &) noexcept = default;
-
-	/** @brief Moves one complete predicate register. */
-	constexpr RegisterMask(RegisterMask &&) noexcept = default;
-
-	/** @brief Replaces this predicate with a copied complete predicate register. */
-	constexpr RegisterMask &operator=(const RegisterMask &) noexcept = default;
-
-	/** @brief Replaces this predicate with a moved complete predicate register. */
-	constexpr RegisterMask &operator=(RegisterMask &&) noexcept = default;
-
-	/** @brief Destroys the predicate register value. */
-	~RegisterMask() = default;
-
-  private:
-	native_type m_data;
-};
 
 /**
  * @brief Owns one complete SIMD register whose lanes are all active.
@@ -286,15 +228,8 @@ class Register final
 		this Register value,
 		element_type replacement) noexcept
 	{
-		if consteval
-		{
-			return with_lane_constexpr<index>(value, replacement);
-		}
-		else
-		{
-			value.m_data = api_type::template insert<index>(value.m_data, replacement);
-			return value;
-		}
+		value.m_data = api_type::template insert<index>(value.m_data, replacement);
+		return value;
 	}
 
 	/**
@@ -308,6 +243,61 @@ class Register final
 		return value.m_data;
 	}
 
+	/** @brief Compares corresponding lanes for ordered equality. */
+	[[nodiscard]] SIMDLIB_FORCE_INLINE constexpr mask_type VECTORCALL compare_equal(
+		this Register lhs,
+		Register rhs) noexcept
+	{
+		return mask_type{api_type::compare_equal(lhs.m_data, rhs.m_data)};
+	}
+
+	/** @brief Compares corresponding lanes for greater-than ordering. */
+	[[nodiscard]] SIMDLIB_FORCE_INLINE constexpr mask_type VECTORCALL compare_greater(
+		this Register lhs,
+		Register rhs) noexcept
+	{
+		return mask_type{api_type::compare_greater(lhs.m_data, rhs.m_data)};
+	}
+
+	/** @brief Compares corresponding lanes for greater-than-or-equal ordering. */
+	[[nodiscard]] SIMDLIB_FORCE_INLINE constexpr mask_type VECTORCALL compare_greater_equal(
+		this Register lhs,
+		Register rhs) noexcept
+	{
+		return mask_type{api_type::compare_greater_equal(lhs.m_data, rhs.m_data)};
+	}
+
+	/** @brief Compares corresponding lanes for less-than ordering. */
+	[[nodiscard]] SIMDLIB_FORCE_INLINE constexpr mask_type VECTORCALL compare_less(
+		this Register lhs,
+		Register rhs) noexcept
+	{
+		return mask_type{api_type::compare_less(lhs.m_data, rhs.m_data)};
+	}
+
+	/** @brief Compares corresponding lanes for less-than-or-equal ordering. */
+	[[nodiscard]] SIMDLIB_FORCE_INLINE constexpr mask_type VECTORCALL compare_less_equal(
+		this Register lhs,
+		Register rhs) noexcept
+	{
+		return mask_type{api_type::compare_less_equal(lhs.m_data, rhs.m_data)};
+	}
+
+	/** @brief Tests whether every corresponding lane compares equal. */
+	[[nodiscard]] SIMDLIB_FORCE_INLINE constexpr bool VECTORCALL operator==(
+		this Register lhs,
+		Register rhs) noexcept
+	{
+		return lhs.compare_equal(rhs).all();
+	}
+
+	/** @brief Tests whether at least one corresponding lane compares unequal. */
+	[[nodiscard]] SIMDLIB_FORCE_INLINE constexpr bool VECTORCALL operator!=(
+		this Register lhs,
+		Register rhs) noexcept
+	{
+		return !lhs.compare_equal(rhs).all();
+	}
 
   private:
 	/**
@@ -322,25 +312,22 @@ class Register final
 		return value.to_array()[index];
 	}
 
-	/**
-	 * @brief Implements compile-time lane replacement through the portable array representation.
-	 * @tparam index Logical lane index to replace.
-	 * @param value Register containing the lanes to copy.
-	 * @param replacement Replacement value for lane `index`.
-	 * @return Register with lane `index` replaced.
-	 */
-	template <std::size_t index>
-	[[nodiscard]] constexpr static Register with_lane_constexpr(
-		Register value,
-		element_type replacement) noexcept
-	{
-		auto lanes = value.to_array();
-		lanes[index] = replacement;
-		return from_array(lanes);
-	}
-
 	native_type m_data;
+
+	friend class RegisterMask<element_type, bits>;
 };
+
+/** @brief Selects true or false register lanes according to this predicate. */
+template <class element_t, std::size_t register_bits>
+	requires RegisterAvailable<element_t, register_bits>
+[[nodiscard]] SIMDLIB_FORCE_INLINE constexpr Register<element_t, register_bits> VECTORCALL
+	RegisterMask<element_t, register_bits>::select(
+		this RegisterMask condition,
+		register_type when_true,
+		register_type when_false) noexcept
+{
+	return register_type{condition.select_native(when_true.m_data, when_false.m_data)};
+}
 
 /**
  * @brief Selects the widest complete register available for an element type.

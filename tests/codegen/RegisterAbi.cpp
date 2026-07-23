@@ -12,6 +12,8 @@
 
 using api_type = SimdLib::Api<SIMDLIB_REGISTER_TEST_WIDTH, float>;
 using native_type = typename api_type::vector_t;
+using register_type = SimdLib::Register<float, SIMDLIB_REGISTER_TEST_WIDTH>;
+using mask_type = typename register_type::mask_type;
 
 /** @brief Test-only one-vector predicate used to mirror RegisterMask call boundaries. */
 class AbiMask final
@@ -97,5 +99,19 @@ class AbiRegister final
   private:
 	native_type m_data;
 };
+
+/** @brief Returns a real RegisterMask across a separately compiled ABI boundary. */
+SIMDLIB_DETAIL_MSVC_SAFE_BUFFERS SIMDLIB_ABI_NOINLINE mask_type VECTORCALL
+	simdlib_abi_mask_return(register_type lhs, register_type rhs) noexcept
+{
+	return lhs.compare_equal(rhs);
+}
+
+/** @brief Passes a real RegisterMask across a separately compiled ABI boundary. */
+SIMDLIB_DETAIL_MSVC_SAFE_BUFFERS SIMDLIB_ABI_NOINLINE native_type VECTORCALL
+	simdlib_abi_mask_pass(mask_type value) noexcept
+{
+	return value.native();
+}
 
 #undef SIMDLIB_ABI_NOINLINE

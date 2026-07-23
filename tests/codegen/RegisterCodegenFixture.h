@@ -17,6 +17,7 @@ namespace SimdLibCodegen
 {
 
 using api_type = SimdLib::Api<SIMDLIB_REGISTER_TEST_WIDTH, float>;
+using backend_type = SimdLib::Detail::SimdMappings<SIMDLIB_REGISTER_TEST_WIDTH, float>;
 using native_type = typename api_type::vector_t;
 using register_type = SimdLib::Register<float, SIMDLIB_REGISTER_TEST_WIDTH>;
 using mask_type = SimdLib::RegisterMask<float, SIMDLIB_REGISTER_TEST_WIDTH>;
@@ -123,13 +124,93 @@ SIMDLIB_DETAIL_MSVC_SAFE_BUFFERS SIMDLIB_CODEGEN_NOINLINE std::uint32_t VECTORCA
 
 /** @brief Register-shaped mask-result fixture. */
 SIMDLIB_DETAIL_MSVC_SAFE_BUFFERS SIMDLIB_CODEGEN_NOINLINE native_type VECTORCALL
-	simdlib_codegen_mask(native_type lhs, native_type rhs) noexcept
+simdlib_codegen_mask(native_type lhs, native_type rhs) noexcept
 {
-	(void)lhs;
-	(void)rhs;
-	const predicate_type predicate = SimdLibCodegen::zero_predicate();
-	(void)predicate;
-	return SimdLibCodegen::api_type::setzero();
+#if SIMDLIB_CODEGEN_USE_WRAPPER
+	return SimdLibCodegen::register_type(lhs).compare_equal(SimdLibCodegen::register_type(rhs)).native();
+#else
+	return SimdLibCodegen::backend_type::cmpeq(lhs, rhs);
+#endif
+}
+
+/** @brief Compare-and-combine mask fixture. */
+SIMDLIB_DETAIL_MSVC_SAFE_BUFFERS SIMDLIB_CODEGEN_NOINLINE native_type VECTORCALL
+	simdlib_codegen_mask_combine(native_type lhs, native_type rhs) noexcept
+{
+#if SIMDLIB_CODEGEN_USE_WRAPPER
+	const SimdLibCodegen::register_type left(lhs);
+	const SimdLibCodegen::register_type right(rhs);
+	return (left.compare_equal(right) | left.compare_greater(right)).native();
+#else
+	return SimdLibCodegen::api_type::bitwise_or(
+		SimdLibCodegen::backend_type::cmpeq(lhs, rhs), SimdLibCodegen::backend_type::cmpgt(lhs, rhs));
+#endif
+}
+
+/** @brief Compare-and-select mask fixture. */
+SIMDLIB_DETAIL_MSVC_SAFE_BUFFERS SIMDLIB_CODEGEN_NOINLINE native_type VECTORCALL simdlib_codegen_mask_select(
+	native_type lhs,
+	native_type rhs,
+	native_type when_true,
+	native_type when_false) noexcept
+{
+#if SIMDLIB_CODEGEN_USE_WRAPPER
+	return SimdLibCodegen::register_type(lhs)
+		.compare_greater(SimdLibCodegen::register_type(rhs))
+		.select(SimdLibCodegen::register_type(when_true), SimdLibCodegen::register_type(when_false))
+		.native();
+#else
+	const native_type condition = SimdLibCodegen::backend_type::cmpgt(lhs, rhs);
+	return SimdLibCodegen::backend_type::select(condition, when_true, when_false);
+#endif
+}
+
+/** @brief Compact predicate-bit fixture. */
+SIMDLIB_DETAIL_MSVC_SAFE_BUFFERS SIMDLIB_CODEGEN_NOINLINE std::uint32_t VECTORCALL
+	simdlib_codegen_mask_bits(native_type lhs, native_type rhs) noexcept
+{
+#if SIMDLIB_CODEGEN_USE_WRAPPER
+	return SimdLibCodegen::register_type(lhs).compare_equal(SimdLibCodegen::register_type(rhs)).bits();
+#else
+	return static_cast<std::uint32_t>(
+		SimdLibCodegen::api_type::movemask_slim(SimdLibCodegen::backend_type::cmpeq(lhs, rhs)));
+#endif
+}
+
+/** @brief Any-lane predicate reduction fixture. */
+SIMDLIB_DETAIL_MSVC_SAFE_BUFFERS SIMDLIB_CODEGEN_NOINLINE bool VECTORCALL
+	simdlib_codegen_mask_any(native_type lhs, native_type rhs) noexcept
+{
+#if SIMDLIB_CODEGEN_USE_WRAPPER
+	return SimdLibCodegen::register_type(lhs).compare_equal(SimdLibCodegen::register_type(rhs)).any();
+#else
+	return SimdLibCodegen::api_type::movemask_slim(SimdLibCodegen::backend_type::cmpeq(lhs, rhs)) != 0;
+#endif
+}
+
+/** @brief All-lane predicate reduction fixture. */
+SIMDLIB_DETAIL_MSVC_SAFE_BUFFERS SIMDLIB_CODEGEN_NOINLINE bool VECTORCALL
+	simdlib_codegen_mask_all(native_type lhs, native_type rhs) noexcept
+{
+#if SIMDLIB_CODEGEN_USE_WRAPPER
+	return SimdLibCodegen::register_type(lhs).compare_equal(SimdLibCodegen::register_type(rhs)).all();
+#else
+	constexpr std::uint32_t all_bits =
+		(std::uint32_t{1} << SimdLibCodegen::register_type::lane_count) - 1;
+	return static_cast<std::uint32_t>(
+		SimdLibCodegen::api_type::movemask_slim(SimdLibCodegen::backend_type::cmpeq(lhs, rhs))) == all_bits;
+#endif
+}
+
+/** @brief Native predicate observation fixture. */
+SIMDLIB_DETAIL_MSVC_SAFE_BUFFERS SIMDLIB_CODEGEN_NOINLINE native_type VECTORCALL
+	simdlib_codegen_mask_native(native_type lhs, native_type rhs) noexcept
+{
+#if SIMDLIB_CODEGEN_USE_WRAPPER
+	return SimdLibCodegen::register_type(lhs).compare_less(SimdLibCodegen::register_type(rhs)).native();
+#else
+	return SimdLibCodegen::backend_type::cmpgt(rhs, lhs);
+#endif
 }
 
 /** @brief Native-result fixture. */

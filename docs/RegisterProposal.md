@@ -787,9 +787,10 @@ the alias well-defined if a future supported width has between 33 and 64 lanes.
 `mask.bits()` uses the element-granular movemask operation and guarantees that
 bits at indices greater than or equal to `lane_count` are zero.
 `mask.select(when_true, when_false)` chooses `when_true` for all-one predicate
-lanes and `when_false` for all-zero predicate lanes. It can be implemented with
-register bitwise operations when no direct blend instruction accepts the
-predicate representation.
+lanes and `when_false` for all-zero predicate lanes. It delegates to
+`Api::select`, whose runtime path uses the implementation layer's variable-blend
+intrinsic and whose constant-evaluated path reproduces the same polarity with
+register bitwise operations.
 
 `mask.native()` is a read-only interoperation boundary and returns the complete
 predicate register by value. It does not weaken the mask invariant because the
@@ -802,27 +803,24 @@ real call sites justify its expansion cost.
 `RegisterMask` must not provide an implicit conversion to `bool`; control-flow
 decisions must spell `mask.any()`, `mask.all()`, or `mask.none()`.
 
-### Internal comparison adapter
+### Direct comparison implementation
 
-The current curated `Api` comparison functions return scalar masks and no
-longer retain the register-shaped predicate needed by `RegisterMask`.
-`Register.h` therefore defines a narrow
-`Detail::RegisterBackend<element_t, bits>` adapter. It is the only new code in
-`Register.h` permitted to name `Detail::SimdMappings` or its inherited backend
-comparison functions.
+The curated `Api` exposes native `compare_*` functions that return canonical
+register-shaped predicates without reducing them. The legacy `cmp_*` functions
+remain scalar-mask operations and reduce the corresponding native comparison
+with `movemask`.
 
-The adapter returns complete native predicate registers for equality,
-greater-than, and any other comparison directly supported by the selected
-backend. Derived predicates such as greater-than-or-equal may combine those
-native predicates with register bitwise operations. The explicit-object
-comparison member wraps the result through the private
-`RegisterMask(native_type)` constructor. Neither the adapter nor a native-mask
-constructor is part of the consumer API.
+The direct implementation returns complete native predicate registers for
+equality, greater-than, and any other comparison supported by the selected
+backend. Derived predicates such as greater-than-or-equal combine the resulting
+`RegisterMask` values. Each comparison member wraps its native result through
+the private `RegisterMask(native_type)` constructor; that constructor is not
+part of the consumer API.
 
-Portable and constant-evaluated adapter paths construct the same all-zero or
-all-one lane patterns as the runtime intrinsic. This adapter avoids expanding
-the legacy `Api` surface solely to support the new value type and prevents
-ordinary `Register` implementation code from depending broadly on `Detail`.
+Portable and constant-evaluated comparison paths remain private `Api`
+implementation methods and construct the same all-zero or all-one lane patterns
+as the runtime intrinsic. `Register` wraps those native predicates directly in
+`RegisterMask`, keeping one implementation of comparison semantics.
 
 `Register::operator==` and `operator!=` should follow conventional value-type
 semantics and return a whole-register Boolean. Lane-wise comparisons use named
@@ -944,11 +942,10 @@ formed mechanically.
 | `bitwise_andnot` | `lhs.andnot(rhs)` | Same register type with existing operand polarity |
 | `movemask` | `value.movemask()` | Scalar mask with the selected intrinsic's native granularity |
 | `movemask_slim` | `value.lane_sign_bits()` | Scalar mask with one bit per lane |
-| `cmp_eq`, `cmp_eq_mask` | `lhs.compare_equal(rhs).bits()` | Duplicate scalar spellings collapse into one compact lane-mask path |
-| `cmp_gt` | `lhs.compare_greater(rhs)` | `RegisterMask<T, Bits>` |
-| `cmp_ge` | `lhs.compare_greater_equal(rhs)` | `RegisterMask<T, Bits>` |
-| `cmp_lt` | `lhs.compare_less(rhs)` | `RegisterMask<T, Bits>` |
-| `cmp_le` | `lhs.compare_less_equal(rhs)` | `RegisterMask<T, Bits>` |
+| `compare_equal`, `compare_greater`, `compare_greater_equal`, `compare_less`, `compare_less_equal` | Corresponding named comparison | `RegisterMask<T, Bits>` preserving native predicates |
+| `cmp_*_mask` | No compact-mask Register counterpart | Byte-granular legacy-compatible scalar mask |
+| `cmp_*_slim` | Corresponding named comparison followed by `.bits()` | One compact bit per lane |
+| Deprecated `cmp_eq`, `cmp_gt`, `cmp_ge`, `cmp_lt`, `cmp_le` | Corresponding `cmp_*_mask` method | Byte-granular compatibility spelling |
 
 The legacy scalar comparison-mask layout is not uniform across integral and
 floating backends. `mask.bits()` deliberately normalizes it to one bit
@@ -1426,9 +1423,9 @@ are accepted:
 - Comparison behavior exactly matches the selected underlying hardware
   intrinsic, including floating-point edge cases and predicate-lane bit
   patterns.
-- Register-shaped comparisons use the single internal
-  `Detail::RegisterBackend<T, Bits>` seam instead of expanding the legacy
-  `Api` surface or leaking `Detail` names to consumers.
+- Register-shaped comparisons are implemented directly by `Register<T, Bits>`
+  through its selected `Api` type, without a redundant backend wrapper or
+  `Detail` names leaking to consumers.
 - Numeric conversion and bit reinterpretation have separate names.
 - Width-changing operations cannot silently discard active lanes.
 - Type-changing operations return the exact constrained namespace-level result

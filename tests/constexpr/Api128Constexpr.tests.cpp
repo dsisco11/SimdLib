@@ -24,6 +24,17 @@ static_assert(comparison_contract<128, std::uint64_t>());
 static_assert(comparison_contract<128, float>());
 static_assert(comparison_contract<128, double>());
 
+static_assert(bitwise_contract<128, std::int8_t>());
+static_assert(bitwise_contract<128, std::uint8_t>());
+static_assert(bitwise_contract<128, std::int16_t>());
+static_assert(bitwise_contract<128, std::uint16_t>());
+static_assert(bitwise_contract<128, std::int32_t>());
+static_assert(bitwise_contract<128, std::uint32_t>());
+static_assert(bitwise_contract<128, std::int64_t>());
+static_assert(bitwise_contract<128, std::uint64_t>());
+static_assert(bitwise_contract<128, float>());
+static_assert(bitwise_contract<128, double>());
+
 static_assert(movemask_contract<128, std::int8_t>());
 static_assert(movemask_contract<128, std::uint8_t>());
 static_assert(movemask_contract<128, std::int16_t>());

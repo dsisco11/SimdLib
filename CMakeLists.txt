@@ -265,6 +265,11 @@ if(SIMDLIB_BUILD_HEADER_TESTS)
 			tests/headers/RegisterHeaderProbe.cpp)
 		target_link_libraries(SimdLibHeaderRegisterProbe PRIVATE SimdLib::Register)
 		simdlib_enable_development_warnings(SimdLibHeaderRegisterProbe)
+
+		add_library(SimdLibHeaderRegisterMaskProbe OBJECT
+			tests/headers/RegisterMaskHeaderProbe.cpp)
+		target_link_libraries(SimdLibHeaderRegisterMaskProbe PRIVATE SimdLib::Register)
+		simdlib_enable_development_warnings(SimdLibHeaderRegisterMaskProbe)
 	endif()
 endif()
 
@@ -460,7 +465,10 @@ function(simdlib_add_register_codegen_gate register_width)
 			-DSTACK_PROTECTOR_MODE=${stack_protector_mode}
 			-P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/CompareRegisterCodegen.cmake
 		COMMAND ${CMAKE_COMMAND} -E touch "${stamp_file}"
-		DEPENDS ${wrapper_target} ${raw_target} cmake/CompareRegisterCodegen.cmake
+		DEPENDS
+			$<TARGET_OBJECTS:${wrapper_target}>
+			$<TARGET_OBJECTS:${raw_target}>
+			cmake/CompareRegisterCodegen.cmake
 		COMMENT "Comparing ${register_width}-bit Register and raw generated code"
 		VERBATIM)
 	add_custom_command(
@@ -509,7 +517,10 @@ function(simdlib_add_register_codegen_gate register_width)
 			-DSYMBOL_PATTERN=simdlib_abi_
 			-P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/CompareRegisterCodegen.cmake
 		COMMAND ${CMAKE_COMMAND} -E touch "${abi_stamp_file}"
-		DEPENDS ${abi_wrapper_target} ${abi_raw_target} cmake/CompareRegisterCodegen.cmake
+		DEPENDS
+			$<TARGET_OBJECTS:${abi_wrapper_target}>
+			$<TARGET_OBJECTS:${abi_raw_target}>
+			cmake/CompareRegisterCodegen.cmake
 		COMMENT "Comparing ${register_width}-bit explicit-object and raw ABI mirrors"
 		VERBATIM)
 	add_custom_command(
@@ -531,7 +542,10 @@ function(simdlib_add_register_codegen_gate register_width)
 			-DSTACK_PROTECTOR_MODE=${stack_protector_mode}
 			-P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/RecordRegisterDefaultAbi.cmake
 		COMMAND ${CMAKE_COMMAND} -E touch "${default_abi_stamp_file}"
-		DEPENDS ${default_wrapper_target} ${default_raw_target} cmake/RecordRegisterDefaultAbi.cmake
+		DEPENDS
+			$<TARGET_OBJECTS:${default_wrapper_target}>
+			$<TARGET_OBJECTS:${default_raw_target}>
+			cmake/RecordRegisterDefaultAbi.cmake
 		COMMENT "Recording ${register_width}-bit platform-default Register ABI"
 		VERBATIM)
 	set(codegen_gate_outputs

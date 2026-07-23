@@ -16,6 +16,15 @@ concept has_out_of_range_with_lane = requires(value_t value) {
 	value.template with_lane<value_t::lane_count>(typename value_t::element_type{});
 };
 
+/** @brief Checks that the predicate type exposes no unchecked public construction path. */
+template <class mask_t, class register_t>
+consteval bool has_closed_mask_construction()
+{
+	return !std::is_constructible_v<mask_t, typename mask_t::native_type> &&
+		!std::is_constructible_v<mask_t, typename mask_t::bits_type> &&
+		!std::is_constructible_v<mask_t, register_t> && !std::is_convertible_v<mask_t, bool>;
+}
+
 /** @brief Checks the required object-model traits for one register-shaped value type. */
 template <class value_t>
 consteval bool has_complete_register_value_traits()
@@ -39,9 +48,12 @@ consteval bool has_complete_register_shapes()
 		SimdLib::is_register_available_v<element_t, bits> &&
 		has_complete_register_value_traits<register_type>() &&
 		has_complete_register_value_traits<mask_type>() &&
+		has_closed_mask_construction<mask_type, register_type>() &&
 		!has_out_of_range_lane<register_type> && !has_out_of_range_with_lane<register_type> &&
 		register_type::register_width == bits && register_type::byte_count == bits / 8 &&
-		register_type::lane_count == bits / (sizeof(element_t) * 8);
+		register_type::lane_count == bits / (sizeof(element_t) * 8) &&
+		mask_type::register_width == bits && mask_type::lane_count == register_type::lane_count &&
+		std::same_as<typename mask_type::bits_type, std::uint32_t>;
 }
 
 #define SIMDLIB_ASSERT_REGISTER_SHAPES(element_type, width) \

@@ -264,12 +264,12 @@ TEST_CASE("128-bit Api documentation examples produce their documented results",
 	require_documented_register<I32>(I32::blend(I32::setr(10, 20, 30, 40), I32::setr(1, 2, 3, 4), 0b0101), std::array{1, 20, 3, 40});
 	require_documented_register<U8>(U8::byte_shift_left(U8::set1(7), 1), std::array<std::uint8_t, 16>{0, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7});
 	require_documented_register<U8>(U8::byte_shift_right(U8::set1(7), 1), std::array<std::uint8_t, 16>{7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 0});
-	REQUIRE(ApiT::cmp_eq(ApiT::set1(2.0F), ApiT::set1(2.0F)) == 0xFFFFU);
 	REQUIRE(ApiT::cmp_eq_mask(ApiT::set1(2.0F), ApiT::set1(2.0F)) == 0xFFFFU);
-	REQUIRE(ApiT::cmp_ge(ApiT::set1(2.0F), ApiT::set1(2.0F)) == 0xFFFFU);
-	REQUIRE(ApiT::cmp_gt(ApiT::set1(3.0F), ApiT::set1(2.0F)) == 0xFFFFU);
-	REQUIRE(ApiT::cmp_le(ApiT::set1(2.0F), ApiT::set1(2.0F)) == 0xFFFFU);
-	REQUIRE(ApiT::cmp_lt(ApiT::set1(2.0F), ApiT::set1(3.0F)) == 0xFFFFU);
+	REQUIRE(ApiT::cmp_eq_mask(ApiT::set1(2.0F), ApiT::set1(2.0F)) == 0xFFFFU);
+	REQUIRE(ApiT::cmp_ge_mask(ApiT::set1(2.0F), ApiT::set1(2.0F)) == 0xFFFFU);
+	REQUIRE(ApiT::cmp_gt_mask(ApiT::set1(3.0F), ApiT::set1(2.0F)) == 0xFFFFU);
+	REQUIRE(ApiT::cmp_le_mask(ApiT::set1(2.0F), ApiT::set1(2.0F)) == 0xFFFFU);
+	REQUIRE(ApiT::cmp_lt_mask(ApiT::set1(2.0F), ApiT::set1(3.0F)) == 0xFFFFU);
 	require_documented_register<I8>(I16::compress(I16::set1(300), I16::set1(-300)),
 									std::array<std::int8_t, 16>{127, 127, 127, 127, 127, 127, 127, 127, -128, -128, -128, -128, -128, -128, -128, -128});
 	require_documented_register<ApiT>(ApiT::construct({1.0F, 2.0F, 0.0F, 0.0F}), std::array{1.0F, 2.0F, 0.0F, 0.0F});

@@ -66,8 +66,50 @@ template <class element_t, std::size_t bits>
 #endif
 }
 
+/** @brief Verifies constant-evaluated mask comparisons, combination, reductions, and selection. */
+template <class element_t, std::size_t bits>
+[[nodiscard]] consteval bool register_mask_constexpr_contract() noexcept
+{
+	using register_type = SimdLib::Register<element_t, bits>;
+	using mask_type = typename register_type::mask_type;
+#if SIMDLIB_COMPILER_MSVC
+	const mask_type mask{};
+	(void)mask;
+	return true;
+#else
+	std::array<element_t, register_type::lane_count> left{};
+	std::array<element_t, register_type::lane_count> right{};
+	for (std::size_t index = 0; index < left.size(); ++index)
+	{
+		left[index] = static_cast<element_t>((index % 2) == 0 ? 2 : 0);
+		right[index] = static_cast<element_t>(1);
+	}
+	typename mask_type::bits_type expected = 0;
+	for (std::size_t index = 0; index < mask_type::lane_count; index += 2)
+		expected |= typename mask_type::bits_type{1} << index;
+	const auto lhs = register_type::from_array(left);
+	const auto rhs = register_type::from_array(right);
+	const auto greater = lhs.compare_greater(rhs);
+	const auto less = lhs.compare_less(rhs);
+	if (greater.bits() != expected || greater.none() || !greater.any() || greater.all())
+		return false;
+	if (!(greater | less).all() || !(greater & less).none() || (greater ^ less).bits() != (greater | less).bits())
+		return false;
+	const auto selected = greater.select(register_type::broadcast(static_cast<element_t>(11)),
+		register_type::broadcast(static_cast<element_t>(22))).to_array();
+	for (std::size_t index = 0; index < selected.size(); ++index)
+	{
+		if (selected[index] != static_cast<element_t>((index % 2) == 0 ? 11 : 22))
+			return false;
+	}
+	return lhs == lhs && lhs != rhs && lhs.compare_greater_equal(rhs).bits() == expected &&
+		lhs.compare_less_equal(rhs).bits() == less.bits();
+#endif
+}
+
 #define SIMDLIB_ASSERT_REGISTER_CONSTEXPR(element_type) \
-	static_assert(register_constexpr_contract<element_type, SIMDLIB_REGISTER_TEST_WIDTH>())
+	static_assert(register_constexpr_contract<element_type, SIMDLIB_REGISTER_TEST_WIDTH>()); \
+	static_assert(register_mask_constexpr_contract<element_type, SIMDLIB_REGISTER_TEST_WIDTH>())
 
 SIMDLIB_ASSERT_REGISTER_CONSTEXPR(std::int8_t);
 SIMDLIB_ASSERT_REGISTER_CONSTEXPR(std::uint8_t);

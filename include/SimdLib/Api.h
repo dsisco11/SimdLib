@@ -34,6 +34,7 @@ enum class comparison_operation
 	equivalent,
 	unordered,
 };
+
 } // namespace Detail
 
 template <std::size_t register_width, class element_t>
@@ -699,10 +700,15 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param rhs Right-hand input register.
 	 *  @return Register containing the bitwise AND result.
 	 */
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL bitwise_and(const vector_t lhs, const vector_t rhs) noexcept
+	SIMDLIB_FORCE_INLINE constexpr static vector_t VECTORCALL bitwise_and(
+		const vector_t lhs,
+		const vector_t rhs) noexcept
 		requires requires(vector_t left, vector_t right) { impl::bitwise_and(left, right); }
 	{
-		return impl::bitwise_and(lhs, rhs);
+		if (std::is_constant_evaluated())
+			return bitwise_and_constexpr(lhs, rhs);
+		else
+			return impl::bitwise_and(lhs, rhs);
 	}
 
 	/** @brief Computes a bitwise OR of two registers.
@@ -710,10 +716,15 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param rhs Right-hand input register.
 	 *  @return Register containing the bitwise OR result.
 	 */
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL bitwise_or(const vector_t lhs, const vector_t rhs) noexcept
+	SIMDLIB_FORCE_INLINE constexpr static vector_t VECTORCALL bitwise_or(
+		const vector_t lhs,
+		const vector_t rhs) noexcept
 		requires requires(vector_t left, vector_t right) { impl::bitwise_or(left, right); }
 	{
-		return impl::bitwise_or(lhs, rhs);
+		if (std::is_constant_evaluated())
+			return bitwise_or_constexpr(lhs, rhs);
+		else
+			return impl::bitwise_or(lhs, rhs);
 	}
 
 	/** @brief Computes a bitwise XOR of two registers.
@@ -721,10 +732,15 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param rhs Right-hand input register.
 	 *  @return Register containing the bitwise XOR result.
 	 */
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL bitwise_xor(const vector_t lhs, const vector_t rhs) noexcept
+	SIMDLIB_FORCE_INLINE constexpr static vector_t VECTORCALL bitwise_xor(
+		const vector_t lhs,
+		const vector_t rhs) noexcept
 		requires requires(vector_t left, vector_t right) { impl::bitwise_xor(left, right); }
 	{
-		return impl::bitwise_xor(lhs, rhs);
+		if (std::is_constant_evaluated())
+			return bitwise_xor_constexpr(lhs, rhs);
+		else
+			return impl::bitwise_xor(lhs, rhs);
 	}
 
 	/** @brief Computes a bitwise AND-NOT of two registers.
@@ -732,25 +748,59 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param rhs Right-hand input register.
 	 *  @return Register containing the bitwise AND-NOT result.
 	 */
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL bitwise_andnot(const vector_t lhs, const vector_t rhs) noexcept
+	SIMDLIB_FORCE_INLINE constexpr static vector_t VECTORCALL bitwise_andnot(
+		const vector_t lhs,
+		const vector_t rhs) noexcept
 		requires requires(vector_t left, vector_t right) { impl::bitwise_andnot(left, right); }
 	{
-		return impl::bitwise_andnot(lhs, rhs);
+		if (std::is_constant_evaluated())
+			return bitwise_andnot_constexpr(lhs, rhs);
+		else
+			return impl::bitwise_andnot(lhs, rhs);
 	}
 
 	/** @brief Computes a bitwise NOT of a register.
 	 *  @param lhs Input register.
 	 *  @return Register containing the bitwise NOT result.
 	 */
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL bitwise_not(const vector_t lhs) noexcept
+	SIMDLIB_FORCE_INLINE constexpr static vector_t VECTORCALL bitwise_not(const vector_t lhs) noexcept
 		requires requires(vector_t value) { impl::bitwise_not(value); }
 	{
-		return impl::bitwise_not(lhs);
+		if (std::is_constant_evaluated())
+			return bitwise_not_constexpr(lhs);
+		else
+			return impl::bitwise_not(lhs);
+	}
+
+#pragma endregion
+
+#pragma region Selection Operations
+
+	/** @brief Selects lanes from two registers using a canonical native predicate.
+	 *  @param condition Canonical predicate register containing all-zero or all-one lanes.
+	 *  @param when_true Register selected where the corresponding predicate lane is true.
+	 *  @param when_false Register selected where the corresponding predicate lane is false.
+	 *  @return Register containing the selected lanes without reducing the predicate.
+	 */
+	SIMDLIB_FORCE_INLINE constexpr static vector_t VECTORCALL select(
+		const vector_t condition,
+		const vector_t when_true,
+		const vector_t when_false) noexcept
+		requires requires(vector_t mask, vector_t true_value, vector_t false_value) {
+			impl::select(mask, true_value, false_value);
+		}
+	{
+		if (std::is_constant_evaluated())
+			return select_constexpr(condition, when_true, when_false);
+		else
+			return impl::select(condition, when_true, when_false);
 	}
 
 #pragma endregion
 
 #pragma region Comparison Operations
+
+#pragma region Mask Reductions
 
 	/** @brief Returns a mask composed from the most significant bit of each byte in the register.
 	 *  @param lhs Input register.
@@ -780,84 +830,240 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 		}
 	}
 
-	/** @brief Computes an equality comparison mask for two registers.
+#pragma endregion
+
+#pragma region Native Predicate Comparisons
+
+	/** @brief Compares corresponding lanes for ordered equality without reducing the result.
 	 *  @param lhs Left-hand input register.
 	 *  @param rhs Right-hand input register.
-	 *  @return Mask with bits set where corresponding elements are equal.
+	 *  @return Native predicate register containing an all-one true lane or an all-zero false lane.
 	 */
-	SIMDLIB_FORCE_INLINE constexpr static mask_t VECTORCALL cmp_eq(const vector_t lhs, const vector_t rhs) noexcept
+	SIMDLIB_FORCE_INLINE constexpr static vector_t VECTORCALL compare_equal(
+		const vector_t lhs,
+		const vector_t rhs) noexcept
 	{
 		if (std::is_constant_evaluated())
-			return comparison_mask_constexpr<Detail::comparison_operation::equivalent>(lhs, rhs);
+			return compare_equal_constexpr(lhs, rhs);
 		else
-		{
-			return impl::movemask(impl::cmpeq(lhs, rhs));
-		}
+			return impl::cmpeq(lhs, rhs);
 	}
 
-	/** @brief Computes a byte-granular equality comparison mask for two registers of this SIMD shape.
+	/** @brief Compares corresponding lanes for greater-than ordering without reducing the result.
 	 *  @param lhs Left-hand input register.
 	 *  @param rhs Right-hand input register.
-	 *  @return Mask with bits set where the underlying compare produced all-one bytes.
+	 *  @return Native predicate register containing an all-one true lane or an all-zero false lane.
+	 */
+	SIMDLIB_FORCE_INLINE constexpr static vector_t VECTORCALL compare_greater(
+		const vector_t lhs,
+		const vector_t rhs) noexcept
+	{
+		if (std::is_constant_evaluated())
+			return compare_greater_constexpr(lhs, rhs);
+		else
+			return impl::cmpgt(lhs, rhs);
+	}
+
+	/** @brief Compares corresponding lanes for greater-than-or-equal ordering without reducing the result.
+	 *  @param lhs Left-hand input register.
+	 *  @param rhs Right-hand input register.
+	 *  @return Native predicate register containing an all-one true lane or an all-zero false lane.
+	 */
+	SIMDLIB_FORCE_INLINE constexpr static vector_t VECTORCALL compare_greater_equal(
+		const vector_t lhs,
+		const vector_t rhs) noexcept
+	{
+		if (std::is_constant_evaluated())
+			return compare_greater_equal_constexpr(lhs, rhs);
+		else
+			return bitwise_or(compare_equal(lhs, rhs), compare_greater(lhs, rhs));
+	}
+
+	/** @brief Compares corresponding lanes for less-than ordering without reducing the result.
+	 *  @param lhs Left-hand input register.
+	 *  @param rhs Right-hand input register.
+	 *  @return Native predicate register containing an all-one true lane or an all-zero false lane.
+	 */
+	SIMDLIB_FORCE_INLINE constexpr static vector_t VECTORCALL compare_less(
+		const vector_t lhs,
+		const vector_t rhs) noexcept
+	{
+		if (std::is_constant_evaluated())
+			return compare_less_constexpr(lhs, rhs);
+		else
+			return impl::cmpgt(rhs, lhs);
+	}
+
+	/** @brief Compares corresponding lanes for less-than-or-equal ordering without reducing the result.
+	 *  @param lhs Left-hand input register.
+	 *  @param rhs Right-hand input register.
+	 *  @return Native predicate register containing an all-one true lane or an all-zero false lane.
+	 */
+	SIMDLIB_FORCE_INLINE constexpr static vector_t VECTORCALL compare_less_equal(
+		const vector_t lhs,
+		const vector_t rhs) noexcept
+	{
+		if (std::is_constant_evaluated())
+			return compare_less_equal_constexpr(lhs, rhs);
+		else
+			return bitwise_or(compare_equal(lhs, rhs), compare_less(lhs, rhs));
+	}
+
+#pragma endregion
+
+#pragma region Byte Comparison Masks
+
+	/** @brief Reduces an equality comparison to a byte-granular scalar mask.
+	 *  @param lhs Left-hand input register.
+	 *  @param rhs Right-hand input register.
+	 *  @return Mask with one set bit for every all-one byte produced by the comparison.
 	 */
 	SIMDLIB_FORCE_INLINE constexpr static mask_t VECTORCALL cmp_eq_mask(const vector_t lhs, const vector_t rhs) noexcept
 	{
-		if (std::is_constant_evaluated())
-			return comparison_mask_constexpr<Detail::comparison_operation::equivalent>(lhs, rhs);
-		else
-		{
-			return impl::movemask(impl::cmpeq(lhs, rhs));
-		}
+		return movemask(compare_equal(lhs, rhs));
 	}
 
-	/** @brief Computes a greater-than comparison mask for two registers.
+	/** @brief Reduces a greater-than comparison to a byte-granular scalar mask.
 	 *  @param lhs Left-hand input register.
 	 *  @param rhs Right-hand input register.
-	 *  @return Mask with bits set where lhs elements are greater than rhs elements.
+	 *  @return Mask with one set bit for every all-one byte produced by the comparison.
 	 */
+	SIMDLIB_FORCE_INLINE constexpr static mask_t VECTORCALL cmp_gt_mask(const vector_t lhs, const vector_t rhs) noexcept
+	{
+		return movemask(compare_greater(lhs, rhs));
+	}
+
+	/** @brief Reduces a greater-than-or-equal comparison to a byte-granular scalar mask.
+	 *  @param lhs Left-hand input register.
+	 *  @param rhs Right-hand input register.
+	 *  @return Mask with one set bit for every all-one byte produced by the comparison.
+	 */
+	SIMDLIB_FORCE_INLINE constexpr static mask_t VECTORCALL cmp_ge_mask(const vector_t lhs, const vector_t rhs) noexcept
+	{
+		return movemask(compare_greater_equal(lhs, rhs));
+	}
+
+	/** @brief Reduces a less-than comparison to a byte-granular scalar mask.
+	 *  @param lhs Left-hand input register.
+	 *  @param rhs Right-hand input register.
+	 *  @return Mask with one set bit for every all-one byte produced by the comparison.
+	 */
+	SIMDLIB_FORCE_INLINE constexpr static mask_t VECTORCALL cmp_lt_mask(const vector_t lhs, const vector_t rhs) noexcept
+	{
+		return movemask(compare_less(lhs, rhs));
+	}
+
+	/** @brief Reduces a less-than-or-equal comparison to a byte-granular scalar mask.
+	 *  @param lhs Left-hand input register.
+	 *  @param rhs Right-hand input register.
+	 *  @return Mask with one set bit for every all-one byte produced by the comparison.
+	 */
+	SIMDLIB_FORCE_INLINE constexpr static mask_t VECTORCALL cmp_le_mask(const vector_t lhs, const vector_t rhs) noexcept
+	{
+		return movemask(compare_less_equal(lhs, rhs));
+	}
+
+#pragma endregion
+
+#pragma region Slim Comparison Masks
+
+	/** @brief Reduces an equality comparison to one scalar bit per logical lane.
+	 *  @param lhs Left-hand input register.
+	 *  @param rhs Right-hand input register.
+	 *  @return Mask with one set bit for every true predicate lane.
+	 */
+	SIMDLIB_FORCE_INLINE constexpr static mask_t VECTORCALL cmp_eq_slim(const vector_t lhs, const vector_t rhs) noexcept
+	{
+		return movemask_slim(compare_equal(lhs, rhs));
+	}
+
+	/** @brief Reduces a greater-than comparison to one scalar bit per logical lane.
+	 *  @param lhs Left-hand input register.
+	 *  @param rhs Right-hand input register.
+	 *  @return Mask with one set bit for every true predicate lane.
+	 */
+	SIMDLIB_FORCE_INLINE constexpr static mask_t VECTORCALL cmp_gt_slim(const vector_t lhs, const vector_t rhs) noexcept
+	{
+		return movemask_slim(compare_greater(lhs, rhs));
+	}
+
+	/** @brief Reduces a greater-than-or-equal comparison to one scalar bit per logical lane.
+	 *  @param lhs Left-hand input register.
+	 *  @param rhs Right-hand input register.
+	 *  @return Mask with one set bit for every true predicate lane.
+	 */
+	SIMDLIB_FORCE_INLINE constexpr static mask_t VECTORCALL cmp_ge_slim(const vector_t lhs, const vector_t rhs) noexcept
+	{
+		return movemask_slim(compare_greater_equal(lhs, rhs));
+	}
+
+	/** @brief Reduces a less-than comparison to one scalar bit per logical lane.
+	 *  @param lhs Left-hand input register.
+	 *  @param rhs Right-hand input register.
+	 *  @return Mask with one set bit for every true predicate lane.
+	 */
+	SIMDLIB_FORCE_INLINE constexpr static mask_t VECTORCALL cmp_lt_slim(const vector_t lhs, const vector_t rhs) noexcept
+	{
+		return movemask_slim(compare_less(lhs, rhs));
+	}
+
+	/** @brief Reduces a less-than-or-equal comparison to one scalar bit per logical lane.
+	 *  @param lhs Left-hand input register.
+	 *  @param rhs Right-hand input register.
+	 *  @return Mask with one set bit for every true predicate lane.
+	 */
+	SIMDLIB_FORCE_INLINE constexpr static mask_t VECTORCALL cmp_le_slim(const vector_t lhs, const vector_t rhs) noexcept
+	{
+		return movemask_slim(compare_less_equal(lhs, rhs));
+	}
+
+#pragma endregion
+
+#pragma region Deprecated Comparison Masks
+
+	/** @brief Legacy byte-granular equality mask spelling.
+	 *  @deprecated Use cmp_eq_mask() instead.
+	 */
+	[[deprecated("Use cmp_eq_mask() instead.")]]
+	SIMDLIB_FORCE_INLINE constexpr static mask_t VECTORCALL cmp_eq(const vector_t lhs, const vector_t rhs) noexcept
+	{
+		return cmp_eq_mask(lhs, rhs);
+	}
+
+	/** @brief Legacy byte-granular greater-than mask spelling.
+	 *  @deprecated Use cmp_gt_mask() instead.
+	 */
+	[[deprecated("Use cmp_gt_mask() instead.")]]
 	SIMDLIB_FORCE_INLINE constexpr static mask_t VECTORCALL cmp_gt(const vector_t lhs, const vector_t rhs) noexcept
 	{
-		if (std::is_constant_evaluated())
-			return comparison_mask_constexpr<Detail::comparison_operation::greater>(lhs, rhs);
-		else
-		{
-			return impl::movemask(impl::cmpgt(lhs, rhs));
-		}
+		return cmp_gt_mask(lhs, rhs);
 	}
 
-	/** @brief Computes a greater-than-or-equal comparison mask for two registers.
-	 *  @param lhs Left-hand input register.
-	 *  @param rhs Right-hand input register.
-	 *  @return Mask with bits set where lhs elements are greater than or equal to rhs elements.
+	/** @brief Legacy byte-granular greater-than-or-equal mask spelling.
+	 *  @deprecated Use cmp_ge_mask() instead.
 	 */
+	[[deprecated("Use cmp_ge_mask() instead.")]]
 	SIMDLIB_FORCE_INLINE constexpr static mask_t VECTORCALL cmp_ge(const vector_t lhs, const vector_t rhs) noexcept
 	{
-		return cmp_eq(lhs, rhs) | cmp_gt(lhs, rhs);
+		return cmp_ge_mask(lhs, rhs);
 	}
 
-	/** @brief Computes a less-than comparison mask for two registers.
-	 *  @param lhs Left-hand input register.
-	 *  @param rhs Right-hand input register.
-	 *  @return Mask with bits set where lhs elements are less than rhs elements.
+	/** @brief Legacy byte-granular less-than mask spelling.
+	 *  @deprecated Use cmp_lt_mask() instead.
 	 */
+	[[deprecated("Use cmp_lt_mask() instead.")]]
 	SIMDLIB_FORCE_INLINE constexpr static mask_t VECTORCALL cmp_lt(const vector_t lhs, const vector_t rhs) noexcept
 	{
-		if (std::is_constant_evaluated())
-			return comparison_mask_constexpr<Detail::comparison_operation::less>(lhs, rhs);
-		else
-		{
-			return impl::movemask(impl::cmpgt(rhs, lhs));
-		}
+		return cmp_lt_mask(lhs, rhs);
 	}
 
-	/** @brief Computes a less-than-or-equal comparison mask for two registers.
-	 *  @param lhs Left-hand input register.
-	 *  @param rhs Right-hand input register.
-	 *  @return Mask with bits set where lhs elements are less than or equal to rhs elements.
+	/** @brief Legacy byte-granular less-than-or-equal mask spelling.
+	 *  @deprecated Use cmp_le_mask() instead.
 	 */
+	[[deprecated("Use cmp_le_mask() instead.")]]
 	SIMDLIB_FORCE_INLINE constexpr static mask_t VECTORCALL cmp_le(const vector_t lhs, const vector_t rhs) noexcept
 	{
-		return cmp_eq(lhs, rhs) | cmp_lt(lhs, rhs);
+		return cmp_le_mask(lhs, rhs);
 	}
 
 #pragma endregion
@@ -929,10 +1135,15 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @return Register with lane `index` replaced.
 	 */
 	template <std::size_t index>
-	SIMDLIB_FORCE_INLINE static vector_t VECTORCALL insert(const vector_t lhs, const element_t rhs) noexcept
+	SIMDLIB_FORCE_INLINE constexpr static vector_t VECTORCALL insert(
+		const vector_t lhs,
+		const element_t rhs) noexcept
 		requires(index < element_count)
 	{
-		return impl::template insert<static_cast<int>(index)>(lhs, rhs);
+		if (std::is_constant_evaluated())
+			return impl::template insert_constexpr<static_cast<int>(index)>(lhs, rhs);
+		else
+			return impl::template insert<static_cast<int>(index)>(lhs, rhs);
 	}
 
 	/** @brief Inserts a lane or subvalue into a register.
@@ -1424,6 +1635,123 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 
 #pragma region Internal
   protected:
+	/** @brief Applies bitwise AND during constant evaluation.
+	 *  @param lhs Left-hand input register represented in constant evaluation.
+	 *  @param rhs Right-hand input register represented in constant evaluation.
+	 *  @return Register containing the bitwise intersection.
+	 */
+	constexpr static vector_t bitwise_and_constexpr(const vector_t lhs, const vector_t rhs) noexcept
+	{
+		const auto left = to_array(lhs);
+		const auto right = to_array(rhs);
+		std::array<element_t, element_count> result{};
+		using unsigned_element_t = select_unsigned_integer_t<sizeof(element_t) * 8>;
+		for (std::size_t lane = 0; lane < element_count; ++lane)
+		{
+			const auto left_bits = std::bit_cast<unsigned_element_t>(left[lane]);
+			const auto right_bits = std::bit_cast<unsigned_element_t>(right[lane]);
+			result[lane] = std::bit_cast<element_t>(
+				static_cast<unsigned_element_t>(left_bits & right_bits));
+		}
+		return construct(result);
+	}
+
+	/** @brief Applies bitwise OR during constant evaluation.
+	 *  @param lhs Left-hand input register represented in constant evaluation.
+	 *  @param rhs Right-hand input register represented in constant evaluation.
+	 *  @return Register containing the bitwise union.
+	 */
+	constexpr static vector_t bitwise_or_constexpr(const vector_t lhs, const vector_t rhs) noexcept
+	{
+		const auto left = to_array(lhs);
+		const auto right = to_array(rhs);
+		std::array<element_t, element_count> result{};
+		using unsigned_element_t = select_unsigned_integer_t<sizeof(element_t) * 8>;
+		for (std::size_t lane = 0; lane < element_count; ++lane)
+		{
+			const auto left_bits = std::bit_cast<unsigned_element_t>(left[lane]);
+			const auto right_bits = std::bit_cast<unsigned_element_t>(right[lane]);
+			result[lane] = std::bit_cast<element_t>(
+				static_cast<unsigned_element_t>(left_bits | right_bits));
+		}
+		return construct(result);
+	}
+
+	/** @brief Applies bitwise XOR during constant evaluation.
+	 *  @param lhs Left-hand input register represented in constant evaluation.
+	 *  @param rhs Right-hand input register represented in constant evaluation.
+	 *  @return Register containing the bitwise exclusive union.
+	 */
+	constexpr static vector_t bitwise_xor_constexpr(const vector_t lhs, const vector_t rhs) noexcept
+	{
+		const auto left = to_array(lhs);
+		const auto right = to_array(rhs);
+		std::array<element_t, element_count> result{};
+		using unsigned_element_t = select_unsigned_integer_t<sizeof(element_t) * 8>;
+		for (std::size_t lane = 0; lane < element_count; ++lane)
+		{
+			const auto left_bits = std::bit_cast<unsigned_element_t>(left[lane]);
+			const auto right_bits = std::bit_cast<unsigned_element_t>(right[lane]);
+			result[lane] = std::bit_cast<element_t>(
+				static_cast<unsigned_element_t>(left_bits ^ right_bits));
+		}
+		return construct(result);
+	}
+
+	/** @brief Applies bitwise AND-NOT during constant evaluation.
+	 *  @param lhs Left-hand input register inverted before intersection.
+	 *  @param rhs Right-hand input register represented in constant evaluation.
+	 *  @return Register containing the intersection of inverted lhs and rhs.
+	 */
+	constexpr static vector_t bitwise_andnot_constexpr(const vector_t lhs, const vector_t rhs) noexcept
+	{
+		const auto left = to_array(lhs);
+		const auto right = to_array(rhs);
+		std::array<element_t, element_count> result{};
+		using unsigned_element_t = select_unsigned_integer_t<sizeof(element_t) * 8>;
+		for (std::size_t lane = 0; lane < element_count; ++lane)
+		{
+			const auto left_bits = std::bit_cast<unsigned_element_t>(left[lane]);
+			const auto right_bits = std::bit_cast<unsigned_element_t>(right[lane]);
+			result[lane] = std::bit_cast<element_t>(
+				static_cast<unsigned_element_t>(~left_bits & right_bits));
+		}
+		return construct(result);
+	}
+
+	/** @brief Applies bitwise inversion during constant evaluation.
+	 *  @param value Input register represented in constant evaluation.
+	 *  @return Register containing the bitwise inverse.
+	 */
+	constexpr static vector_t bitwise_not_constexpr(const vector_t value) noexcept
+	{
+		const auto lanes = to_array(value);
+		std::array<element_t, element_count> result{};
+		using unsigned_element_t = select_unsigned_integer_t<sizeof(element_t) * 8>;
+		for (std::size_t lane = 0; lane < element_count; ++lane)
+		{
+			const auto bits = std::bit_cast<unsigned_element_t>(lanes[lane]);
+			result[lane] = std::bit_cast<element_t>(static_cast<unsigned_element_t>(~bits));
+		}
+		return construct(result);
+	}
+
+	/** @brief Selects lanes using a canonical predicate during constant evaluation.
+	 *  @param condition Canonical predicate register containing all-zero or all-one lanes.
+	 *  @param when_true Register selected where the corresponding predicate lane is true.
+	 *  @param when_false Register selected where the corresponding predicate lane is false.
+	 *  @return Register containing the selected lanes.
+	 */
+	constexpr static vector_t select_constexpr(
+		const vector_t condition,
+		const vector_t when_true,
+		const vector_t when_false) noexcept
+	{
+		return bitwise_or(
+			bitwise_and(condition, when_true),
+			bitwise_andnot(condition, when_false));
+	}
+
 	/** @brief Converts a register to lane storage during constant evaluation.
 	 *  @param vector Register represented in constant evaluation.
 	 *  @return Array containing the register elements in lane order.
@@ -1492,32 +1820,76 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 		return result;
 	}
 
-	/** @brief Computes a scalar comparison mask during constant evaluation.
-	 *  @tparam operation Comparison ordering applied to corresponding lanes.
-	 *  @param lhs Left-hand input register represented in constant evaluation.
-	 *  @param rhs Right-hand input register represented in constant evaluation.
-	 *  @return Byte-granular scalar mask for lanes satisfying the comparison.
-	 */
-	template <Detail::comparison_operation operation>
-	constexpr static mask_t comparison_mask_constexpr(const vector_t lhs, const vector_t rhs) noexcept
+	/** @brief Returns the canonical all-one predicate value for one lane. */
+	[[nodiscard]] constexpr static element_t comparison_true_lane() noexcept
 	{
-		const auto lhsValues = to_array(lhs);
-		const auto rhsValues = to_array(rhs);
-		mask_t result = 0;
-		constexpr mask_t laneMask = static_cast<mask_t>((mask_t{1} << sizeof(element_t)) - 1);
+		using unsigned_element_t = select_unsigned_integer_t<sizeof(element_t) * 8>;
+		return std::bit_cast<element_t>(std::numeric_limits<unsigned_element_t>::max());
+	}
+
+	/** @brief Compares lanes for equality during constant evaluation. */
+	[[nodiscard]] constexpr static vector_t compare_equal_constexpr(
+		const vector_t lhs,
+		const vector_t rhs) noexcept
+	{
+		const auto left = to_array(lhs);
+		const auto right = to_array(rhs);
+		std::array<element_t, element_count> result{};
 		for (std::size_t index = 0; index < element_count; ++index)
-		{
-			bool matches = false;
-			if constexpr (operation == Detail::comparison_operation::equivalent)
-				matches = lhsValues[index] == rhsValues[index];
-			else if constexpr (operation == Detail::comparison_operation::greater)
-				matches = lhsValues[index] > rhsValues[index];
-			else if constexpr (operation == Detail::comparison_operation::less)
-				matches = lhsValues[index] < rhsValues[index];
-			if (matches)
-				result |= laneMask << (index * sizeof(element_t));
-		}
-		return result;
+			result[index] = left[index] == right[index] ? comparison_true_lane() : element_t{};
+		return construct(result);
+	}
+
+	/** @brief Compares lanes for greater-than ordering during constant evaluation. */
+	[[nodiscard]] constexpr static vector_t compare_greater_constexpr(
+		const vector_t lhs,
+		const vector_t rhs) noexcept
+	{
+		const auto left = to_array(lhs);
+		const auto right = to_array(rhs);
+		std::array<element_t, element_count> result{};
+		for (std::size_t index = 0; index < element_count; ++index)
+			result[index] = left[index] > right[index] ? comparison_true_lane() : element_t{};
+		return construct(result);
+	}
+
+	/** @brief Compares lanes for greater-than-or-equal ordering during constant evaluation. */
+	[[nodiscard]] constexpr static vector_t compare_greater_equal_constexpr(
+		const vector_t lhs,
+		const vector_t rhs) noexcept
+	{
+		const auto left = to_array(lhs);
+		const auto right = to_array(rhs);
+		std::array<element_t, element_count> result{};
+		for (std::size_t index = 0; index < element_count; ++index)
+			result[index] = left[index] >= right[index] ? comparison_true_lane() : element_t{};
+		return construct(result);
+	}
+
+	/** @brief Compares lanes for less-than ordering during constant evaluation. */
+	[[nodiscard]] constexpr static vector_t compare_less_constexpr(
+		const vector_t lhs,
+		const vector_t rhs) noexcept
+	{
+		const auto left = to_array(lhs);
+		const auto right = to_array(rhs);
+		std::array<element_t, element_count> result{};
+		for (std::size_t index = 0; index < element_count; ++index)
+			result[index] = left[index] < right[index] ? comparison_true_lane() : element_t{};
+		return construct(result);
+	}
+
+	/** @brief Compares lanes for less-than-or-equal ordering during constant evaluation. */
+	[[nodiscard]] constexpr static vector_t compare_less_equal_constexpr(
+		const vector_t lhs,
+		const vector_t rhs) noexcept
+	{
+		const auto left = to_array(lhs);
+		const auto right = to_array(rhs);
+		std::array<element_t, element_count> result{};
+		for (std::size_t index = 0; index < element_count; ++index)
+			result[index] = left[index] <= right[index] ? comparison_true_lane() : element_t{};
+		return construct(result);
 	}
 
 	/** @brief Left-shifts integer lanes during constant evaluation.

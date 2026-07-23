@@ -89,7 +89,7 @@ SimdLib Test Coverage Expansion:
     ☒ Verify the move does not change public declarations, constraints, diagnostics for invalid instantiations, ABI/layout, or runtime behavior.
     ☒ Create constexpr contract helpers that can be reused by compile-only probes and runtime parity tests without relying on runtime coverage counters for constant evaluation.
     ☒ Expand `Api` `static_assert`/`consteval` coverage for `setzero`, `setr`, `construct`, `set1`, `to_array`, `get_element`, and `set_element` at 128 and 256 bits.
-    ☒ Expand constexpr comparison coverage for `cmp_eq`, `cmp_eq_mask`, `cmp_gt`, `cmp_ge`, `cmp_lt`, `cmp_le`, and the internal comparison operation choices reached by them.
+    ☒ Expand constexpr comparison coverage for native `compare_*`, byte-granular `cmp_*_mask`, lane-granular `cmp_*_slim`, and the internal comparison operation choices reached by them.
     ☒ Expand constexpr `movemask` and `movemask_slim` beyond the current representative types to signed, unsigned, float, and double lane families at both widths.
     ☒ Add constexpr `min_position`, `max_position`, lane-shift, and whole-register-shift boundary checks.
     ☒ Add runtime parity checks constructed from volatile inputs so optimized runtime paths cannot be satisfied solely by compile-time folding.

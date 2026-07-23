@@ -119,6 +119,30 @@ template <std::size_t Width, class Element, class Predicate>
 }
 
 /**
+ * @brief Builds the lane-granular mask expected from a scalar comparison.
+ * @tparam Width SIMD register width in bits.
+ * @tparam Element SIMD lane type.
+ * @tparam Predicate Scalar comparison predicate type.
+ * @param lhs Left lane values.
+ * @param rhs Right lane values.
+ * @param predicate Scalar predicate applied to each lane pair.
+ * @return Mask containing one bit per matching lane.
+ */
+template <std::size_t Width, class Element, class Predicate>
+[[nodiscard]] constexpr auto comparison_slim_mask(
+	const std::array<Element, Api<Width, Element>::element_count>& lhs,
+	const std::array<Element, Api<Width, Element>::element_count>& rhs,
+	Predicate predicate) noexcept
+{
+	using simd = Api<Width, Element>;
+	typename simd::mask_t result = 0;
+	for (std::size_t index = 0; index < lhs.size(); ++index)
+		if (predicate(lhs[index], rhs[index]))
+			result |= typename simd::mask_t{1} << index;
+	return result;
+}
+
+/**
  * @brief Verifies every public constexpr comparison helper for one SIMD shape.
  * @tparam Width SIMD register width in bits.
  * @tparam Element SIMD lane type.
@@ -135,9 +159,84 @@ template <std::size_t Width, class Element>
 	constexpr auto equal = comparison_mask<Width>(lhsValues, rhsValues, [](const Element lhsValue, const Element rhsValue) { return lhsValue == rhsValue; });
 	constexpr auto greater = comparison_mask<Width>(lhsValues, rhsValues, [](const Element lhsValue, const Element rhsValue) { return lhsValue > rhsValue; });
 	constexpr auto less = comparison_mask<Width>(lhsValues, rhsValues, [](const Element lhsValue, const Element rhsValue) { return lhsValue < rhsValue; });
-	return simd::cmp_eq(lhs, rhs) == equal && simd::cmp_eq_mask(lhs, rhs) == equal &&
-		simd::cmp_gt(lhs, rhs) == greater && simd::cmp_ge(lhs, rhs) == (equal | greater) &&
-		simd::cmp_lt(lhs, rhs) == less && simd::cmp_le(lhs, rhs) == (equal | less);
+	constexpr auto equalSlim = comparison_slim_mask<Width>(lhsValues, rhsValues, [](const Element lhsValue, const Element rhsValue) { return lhsValue == rhsValue; });
+	constexpr auto greaterSlim = comparison_slim_mask<Width>(lhsValues, rhsValues, [](const Element lhsValue, const Element rhsValue) { return lhsValue > rhsValue; });
+	constexpr auto lessSlim = comparison_slim_mask<Width>(lhsValues, rhsValues, [](const Element lhsValue, const Element rhsValue) { return lhsValue < rhsValue; });
+	using unsigned_element_t = select_unsigned_integer_t<sizeof(Element) * 8>;
+	constexpr Element trueLane = std::bit_cast<Element>(std::numeric_limits<unsigned_element_t>::max());
+	std::array<Element, simd::element_count> equalLanes{};
+	std::array<Element, simd::element_count> greaterLanes{};
+	std::array<Element, simd::element_count> greaterEqualLanes{};
+	std::array<Element, simd::element_count> lessLanes{};
+	std::array<Element, simd::element_count> lessEqualLanes{};
+	std::array<Element, simd::element_count> selectedLanes{};
+	for (std::size_t index = 0; index < lhsValues.size(); ++index)
+	{
+		equalLanes[index] = lhsValues[index] == rhsValues[index] ? trueLane : Element{};
+		greaterLanes[index] = lhsValues[index] > rhsValues[index] ? trueLane : Element{};
+		greaterEqualLanes[index] = lhsValues[index] >= rhsValues[index] ? trueLane : Element{};
+		lessLanes[index] = lhsValues[index] < rhsValues[index] ? trueLane : Element{};
+		lessEqualLanes[index] = lhsValues[index] <= rhsValues[index] ? trueLane : Element{};
+		selectedLanes[index] = lhsValues[index] == rhsValues[index] ? lhsValues[index] : rhsValues[index];
+	}
+	const auto matchesObjectRepresentation = [](const auto native, const auto &expected) constexpr noexcept {
+		return std::bit_cast<std::array<std::uint8_t, Width / 8>>(simd::to_array(native)) ==
+			std::bit_cast<std::array<std::uint8_t, Width / 8>>(expected);
+	};
+	return matchesObjectRepresentation(simd::compare_equal(lhs, rhs), equalLanes) &&
+		matchesObjectRepresentation(simd::compare_greater(lhs, rhs), greaterLanes) &&
+		matchesObjectRepresentation(simd::compare_greater_equal(lhs, rhs), greaterEqualLanes) &&
+		matchesObjectRepresentation(simd::compare_less(lhs, rhs), lessLanes) &&
+		matchesObjectRepresentation(simd::compare_less_equal(lhs, rhs), lessEqualLanes) &&
+		matchesObjectRepresentation(simd::select(simd::compare_equal(lhs, rhs), lhs, rhs), selectedLanes) &&
+		simd::cmp_eq_mask(lhs, rhs) == equal && simd::cmp_gt_mask(lhs, rhs) == greater &&
+		simd::cmp_ge_mask(lhs, rhs) == (equal | greater) && simd::cmp_lt_mask(lhs, rhs) == less &&
+		simd::cmp_le_mask(lhs, rhs) == (equal | less) && simd::cmp_eq_slim(lhs, rhs) == equalSlim &&
+		simd::cmp_gt_slim(lhs, rhs) == greaterSlim && simd::cmp_ge_slim(lhs, rhs) == (equalSlim | greaterSlim) &&
+		simd::cmp_lt_slim(lhs, rhs) == lessSlim && simd::cmp_le_slim(lhs, rhs) == (equalSlim | lessSlim);
+}
+
+/**
+ * @brief Verifies every public constexpr bitwise operation for one SIMD shape.
+ * @tparam Width SIMD register width in bits.
+ * @tparam Element SIMD lane type.
+ * @return True when all operations preserve the expected object-representation bits.
+ */
+template <std::size_t Width, class Element>
+[[nodiscard]] consteval bool bitwise_contract() noexcept
+{
+	using simd = Api<Width, Element>;
+	std::array<std::uint8_t, Width / 8> left_bytes{};
+	std::array<std::uint8_t, Width / 8> right_bytes{};
+	std::array<std::uint8_t, Width / 8> expected_and{};
+	std::array<std::uint8_t, Width / 8> expected_or{};
+	std::array<std::uint8_t, Width / 8> expected_xor{};
+	std::array<std::uint8_t, Width / 8> expected_andnot{};
+	std::array<std::uint8_t, Width / 8> expected_not{};
+	for (std::size_t byte = 0; byte < left_bytes.size(); ++byte)
+	{
+		left_bytes[byte] = static_cast<std::uint8_t>(byte * 37u + 0x35u);
+		right_bytes[byte] = static_cast<std::uint8_t>(byte * 19u + 0xA6u);
+		expected_and[byte] = left_bytes[byte] & right_bytes[byte];
+		expected_or[byte] = left_bytes[byte] | right_bytes[byte];
+		expected_xor[byte] = left_bytes[byte] ^ right_bytes[byte];
+		expected_andnot[byte] = static_cast<std::uint8_t>(~left_bytes[byte]) & right_bytes[byte];
+		expected_not[byte] = static_cast<std::uint8_t>(~left_bytes[byte]);
+	}
+	const auto lhs = simd::construct(
+		std::bit_cast<std::array<Element, simd::element_count>>(left_bytes));
+	const auto rhs = simd::construct(
+		std::bit_cast<std::array<Element, simd::element_count>>(right_bytes));
+	return std::bit_cast<std::array<std::uint8_t, Width / 8>>(simd::to_array(simd::bitwise_and(lhs, rhs))) ==
+			expected_and &&
+		std::bit_cast<std::array<std::uint8_t, Width / 8>>(simd::to_array(simd::bitwise_or(lhs, rhs))) ==
+			expected_or &&
+		std::bit_cast<std::array<std::uint8_t, Width / 8>>(simd::to_array(simd::bitwise_xor(lhs, rhs))) ==
+			expected_xor &&
+		std::bit_cast<std::array<std::uint8_t, Width / 8>>(simd::to_array(simd::bitwise_andnot(lhs, rhs))) ==
+			expected_andnot &&
+		std::bit_cast<std::array<std::uint8_t, Width / 8>>(simd::to_array(simd::bitwise_not(lhs))) ==
+			expected_not;
 }
 
 /**
@@ -349,8 +448,8 @@ template <std::size_t Width>
 	const auto rhs = simd::construct(rhsValues);
 	return {
 		simd::to_array(simd::shift_left(lhs, 1)),
-		simd::cmp_eq(lhs, rhs),
-		simd::cmp_gt(lhs, rhs),
+		simd::cmp_eq_mask(lhs, rhs),
+		simd::cmp_gt_mask(lhs, rhs),
 		simd::min_position(lhs),
 		simd::max_position(lhs),
 	};

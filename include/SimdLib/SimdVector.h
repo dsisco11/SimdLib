@@ -712,7 +712,7 @@ class SimdVector final
 	 */
 	SIMDLIB_FORCE_INLINE constexpr bool VECTORCALL operator>(vector_t rhs) const noexcept
 	{
-		return mask_has_all(simd::cmp_gt(m_data, rhs));
+		return mask_has_all(simd::cmp_gt_mask(m_data, rhs));
 	}
 
 	/** @brief Returns true if all elements are greater than or equal to the corresponding element in the other vector.
@@ -721,7 +721,7 @@ class SimdVector final
 	 */
 	SIMDLIB_FORCE_INLINE constexpr bool VECTORCALL operator>=(vector_t rhs) const noexcept
 	{
-		return mask_has_all(simd::cmp_ge(m_data, rhs));
+		return mask_has_all(simd::cmp_ge_mask(m_data, rhs));
 	}
 
 	/** @brief Returns true if all elements are less than the corresponding element in the other vector.
@@ -730,7 +730,7 @@ class SimdVector final
 	 */
 	SIMDLIB_FORCE_INLINE constexpr bool VECTORCALL operator<(vector_t rhs) const noexcept
 	{
-		return mask_has_all(simd::cmp_lt(m_data, rhs));
+		return mask_has_all(simd::cmp_lt_mask(m_data, rhs));
 	}
 
 	/** @brief Returns true if all elements are less than or equal to the corresponding element in the other vector.
@@ -739,7 +739,7 @@ class SimdVector final
 	 */
 	SIMDLIB_FORCE_INLINE constexpr bool VECTORCALL operator<=(vector_t rhs) const noexcept
 	{
-		return mask_has_all(simd::cmp_le(m_data, rhs));
+		return mask_has_all(simd::cmp_le_mask(m_data, rhs));
 	}
 
 	/** @brief Returns true if any element equals the corresponding element in the other vector.
@@ -766,7 +766,7 @@ class SimdVector final
 	 */
 	SIMDLIB_FORCE_INLINE constexpr bool VECTORCALL any_greater(vector_t rhs) const noexcept
 	{
-		return mask_has_any(simd::cmp_gt(m_data, rhs));
+		return mask_has_any(simd::cmp_gt_mask(m_data, rhs));
 	}
 
 	/** @brief Returns true if all elements are greater than the corresponding element in the other vector.
@@ -775,7 +775,7 @@ class SimdVector final
 	 */
 	SIMDLIB_FORCE_INLINE constexpr bool VECTORCALL all_greater(vector_t rhs) const noexcept
 	{
-		return mask_has_all(simd::cmp_gt(m_data, rhs));
+		return mask_has_all(simd::cmp_gt_mask(m_data, rhs));
 	}
 
 	/** @brief Returns true if any element is greater than or equal to the corresponding element in the other vector.
@@ -784,7 +784,7 @@ class SimdVector final
 	 */
 	SIMDLIB_FORCE_INLINE constexpr bool VECTORCALL any_greater_equal(vector_t rhs) const noexcept
 	{
-		return mask_has_any(simd::cmp_ge(m_data, rhs));
+		return mask_has_any(simd::cmp_ge_mask(m_data, rhs));
 	}
 
 	/** @brief Returns true if all elements are greater than or equal to the corresponding element in the other vector.
@@ -793,7 +793,7 @@ class SimdVector final
 	 */
 	SIMDLIB_FORCE_INLINE constexpr bool VECTORCALL all_greater_equal(vector_t rhs) const noexcept
 	{
-		return mask_has_all(simd::cmp_ge(m_data, rhs));
+		return mask_has_all(simd::cmp_ge_mask(m_data, rhs));
 	}
 
 	/** @brief Returns true if any element is less than the corresponding element in the other vector.
@@ -802,7 +802,7 @@ class SimdVector final
 	 */
 	SIMDLIB_FORCE_INLINE constexpr bool VECTORCALL any_less(vector_t rhs) const noexcept
 	{
-		return mask_has_any(simd::cmp_lt(m_data, rhs));
+		return mask_has_any(simd::cmp_lt_mask(m_data, rhs));
 	}
 
 	/** @brief Returns true if all elements are less than the corresponding element in the other vector.
@@ -811,7 +811,7 @@ class SimdVector final
 	 */
 	SIMDLIB_FORCE_INLINE constexpr bool VECTORCALL all_less(vector_t rhs) const noexcept
 	{
-		return mask_has_all(simd::cmp_lt(m_data, rhs));
+		return mask_has_all(simd::cmp_lt_mask(m_data, rhs));
 	}
 
 	/** @brief Returns true if any element is less than or equal to the corresponding element in the other vector.
@@ -820,7 +820,7 @@ class SimdVector final
 	 */
 	SIMDLIB_FORCE_INLINE constexpr bool VECTORCALL any_less_equal(vector_t rhs) const noexcept
 	{
-		return mask_has_any(simd::cmp_le(m_data, rhs));
+		return mask_has_any(simd::cmp_le_mask(m_data, rhs));
 	}
 
 	/** @brief Returns true if all elements are less than or equal to the corresponding element in the other vector.
@@ -829,7 +829,7 @@ class SimdVector final
 	 */
 	SIMDLIB_FORCE_INLINE constexpr bool VECTORCALL all_less_equal(vector_t rhs) const noexcept
 	{
-		return mask_has_all(simd::cmp_le(m_data, rhs));
+		return mask_has_all(simd::cmp_le_mask(m_data, rhs));
 	}
 
 #pragma endregion

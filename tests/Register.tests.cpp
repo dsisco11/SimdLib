@@ -3,6 +3,8 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <array>
+#include <bit>
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <limits>
@@ -144,6 +146,150 @@ void require_type_contracts()
 	require_transfer_contracts<element_t, 256>();
 }
 
+/** @brief Returns a compact low-bit mask for one RegisterMask geometry. */
+template <class mask_t>
+[[nodiscard]] constexpr typename mask_t::bits_type logical_bits() noexcept
+{
+	if constexpr (mask_t::lane_count == std::numeric_limits<typename mask_t::bits_type>::digits)
+		return std::numeric_limits<typename mask_t::bits_type>::max();
+	else
+		return (typename mask_t::bits_type{1} << mask_t::lane_count) - 1;
+}
+
+/** @brief Verifies canonical predicate bits, Boolean reductions, combination, and selection. */
+template <class element_t, std::size_t bits>
+void require_mask_contracts()
+{
+	using register_type = SimdLib::Register<element_t, bits>;
+	using mask_type = typename register_type::mask_type;
+	using bits_type = typename mask_type::bits_type;
+	constexpr bits_type all_bits = logical_bits<mask_type>();
+	constexpr bits_type alternating_bits = []() constexpr noexcept {
+		bits_type result = 0;
+		for (std::size_t index = 0; index < mask_type::lane_count; index += 2)
+			result |= bits_type{1} << index;
+		return result;
+	}();
+
+	std::array<element_t, register_type::lane_count> left{};
+	std::array<element_t, register_type::lane_count> right{};
+	for (std::size_t index = 0; index < left.size(); ++index)
+	{
+		left[index] = static_cast<element_t>((index % 2) == 0 ? 2 : 0);
+		right[index] = static_cast<element_t>(1);
+	}
+	const register_type lhs = register_type::from_array(left);
+	const register_type rhs = register_type::from_array(right);
+	const auto alternating = lhs.compare_greater(rhs);
+	const auto inverse = lhs.compare_less(rhs);
+	const auto all_true = lhs.compare_equal(lhs);
+
+	REQUIRE(mask_type{}.bits() == 0);
+	REQUIRE(mask_type{}.none());
+	REQUIRE_FALSE(mask_type{}.any());
+	REQUIRE_FALSE(mask_type{}.all());
+	REQUIRE(alternating.bits() == alternating_bits);
+	REQUIRE(alternating.any());
+	REQUIRE_FALSE(alternating.all());
+	REQUIRE(all_true.bits() == all_bits);
+	REQUIRE(all_true.all());
+	REQUIRE((alternating | inverse).bits() == all_bits);
+	REQUIRE((alternating & inverse).none());
+	REQUIRE((alternating ^ inverse).bits() == all_bits);
+	REQUIRE((~alternating).bits() == (all_bits ^ alternating_bits));
+
+	auto compound = alternating;
+	compound &= all_true;
+	REQUIRE(compound.bits() == alternating_bits);
+	compound |= inverse;
+	REQUIRE(compound.all());
+	compound ^= inverse;
+	REQUIRE(compound.bits() == alternating_bits);
+
+	std::array<element_t, register_type::lane_count> first_left{};
+	std::array<element_t, register_type::lane_count> first_right{};
+	first_left.front() = static_cast<element_t>(1);
+	first_right.back() = static_cast<element_t>(1);
+	const auto first_only = register_type::from_array(first_left).compare_greater(register_type::zero());
+	const auto highest_only = register_type::from_array(first_right).compare_greater(register_type::zero());
+	REQUIRE(first_only.bits() == bits_type{1});
+	REQUIRE(highest_only.bits() == (bits_type{1} << (register_type::lane_count - 1)));
+	REQUIRE((first_only | highest_only).bits() ==
+		(bits_type{1} | (bits_type{1} << (register_type::lane_count - 1))));
+	REQUIRE(((first_only | highest_only).bits() & ~all_bits) == 0);
+
+	const auto selected = alternating.select(
+		register_type::broadcast(static_cast<element_t>(11)),
+		register_type::broadcast(static_cast<element_t>(22))).to_array();
+	for (std::size_t index = 0; index < selected.size(); ++index)
+		REQUIRE(selected[index] == static_cast<element_t>((index % 2) == 0 ? 11 : 22));
+
+	REQUIRE(lhs.compare_greater_equal(rhs).bits() == alternating_bits);
+	REQUIRE(lhs.compare_less_equal(rhs).bits() == (all_bits ^ alternating_bits));
+	REQUIRE((lhs == lhs));
+	REQUIRE_FALSE(lhs != lhs);
+	REQUIRE_FALSE(lhs == rhs);
+	REQUIRE(lhs != rhs);
+
+	const auto native_lanes = register_type::api_type::to_array(alternating.native());
+	for (std::size_t lane = 0; lane < native_lanes.size(); ++lane)
+	{
+		const auto bytes = std::bit_cast<std::array<std::uint8_t, sizeof(element_t)>>(native_lanes[lane]);
+		for (const auto byte : bytes)
+			REQUIRE(byte == ((lane % 2) == 0 ? 0xFFU : 0x00U));
+	}
+}
+
+/** @brief Verifies signed or unsigned high-bit ordering for one integer geometry. */
+template <class element_t, std::size_t bits>
+	requires std::is_integral_v<element_t>
+void require_integer_ordering()
+{
+	using register_type = SimdLib::Register<element_t, bits>;
+	const auto low = register_type::broadcast(std::numeric_limits<element_t>::lowest());
+	const auto high = register_type::broadcast(std::numeric_limits<element_t>::max());
+	REQUIRE(high.compare_greater(low).all());
+	REQUIRE(low.compare_less(high).all());
+}
+
+/** @brief Verifies ordered floating comparison behavior for NaNs and signed zero. */
+template <class element_t, std::size_t bits>
+	requires std::is_floating_point_v<element_t>
+void require_floating_comparison_edges()
+{
+	using register_type = SimdLib::Register<element_t, bits>;
+	const auto nan = register_type::broadcast(std::numeric_limits<element_t>::quiet_NaN());
+	const auto one = register_type::broadcast(static_cast<element_t>(1));
+	REQUIRE(nan.compare_equal(nan).none());
+	REQUIRE(nan.compare_greater(one).none());
+	REQUIRE(nan.compare_greater_equal(one).none());
+	REQUIRE(nan.compare_less(one).none());
+	REQUIRE(nan.compare_less_equal(one).none());
+	REQUIRE(nan != nan);
+	const auto positive_zero = register_type::broadcast(static_cast<element_t>(0.0));
+	const auto negative_zero = register_type::broadcast(static_cast<element_t>(-0.0));
+	REQUIRE(positive_zero.compare_equal(negative_zero).all());
+	REQUIRE(positive_zero == negative_zero);
+}
+
+/** @brief Runs all mask and comparison contracts for one scalar type. */
+template <class element_t>
+void require_mask_type_contracts()
+{
+	require_mask_contracts<element_t, 128>();
+	require_mask_contracts<element_t, 256>();
+	if constexpr (std::is_integral_v<element_t>)
+	{
+		require_integer_ordering<element_t, 128>();
+		require_integer_ordering<element_t, 256>();
+	}
+	else
+	{
+		require_floating_comparison_edges<element_t, 128>();
+		require_floating_comparison_edges<element_t, 256>();
+	}
+}
+
 TEST_CASE("Register construction and exact-width transfers preserve every lane and surrounding canaries",
 	"[simdlib][register][avx2][transfer]")
 {
@@ -157,6 +303,21 @@ TEST_CASE("Register construction and exact-width transfers preserve every lane a
 	require_type_contracts<std::uint64_t>();
 	require_type_contracts<float>();
 	require_type_contracts<double>();
+}
+
+TEST_CASE("RegisterMask comparisons, reductions, combinations, and selection preserve lane semantics",
+	"[simdlib][register][mask][comparison][avx2]")
+{
+	require_mask_type_contracts<std::int8_t>();
+	require_mask_type_contracts<std::uint8_t>();
+	require_mask_type_contracts<std::int16_t>();
+	require_mask_type_contracts<std::uint16_t>();
+	require_mask_type_contracts<std::int32_t>();
+	require_mask_type_contracts<std::uint32_t>();
+	require_mask_type_contracts<std::int64_t>();
+	require_mask_type_contracts<std::uint64_t>();
+	require_mask_type_contracts<float>();
+	require_mask_type_contracts<double>();
 }
 
 } // namespace

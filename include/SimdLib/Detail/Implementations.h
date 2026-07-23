@@ -47,6 +47,13 @@ struct SimdImpl128
 
 template <> struct SimdImpl128<int8_t>
 {
+	/** @brief Selects bytes from two registers using a canonical predicate register. */
+	SIMDLIB_FORCE_INLINE static __m128i VECTORCALL select(
+		__m128i condition, __m128i when_true, __m128i when_false) noexcept
+	{
+		return _mm_blendv_epi8(when_false, when_true, condition);
+	}
+
 	// arithmetic
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL add(auto lhs, auto rhs) noexcept
 	{
@@ -239,6 +246,11 @@ template <> struct SimdImpl128<int8_t>
 	{
 		return register_get<int8_t>(lhs, static_cast<std::size_t>(rhs));
 	}
+	/** @brief Replaces the compile-time-selected signed 8-bit lane during constant evaluation. */
+	template <int index> [[nodiscard]] constexpr static auto insert_constexpr(auto lhs, const int8_t rhs) noexcept
+	{
+		return register_insert<int8_t>(lhs, rhs, static_cast<std::size_t>(index));
+	}
 	/** @brief Replaces the compile-time-selected signed 8-bit lane. */
 	template <int index> SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, const int8_t rhs) noexcept
 	{
@@ -276,6 +288,13 @@ template <> struct SimdImpl128<int8_t>
 
 template <> struct SimdImpl128<uint8_t>
 {
+	/** @brief Selects bytes from two registers using a canonical predicate register. */
+	SIMDLIB_FORCE_INLINE static __m128i VECTORCALL select(
+		__m128i condition, __m128i when_true, __m128i when_false) noexcept
+	{
+		return _mm_blendv_epi8(when_false, when_true, condition);
+	}
+
 	// arithmetic
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL add(auto lhs, auto rhs) noexcept
 	{
@@ -476,6 +495,11 @@ template <> struct SimdImpl128<uint8_t>
 	{
 		return register_get<uint8_t>(lhs, static_cast<std::size_t>(rhs));
 	}
+	/** @brief Replaces the compile-time-selected unsigned 8-bit lane during constant evaluation. */
+	template <int index> [[nodiscard]] constexpr static auto insert_constexpr(auto lhs, const uint8_t rhs) noexcept
+	{
+		return register_insert<uint8_t>(lhs, rhs, static_cast<std::size_t>(index));
+	}
 	/** @brief Replaces the compile-time-selected unsigned 8-bit lane. */
 	template <int index> SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, const uint8_t rhs) noexcept
 	{
@@ -513,6 +537,13 @@ template <> struct SimdImpl128<uint8_t>
 
 template <> struct SimdImpl128<int16_t>
 {
+	/** @brief Selects 16-bit lanes from two registers using a canonical predicate register. */
+	SIMDLIB_FORCE_INLINE static __m128i VECTORCALL select(
+		__m128i condition, __m128i when_true, __m128i when_false) noexcept
+	{
+		return _mm_blendv_epi8(when_false, when_true, condition);
+	}
+
 	// arithmetic
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL add(auto lhs, auto rhs) noexcept
 	{
@@ -721,6 +752,11 @@ template <> struct SimdImpl128<int16_t>
 	{
 		return register_get<int16_t>(lhs, static_cast<std::size_t>(rhs));
 	}
+	/** @brief Replaces the compile-time-selected signed 16-bit lane during constant evaluation. */
+	template <int index> [[nodiscard]] constexpr static auto insert_constexpr(auto lhs, const int16_t rhs) noexcept
+	{
+		return register_insert<int16_t>(lhs, rhs, static_cast<std::size_t>(index));
+	}
 	/** @brief Replaces the compile-time-selected signed 16-bit lane. */
 	template <int index> SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, const int16_t rhs) noexcept
 	{
@@ -758,6 +794,13 @@ template <> struct SimdImpl128<int16_t>
 
 template <> struct SimdImpl128<uint16_t>
 {
+	/** @brief Selects 16-bit lanes from two registers using a canonical predicate register. */
+	SIMDLIB_FORCE_INLINE static __m128i VECTORCALL select(
+		__m128i condition, __m128i when_true, __m128i when_false) noexcept
+	{
+		return _mm_blendv_epi8(when_false, when_true, condition);
+	}
+
 	// arithmetic
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL add(auto lhs, auto rhs) noexcept
 	{
@@ -954,6 +997,11 @@ template <> struct SimdImpl128<uint16_t>
 	{
 		return register_get<uint16_t>(lhs, static_cast<std::size_t>(rhs));
 	}
+	/** @brief Replaces the compile-time-selected unsigned 16-bit lane during constant evaluation. */
+	template <int index> [[nodiscard]] constexpr static auto insert_constexpr(auto lhs, const uint16_t rhs) noexcept
+	{
+		return register_insert<uint16_t>(lhs, rhs, static_cast<std::size_t>(index));
+	}
 	/** @brief Replaces the compile-time-selected unsigned 16-bit lane. */
 	template <int index> SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, const uint16_t rhs) noexcept
 	{
@@ -991,6 +1039,13 @@ template <> struct SimdImpl128<uint16_t>
 
 template <> struct SimdImpl128<int32_t>
 {
+	/** @brief Selects 32-bit lanes from two registers using a canonical predicate register. */
+	SIMDLIB_FORCE_INLINE static __m128i VECTORCALL select(
+		__m128i condition, __m128i when_true, __m128i when_false) noexcept
+	{
+		return _mm_blendv_epi8(when_false, when_true, condition);
+	}
+
 	// arithmetic
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL add(auto lhs, auto rhs) noexcept
 	{
@@ -1158,6 +1213,11 @@ template <> struct SimdImpl128<int32_t>
 	{
 		return register_get<int32_t>(lhs, static_cast<std::size_t>(rhs));
 	}
+	/** @brief Replaces the compile-time-selected signed 32-bit lane during constant evaluation. */
+	template <int index> [[nodiscard]] constexpr static auto insert_constexpr(auto lhs, const int32_t rhs) noexcept
+	{
+		return register_insert<int32_t>(lhs, rhs, static_cast<std::size_t>(index));
+	}
 	/** @brief Replaces the compile-time-selected signed 32-bit lane. */
 	template <int index> SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, const int32_t rhs) noexcept
 	{
@@ -1195,6 +1255,13 @@ template <> struct SimdImpl128<int32_t>
 
 template <> struct SimdImpl128<uint32_t>
 {
+	/** @brief Selects 32-bit lanes from two registers using a canonical predicate register. */
+	SIMDLIB_FORCE_INLINE static __m128i VECTORCALL select(
+		__m128i condition, __m128i when_true, __m128i when_false) noexcept
+	{
+		return _mm_blendv_epi8(when_false, when_true, condition);
+	}
+
 	// arithmetic
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL add(auto lhs, auto rhs) noexcept
 	{
@@ -1380,6 +1447,11 @@ template <> struct SimdImpl128<uint32_t>
 	{
 		return register_get<uint32_t>(lhs, static_cast<std::size_t>(rhs));
 	}
+	/** @brief Replaces the compile-time-selected unsigned 32-bit lane during constant evaluation. */
+	template <int index> [[nodiscard]] constexpr static auto insert_constexpr(auto lhs, const uint32_t rhs) noexcept
+	{
+		return register_insert<uint32_t>(lhs, rhs, static_cast<std::size_t>(index));
+	}
 	/** @brief Replaces the compile-time-selected unsigned 32-bit lane. */
 	template <int index> SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, const uint32_t rhs) noexcept
 	{
@@ -1417,6 +1489,13 @@ template <> struct SimdImpl128<uint32_t>
 
 template <> struct SimdImpl128<int64_t>
 {
+	/** @brief Selects 64-bit lanes from two registers using a canonical predicate register. */
+	SIMDLIB_FORCE_INLINE static __m128i VECTORCALL select(
+		__m128i condition, __m128i when_true, __m128i when_false) noexcept
+	{
+		return _mm_blendv_epi8(when_false, when_true, condition);
+	}
+
 	// arithmetic
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL add(auto lhs, auto rhs) noexcept
 	{
@@ -1548,6 +1627,11 @@ template <> struct SimdImpl128<int64_t>
 	{
 		return register_get<int64_t>(lhs, static_cast<std::size_t>(rhs));
 	}
+	/** @brief Replaces the compile-time-selected signed 64-bit lane during constant evaluation. */
+	template <int index> [[nodiscard]] constexpr static auto insert_constexpr(auto lhs, const int64_t rhs) noexcept
+	{
+		return register_insert<int64_t>(lhs, rhs, static_cast<std::size_t>(index));
+	}
 	/** @brief Replaces the compile-time-selected signed 64-bit lane. */
 	template <int index> SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, const int64_t rhs) noexcept
 	{
@@ -1571,6 +1655,13 @@ template <> struct SimdImpl128<int64_t>
 
 template <> struct SimdImpl128<uint64_t>
 {
+	/** @brief Selects 64-bit lanes from two registers using a canonical predicate register. */
+	SIMDLIB_FORCE_INLINE static __m128i VECTORCALL select(
+		__m128i condition, __m128i when_true, __m128i when_false) noexcept
+	{
+		return _mm_blendv_epi8(when_false, when_true, condition);
+	}
+
 	// arithmetic
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL add(auto lhs, auto rhs) noexcept
 	{
@@ -1704,6 +1795,11 @@ template <> struct SimdImpl128<uint64_t>
 	{
 		return register_get<uint64_t>(lhs, static_cast<std::size_t>(rhs));
 	}
+	/** @brief Replaces the compile-time-selected unsigned 64-bit lane during constant evaluation. */
+	template <int index> [[nodiscard]] constexpr static auto insert_constexpr(auto lhs, const uint64_t rhs) noexcept
+	{
+		return register_insert<uint64_t>(lhs, rhs, static_cast<std::size_t>(index));
+	}
 	/** @brief Replaces the compile-time-selected unsigned 64-bit lane. */
 	template <int index> SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, const uint64_t rhs) noexcept
 	{
@@ -1727,6 +1823,13 @@ template <> struct SimdImpl128<uint64_t>
 
 template <> struct SimdImpl128<float>
 {
+	/** @brief Selects float lanes from two registers using a canonical predicate register. */
+	SIMDLIB_FORCE_INLINE static __m128 VECTORCALL select(
+		__m128 condition, __m128 when_true, __m128 when_false) noexcept
+	{
+		return _mm_blendv_ps(when_false, when_true, condition);
+	}
+
 	// arithmetic
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL add(auto lhs, auto rhs) noexcept
 	{
@@ -1829,6 +1932,11 @@ template <> struct SimdImpl128<float>
 	{
 		return register_get<float>(lhs, static_cast<std::size_t>(rhs));
 	}
+	/** @brief Replaces the compile-time-selected 32-bit floating-point lane during constant evaluation. */
+	template <int index> [[nodiscard]] constexpr static auto insert_constexpr(auto lhs, const float rhs) noexcept
+	{
+		return register_insert<float>(lhs, rhs, static_cast<std::size_t>(index));
+	}
 	/** @brief Replaces the compile-time-selected 32-bit floating-point lane. */
 	template <int index> SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, const float rhs) noexcept
 	{
@@ -1866,6 +1974,13 @@ template <> struct SimdImpl128<float>
 
 template <> struct SimdImpl128<double>
 {
+	/** @brief Selects double lanes from two registers using a canonical predicate register. */
+	SIMDLIB_FORCE_INLINE static __m128d VECTORCALL select(
+		__m128d condition, __m128d when_true, __m128d when_false) noexcept
+	{
+		return _mm_blendv_pd(when_false, when_true, condition);
+	}
+
 	// arithmetic
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL add(auto lhs, auto rhs) noexcept
 	{
@@ -1970,6 +2085,11 @@ template <> struct SimdImpl128<double>
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL extract(auto lhs, auto rhs) noexcept
 	{
 		return register_get<double>(lhs, static_cast<std::size_t>(rhs));
+	}
+	/** @brief Replaces the compile-time-selected 64-bit floating-point lane during constant evaluation. */
+	template <int index> [[nodiscard]] constexpr static auto insert_constexpr(auto lhs, const double rhs) noexcept
+	{
+		return register_insert<double>(lhs, rhs, static_cast<std::size_t>(index));
 	}
 	/** @brief Replaces the compile-time-selected 64-bit floating-point lane. */
 	template <int index> SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, const double rhs) noexcept
@@ -2521,6 +2641,13 @@ struct SimdImpl256
 
 template <> struct SimdImpl256<int8_t>
 {
+	/** @brief Selects bytes from two registers using a canonical predicate register. */
+	SIMDLIB_FORCE_INLINE static __m256i VECTORCALL select(
+		__m256i condition, __m256i when_true, __m256i when_false) noexcept
+	{
+		return _mm256_blendv_epi8(when_false, when_true, condition);
+	}
+
 	// arithmetic
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL add(auto lhs, auto rhs) noexcept
 	{
@@ -2694,6 +2821,11 @@ template <> struct SimdImpl256<int8_t>
 	{
 		return register_get<int8_t>(lhs, static_cast<std::size_t>(rhs));
 	}
+	/** @brief Replaces the compile-time-selected signed 8-bit lane during constant evaluation. */
+	template <int index> [[nodiscard]] constexpr static auto insert_constexpr(auto lhs, const int8_t rhs) noexcept
+	{
+		return register_insert<int8_t>(lhs, rhs, static_cast<std::size_t>(index));
+	}
 	/** @brief Replaces the compile-time-selected signed 8-bit lane. */
 	template <int index> SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, const int8_t rhs) noexcept
 	{
@@ -2731,6 +2863,13 @@ template <> struct SimdImpl256<int8_t>
 
 template <> struct SimdImpl256<uint8_t>
 {
+	/** @brief Selects bytes from two registers using a canonical predicate register. */
+	SIMDLIB_FORCE_INLINE static __m256i VECTORCALL select(
+		__m256i condition, __m256i when_true, __m256i when_false) noexcept
+	{
+		return _mm256_blendv_epi8(when_false, when_true, condition);
+	}
+
 	// arithmetic
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL add(auto lhs, auto rhs) noexcept
 	{
@@ -2906,6 +3045,11 @@ template <> struct SimdImpl256<uint8_t>
 	{
 		return register_get<uint8_t>(lhs, static_cast<std::size_t>(rhs));
 	}
+	/** @brief Replaces the compile-time-selected unsigned 8-bit lane during constant evaluation. */
+	template <int index> [[nodiscard]] constexpr static auto insert_constexpr(auto lhs, const uint8_t rhs) noexcept
+	{
+		return register_insert<uint8_t>(lhs, rhs, static_cast<std::size_t>(index));
+	}
 	/** @brief Replaces the compile-time-selected unsigned 8-bit lane. */
 	template <int index> SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, const uint8_t rhs) noexcept
 	{
@@ -2943,6 +3087,13 @@ template <> struct SimdImpl256<uint8_t>
 
 template <> struct SimdImpl256<int16_t>
 {
+	/** @brief Selects 16-bit lanes from two registers using a canonical predicate register. */
+	SIMDLIB_FORCE_INLINE static __m256i VECTORCALL select(
+		__m256i condition, __m256i when_true, __m256i when_false) noexcept
+	{
+		return _mm256_blendv_epi8(when_false, when_true, condition);
+	}
+
 	// arithmetic
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL add(auto lhs, auto rhs) noexcept
 	{
@@ -3127,6 +3278,11 @@ template <> struct SimdImpl256<int16_t>
 	{
 		return register_get<int16_t>(lhs, static_cast<std::size_t>(rhs));
 	}
+	/** @brief Replaces the compile-time-selected signed 16-bit lane during constant evaluation. */
+	template <int index> [[nodiscard]] constexpr static auto insert_constexpr(auto lhs, const int16_t rhs) noexcept
+	{
+		return register_insert<int16_t>(lhs, rhs, static_cast<std::size_t>(index));
+	}
 	/** @brief Replaces the compile-time-selected signed 16-bit lane. */
 	template <int index> SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, const int16_t rhs) noexcept
 	{
@@ -3164,6 +3320,13 @@ template <> struct SimdImpl256<int16_t>
 
 template <> struct SimdImpl256<uint16_t>
 {
+	/** @brief Selects 16-bit lanes from two registers using a canonical predicate register. */
+	SIMDLIB_FORCE_INLINE static __m256i VECTORCALL select(
+		__m256i condition, __m256i when_true, __m256i when_false) noexcept
+	{
+		return _mm256_blendv_epi8(when_false, when_true, condition);
+	}
+
 	// arithmetic
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL add(auto lhs, auto rhs) noexcept
 	{
@@ -3352,6 +3515,11 @@ template <> struct SimdImpl256<uint16_t>
 	{
 		return register_get<uint16_t>(lhs, static_cast<std::size_t>(rhs));
 	}
+	/** @brief Replaces the compile-time-selected unsigned 16-bit lane during constant evaluation. */
+	template <int index> [[nodiscard]] constexpr static auto insert_constexpr(auto lhs, const uint16_t rhs) noexcept
+	{
+		return register_insert<uint16_t>(lhs, rhs, static_cast<std::size_t>(index));
+	}
 	/** @brief Replaces the compile-time-selected unsigned 16-bit lane. */
 	template <int index> SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, const uint16_t rhs) noexcept
 	{
@@ -3389,6 +3557,13 @@ template <> struct SimdImpl256<uint16_t>
 
 template <> struct SimdImpl256<int32_t>
 {
+	/** @brief Selects 32-bit lanes from two registers using a canonical predicate register. */
+	SIMDLIB_FORCE_INLINE static __m256i VECTORCALL select(
+		__m256i condition, __m256i when_true, __m256i when_false) noexcept
+	{
+		return _mm256_blendv_epi8(when_false, when_true, condition);
+	}
+
 	// arithmetic
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL add(auto lhs, auto rhs) noexcept
 	{
@@ -3532,6 +3707,11 @@ template <> struct SimdImpl256<int32_t>
 	{
 		return register_get<int32_t>(lhs, static_cast<std::size_t>(rhs));
 	}
+	/** @brief Replaces the compile-time-selected signed 32-bit lane during constant evaluation. */
+	template <int index> [[nodiscard]] constexpr static auto insert_constexpr(auto lhs, const int32_t rhs) noexcept
+	{
+		return register_insert<int32_t>(lhs, rhs, static_cast<std::size_t>(index));
+	}
 	/** @brief Replaces the compile-time-selected signed 32-bit lane. */
 	template <int index> SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, const int32_t rhs) noexcept
 	{
@@ -3569,6 +3749,13 @@ template <> struct SimdImpl256<int32_t>
 
 template <> struct SimdImpl256<uint32_t>
 {
+	/** @brief Selects 32-bit lanes from two registers using a canonical predicate register. */
+	SIMDLIB_FORCE_INLINE static __m256i VECTORCALL select(
+		__m256i condition, __m256i when_true, __m256i when_false) noexcept
+	{
+		return _mm256_blendv_epi8(when_false, when_true, condition);
+	}
+
 	// arithmetic
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL add(auto lhs, auto rhs) noexcept
 	{
@@ -3727,6 +3914,11 @@ template <> struct SimdImpl256<uint32_t>
 	{
 		return register_get<uint32_t>(lhs, static_cast<std::size_t>(rhs));
 	}
+	/** @brief Replaces the compile-time-selected unsigned 32-bit lane during constant evaluation. */
+	template <int index> [[nodiscard]] constexpr static auto insert_constexpr(auto lhs, const uint32_t rhs) noexcept
+	{
+		return register_insert<uint32_t>(lhs, rhs, static_cast<std::size_t>(index));
+	}
 	/** @brief Replaces the compile-time-selected unsigned 32-bit lane. */
 	template <int index> SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, const uint32_t rhs) noexcept
 	{
@@ -3764,6 +3956,13 @@ template <> struct SimdImpl256<uint32_t>
 
 template <> struct SimdImpl256<int64_t>
 {
+	/** @brief Selects 64-bit lanes from two registers using a canonical predicate register. */
+	SIMDLIB_FORCE_INLINE static __m256i VECTORCALL select(
+		__m256i condition, __m256i when_true, __m256i when_false) noexcept
+	{
+		return _mm256_blendv_epi8(when_false, when_true, condition);
+	}
+
 	// arithmetic
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL add(auto lhs, auto rhs) noexcept
 	{
@@ -3903,6 +4102,11 @@ template <> struct SimdImpl256<int64_t>
 	{
 		return register_get<int64_t>(lhs, static_cast<std::size_t>(rhs));
 	}
+	/** @brief Replaces the compile-time-selected signed 64-bit lane during constant evaluation. */
+	template <int index> [[nodiscard]] constexpr static auto insert_constexpr(auto lhs, const int64_t rhs) noexcept
+	{
+		return register_insert<int64_t>(lhs, rhs, static_cast<std::size_t>(index));
+	}
 	/** @brief Replaces the compile-time-selected signed 64-bit lane. */
 	template <int index> SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, const int64_t rhs) noexcept
 	{
@@ -3926,6 +4130,13 @@ template <> struct SimdImpl256<int64_t>
 
 template <> struct SimdImpl256<uint64_t>
 {
+	/** @brief Selects 64-bit lanes from two registers using a canonical predicate register. */
+	SIMDLIB_FORCE_INLINE static __m256i VECTORCALL select(
+		__m256i condition, __m256i when_true, __m256i when_false) noexcept
+	{
+		return _mm256_blendv_epi8(when_false, when_true, condition);
+	}
+
 	// arithmetic
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL add(auto lhs, auto rhs) noexcept
 	{
@@ -4065,6 +4276,11 @@ template <> struct SimdImpl256<uint64_t>
 	{
 		return register_get<uint64_t>(lhs, static_cast<std::size_t>(rhs));
 	}
+	/** @brief Replaces the compile-time-selected unsigned 64-bit lane during constant evaluation. */
+	template <int index> [[nodiscard]] constexpr static auto insert_constexpr(auto lhs, const uint64_t rhs) noexcept
+	{
+		return register_insert<uint64_t>(lhs, rhs, static_cast<std::size_t>(index));
+	}
 	/** @brief Replaces the compile-time-selected unsigned 64-bit lane. */
 	template <int index> SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, const uint64_t rhs) noexcept
 	{
@@ -4088,6 +4304,13 @@ template <> struct SimdImpl256<uint64_t>
 
 template <> struct SimdImpl256<float>
 {
+	/** @brief Selects float lanes from two registers using a canonical predicate register. */
+	SIMDLIB_FORCE_INLINE static __m256 VECTORCALL select(
+		__m256 condition, __m256 when_true, __m256 when_false) noexcept
+	{
+		return _mm256_blendv_ps(when_false, when_true, condition);
+	}
+
 	// arithmetic
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL add(auto lhs, auto rhs) noexcept
 	{
@@ -4207,6 +4430,11 @@ template <> struct SimdImpl256<float>
 	{
 		return register_get<float>(lhs, static_cast<std::size_t>(rhs));
 	}
+	/** @brief Replaces the compile-time-selected 32-bit floating-point lane during constant evaluation. */
+	template <int index> [[nodiscard]] constexpr static auto insert_constexpr(auto lhs, const float rhs) noexcept
+	{
+		return register_insert<float>(lhs, rhs, static_cast<std::size_t>(index));
+	}
 	/** @brief Replaces the compile-time-selected 32-bit floating-point lane. */
 	template <int index> SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, const float rhs) noexcept
 	{
@@ -4248,6 +4476,13 @@ template <> struct SimdImpl256<float>
 
 template <> struct SimdImpl256<double>
 {
+	/** @brief Selects double lanes from two registers using a canonical predicate register. */
+	SIMDLIB_FORCE_INLINE static __m256d VECTORCALL select(
+		__m256d condition, __m256d when_true, __m256d when_false) noexcept
+	{
+		return _mm256_blendv_pd(when_false, when_true, condition);
+	}
+
 	// arithmetic
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL add(auto lhs, auto rhs) noexcept
 	{
@@ -4369,6 +4604,11 @@ template <> struct SimdImpl256<double>
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL extract(auto lhs, auto rhs) noexcept
 	{
 		return register_get<double>(lhs, static_cast<std::size_t>(rhs));
+	}
+	/** @brief Replaces the compile-time-selected 64-bit floating-point lane during constant evaluation. */
+	template <int index> [[nodiscard]] constexpr static auto insert_constexpr(auto lhs, const double rhs) noexcept
+	{
+		return register_insert<double>(lhs, rhs, static_cast<std::size_t>(index));
 	}
 	/** @brief Replaces the compile-time-selected 64-bit floating-point lane. */
 	template <int index> SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, const double rhs) noexcept

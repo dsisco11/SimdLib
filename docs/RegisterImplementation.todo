@@ -72,7 +72,8 @@ SimdLib Register Implementation Plan:
     ☒ End Phase 2 only when the accepted container/Compose workflow is reproducible, uses the same images locally and in CI, reports aggregate failures correctly, preserves explicit Windows-only evidence boundaries, and has demonstrated clean and failing matrix runs.
 
   Phase 3 - Establish the Representation and Performance Harness:
-    ☐ Make every full generated-code and ABI comparison stamp depend on its concrete object files, then extend the reviewed MSVC `/GS` exception ledger to every cookie-affected fixture without weakening strict comparison for unaffected functions. Constant-index lane extraction retains a separate object-dependent exact-parity gate.
+    ☒ Make every full generated-code and ABI comparison stamp depend on its concrete object files. Constant-index lane extraction retains a separate object-dependent exact-parity gate.
+    ☐ Extend the reviewed MSVC `/GS` exception ledger to every cookie-affected fixture without weakening strict comparison for unaffected functions.
     ☒ Add declaration-complete skeletons for `Register<T, Bits>`, `RegisterMask<T, Bits>`, `RegisterAvailable<T, Bits>`, `is_register_available_v<T, Bits>`, and `NativeRegister<T>`.
 	☒ Constrain Register availability to the existing x64 128-bit SSE4.2 and 256-bit AVX2-backed `Api` specializations.
     ☒ Store exactly one native vector data member in each Register and RegisterMask specialization with no bases, virtual functions, allocation, metadata, active-lane state, or address-dependent proxy state.
@@ -109,21 +110,22 @@ SimdLib Register Implementation Plan:
       Compiler limitation: MSVC 19.44 internally crashes when constant evaluation observes a native vector through the required by-value explicit-object boundary. Its constexpr probe therefore covers construction, factories, and native interoperation; the same observation semantics are covered at runtime on MSVC and in constant evaluation on GCC and Clang.
 
   Phase 5 - Implement RegisterMask, Comparisons, and Selection:
-    ☐ Implement `RegisterMask<T, Bits>` with one native predicate register and the invariant that every lane is all-zero or all-one.
-    ☐ Implement an intrinsic-backed all-false default constructor and keep the native predicate constructor private to Register and the internal comparison adapter.
-    ☐ Define normalized unsigned `bits_type` from `lane_count`, using `uint32_t` for the initial 128/256-bit specializations rather than inheriting `Api::mask_t`.
-    ☐ Implement by-value `native()` observation without public native construction, mutable native access, `from_native_unchecked()`, or `from_bits()`.
-    ☐ Implement `any()`, `all()`, `none()`, and `bits()` with one compact bit per logical lane and all unused scalar bits cleared.
-    ☐ Implement mask `&`, `|`, `^`, `~`, `&=`, `|=`, and `^=` while preserving canonical predicate lanes.
-    ☐ Implement `mask.select(when_true, when_false)` with the documented true/false polarity and a direct blend or equivalent native bitwise sequence.
-    ☐ Add the narrow `Detail::RegisterBackend<T, Bits>` comparison adapter as the only Register-header code permitted to name backend implementation mappings.
-    ☐ Implement named equality, greater, greater-equal, less, and less-equal comparisons only where the backend operation is supported.
-    ☐ Implement `Register::operator==` as `compare_equal().all()` and `operator!=` as the logical negation of whole-register equality; do not add ambiguous relational operators.
-    ☐ Reproduce the selected hardware intrinsic's signed/unsigned ordering, ordered/unordered floating behavior, NaN behavior, signed-zero behavior, and canonical predicate bit patterns in runtime, portable, emulated, and constexpr paths.
-    ☐ Add all-false, all-true, alternating, first-lane-only, highest-lane-only, combined-mask, selection-polarity, and unused-bit tests for every lane geometry.
-    ☐ Add compile-time tests proving arbitrary native vectors, scalar bit fields, and numeric Registers cannot publicly construct a RegisterMask and that no implicit Boolean conversion exists.
-    ☐ Add generated-code comparisons for compare/combine/select chains, Boolean reductions, compact bits, native observation, and mask pass/return boundaries.
-    ☐ End Phase 5 only when masks remain register-shaped until an explicit scalar reduction and every comparison matches its documented intrinsic semantics.
+    ☒ Implement `RegisterMask<T, Bits>` in its own public header with one native predicate register and the invariant that every lane is all-zero or all-one.
+    ☒ Implement an intrinsic-backed all-false default constructor and keep the native predicate constructor private to Register.
+    ☒ Define normalized unsigned `bits_type` from `lane_count`, using `uint32_t` for the initial 128/256-bit specializations rather than inheriting `Api::mask_t`.
+    ☒ Implement by-value `native()` observation without public native construction, mutable native access, `from_native_unchecked()`, or `from_bits()`.
+    ☒ Implement `any()`, `all()`, `none()`, and `bits()` with one compact bit per logical lane and all unused scalar bits cleared.
+    ☒ Implement mask `&`, `|`, `^`, `~`, `&=`, `|=`, and `^=` while preserving canonical predicate lanes.
+    ☒ Implement `mask.select(when_true, when_false)` with the documented true/false polarity by delegating to constexpr-aware `Api::select` and intrinsic-backed implementation-layer variable blends.
+    ☒ Keep comparison semantics in native-predicate `Api::compare_*` operations and have `Register<T, Bits>` wrap those results directly; do not add a redundant backend wrapper around `Api`.
+    ☒ Implement named equality, greater, greater-equal, less, and less-equal comparisons only where the backend operation is supported.
+    ☒ Implement `Register::operator==` as `compare_equal().all()` and `operator!=` as the logical negation of whole-register equality; do not add ambiguous relational operators.
+    ☒ Reproduce the selected hardware intrinsic's signed/unsigned ordering, ordered/unordered floating behavior, NaN behavior, signed-zero behavior, and canonical predicate bit patterns in runtime, portable, emulated, and constexpr paths.
+    ☒ Add all-false, all-true, alternating, first-lane-only, highest-lane-only, combined-mask, selection-polarity, and unused-bit tests for every lane geometry.
+    ☒ Add compile-time tests proving arbitrary native vectors, scalar bit fields, and numeric Registers cannot publicly construct a RegisterMask and that no implicit Boolean conversion exists.
+    ☒ Add generated-code comparisons for compare/combine/select chains, Boolean reductions, compact bits, native observation, and mask pass/return boundaries.
+    ☒ End Phase 5 only when masks remain register-shaped until an explicit scalar reduction and every comparison matches its documented intrinsic semantics.
+      Evidence: `include/SimdLib/Register.h`, `include/SimdLib/RegisterMask.h`, `tests/Register.tests.cpp`, `tests/constexpr/RegisterConstexpr.tests.cpp`, `tests/register/RegisterRepresentation.tests.cpp`, and the paired generated-code and ABI fixtures under `tests/codegen` cover the complete mask, comparison, selection, constraint, and machine-code surface.
 
   Phase 6 - Implement Basic Arithmetic, Bitwise Operations, and Shifts:
     ☐ Implement register-register `+`, `-`, `*`, `/`, and `%` only for supported type/width combinations, with matching `+=`, `-=`, `*=`, `/=`, and `%=` forms where the proposal includes them.
