@@ -776,7 +776,7 @@ SIMDLIB_FORCE_INLINE __m128i VECTORCALL _ext_cmpgt_epu32(__m128i lhs, __m128i rh
 #pragma region 256bit Integer Division Extensions
 
 /**
- * @brief Divides 32 signed 8-bit lanes using constant-index intrinsic extraction and insertion.
+ * @brief Divides 32 signed 8-bit lanes through the matching 128-bit extension.
  * @param lhs Dividend lanes.
  * @param rhs Divisor lanes.
  * @pre Every lane in rhs is nonzero and no dividend-minimum lane is divided by negative one.
@@ -784,140 +784,18 @@ SIMDLIB_FORCE_INLINE __m128i VECTORCALL _ext_cmpgt_epu32(__m128i lhs, __m128i rh
  */
 SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m256i VECTORCALL _ext256_div_epi8(__m256i lhs, __m256i rhs) noexcept
 {
-	__m256i result = _mm256_setzero_si256();
-	result = _mm256_insert_epi8(result,
-								static_cast<int>(static_cast<std::int8_t>(static_cast<std::int8_t>(_mm256_extract_epi8(lhs, 0)) /
-																		  static_cast<std::int8_t>(_mm256_extract_epi8(rhs, 0)))),
-								0);
-	result = _mm256_insert_epi8(result,
-								static_cast<int>(static_cast<std::int8_t>(static_cast<std::int8_t>(_mm256_extract_epi8(lhs, 1)) /
-																		  static_cast<std::int8_t>(_mm256_extract_epi8(rhs, 1)))),
-								1);
-	result = _mm256_insert_epi8(result,
-								static_cast<int>(static_cast<std::int8_t>(static_cast<std::int8_t>(_mm256_extract_epi8(lhs, 2)) /
-																		  static_cast<std::int8_t>(_mm256_extract_epi8(rhs, 2)))),
-								2);
-	result = _mm256_insert_epi8(result,
-								static_cast<int>(static_cast<std::int8_t>(static_cast<std::int8_t>(_mm256_extract_epi8(lhs, 3)) /
-																		  static_cast<std::int8_t>(_mm256_extract_epi8(rhs, 3)))),
-								3);
-	result = _mm256_insert_epi8(result,
-								static_cast<int>(static_cast<std::int8_t>(static_cast<std::int8_t>(_mm256_extract_epi8(lhs, 4)) /
-																		  static_cast<std::int8_t>(_mm256_extract_epi8(rhs, 4)))),
-								4);
-	result = _mm256_insert_epi8(result,
-								static_cast<int>(static_cast<std::int8_t>(static_cast<std::int8_t>(_mm256_extract_epi8(lhs, 5)) /
-																		  static_cast<std::int8_t>(_mm256_extract_epi8(rhs, 5)))),
-								5);
-	result = _mm256_insert_epi8(result,
-								static_cast<int>(static_cast<std::int8_t>(static_cast<std::int8_t>(_mm256_extract_epi8(lhs, 6)) /
-																		  static_cast<std::int8_t>(_mm256_extract_epi8(rhs, 6)))),
-								6);
-	result = _mm256_insert_epi8(result,
-								static_cast<int>(static_cast<std::int8_t>(static_cast<std::int8_t>(_mm256_extract_epi8(lhs, 7)) /
-																		  static_cast<std::int8_t>(_mm256_extract_epi8(rhs, 7)))),
-								7);
-	result = _mm256_insert_epi8(result,
-								static_cast<int>(static_cast<std::int8_t>(static_cast<std::int8_t>(_mm256_extract_epi8(lhs, 8)) /
-																		  static_cast<std::int8_t>(_mm256_extract_epi8(rhs, 8)))),
-								8);
-	result = _mm256_insert_epi8(result,
-								static_cast<int>(static_cast<std::int8_t>(static_cast<std::int8_t>(_mm256_extract_epi8(lhs, 9)) /
-																		  static_cast<std::int8_t>(_mm256_extract_epi8(rhs, 9)))),
-								9);
-	result = _mm256_insert_epi8(result,
-								static_cast<int>(static_cast<std::int8_t>(static_cast<std::int8_t>(_mm256_extract_epi8(lhs, 10)) /
-																		  static_cast<std::int8_t>(_mm256_extract_epi8(rhs, 10)))),
-								10);
-	result = _mm256_insert_epi8(result,
-								static_cast<int>(static_cast<std::int8_t>(static_cast<std::int8_t>(_mm256_extract_epi8(lhs, 11)) /
-																		  static_cast<std::int8_t>(_mm256_extract_epi8(rhs, 11)))),
-								11);
-	result = _mm256_insert_epi8(result,
-								static_cast<int>(static_cast<std::int8_t>(static_cast<std::int8_t>(_mm256_extract_epi8(lhs, 12)) /
-																		  static_cast<std::int8_t>(_mm256_extract_epi8(rhs, 12)))),
-								12);
-	result = _mm256_insert_epi8(result,
-								static_cast<int>(static_cast<std::int8_t>(static_cast<std::int8_t>(_mm256_extract_epi8(lhs, 13)) /
-																		  static_cast<std::int8_t>(_mm256_extract_epi8(rhs, 13)))),
-								13);
-	result = _mm256_insert_epi8(result,
-								static_cast<int>(static_cast<std::int8_t>(static_cast<std::int8_t>(_mm256_extract_epi8(lhs, 14)) /
-																		  static_cast<std::int8_t>(_mm256_extract_epi8(rhs, 14)))),
-								14);
-	result = _mm256_insert_epi8(result,
-								static_cast<int>(static_cast<std::int8_t>(static_cast<std::int8_t>(_mm256_extract_epi8(lhs, 15)) /
-																		  static_cast<std::int8_t>(_mm256_extract_epi8(rhs, 15)))),
-								15);
-	result = _mm256_insert_epi8(result,
-								static_cast<int>(static_cast<std::int8_t>(static_cast<std::int8_t>(_mm256_extract_epi8(lhs, 16)) /
-																		  static_cast<std::int8_t>(_mm256_extract_epi8(rhs, 16)))),
-								16);
-	result = _mm256_insert_epi8(result,
-								static_cast<int>(static_cast<std::int8_t>(static_cast<std::int8_t>(_mm256_extract_epi8(lhs, 17)) /
-																		  static_cast<std::int8_t>(_mm256_extract_epi8(rhs, 17)))),
-								17);
-	result = _mm256_insert_epi8(result,
-								static_cast<int>(static_cast<std::int8_t>(static_cast<std::int8_t>(_mm256_extract_epi8(lhs, 18)) /
-																		  static_cast<std::int8_t>(_mm256_extract_epi8(rhs, 18)))),
-								18);
-	result = _mm256_insert_epi8(result,
-								static_cast<int>(static_cast<std::int8_t>(static_cast<std::int8_t>(_mm256_extract_epi8(lhs, 19)) /
-																		  static_cast<std::int8_t>(_mm256_extract_epi8(rhs, 19)))),
-								19);
-	result = _mm256_insert_epi8(result,
-								static_cast<int>(static_cast<std::int8_t>(static_cast<std::int8_t>(_mm256_extract_epi8(lhs, 20)) /
-																		  static_cast<std::int8_t>(_mm256_extract_epi8(rhs, 20)))),
-								20);
-	result = _mm256_insert_epi8(result,
-								static_cast<int>(static_cast<std::int8_t>(static_cast<std::int8_t>(_mm256_extract_epi8(lhs, 21)) /
-																		  static_cast<std::int8_t>(_mm256_extract_epi8(rhs, 21)))),
-								21);
-	result = _mm256_insert_epi8(result,
-								static_cast<int>(static_cast<std::int8_t>(static_cast<std::int8_t>(_mm256_extract_epi8(lhs, 22)) /
-																		  static_cast<std::int8_t>(_mm256_extract_epi8(rhs, 22)))),
-								22);
-	result = _mm256_insert_epi8(result,
-								static_cast<int>(static_cast<std::int8_t>(static_cast<std::int8_t>(_mm256_extract_epi8(lhs, 23)) /
-																		  static_cast<std::int8_t>(_mm256_extract_epi8(rhs, 23)))),
-								23);
-	result = _mm256_insert_epi8(result,
-								static_cast<int>(static_cast<std::int8_t>(static_cast<std::int8_t>(_mm256_extract_epi8(lhs, 24)) /
-																		  static_cast<std::int8_t>(_mm256_extract_epi8(rhs, 24)))),
-								24);
-	result = _mm256_insert_epi8(result,
-								static_cast<int>(static_cast<std::int8_t>(static_cast<std::int8_t>(_mm256_extract_epi8(lhs, 25)) /
-																		  static_cast<std::int8_t>(_mm256_extract_epi8(rhs, 25)))),
-								25);
-	result = _mm256_insert_epi8(result,
-								static_cast<int>(static_cast<std::int8_t>(static_cast<std::int8_t>(_mm256_extract_epi8(lhs, 26)) /
-																		  static_cast<std::int8_t>(_mm256_extract_epi8(rhs, 26)))),
-								26);
-	result = _mm256_insert_epi8(result,
-								static_cast<int>(static_cast<std::int8_t>(static_cast<std::int8_t>(_mm256_extract_epi8(lhs, 27)) /
-																		  static_cast<std::int8_t>(_mm256_extract_epi8(rhs, 27)))),
-								27);
-	result = _mm256_insert_epi8(result,
-								static_cast<int>(static_cast<std::int8_t>(static_cast<std::int8_t>(_mm256_extract_epi8(lhs, 28)) /
-																		  static_cast<std::int8_t>(_mm256_extract_epi8(rhs, 28)))),
-								28);
-	result = _mm256_insert_epi8(result,
-								static_cast<int>(static_cast<std::int8_t>(static_cast<std::int8_t>(_mm256_extract_epi8(lhs, 29)) /
-																		  static_cast<std::int8_t>(_mm256_extract_epi8(rhs, 29)))),
-								29);
-	result = _mm256_insert_epi8(result,
-								static_cast<int>(static_cast<std::int8_t>(static_cast<std::int8_t>(_mm256_extract_epi8(lhs, 30)) /
-																		  static_cast<std::int8_t>(_mm256_extract_epi8(rhs, 30)))),
-								30);
-	result = _mm256_insert_epi8(result,
-								static_cast<int>(static_cast<std::int8_t>(static_cast<std::int8_t>(_mm256_extract_epi8(lhs, 31)) /
-																		  static_cast<std::int8_t>(_mm256_extract_epi8(rhs, 31)))),
-								31);
-	return result;
+	const __m128i lhsLow = _mm256_castsi256_si128(lhs);
+	const __m128i rhsLow = _mm256_castsi256_si128(rhs);
+	const __m128i lhsHigh = _mm256_extracti128_si256(lhs, 1);
+	const __m128i rhsHigh = _mm256_extracti128_si256(rhs, 1);
+
+	const __m128i resultLow = _ext128_div_epi8(lhsLow, rhsLow);
+	const __m128i resultHigh = _ext128_div_epi8(lhsHigh, rhsHigh);
+	return _mm256_inserti128_si256(_mm256_zextsi128_si256(resultLow), resultHigh, 1);
 }
 
 /**
- * @brief Divides 32 unsigned 8-bit lanes using constant-index intrinsic extraction and insertion.
+ * @brief Divides 32 unsigned 8-bit lanes through the matching 128-bit extension.
  * @param lhs Dividend lanes.
  * @param rhs Divisor lanes.
  * @pre Every lane in rhs is nonzero.
@@ -925,140 +803,18 @@ SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m256i VECTORCALL _e
  */
 SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m256i VECTORCALL _ext256_div_epu8(__m256i lhs, __m256i rhs) noexcept
 {
-	__m256i result = _mm256_setzero_si256();
-	result = _mm256_insert_epi8(result,
-								static_cast<int>(static_cast<std::uint8_t>(static_cast<std::uint8_t>(_mm256_extract_epi8(lhs, 0)) /
-																		   static_cast<std::uint8_t>(_mm256_extract_epi8(rhs, 0)))),
-								0);
-	result = _mm256_insert_epi8(result,
-								static_cast<int>(static_cast<std::uint8_t>(static_cast<std::uint8_t>(_mm256_extract_epi8(lhs, 1)) /
-																		   static_cast<std::uint8_t>(_mm256_extract_epi8(rhs, 1)))),
-								1);
-	result = _mm256_insert_epi8(result,
-								static_cast<int>(static_cast<std::uint8_t>(static_cast<std::uint8_t>(_mm256_extract_epi8(lhs, 2)) /
-																		   static_cast<std::uint8_t>(_mm256_extract_epi8(rhs, 2)))),
-								2);
-	result = _mm256_insert_epi8(result,
-								static_cast<int>(static_cast<std::uint8_t>(static_cast<std::uint8_t>(_mm256_extract_epi8(lhs, 3)) /
-																		   static_cast<std::uint8_t>(_mm256_extract_epi8(rhs, 3)))),
-								3);
-	result = _mm256_insert_epi8(result,
-								static_cast<int>(static_cast<std::uint8_t>(static_cast<std::uint8_t>(_mm256_extract_epi8(lhs, 4)) /
-																		   static_cast<std::uint8_t>(_mm256_extract_epi8(rhs, 4)))),
-								4);
-	result = _mm256_insert_epi8(result,
-								static_cast<int>(static_cast<std::uint8_t>(static_cast<std::uint8_t>(_mm256_extract_epi8(lhs, 5)) /
-																		   static_cast<std::uint8_t>(_mm256_extract_epi8(rhs, 5)))),
-								5);
-	result = _mm256_insert_epi8(result,
-								static_cast<int>(static_cast<std::uint8_t>(static_cast<std::uint8_t>(_mm256_extract_epi8(lhs, 6)) /
-																		   static_cast<std::uint8_t>(_mm256_extract_epi8(rhs, 6)))),
-								6);
-	result = _mm256_insert_epi8(result,
-								static_cast<int>(static_cast<std::uint8_t>(static_cast<std::uint8_t>(_mm256_extract_epi8(lhs, 7)) /
-																		   static_cast<std::uint8_t>(_mm256_extract_epi8(rhs, 7)))),
-								7);
-	result = _mm256_insert_epi8(result,
-								static_cast<int>(static_cast<std::uint8_t>(static_cast<std::uint8_t>(_mm256_extract_epi8(lhs, 8)) /
-																		   static_cast<std::uint8_t>(_mm256_extract_epi8(rhs, 8)))),
-								8);
-	result = _mm256_insert_epi8(result,
-								static_cast<int>(static_cast<std::uint8_t>(static_cast<std::uint8_t>(_mm256_extract_epi8(lhs, 9)) /
-																		   static_cast<std::uint8_t>(_mm256_extract_epi8(rhs, 9)))),
-								9);
-	result = _mm256_insert_epi8(result,
-								static_cast<int>(static_cast<std::uint8_t>(static_cast<std::uint8_t>(_mm256_extract_epi8(lhs, 10)) /
-																		   static_cast<std::uint8_t>(_mm256_extract_epi8(rhs, 10)))),
-								10);
-	result = _mm256_insert_epi8(result,
-								static_cast<int>(static_cast<std::uint8_t>(static_cast<std::uint8_t>(_mm256_extract_epi8(lhs, 11)) /
-																		   static_cast<std::uint8_t>(_mm256_extract_epi8(rhs, 11)))),
-								11);
-	result = _mm256_insert_epi8(result,
-								static_cast<int>(static_cast<std::uint8_t>(static_cast<std::uint8_t>(_mm256_extract_epi8(lhs, 12)) /
-																		   static_cast<std::uint8_t>(_mm256_extract_epi8(rhs, 12)))),
-								12);
-	result = _mm256_insert_epi8(result,
-								static_cast<int>(static_cast<std::uint8_t>(static_cast<std::uint8_t>(_mm256_extract_epi8(lhs, 13)) /
-																		   static_cast<std::uint8_t>(_mm256_extract_epi8(rhs, 13)))),
-								13);
-	result = _mm256_insert_epi8(result,
-								static_cast<int>(static_cast<std::uint8_t>(static_cast<std::uint8_t>(_mm256_extract_epi8(lhs, 14)) /
-																		   static_cast<std::uint8_t>(_mm256_extract_epi8(rhs, 14)))),
-								14);
-	result = _mm256_insert_epi8(result,
-								static_cast<int>(static_cast<std::uint8_t>(static_cast<std::uint8_t>(_mm256_extract_epi8(lhs, 15)) /
-																		   static_cast<std::uint8_t>(_mm256_extract_epi8(rhs, 15)))),
-								15);
-	result = _mm256_insert_epi8(result,
-								static_cast<int>(static_cast<std::uint8_t>(static_cast<std::uint8_t>(_mm256_extract_epi8(lhs, 16)) /
-																		   static_cast<std::uint8_t>(_mm256_extract_epi8(rhs, 16)))),
-								16);
-	result = _mm256_insert_epi8(result,
-								static_cast<int>(static_cast<std::uint8_t>(static_cast<std::uint8_t>(_mm256_extract_epi8(lhs, 17)) /
-																		   static_cast<std::uint8_t>(_mm256_extract_epi8(rhs, 17)))),
-								17);
-	result = _mm256_insert_epi8(result,
-								static_cast<int>(static_cast<std::uint8_t>(static_cast<std::uint8_t>(_mm256_extract_epi8(lhs, 18)) /
-																		   static_cast<std::uint8_t>(_mm256_extract_epi8(rhs, 18)))),
-								18);
-	result = _mm256_insert_epi8(result,
-								static_cast<int>(static_cast<std::uint8_t>(static_cast<std::uint8_t>(_mm256_extract_epi8(lhs, 19)) /
-																		   static_cast<std::uint8_t>(_mm256_extract_epi8(rhs, 19)))),
-								19);
-	result = _mm256_insert_epi8(result,
-								static_cast<int>(static_cast<std::uint8_t>(static_cast<std::uint8_t>(_mm256_extract_epi8(lhs, 20)) /
-																		   static_cast<std::uint8_t>(_mm256_extract_epi8(rhs, 20)))),
-								20);
-	result = _mm256_insert_epi8(result,
-								static_cast<int>(static_cast<std::uint8_t>(static_cast<std::uint8_t>(_mm256_extract_epi8(lhs, 21)) /
-																		   static_cast<std::uint8_t>(_mm256_extract_epi8(rhs, 21)))),
-								21);
-	result = _mm256_insert_epi8(result,
-								static_cast<int>(static_cast<std::uint8_t>(static_cast<std::uint8_t>(_mm256_extract_epi8(lhs, 22)) /
-																		   static_cast<std::uint8_t>(_mm256_extract_epi8(rhs, 22)))),
-								22);
-	result = _mm256_insert_epi8(result,
-								static_cast<int>(static_cast<std::uint8_t>(static_cast<std::uint8_t>(_mm256_extract_epi8(lhs, 23)) /
-																		   static_cast<std::uint8_t>(_mm256_extract_epi8(rhs, 23)))),
-								23);
-	result = _mm256_insert_epi8(result,
-								static_cast<int>(static_cast<std::uint8_t>(static_cast<std::uint8_t>(_mm256_extract_epi8(lhs, 24)) /
-																		   static_cast<std::uint8_t>(_mm256_extract_epi8(rhs, 24)))),
-								24);
-	result = _mm256_insert_epi8(result,
-								static_cast<int>(static_cast<std::uint8_t>(static_cast<std::uint8_t>(_mm256_extract_epi8(lhs, 25)) /
-																		   static_cast<std::uint8_t>(_mm256_extract_epi8(rhs, 25)))),
-								25);
-	result = _mm256_insert_epi8(result,
-								static_cast<int>(static_cast<std::uint8_t>(static_cast<std::uint8_t>(_mm256_extract_epi8(lhs, 26)) /
-																		   static_cast<std::uint8_t>(_mm256_extract_epi8(rhs, 26)))),
-								26);
-	result = _mm256_insert_epi8(result,
-								static_cast<int>(static_cast<std::uint8_t>(static_cast<std::uint8_t>(_mm256_extract_epi8(lhs, 27)) /
-																		   static_cast<std::uint8_t>(_mm256_extract_epi8(rhs, 27)))),
-								27);
-	result = _mm256_insert_epi8(result,
-								static_cast<int>(static_cast<std::uint8_t>(static_cast<std::uint8_t>(_mm256_extract_epi8(lhs, 28)) /
-																		   static_cast<std::uint8_t>(_mm256_extract_epi8(rhs, 28)))),
-								28);
-	result = _mm256_insert_epi8(result,
-								static_cast<int>(static_cast<std::uint8_t>(static_cast<std::uint8_t>(_mm256_extract_epi8(lhs, 29)) /
-																		   static_cast<std::uint8_t>(_mm256_extract_epi8(rhs, 29)))),
-								29);
-	result = _mm256_insert_epi8(result,
-								static_cast<int>(static_cast<std::uint8_t>(static_cast<std::uint8_t>(_mm256_extract_epi8(lhs, 30)) /
-																		   static_cast<std::uint8_t>(_mm256_extract_epi8(rhs, 30)))),
-								30);
-	result = _mm256_insert_epi8(result,
-								static_cast<int>(static_cast<std::uint8_t>(static_cast<std::uint8_t>(_mm256_extract_epi8(lhs, 31)) /
-																		   static_cast<std::uint8_t>(_mm256_extract_epi8(rhs, 31)))),
-								31);
-	return result;
+	const __m128i lhsLow = _mm256_castsi256_si128(lhs);
+	const __m128i rhsLow = _mm256_castsi256_si128(rhs);
+	const __m128i lhsHigh = _mm256_extracti128_si256(lhs, 1);
+	const __m128i rhsHigh = _mm256_extracti128_si256(rhs, 1);
+
+	const __m128i resultLow = _ext128_div_epu8(lhsLow, rhsLow);
+	const __m128i resultHigh = _ext128_div_epu8(lhsHigh, rhsHigh);
+	return _mm256_inserti128_si256(_mm256_zextsi128_si256(resultLow), resultHigh, 1);
 }
 
 /**
- * @brief Divides 16 signed 16-bit lanes using constant-index intrinsic extraction and insertion.
+ * @brief Divides 16 signed 16-bit lanes through the matching 128-bit extension.
  * @param lhs Dividend lanes.
  * @param rhs Divisor lanes.
  * @pre Every lane in rhs is nonzero and no dividend-minimum lane is divided by negative one.
@@ -1066,76 +822,18 @@ SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m256i VECTORCALL _e
  */
 SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m256i VECTORCALL _ext256_div_epi16(__m256i lhs, __m256i rhs) noexcept
 {
-	__m256i result = _mm256_setzero_si256();
-	result = _mm256_insert_epi16(result,
-								 static_cast<int>(static_cast<std::int16_t>(static_cast<std::int16_t>(_mm256_extract_epi16(lhs, 0)) /
-																			static_cast<std::int16_t>(_mm256_extract_epi16(rhs, 0)))),
-								 0);
-	result = _mm256_insert_epi16(result,
-								 static_cast<int>(static_cast<std::int16_t>(static_cast<std::int16_t>(_mm256_extract_epi16(lhs, 1)) /
-																			static_cast<std::int16_t>(_mm256_extract_epi16(rhs, 1)))),
-								 1);
-	result = _mm256_insert_epi16(result,
-								 static_cast<int>(static_cast<std::int16_t>(static_cast<std::int16_t>(_mm256_extract_epi16(lhs, 2)) /
-																			static_cast<std::int16_t>(_mm256_extract_epi16(rhs, 2)))),
-								 2);
-	result = _mm256_insert_epi16(result,
-								 static_cast<int>(static_cast<std::int16_t>(static_cast<std::int16_t>(_mm256_extract_epi16(lhs, 3)) /
-																			static_cast<std::int16_t>(_mm256_extract_epi16(rhs, 3)))),
-								 3);
-	result = _mm256_insert_epi16(result,
-								 static_cast<int>(static_cast<std::int16_t>(static_cast<std::int16_t>(_mm256_extract_epi16(lhs, 4)) /
-																			static_cast<std::int16_t>(_mm256_extract_epi16(rhs, 4)))),
-								 4);
-	result = _mm256_insert_epi16(result,
-								 static_cast<int>(static_cast<std::int16_t>(static_cast<std::int16_t>(_mm256_extract_epi16(lhs, 5)) /
-																			static_cast<std::int16_t>(_mm256_extract_epi16(rhs, 5)))),
-								 5);
-	result = _mm256_insert_epi16(result,
-								 static_cast<int>(static_cast<std::int16_t>(static_cast<std::int16_t>(_mm256_extract_epi16(lhs, 6)) /
-																			static_cast<std::int16_t>(_mm256_extract_epi16(rhs, 6)))),
-								 6);
-	result = _mm256_insert_epi16(result,
-								 static_cast<int>(static_cast<std::int16_t>(static_cast<std::int16_t>(_mm256_extract_epi16(lhs, 7)) /
-																			static_cast<std::int16_t>(_mm256_extract_epi16(rhs, 7)))),
-								 7);
-	result = _mm256_insert_epi16(result,
-								 static_cast<int>(static_cast<std::int16_t>(static_cast<std::int16_t>(_mm256_extract_epi16(lhs, 8)) /
-																			static_cast<std::int16_t>(_mm256_extract_epi16(rhs, 8)))),
-								 8);
-	result = _mm256_insert_epi16(result,
-								 static_cast<int>(static_cast<std::int16_t>(static_cast<std::int16_t>(_mm256_extract_epi16(lhs, 9)) /
-																			static_cast<std::int16_t>(_mm256_extract_epi16(rhs, 9)))),
-								 9);
-	result = _mm256_insert_epi16(result,
-								 static_cast<int>(static_cast<std::int16_t>(static_cast<std::int16_t>(_mm256_extract_epi16(lhs, 10)) /
-																			static_cast<std::int16_t>(_mm256_extract_epi16(rhs, 10)))),
-								 10);
-	result = _mm256_insert_epi16(result,
-								 static_cast<int>(static_cast<std::int16_t>(static_cast<std::int16_t>(_mm256_extract_epi16(lhs, 11)) /
-																			static_cast<std::int16_t>(_mm256_extract_epi16(rhs, 11)))),
-								 11);
-	result = _mm256_insert_epi16(result,
-								 static_cast<int>(static_cast<std::int16_t>(static_cast<std::int16_t>(_mm256_extract_epi16(lhs, 12)) /
-																			static_cast<std::int16_t>(_mm256_extract_epi16(rhs, 12)))),
-								 12);
-	result = _mm256_insert_epi16(result,
-								 static_cast<int>(static_cast<std::int16_t>(static_cast<std::int16_t>(_mm256_extract_epi16(lhs, 13)) /
-																			static_cast<std::int16_t>(_mm256_extract_epi16(rhs, 13)))),
-								 13);
-	result = _mm256_insert_epi16(result,
-								 static_cast<int>(static_cast<std::int16_t>(static_cast<std::int16_t>(_mm256_extract_epi16(lhs, 14)) /
-																			static_cast<std::int16_t>(_mm256_extract_epi16(rhs, 14)))),
-								 14);
-	result = _mm256_insert_epi16(result,
-								 static_cast<int>(static_cast<std::int16_t>(static_cast<std::int16_t>(_mm256_extract_epi16(lhs, 15)) /
-																			static_cast<std::int16_t>(_mm256_extract_epi16(rhs, 15)))),
-								 15);
-	return result;
+	const __m128i lhsLow = _mm256_castsi256_si128(lhs);
+	const __m128i rhsLow = _mm256_castsi256_si128(rhs);
+	const __m128i lhsHigh = _mm256_extracti128_si256(lhs, 1);
+	const __m128i rhsHigh = _mm256_extracti128_si256(rhs, 1);
+
+	const __m128i resultLow = _ext128_div_epi16(lhsLow, rhsLow);
+	const __m128i resultHigh = _ext128_div_epi16(lhsHigh, rhsHigh);
+	return _mm256_inserti128_si256(_mm256_zextsi128_si256(resultLow), resultHigh, 1);
 }
 
 /**
- * @brief Divides 16 unsigned 16-bit lanes using constant-index intrinsic extraction and insertion.
+ * @brief Divides 16 unsigned 16-bit lanes through the matching 128-bit extension.
  * @param lhs Dividend lanes.
  * @param rhs Divisor lanes.
  * @pre Every lane in rhs is nonzero.
@@ -1143,76 +841,18 @@ SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m256i VECTORCALL _e
  */
 SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m256i VECTORCALL _ext256_div_epu16(__m256i lhs, __m256i rhs) noexcept
 {
-	__m256i result = _mm256_setzero_si256();
-	result = _mm256_insert_epi16(result,
-								 static_cast<int>(static_cast<std::uint16_t>(static_cast<std::uint16_t>(_mm256_extract_epi16(lhs, 0)) /
-																			 static_cast<std::uint16_t>(_mm256_extract_epi16(rhs, 0)))),
-								 0);
-	result = _mm256_insert_epi16(result,
-								 static_cast<int>(static_cast<std::uint16_t>(static_cast<std::uint16_t>(_mm256_extract_epi16(lhs, 1)) /
-																			 static_cast<std::uint16_t>(_mm256_extract_epi16(rhs, 1)))),
-								 1);
-	result = _mm256_insert_epi16(result,
-								 static_cast<int>(static_cast<std::uint16_t>(static_cast<std::uint16_t>(_mm256_extract_epi16(lhs, 2)) /
-																			 static_cast<std::uint16_t>(_mm256_extract_epi16(rhs, 2)))),
-								 2);
-	result = _mm256_insert_epi16(result,
-								 static_cast<int>(static_cast<std::uint16_t>(static_cast<std::uint16_t>(_mm256_extract_epi16(lhs, 3)) /
-																			 static_cast<std::uint16_t>(_mm256_extract_epi16(rhs, 3)))),
-								 3);
-	result = _mm256_insert_epi16(result,
-								 static_cast<int>(static_cast<std::uint16_t>(static_cast<std::uint16_t>(_mm256_extract_epi16(lhs, 4)) /
-																			 static_cast<std::uint16_t>(_mm256_extract_epi16(rhs, 4)))),
-								 4);
-	result = _mm256_insert_epi16(result,
-								 static_cast<int>(static_cast<std::uint16_t>(static_cast<std::uint16_t>(_mm256_extract_epi16(lhs, 5)) /
-																			 static_cast<std::uint16_t>(_mm256_extract_epi16(rhs, 5)))),
-								 5);
-	result = _mm256_insert_epi16(result,
-								 static_cast<int>(static_cast<std::uint16_t>(static_cast<std::uint16_t>(_mm256_extract_epi16(lhs, 6)) /
-																			 static_cast<std::uint16_t>(_mm256_extract_epi16(rhs, 6)))),
-								 6);
-	result = _mm256_insert_epi16(result,
-								 static_cast<int>(static_cast<std::uint16_t>(static_cast<std::uint16_t>(_mm256_extract_epi16(lhs, 7)) /
-																			 static_cast<std::uint16_t>(_mm256_extract_epi16(rhs, 7)))),
-								 7);
-	result = _mm256_insert_epi16(result,
-								 static_cast<int>(static_cast<std::uint16_t>(static_cast<std::uint16_t>(_mm256_extract_epi16(lhs, 8)) /
-																			 static_cast<std::uint16_t>(_mm256_extract_epi16(rhs, 8)))),
-								 8);
-	result = _mm256_insert_epi16(result,
-								 static_cast<int>(static_cast<std::uint16_t>(static_cast<std::uint16_t>(_mm256_extract_epi16(lhs, 9)) /
-																			 static_cast<std::uint16_t>(_mm256_extract_epi16(rhs, 9)))),
-								 9);
-	result = _mm256_insert_epi16(result,
-								 static_cast<int>(static_cast<std::uint16_t>(static_cast<std::uint16_t>(_mm256_extract_epi16(lhs, 10)) /
-																			 static_cast<std::uint16_t>(_mm256_extract_epi16(rhs, 10)))),
-								 10);
-	result = _mm256_insert_epi16(result,
-								 static_cast<int>(static_cast<std::uint16_t>(static_cast<std::uint16_t>(_mm256_extract_epi16(lhs, 11)) /
-																			 static_cast<std::uint16_t>(_mm256_extract_epi16(rhs, 11)))),
-								 11);
-	result = _mm256_insert_epi16(result,
-								 static_cast<int>(static_cast<std::uint16_t>(static_cast<std::uint16_t>(_mm256_extract_epi16(lhs, 12)) /
-																			 static_cast<std::uint16_t>(_mm256_extract_epi16(rhs, 12)))),
-								 12);
-	result = _mm256_insert_epi16(result,
-								 static_cast<int>(static_cast<std::uint16_t>(static_cast<std::uint16_t>(_mm256_extract_epi16(lhs, 13)) /
-																			 static_cast<std::uint16_t>(_mm256_extract_epi16(rhs, 13)))),
-								 13);
-	result = _mm256_insert_epi16(result,
-								 static_cast<int>(static_cast<std::uint16_t>(static_cast<std::uint16_t>(_mm256_extract_epi16(lhs, 14)) /
-																			 static_cast<std::uint16_t>(_mm256_extract_epi16(rhs, 14)))),
-								 14);
-	result = _mm256_insert_epi16(result,
-								 static_cast<int>(static_cast<std::uint16_t>(static_cast<std::uint16_t>(_mm256_extract_epi16(lhs, 15)) /
-																			 static_cast<std::uint16_t>(_mm256_extract_epi16(rhs, 15)))),
-								 15);
-	return result;
+	const __m128i lhsLow = _mm256_castsi256_si128(lhs);
+	const __m128i rhsLow = _mm256_castsi256_si128(rhs);
+	const __m128i lhsHigh = _mm256_extracti128_si256(lhs, 1);
+	const __m128i rhsHigh = _mm256_extracti128_si256(rhs, 1);
+
+	const __m128i resultLow = _ext128_div_epu16(lhsLow, rhsLow);
+	const __m128i resultHigh = _ext128_div_epu16(lhsHigh, rhsHigh);
+	return _mm256_inserti128_si256(_mm256_zextsi128_si256(resultLow), resultHigh, 1);
 }
 
 /**
- * @brief Divides 8 signed 32-bit lanes using constant-index intrinsic extraction and insertion.
+ * @brief Divides 8 signed 32-bit lanes through the matching 128-bit extension.
  * @param lhs Dividend lanes.
  * @param rhs Divisor lanes.
  * @pre Every lane in rhs is nonzero and no dividend-minimum lane is divided by negative one.
@@ -1220,20 +860,18 @@ SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m256i VECTORCALL _e
  */
 SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m256i VECTORCALL _ext256_div_epi32(__m256i lhs, __m256i rhs) noexcept
 {
-	__m256i result = _mm256_setzero_si256();
-	result = _mm256_insert_epi32(result, static_cast<std::int32_t>(_mm256_extract_epi32(lhs, 0)) / static_cast<std::int32_t>(_mm256_extract_epi32(rhs, 0)), 0);
-	result = _mm256_insert_epi32(result, static_cast<std::int32_t>(_mm256_extract_epi32(lhs, 1)) / static_cast<std::int32_t>(_mm256_extract_epi32(rhs, 1)), 1);
-	result = _mm256_insert_epi32(result, static_cast<std::int32_t>(_mm256_extract_epi32(lhs, 2)) / static_cast<std::int32_t>(_mm256_extract_epi32(rhs, 2)), 2);
-	result = _mm256_insert_epi32(result, static_cast<std::int32_t>(_mm256_extract_epi32(lhs, 3)) / static_cast<std::int32_t>(_mm256_extract_epi32(rhs, 3)), 3);
-	result = _mm256_insert_epi32(result, static_cast<std::int32_t>(_mm256_extract_epi32(lhs, 4)) / static_cast<std::int32_t>(_mm256_extract_epi32(rhs, 4)), 4);
-	result = _mm256_insert_epi32(result, static_cast<std::int32_t>(_mm256_extract_epi32(lhs, 5)) / static_cast<std::int32_t>(_mm256_extract_epi32(rhs, 5)), 5);
-	result = _mm256_insert_epi32(result, static_cast<std::int32_t>(_mm256_extract_epi32(lhs, 6)) / static_cast<std::int32_t>(_mm256_extract_epi32(rhs, 6)), 6);
-	result = _mm256_insert_epi32(result, static_cast<std::int32_t>(_mm256_extract_epi32(lhs, 7)) / static_cast<std::int32_t>(_mm256_extract_epi32(rhs, 7)), 7);
-	return result;
+	const __m128i lhsLow = _mm256_castsi256_si128(lhs);
+	const __m128i rhsLow = _mm256_castsi256_si128(rhs);
+	const __m128i lhsHigh = _mm256_extracti128_si256(lhs, 1);
+	const __m128i rhsHigh = _mm256_extracti128_si256(rhs, 1);
+
+	const __m128i resultLow = _ext128_div_epi32(lhsLow, rhsLow);
+	const __m128i resultHigh = _ext128_div_epi32(lhsHigh, rhsHigh);
+	return _mm256_inserti128_si256(_mm256_zextsi128_si256(resultLow), resultHigh, 1);
 }
 
 /**
- * @brief Divides 8 unsigned 32-bit lanes using constant-index intrinsic extraction and insertion.
+ * @brief Divides 8 unsigned 32-bit lanes through the matching 128-bit extension.
  * @param lhs Dividend lanes.
  * @param rhs Divisor lanes.
  * @pre Every lane in rhs is nonzero.
@@ -1241,36 +879,18 @@ SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m256i VECTORCALL _e
  */
 SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m256i VECTORCALL _ext256_div_epu32(__m256i lhs, __m256i rhs) noexcept
 {
-	__m256i result = _mm256_setzero_si256();
-	result = _mm256_insert_epi32(
-		result,
-		std::bit_cast<std::int32_t>(static_cast<std::uint32_t>(_mm256_extract_epi32(lhs, 0)) / static_cast<std::uint32_t>(_mm256_extract_epi32(rhs, 0))), 0);
-	result = _mm256_insert_epi32(
-		result,
-		std::bit_cast<std::int32_t>(static_cast<std::uint32_t>(_mm256_extract_epi32(lhs, 1)) / static_cast<std::uint32_t>(_mm256_extract_epi32(rhs, 1))), 1);
-	result = _mm256_insert_epi32(
-		result,
-		std::bit_cast<std::int32_t>(static_cast<std::uint32_t>(_mm256_extract_epi32(lhs, 2)) / static_cast<std::uint32_t>(_mm256_extract_epi32(rhs, 2))), 2);
-	result = _mm256_insert_epi32(
-		result,
-		std::bit_cast<std::int32_t>(static_cast<std::uint32_t>(_mm256_extract_epi32(lhs, 3)) / static_cast<std::uint32_t>(_mm256_extract_epi32(rhs, 3))), 3);
-	result = _mm256_insert_epi32(
-		result,
-		std::bit_cast<std::int32_t>(static_cast<std::uint32_t>(_mm256_extract_epi32(lhs, 4)) / static_cast<std::uint32_t>(_mm256_extract_epi32(rhs, 4))), 4);
-	result = _mm256_insert_epi32(
-		result,
-		std::bit_cast<std::int32_t>(static_cast<std::uint32_t>(_mm256_extract_epi32(lhs, 5)) / static_cast<std::uint32_t>(_mm256_extract_epi32(rhs, 5))), 5);
-	result = _mm256_insert_epi32(
-		result,
-		std::bit_cast<std::int32_t>(static_cast<std::uint32_t>(_mm256_extract_epi32(lhs, 6)) / static_cast<std::uint32_t>(_mm256_extract_epi32(rhs, 6))), 6);
-	result = _mm256_insert_epi32(
-		result,
-		std::bit_cast<std::int32_t>(static_cast<std::uint32_t>(_mm256_extract_epi32(lhs, 7)) / static_cast<std::uint32_t>(_mm256_extract_epi32(rhs, 7))), 7);
-	return result;
+	const __m128i lhsLow = _mm256_castsi256_si128(lhs);
+	const __m128i rhsLow = _mm256_castsi256_si128(rhs);
+	const __m128i lhsHigh = _mm256_extracti128_si256(lhs, 1);
+	const __m128i rhsHigh = _mm256_extracti128_si256(rhs, 1);
+
+	const __m128i resultLow = _ext128_div_epu32(lhsLow, rhsLow);
+	const __m128i resultHigh = _ext128_div_epu32(lhsHigh, rhsHigh);
+	return _mm256_inserti128_si256(_mm256_zextsi128_si256(resultLow), resultHigh, 1);
 }
 
 /**
- * @brief Divides 4 signed 64-bit lanes using constant-index intrinsic extraction and insertion.
+ * @brief Divides 4 signed 64-bit lanes through the matching 128-bit extension.
  * @param lhs Dividend lanes.
  * @param rhs Divisor lanes.
  * @pre Every lane in rhs is nonzero and no dividend-minimum lane is divided by negative one.
@@ -1278,16 +898,18 @@ SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m256i VECTORCALL _e
  */
 SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m256i VECTORCALL _ext256_div_epi64(__m256i lhs, __m256i rhs) noexcept
 {
-	__m256i result = _mm256_setzero_si256();
-	result = _mm256_insert_epi64(result, static_cast<std::int64_t>(_mm256_extract_epi64(lhs, 0)) / static_cast<std::int64_t>(_mm256_extract_epi64(rhs, 0)), 0);
-	result = _mm256_insert_epi64(result, static_cast<std::int64_t>(_mm256_extract_epi64(lhs, 1)) / static_cast<std::int64_t>(_mm256_extract_epi64(rhs, 1)), 1);
-	result = _mm256_insert_epi64(result, static_cast<std::int64_t>(_mm256_extract_epi64(lhs, 2)) / static_cast<std::int64_t>(_mm256_extract_epi64(rhs, 2)), 2);
-	result = _mm256_insert_epi64(result, static_cast<std::int64_t>(_mm256_extract_epi64(lhs, 3)) / static_cast<std::int64_t>(_mm256_extract_epi64(rhs, 3)), 3);
-	return result;
+	const __m128i lhsLow = _mm256_castsi256_si128(lhs);
+	const __m128i rhsLow = _mm256_castsi256_si128(rhs);
+	const __m128i lhsHigh = _mm256_extracti128_si256(lhs, 1);
+	const __m128i rhsHigh = _mm256_extracti128_si256(rhs, 1);
+
+	const __m128i resultLow = _ext128_div_epi64(lhsLow, rhsLow);
+	const __m128i resultHigh = _ext128_div_epi64(lhsHigh, rhsHigh);
+	return _mm256_inserti128_si256(_mm256_zextsi128_si256(resultLow), resultHigh, 1);
 }
 
 /**
- * @brief Divides 4 unsigned 64-bit lanes using constant-index intrinsic extraction and insertion.
+ * @brief Divides 4 unsigned 64-bit lanes through the matching 128-bit extension.
  * @param lhs Dividend lanes.
  * @param rhs Divisor lanes.
  * @pre Every lane in rhs is nonzero.
@@ -1295,20 +917,14 @@ SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m256i VECTORCALL _e
  */
 SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m256i VECTORCALL _ext256_div_epu64(__m256i lhs, __m256i rhs) noexcept
 {
-	__m256i result = _mm256_setzero_si256();
-	result = _mm256_insert_epi64(
-		result,
-		std::bit_cast<std::int64_t>(static_cast<std::uint64_t>(_mm256_extract_epi64(lhs, 0)) / static_cast<std::uint64_t>(_mm256_extract_epi64(rhs, 0))), 0);
-	result = _mm256_insert_epi64(
-		result,
-		std::bit_cast<std::int64_t>(static_cast<std::uint64_t>(_mm256_extract_epi64(lhs, 1)) / static_cast<std::uint64_t>(_mm256_extract_epi64(rhs, 1))), 1);
-	result = _mm256_insert_epi64(
-		result,
-		std::bit_cast<std::int64_t>(static_cast<std::uint64_t>(_mm256_extract_epi64(lhs, 2)) / static_cast<std::uint64_t>(_mm256_extract_epi64(rhs, 2))), 2);
-	result = _mm256_insert_epi64(
-		result,
-		std::bit_cast<std::int64_t>(static_cast<std::uint64_t>(_mm256_extract_epi64(lhs, 3)) / static_cast<std::uint64_t>(_mm256_extract_epi64(rhs, 3))), 3);
-	return result;
+	const __m128i lhsLow = _mm256_castsi256_si128(lhs);
+	const __m128i rhsLow = _mm256_castsi256_si128(rhs);
+	const __m128i lhsHigh = _mm256_extracti128_si256(lhs, 1);
+	const __m128i rhsHigh = _mm256_extracti128_si256(rhs, 1);
+
+	const __m128i resultLow = _ext128_div_epu64(lhsLow, rhsLow);
+	const __m128i resultHigh = _ext128_div_epu64(lhsHigh, rhsHigh);
+	return _mm256_inserti128_si256(_mm256_zextsi128_si256(resultLow), resultHigh, 1);
 }
 
 #pragma endregion

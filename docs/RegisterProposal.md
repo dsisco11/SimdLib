@@ -596,11 +596,14 @@ without hiding meaningful work.
 x86 provides no packed integer division instruction for the supported lane widths.
 Integral `operator/` therefore delegates to the named width-prefixed extension
 suite `_ext{128,256}_div_{epi,epu}{8,16,32,64}`. Each extension body explicitly
-extracts every lane with a compile-time constant index, performs the corresponding
-scalar signed or unsigned division, and inserts the quotient through the matching
-intrinsic. The implementation must not use a fold-based unrolling helper,
-materialize a lane array, or use a runtime lane selector. This path remains
-register-only even though register pressure may require ordinary compiler spills.
+names its width and signedness. The 128-bit extensions extract every lane with a
+compile-time constant index, perform the corresponding scalar signed or unsigned
+division, and insert each quotient through the matching intrinsic. The 256-bit
+extensions divide their low and high halves through the corresponding 128-bit
+extension, then reassemble those halves with intrinsic operations. Neither path
+may use a fold-based unrolling helper, materialize a lane array, or use a runtime
+lane selector. This path remains register-only even though register pressure may
+require ordinary compiler spills.
 
 ## Comparison and mask semantics
 

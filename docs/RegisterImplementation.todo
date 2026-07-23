@@ -130,7 +130,7 @@ SimdLib Register Implementation Plan:
 
   Phase 6 - Implement Basic Arithmetic, Bitwise Operations, and Shifts:
     ☒ Implement register-register `+`, `-`, `*`, `/`, and `%` only for supported type/width combinations; keep the compound-assignment implementations disabled in source comments and use reassignment at call sites.
-    ☒ Implement integral `/` through the explicit width-prefixed `_ext{128,256}_div_{epi,epu}{8,16,32,64}` suite, with every method naming each constant-index extraction, scalar division, and intrinsic insertion directly rather than using a fold helper, runtime selector, or lane array.
+    ☒ Implement integral `/` through the explicit width-prefixed `_ext{128,256}_div_{epi,epu}{8,16,32,64}` suite: 128-bit methods name each constant-index extraction, scalar division, and intrinsic insertion directly, while 256-bit methods divide two 128-bit halves and reassemble them without a fold helper, runtime selector, or lane array.
     ☒ Implement unary negation with the existing backend edge behavior and availability constraints.
     ☒ Keep scalar arithmetic absent; require explicit `Register::broadcast()` at call sites.
     ☒ Implement register bitwise `&`, `|`, `^`, `~`, and named `andnot()` with the existing operand polarity; keep compound bitwise assignment disabled.
