@@ -377,17 +377,8 @@ class Register final
 	constexpr static inline std::size_t byte_count = api_type::byte_count;
 	constexpr static inline std::size_t lane_count = api_type::element_count;
 
-	/**
-	 * @brief Constructs a register with every active lane set to zero through
-	 *        the native zero-register operation.
-	 */
-	SIMDLIB_FORCE_INLINE constexpr Register() noexcept;
-
-	/**
-	 * @brief Wraps one complete native register without changing its bits.
-	 * @param value Complete native register value.
-	 */
-	SIMDLIB_FORCE_INLINE constexpr explicit Register(native_type value) noexcept;
+	/** @brief Owns the complete native register value represented by this aggregate. */
+	native_type native = api_type::setzero();
 
 	/**
 	 * @brief Returns a register with every active lane set to zero.
@@ -560,18 +551,15 @@ class Register final
 		this Register lhs,
 		Register rhs) noexcept;
 
-  private:
-	native_type m_data;
-
-	friend class RegisterMask<element_type, bits>;
 };
 ```
 
 The wrapper must not expose an implicit conversion to `native_type`, an
-implicit scalar-broadcast constructor, mutable span conversions, or a mutable
-reference to the native register. `value.native()` is an explicit interoperation
-boundary and returns by value. A complete intrinsic result can be wrapped with
-the explicit native-value constructor.
+implicit scalar-broadcast constructor, or mutable span conversions. Its public
+`native` member is the explicit native-representation interoperation point; reading
+it by value copies the native register, and assigning it replaces the representation.
+A complete intrinsic result is wrapped explicitly
+with aggregate-brace initialization, such as `Register{native_value}`.
 
 Explicit-object members preserve ordinary value-like syntax such as
 `value.absolute()`, `value.store(output)`, and `mask.bits()`. The object argument
@@ -603,6 +591,17 @@ hoist loop-invariant broadcasts. Named convenience overloads can be considered
 later if benchmarks and real call sites demonstrate that they improve clarity
 without hiding meaningful work.
 
+## Integer division
+
+x86 provides no packed integer division instruction for the supported lane widths.
+Integral `operator/` therefore delegates to the named width-prefixed extension
+suite `_ext{128,256}_div_{epi,epu}{8,16,32,64}`. Each extension body explicitly
+extracts every lane with a compile-time constant index, performs the corresponding
+scalar signed or unsigned division, and inserts the quotient through the matching
+intrinsic. The implementation must not use a fold-based unrolling helper,
+materialize a lane array, or use a runtime lane selector. This path remains
+register-only even though register pressure may require ordinary compiler spills.
+
 ## Comparison and mask semantics
 
 A low-level register interface needs a register-shaped comparison result.
@@ -611,11 +610,13 @@ transition even when the next operation is a lane selection.
 Returning `Register<T, Bits>` would allow arbitrary numeric registers to be
 mistaken for valid predicates.
 
-Introduce `RegisterMask<T, Bits>` in the same focused header. It stores exactly
-one native register with an invariant that each lane is either all-zero or
-all-one. Consumers normally name it through
-`Register<T, Bits>::mask_type`. Only comparisons and mask bitwise operations
-can create a mask; arbitrary numeric registers cannot be converted into one.
+Introduce `RegisterMask<T, Bits>` in the same focused header. It is an aggregate
+containing exactly one native register. Boolean mask operations require each
+lane to be either all-zero or all-one. Consumers normally name it through
+`Register<T, Bits>::mask_type`, and comparisons and mask bitwise operations
+produce canonical values. Direct native aggregate initialization is an
+explicit unchecked interoperation boundary whose caller must supply canonical
+predicate lanes.
 
 ```cpp
 /**
@@ -639,8 +640,11 @@ class RegisterMask final
 	constexpr static inline std::size_t register_width = bits;
 	constexpr static inline std::size_t lane_count = register_type::lane_count;
 
-	/** @brief Constructs an all-false predicate register. */
-	SIMDLIB_FORCE_INLINE constexpr RegisterMask() noexcept;
+	/**
+	 * @brief Owns the complete native predicate value represented by this aggregate.
+	 * @pre Every logical lane is either all-zero or all-one when initialized directly.
+	 */
+	native_type native = api_type::setzero();
 
 	/**
 	 * @brief Tests whether any predicate lane is set.
@@ -733,57 +737,46 @@ class RegisterMask final
 	[[nodiscard]] SIMDLIB_FORCE_INLINE constexpr RegisterMask VECTORCALL operator~(
 		this RegisterMask value) noexcept;
 
-	/**
-	 * @brief Intersects this predicate with another predicate.
-	 * @param lhs Predicate register to update.
-	 * @param rhs Right-hand predicate register.
-	 * @return Reference to the updated predicate.
-	 */
+	/*
+	 * Disabled compound assignment operators: their convenience does not justify
+	 * the mutable-reference API surface, and MSVC 19.44 emits a redundant 32-byte
+	 * stack-alignment frame for 256-bit wrapper mutation through references.
+	 * Prefer lhs = lhs & rhs, lhs = lhs | rhs, or lhs = lhs ^ rhs.
+	 *
+	/// @brief Intersects this predicate with another predicate.
+	/// @param lhs Predicate register to update.
+	/// @param rhs Right-hand predicate register.
+	/// @return Reference to the updated predicate.
 	SIMDLIB_FORCE_INLINE constexpr RegisterMask &operator&=(
 		this RegisterMask &lhs,
 		RegisterMask rhs) noexcept;
 
-	/**
-	 * @brief Unites this predicate with another predicate.
-	 * @param lhs Predicate register to update.
-	 * @param rhs Right-hand predicate register.
-	 * @return Reference to the updated predicate.
-	 */
+	/// @brief Unites this predicate with another predicate.
+	/// @param lhs Predicate register to update.
+	/// @param rhs Right-hand predicate register.
+	/// @return Reference to the updated predicate.
 	SIMDLIB_FORCE_INLINE constexpr RegisterMask &operator|=(
 		this RegisterMask &lhs,
 		RegisterMask rhs) noexcept;
 
-	/**
-	 * @brief Exclusively combines this predicate with another predicate.
-	 * @param lhs Predicate register to update.
-	 * @param rhs Right-hand predicate register.
-	 * @return Reference to the updated predicate.
-	 */
+	/// @brief Exclusively combines this predicate with another predicate.
+	/// @param lhs Predicate register to update.
+	/// @param rhs Right-hand predicate register.
+	/// @return Reference to the updated predicate.
 	SIMDLIB_FORCE_INLINE constexpr RegisterMask &operator^=(
 		this RegisterMask &lhs,
 		RegisterMask rhs) noexcept;
-
-  private:
-	native_type m_data;
-
-	/**
-	 * @brief Wraps a comparison result whose lanes already satisfy the mask
-	 *        invariant.
-	 * @param value Native all-zero or all-one predicate lanes.
 	 */
-	SIMDLIB_FORCE_INLINE constexpr explicit RegisterMask(native_type value)
-		noexcept;
-
-	friend class Register<element_t, bits>;
 };
 ```
 
-The default constructor invokes the same native zero-register operation as
-`Register` and therefore creates an all-false mask. `bits_type` is a normalized
-public unsigned type selected from `lane_count`; it does not inherit the legacy
-backend `Api::mask_t` type. The initial 128-bit and 256-bit specializations have
-at most 32 lanes and therefore use `std::uint32_t`. The 64-bit alternative keeps
-the alias well-defined if a future supported width has between 33 and 64 lanes.
+The default member initializer invokes the same native zero-register operation
+as `Register`, so value/default initialization creates an all-false mask.
+`bits_type` is a normalized public unsigned type selected from `lane_count`; it
+does not inherit the legacy backend `Api::mask_t` type. The initial 128-bit and
+256-bit specializations have at most 32 lanes and therefore use
+`std::uint32_t`. The 64-bit alternative keeps the alias well-defined if a
+future supported width has between 33 and 64 lanes.
 `mask.bits()` uses the element-granular movemask operation and guarantees that
 bits at indices greater than or equal to `lane_count` are zero.
 `mask.select(when_true, when_false)` chooses `when_true` for all-one predicate
@@ -792,13 +785,13 @@ lanes and `when_false` for all-zero predicate lanes. It delegates to
 intrinsic and whose constant-evaluated path reproduces the same polarity with
 register bitwise operations.
 
-`mask.native()` is a read-only interoperation boundary and returns the complete
-predicate register by value. It does not weaken the mask invariant because the
-consumer cannot write through the result. There is no public native-value
-constructor, `from_native_unchecked()`, or initial `from_bits()` factory.
-Arbitrary native and numeric registers therefore cannot be introduced as masks;
-safe scalar-to-mask construction may be considered later as an additive API if
-real call sites justify its expansion cost.
+`mask.native` is the public native-representation interoperation point. Reading it
+by value copies the predicate register. Complete native predicates
+can also be wrapped explicitly with `RegisterMask{native_predicate}`. That
+aggregate initialization is unchecked: every logical lane must already be
+all-zero or all-one. Comparisons and mask operators satisfy this precondition;
+arbitrary native data does not. Numeric Registers and scalar bit fields still
+cannot construct a mask, and there is no initial `from_bits()` factory.
 
 `RegisterMask` must not provide an implicit conversion to `bool`; control-flow
 decisions must spell `mask.any()`, `mask.all()`, or `mask.none()`.
@@ -813,9 +806,8 @@ with `movemask`.
 The direct implementation returns complete native predicate registers for
 equality, greater-than, and any other comparison supported by the selected
 backend. Derived predicates such as greater-than-or-equal combine the resulting
-`RegisterMask` values. Each comparison member wraps its native result through
-the private `RegisterMask(native_type)` constructor; that constructor is not
-part of the consumer API.
+`RegisterMask` values. Each comparison member wraps its canonical native result
+with explicit aggregate-brace initialization.
 
 Portable and constant-evaluated comparison paths remain private `Api`
 implementation methods and construct the same all-zero or all-one lane patterns
@@ -844,15 +836,16 @@ The following ledger classifies every current public `Api` operation. Operation
 availability continues to follow `docs/ApiOperationMatrix.md` and the selected
 backend constraints.
 
-Every non-static operation uses a C++23 explicit object parameter. Non-mutating
-operations take that parameter by value, preserving ordinary member-call syntax
-without an implicit `this` pointer. Mutating compound assignments take the
-explicit object parameter by reference because mutation itself requires an
-existing object. All register-shaped parameters and results use `VECTORCALL`
-where enabled.
+Every non-static operation uses a C++23 explicit object parameter and takes that
+parameter by value, preserving ordinary member-call syntax without an implicit
+`this` pointer. Compound assignment is intentionally absent: its convenience
+does not justify a mutable-reference surface that causes MSVC 19.44 to emit a
+redundant 32-byte stack-alignment frame for 256-bit wrapper mutation. Callers
+use explicit reassignment such as `lhs = lhs + rhs`. All register-shaped
+parameters and results use `VECTORCALL` where enabled.
 
-Constructors, compiler-generated special members, and static factories have no
-explicit object parameter. They remain forced inline and are covered alongside
+Aggregate initialization, implicit compiler-generated special members, and
+static factories have no explicit object parameter. They are covered alongside
 the explicit-object surface by generated-code and ABI tests.
 
 ### Construction and transfer ledger
@@ -882,11 +875,11 @@ the explicit-object surface by generated-code and ABI tests.
 
 | Current `Api` operation | Preferred `Register<T, Bits>` form | Result |
 | --- | --- | --- |
-| `add` | `lhs + rhs`, `lhs += rhs` | Same register type |
-| `subtract` | `lhs - rhs`, `lhs -= rhs` | Same register type |
-| `multiply` | `lhs * rhs`, `lhs *= rhs` | Same register type |
-| `divide` | `lhs / rhs`, `lhs /= rhs` | Same register type where supported |
-| `modulus` | `lhs % rhs`, `lhs %= rhs` | Same integral register type |
+| `add` | `lhs + rhs` | Same register type |
+| `subtract` | `lhs - rhs` | Same register type |
+| `multiply` | `lhs * rhs` | Same register type |
+| `divide` | `lhs / rhs` | Same register type where supported |
+| `modulus` | `lhs % rhs` | Same integral register type |
 | `negate` | `-value` | Same register type |
 | `min` | `lhs.min(rhs)` | Same register type |
 | `max` | `lhs.max(rhs)` | Same register type |
@@ -935,9 +928,9 @@ formed mechanically.
 
 | Current `Api` operation | Preferred `Register<T, Bits>` form | Result |
 | --- | --- | --- |
-| `bitwise_and` | `lhs & rhs`, `lhs &= rhs` | Same register type |
-| `bitwise_or` | `lhs \| rhs`, `lhs \|= rhs` | Same register type |
-| `bitwise_xor` | `lhs ^ rhs`, `lhs ^= rhs` | Same register type |
+| `bitwise_and` | `lhs & rhs` | Same register type |
+| `bitwise_or` | `lhs \| rhs` | Same register type |
+| `bitwise_xor` | `lhs ^ rhs` | Same register type |
 | `bitwise_not` | `~value` | Same register type |
 | `bitwise_andnot` | `lhs.andnot(rhs)` | Same register type with existing operand polarity |
 | `movemask` | `value.movemask()` | Scalar mask with the selected intrinsic's native granularity |
@@ -982,9 +975,9 @@ requires an explicit integer reinterpretation followed by integer comparison.
 
 | Current `Api` operation | Preferred `Register<T, Bits>` form | Result |
 | --- | --- | --- |
-| `shift_left` | `value << count`, `value <<= count` | Per-lane integral shift |
+| `shift_left` | `value << count` | Per-lane integral shift |
 | `shift_right` | `value.logical_shift_right(count)` | Per-lane logical shift for signed or unsigned lanes |
-| `shift_right_arithmetic` | `value >> count`, `value >>= count` | Per-lane arithmetic shift for signed lanes |
+| `shift_right_arithmetic` | `value >> count` | Per-lane arithmetic shift for signed lanes |
 | `byte_shift_left` | `value.byte_shift_left(count)` | Complete 128-bit register byte shift |
 | `byte_shift_right` | `value.byte_shift_right(count)` | Complete 128-bit register byte shift |
 | Runtime `bit_shift_left` | `value.bit_shift_left(count)` | Complete 128-bit bit-string shift |
@@ -1131,11 +1124,10 @@ The preferred implementation uses these mechanisms together:
   optimization, its operands and result can use the platform's vector or
   homogeneous-vector-aggregate calling convention without an implicit `this`
   pointer.
-- Constructors, compiler-generated special members, and static factories remain
-  ordinary members because they either must be members or consume no existing
-  wrapper. Compound assignment operators use explicit object parameters by
-  reference because they mutate an existing wrapper. They are forced inline and
-  subject to a dedicated materialization gate.
+- Aggregate initialization, implicit compiler-generated special members, and
+  static factories consume no existing wrapper. Compound assignment operators
+  remain disabled; explicit reassignment composes the by-value binary
+  operations without adding a mutable-reference boundary.
 - Deliberately out-of-line register operations, if any are later justified,
   retain their explicit-object parameter and `VECTORCALL` where supported so
   their ABI does not silently regress to an implicit `this` boundary.
@@ -1146,10 +1138,11 @@ The preferred implementation uses these mechanisms together:
 `VECTORCALL` controls a surviving function-call boundary; it does not pin a
 value to a physical register and has no effect after a function is inlined. In
 the current configuration it is enabled for MSVC and Clang on x64 targets and
-is empty for GCC. MSVC and Clang are expected to classify a one-vector wrapper
-as a one-element homogeneous vector aggregate, but that classification is a
-compiler ABI property and must be verified. GCC uses its target ABI and must be
-validated independently against the same raw-vector baseline.
+is empty for GCC. The public aggregate representations of Register and
+RegisterMask allow clang-cl to classify `VECTORCALL` boundaries like the
+corresponding native vector. The platform-default clang-cl convention remains a
+separately recorded boundary and may use hidden return storage. GCC uses its
+target ABI and is validated against the same raw-vector baseline.
 
 The calling convention on Register members does not propagate into an ordinary
 consumer-defined function. A non-inlined consumer function that passes or
@@ -1184,15 +1177,16 @@ and explicit-object member forms received their values in vector registers and
 returned the result in a vector register. The explicit-object body was one
 `vaddps`, and its caller emitted a tail call while retaining `lhs.add(rhs)`
 syntax. A separate explicit-object `operator+` probe produced the same ABI and
-single-instruction body, while a forced-inline reference-taking `operator+=`
-also reduced to one `vaddps`. The inlined forms were equivalent. This evidence
-motivates the explicit-object default, but the complete supported compiler,
-type, and width matrix remains an acceptance test rather than an assumed ABI
-guarantee.
+single-instruction body. Later MSVC 19.44 probes showed that reference-taking
+compound assignment on a 256-bit wrapper introduces a redundant 32-byte
+stack-alignment frame even when its arithmetic remains register-only. This
+evidence motivates both the explicit-object by-value default and the exclusion
+of compound assignment, but the complete supported compiler, type, and width
+matrix remains an acceptance test rather than an assumed ABI guarantee.
 
 The implementation must:
 
-- Store only `native_type m_data` in each `Register` and `RegisterMask`.
+- Store only the public `native_type native` representation in each `Register` and `RegisterMask`.
 - Add no virtual functions, allocator state, active-lane metadata, or hidden
   heap allocation.
 - Preserve `SIMDLIB_FORCE_INLINE`, `VECTORCALL`, `noexcept`, and `constexpr`
@@ -1301,9 +1295,10 @@ The implementation requires evidence in each of these areas:
 - Dedicated availability probes for both detection paths: the standardized
   `__cpp_explicit_this_parameter >= 202110L` path on clang-cl, Clang, and GCC,
   and the `_MSC_VER >= 1944` plus `_MSVC_LANG > 202002L` fallback on Microsoft
-  C++. MSVC probes cover named methods, overloaded arithmetic and comparison
-  operators, and mutating compound-assignment operators. The same MSVC toolset
-  is also compiled in C++20 mode to prove that the fallback remains disabled.
+  C++. MSVC probes cover named methods and overloaded arithmetic and comparison
+  operators, and constraint probes verify that compound assignment remains
+  unavailable. The same MSVC toolset is also compiled in C++20 mode to prove
+  that the fallback remains disabled.
 - A configuration probe proving that clang-cl cannot enter the Microsoft C++
   fallback through its compatibility definition of `_MSC_VER`.
 - Compile-time availability checks for every supported element type at 128 and
@@ -1315,8 +1310,8 @@ The implementation requires evidence in each of these areas:
 - Compile-time rejection of out-of-range immediates and selectors, plus runtime
   and constant-evaluation tests at every documented shift-count boundary.
 - Compile-only validation that the declaration sketch, forward declarations,
-  constraints, private-access relationships, and focused-header include boundary are
-  self-contained.
+  constraints, aggregate construction contracts, and focused-header include
+  boundary are self-contained.
 - Layout and trivial-copy checks for integer, float, and double register
   families on each supported compiler.
 - Runtime construction, load, store, and operation tests that use distinctive
@@ -1330,10 +1325,10 @@ The implementation requires evidence in each of these areas:
   selection polarity, and cleared unused scalar bits. Static assertions verify
   that `bits_type` is the documented unsigned type for every supported width
   and lane geometry.
-- Mask-native interoperation tests proving that `native()` returns the complete
-  predicate bits by value without a store/reload round trip, while arbitrary
-  native registers, scalar bit fields, and numeric Registers cannot publicly
-  construct a `RegisterMask`.
+- Mask-native interoperation tests proving that the public `native` member contains
+  the complete predicate bits without a store/reload round trip, that direct
+  native aggregate initialization requires canonical predicate lanes, and that
+  scalar bit fields and numeric Registers cannot construct a `RegisterMask`.
 - Backend-adapter tests proving that runtime, portable, emulated, and
   constant-evaluated comparisons produce the same intrinsic-defined predicate
   lanes.
@@ -1358,10 +1353,10 @@ The implementation requires evidence in each of these areas:
   compares optimized wrapper chains with equivalent direct-intrinsic chains
   compiled with identical options and rejects wrapper-only stack traffic,
   moves, spills, reloads, temporaries, branches, or indirection.
-- Forced-inline probes for constructors, compiler-generated special members,
-  static factories, and reference-taking compound assignments. The supported
-  performance gate fails if a wrapper is unnecessarily materialized when the
-  equivalent direct operation remains in registers.
+- Forced-inline probes for aggregate initialization, implicit compiler-generated
+  special members, static factories, and reassignment expressions. The
+  supported performance gate fails if a wrapper is unnecessarily materialized
+  when the equivalent direct operation remains in registers.
 - Test-only, separately compiled, non-inlined ABI mirrors for the explicit-object
   signature families: unary, binary, ternary, scalar-result, mask-result,
   native-result, store, and mutating-reference operations. These compare `Register`,
@@ -1415,11 +1410,11 @@ are accepted:
   unsafe or partial transfer is exposed.
 - Lane-wise comparisons return `RegisterMask`; whole-value equality returns
   `bool`.
-- `RegisterMask` contains one native predicate register, has no public
-  arbitrary-native constructor, and exposes compact lane bits, Boolean
-  reductions, bitwise composition, lane selection, and a by-value native
-  observer. Its normalized unsigned `bits_type` is selected from `lane_count`
-  rather than inherited from `Api::mask_t`.
+- `RegisterMask` is a one-member native aggregate and exposes compact lane bits,
+  Boolean reductions, bitwise composition, lane selection, and a by-value native
+  observer. Direct native initialization requires canonical all-zero/all-one
+  predicate lanes. Its normalized unsigned `bits_type` is selected from
+  `lane_count` rather than inherited from `Api::mask_t`.
 - Comparison behavior exactly matches the selected underlying hardware
   intrinsic, including floating-point edge cases and predicate-lane bit
   patterns.
@@ -1442,10 +1437,10 @@ are accepted:
   moves, spills, reloads, stack traffic, temporaries, branches, or indirection
   relative to equivalent raw-intrinsic code compiled in the same context; it
   does not claim that raw SIMD values can never spill.
-- Every non-static operation uses an explicit object parameter and
-  `VECTORCALL` where supported. Non-mutating operations take the object by value
-  to preserve member-call syntax without an implicit `this` pointer; compound
-  assignments take it by reference to express mutation.
+- Every non-static operation uses an explicit object parameter by value and
+  `VECTORCALL` where supported, preserving member-call syntax without an
+  implicit `this` pointer. Compound assignment is intentionally absent; callers
+  use explicit reassignment through the by-value binary operators.
 - Call-boundary behavior is validated separately for MSVC, clang-cl, Clang,
   and GCC because `VECTORCALL` is a calling-convention tool, not a physical
   register-residency guarantee.

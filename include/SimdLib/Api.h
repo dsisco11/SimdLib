@@ -1252,6 +1252,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static int_vector_t VECTORCALL shift_left(const int_vector_t lhs, int shift) noexcept
 		requires(using_int)
 	{
+		SIMDLIB_PRECONDITION(shift >= 0, "Per-lane left shifts require a nonnegative count");
 		if (std::is_constant_evaluated())
 			return shift_left_constexpr(lhs, shift);
 
@@ -1266,6 +1267,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static int_vector_t VECTORCALL shift_right(const int_vector_t lhs, int shift) noexcept
 		requires(using_int)
 	{
+		SIMDLIB_PRECONDITION(shift >= 0, "Per-lane logical right shifts require a nonnegative count");
 		if (std::is_constant_evaluated())
 			return shift_right_constexpr(lhs, shift);
 
@@ -1280,6 +1282,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static int_vector_t VECTORCALL shift_right_arithmetic(const int_vector_t lhs, int shift) noexcept
 		requires(using_int)
 	{
+		SIMDLIB_PRECONDITION(shift >= 0, "Per-lane arithmetic right shifts require a nonnegative count");
 		if (std::is_constant_evaluated())
 			return shift_right_arithmetic_constexpr(lhs, shift);
 

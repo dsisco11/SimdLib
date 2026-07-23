@@ -76,8 +76,8 @@ void require_value_contracts()
 	REQUIRE(register_type::from_array(values).to_array() == values);
 	REQUIRE(from_lanes<register_type>(values, std::make_index_sequence<register_type::lane_count>{}).to_array() == values);
 
-	const register_type wrapped(register_type::api_type::construct(values));
-	REQUIRE(register_type::api_type::to_array(wrapped.native()) == values);
+	const register_type wrapped{register_type::api_type::construct(values)};
+	REQUIRE(register_type::api_type::to_array(wrapped.native) == values);
 	require_all_lanes(wrapped, values);
 
 	const auto first_replaced = wrapped.template with_lane<0>(static_cast<element_t>(41)).to_array();
@@ -183,12 +183,14 @@ void require_mask_contracts()
 	const auto alternating = lhs.compare_greater(rhs);
 	const auto inverse = lhs.compare_less(rhs);
 	const auto all_true = lhs.compare_equal(lhs);
+	const mask_type rewrapped{alternating.native};
 
 	REQUIRE(mask_type{}.bits() == 0);
 	REQUIRE(mask_type{}.none());
 	REQUIRE_FALSE(mask_type{}.any());
 	REQUIRE_FALSE(mask_type{}.all());
 	REQUIRE(alternating.bits() == alternating_bits);
+	REQUIRE(rewrapped.bits() == alternating_bits);
 	REQUIRE(alternating.any());
 	REQUIRE_FALSE(alternating.all());
 	REQUIRE(all_true.bits() == all_bits);
@@ -198,13 +200,13 @@ void require_mask_contracts()
 	REQUIRE((alternating ^ inverse).bits() == all_bits);
 	REQUIRE((~alternating).bits() == (all_bits ^ alternating_bits));
 
-	auto compound = alternating;
-	compound &= all_true;
-	REQUIRE(compound.bits() == alternating_bits);
-	compound |= inverse;
-	REQUIRE(compound.all());
-	compound ^= inverse;
-	REQUIRE(compound.bits() == alternating_bits);
+	auto reassigned = alternating;
+	reassigned = reassigned & all_true;
+	REQUIRE(reassigned.bits() == alternating_bits);
+	reassigned = reassigned | inverse;
+	REQUIRE(reassigned.all());
+	reassigned = reassigned ^ inverse;
+	REQUIRE(reassigned.bits() == alternating_bits);
 
 	std::array<element_t, register_type::lane_count> first_left{};
 	std::array<element_t, register_type::lane_count> first_right{};
@@ -231,7 +233,7 @@ void require_mask_contracts()
 	REQUIRE_FALSE(lhs == rhs);
 	REQUIRE(lhs != rhs);
 
-	const auto native_lanes = register_type::api_type::to_array(alternating.native());
+	const auto native_lanes = register_type::api_type::to_array(alternating.native);
 	for (std::size_t lane = 0; lane < native_lanes.size(); ++lane)
 	{
 		const auto bytes = std::bit_cast<std::array<std::uint8_t, sizeof(element_t)>>(native_lanes[lane]);

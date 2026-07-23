@@ -48,8 +48,7 @@ struct SimdImpl128
 template <> struct SimdImpl128<int8_t>
 {
 	/** @brief Selects bytes from two registers using a canonical predicate register. */
-	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m128i VECTORCALL select(
-		__m128i condition, __m128i when_true, __m128i when_false) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m128i VECTORCALL select(__m128i condition, __m128i when_true, __m128i when_false) noexcept
 	{
 		return _mm_blendv_epi8(when_false, when_true, condition);
 	}
@@ -79,9 +78,10 @@ template <> struct SimdImpl128<int8_t>
 	{
 		return _ext_mul_epi8(lhs, rhs);
 	}
-	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE static auto VECTORCALL divide(auto lhs, auto rhs) noexcept
+	/** @brief Divides corresponding signed 8-bit lanes with scalar instructions and intrinsic reconstruction. */
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL divide(auto lhs, auto rhs) noexcept
 	{
-		return register_transform_binary<std::int8_t>(lhs, rhs, [](auto left, auto right) noexcept { return left / right; });
+		return _ext128_div_epi8(lhs, rhs);
 	}
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL modulus(auto lhs, auto rhs) noexcept
 	{
@@ -289,8 +289,7 @@ template <> struct SimdImpl128<int8_t>
 template <> struct SimdImpl128<uint8_t>
 {
 	/** @brief Selects bytes from two registers using a canonical predicate register. */
-	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m128i VECTORCALL select(
-		__m128i condition, __m128i when_true, __m128i when_false) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m128i VECTORCALL select(__m128i condition, __m128i when_true, __m128i when_false) noexcept
 	{
 		return _mm_blendv_epi8(when_false, when_true, condition);
 	}
@@ -320,9 +319,10 @@ template <> struct SimdImpl128<uint8_t>
 	{
 		return _ext_mul_epi8(lhs, rhs);
 	}
-	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE static auto VECTORCALL divide(auto lhs, auto rhs) noexcept
+	/** @brief Divides corresponding unsigned 8-bit lanes with scalar instructions and intrinsic reconstruction. */
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL divide(auto lhs, auto rhs) noexcept
 	{
-		return register_transform_binary<std::uint8_t>(lhs, rhs, [](auto left, auto right) noexcept { return left / right; });
+		return _ext128_div_epu8(lhs, rhs);
 	}
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL modulus(auto lhs, auto rhs) noexcept
 	{
@@ -538,8 +538,7 @@ template <> struct SimdImpl128<uint8_t>
 template <> struct SimdImpl128<int16_t>
 {
 	/** @brief Selects 16-bit lanes from two registers using a canonical predicate register. */
-	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m128i VECTORCALL select(
-		__m128i condition, __m128i when_true, __m128i when_false) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m128i VECTORCALL select(__m128i condition, __m128i when_true, __m128i when_false) noexcept
 	{
 		return _mm_blendv_epi8(when_false, when_true, condition);
 	}
@@ -565,9 +564,10 @@ template <> struct SimdImpl128<int16_t>
 	{
 		return _mm_mullo_epi16(lhs, rhs);
 	}
-	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE static auto VECTORCALL divide(auto lhs, auto rhs) noexcept
+	/** @brief Divides corresponding signed 16-bit lanes with scalar instructions and intrinsic reconstruction. */
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL divide(auto lhs, auto rhs) noexcept
 	{
-		return register_transform_binary<std::int16_t>(lhs, rhs, [](auto left, auto right) noexcept { return left / right; });
+		return _ext128_div_epi16(lhs, rhs);
 	}
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL modulus(auto lhs, auto rhs) noexcept
 	{
@@ -795,8 +795,7 @@ template <> struct SimdImpl128<int16_t>
 template <> struct SimdImpl128<uint16_t>
 {
 	/** @brief Selects 16-bit lanes from two registers using a canonical predicate register. */
-	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m128i VECTORCALL select(
-		__m128i condition, __m128i when_true, __m128i when_false) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m128i VECTORCALL select(__m128i condition, __m128i when_true, __m128i when_false) noexcept
 	{
 		return _mm_blendv_epi8(when_false, when_true, condition);
 	}
@@ -830,9 +829,10 @@ template <> struct SimdImpl128<uint16_t>
 	{
 		return _mm_mullo_epi16(lhs, rhs);
 	}
-	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE static auto VECTORCALL divide(auto lhs, auto rhs) noexcept
+	/** @brief Divides corresponding unsigned 16-bit lanes with scalar instructions and intrinsic reconstruction. */
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL divide(auto lhs, auto rhs) noexcept
 	{
-		return register_transform_binary<std::uint16_t>(lhs, rhs, [](auto left, auto right) noexcept { return left / right; });
+		return _ext128_div_epu16(lhs, rhs);
 	}
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL modulus(auto lhs, auto rhs) noexcept
 	{
@@ -1040,8 +1040,7 @@ template <> struct SimdImpl128<uint16_t>
 template <> struct SimdImpl128<int32_t>
 {
 	/** @brief Selects 32-bit lanes from two registers using a canonical predicate register. */
-	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m128i VECTORCALL select(
-		__m128i condition, __m128i when_true, __m128i when_false) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m128i VECTORCALL select(__m128i condition, __m128i when_true, __m128i when_false) noexcept
 	{
 		return _mm_blendv_epi8(when_false, when_true, condition);
 	}
@@ -1069,9 +1068,10 @@ template <> struct SimdImpl128<int32_t>
 	{
 		return _mm_mullo_epi32(lhs, rhs);
 	}
-	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE static auto VECTORCALL divide(auto lhs, auto rhs) noexcept
+	/** @brief Divides corresponding signed 32-bit lanes with scalar instructions and intrinsic reconstruction. */
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL divide(auto lhs, auto rhs) noexcept
 	{
-		return _ext_div_epi32(lhs, rhs);
+		return _ext128_div_epi32(lhs, rhs);
 	}
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL modulus(auto lhs, auto rhs) noexcept
 	{
@@ -1256,8 +1256,7 @@ template <> struct SimdImpl128<int32_t>
 template <> struct SimdImpl128<uint32_t>
 {
 	/** @brief Selects 32-bit lanes from two registers using a canonical predicate register. */
-	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m128i VECTORCALL select(
-		__m128i condition, __m128i when_true, __m128i when_false) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m128i VECTORCALL select(__m128i condition, __m128i when_true, __m128i when_false) noexcept
 	{
 		return _mm_blendv_epi8(when_false, when_true, condition);
 	}
@@ -1302,9 +1301,9 @@ template <> struct SimdImpl128<uint32_t>
 	 * @param rhs The nonzero divisor lanes.
 	 * @return The truncating integer quotients.
 	 */
-	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE static auto VECTORCALL divide(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL divide(auto lhs, auto rhs) noexcept
 	{
-		return register_transform_binary<std::uint32_t>(lhs, rhs, [](auto left, auto right) noexcept { return left / right; });
+		return _ext128_div_epu32(lhs, rhs);
 	}
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL modulus(auto lhs, auto rhs) noexcept
 	{
@@ -1490,8 +1489,7 @@ template <> struct SimdImpl128<uint32_t>
 template <> struct SimdImpl128<int64_t>
 {
 	/** @brief Selects 64-bit lanes from two registers using a canonical predicate register. */
-	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m128i VECTORCALL select(
-		__m128i condition, __m128i when_true, __m128i when_false) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m128i VECTORCALL select(__m128i condition, __m128i when_true, __m128i when_false) noexcept
 	{
 		return _mm_blendv_epi8(when_false, when_true, condition);
 	}
@@ -1526,9 +1524,10 @@ template <> struct SimdImpl128<int64_t>
 	{
 		return _ext_mullo_epi64(lhs, rhs);
 	}
-	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE static auto VECTORCALL divide(auto lhs, auto rhs) noexcept
+	/** @brief Divides corresponding signed 64-bit lanes with scalar instructions and intrinsic reconstruction. */
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL divide(auto lhs, auto rhs) noexcept
 	{
-		return _ext_div_epi64(lhs, rhs);
+		return _ext128_div_epi64(lhs, rhs);
 	}
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL modulus(auto lhs, auto rhs) noexcept
 	{
@@ -1656,8 +1655,7 @@ template <> struct SimdImpl128<int64_t>
 template <> struct SimdImpl128<uint64_t>
 {
 	/** @brief Selects 64-bit lanes from two registers using a canonical predicate register. */
-	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m128i VECTORCALL select(
-		__m128i condition, __m128i when_true, __m128i when_false) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m128i VECTORCALL select(__m128i condition, __m128i when_true, __m128i when_false) noexcept
 	{
 		return _mm_blendv_epi8(when_false, when_true, condition);
 	}
@@ -1692,9 +1690,10 @@ template <> struct SimdImpl128<uint64_t>
 	{
 		return _ext_mullo_epi64(lhs, rhs);
 	}
-	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE static auto VECTORCALL divide(auto lhs, auto rhs) noexcept
+	/** @brief Divides corresponding unsigned 64-bit lanes with scalar instructions and intrinsic reconstruction. */
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL divide(auto lhs, auto rhs) noexcept
 	{
-		return _ext_div_epu64(lhs, rhs);
+		return _ext128_div_epu64(lhs, rhs);
 	}
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL modulus(auto lhs, auto rhs) noexcept
 	{
@@ -1824,8 +1823,7 @@ template <> struct SimdImpl128<uint64_t>
 template <> struct SimdImpl128<float>
 {
 	/** @brief Selects float lanes from two registers using a canonical predicate register. */
-	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m128 VECTORCALL select(
-		__m128 condition, __m128 when_true, __m128 when_false) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m128 VECTORCALL select(__m128 condition, __m128 when_true, __m128 when_false) noexcept
 	{
 		return _mm_blendv_ps(when_false, when_true, condition);
 	}
@@ -1975,8 +1973,7 @@ template <> struct SimdImpl128<float>
 template <> struct SimdImpl128<double>
 {
 	/** @brief Selects double lanes from two registers using a canonical predicate register. */
-	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m128d VECTORCALL select(
-		__m128d condition, __m128d when_true, __m128d when_false) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m128d VECTORCALL select(__m128d condition, __m128d when_true, __m128d when_false) noexcept
 	{
 		return _mm_blendv_pd(when_false, when_true, condition);
 	}
@@ -2238,7 +2235,8 @@ template <class element_t> struct SimdMappings<128, element_t> : public SimdImpl
 		return register_from_values<vector_t, element_t>(static_cast<element_t>(args)...);
 	}
 
-	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static vector_t VECTORCALL multiply_add(const vector_t lhs, const vector_t rhs, const vector_t addend) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static vector_t VECTORCALL multiply_add(const vector_t lhs, const vector_t rhs,
+																									   const vector_t addend) noexcept
 	{
 		if constexpr (requires(vector_t left, vector_t right, vector_t sum) { impl::multiply_add(left, right, sum); })
 			return impl::multiply_add(lhs, rhs, addend);
@@ -2247,7 +2245,8 @@ template <class element_t> struct SimdMappings<128, element_t> : public SimdImpl
 	}
 
 	/// <summary>Broadcasts a 128-bit integer vector into both 128-bit lanes of a 256-bit integer vector.</summary>
-	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m256i VECTORCALL broadcast_128(const typename SimdMappings<128, element_t>::int_vector_t v) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m256i VECTORCALL
+	broadcast_128(const typename SimdMappings<128, element_t>::int_vector_t v) noexcept
 		requires std::is_integral_v<element_t>
 	{
 		return _mm256_broadcastsi128_si256(v);
@@ -2656,8 +2655,7 @@ struct SimdImpl256
 template <> struct SimdImpl256<int8_t>
 {
 	/** @brief Selects bytes from two registers using a canonical predicate register. */
-	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m256i VECTORCALL select(
-		__m256i condition, __m256i when_true, __m256i when_false) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m256i VECTORCALL select(__m256i condition, __m256i when_true, __m256i when_false) noexcept
 	{
 		return _mm256_blendv_epi8(when_false, when_true, condition);
 	}
@@ -2697,9 +2695,10 @@ template <> struct SimdImpl256<int8_t>
 	{
 		return _ext256_mul_epi8(lhs, rhs);
 	}
-	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE static auto VECTORCALL divide(auto lhs, auto rhs) noexcept
+	/** @brief Divides corresponding signed 8-bit lanes with scalar instructions and intrinsic reconstruction. */
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL divide(auto lhs, auto rhs) noexcept
 	{
-		return register_transform_binary<std::int8_t>(lhs, rhs, [](auto left, auto right) noexcept { return left / right; });
+		return _ext256_div_epi8(lhs, rhs);
 	}
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL modulus(auto lhs, auto rhs) noexcept
 	{
@@ -2878,8 +2877,7 @@ template <> struct SimdImpl256<int8_t>
 template <> struct SimdImpl256<uint8_t>
 {
 	/** @brief Selects bytes from two registers using a canonical predicate register. */
-	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m256i VECTORCALL select(
-		__m256i condition, __m256i when_true, __m256i when_false) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m256i VECTORCALL select(__m256i condition, __m256i when_true, __m256i when_false) noexcept
 	{
 		return _mm256_blendv_epi8(when_false, when_true, condition);
 	}
@@ -2919,9 +2917,10 @@ template <> struct SimdImpl256<uint8_t>
 	{
 		return _ext256_mul_epi8(lhs, rhs);
 	}
-	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE static auto VECTORCALL divide(auto lhs, auto rhs) noexcept
+	/** @brief Divides corresponding unsigned 8-bit lanes with scalar instructions and intrinsic reconstruction. */
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL divide(auto lhs, auto rhs) noexcept
 	{
-		return register_transform_binary<std::uint8_t>(lhs, rhs, [](auto left, auto right) noexcept { return left / right; });
+		return _ext256_div_epu8(lhs, rhs);
 	}
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL modulus(auto lhs, auto rhs) noexcept
 	{
@@ -3102,8 +3101,7 @@ template <> struct SimdImpl256<uint8_t>
 template <> struct SimdImpl256<int16_t>
 {
 	/** @brief Selects 16-bit lanes from two registers using a canonical predicate register. */
-	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m256i VECTORCALL select(
-		__m256i condition, __m256i when_true, __m256i when_false) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m256i VECTORCALL select(__m256i condition, __m256i when_true, __m256i when_false) noexcept
 	{
 		return _mm256_blendv_epi8(when_false, when_true, condition);
 	}
@@ -3129,9 +3127,10 @@ template <> struct SimdImpl256<int16_t>
 	{
 		return _mm256_mullo_epi16(lhs, rhs);
 	}
-	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE static auto VECTORCALL divide(auto lhs, auto rhs) noexcept
+	/** @brief Divides corresponding signed 16-bit lanes with scalar instructions and intrinsic reconstruction. */
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL divide(auto lhs, auto rhs) noexcept
 	{
-		return register_transform_binary<std::int16_t>(lhs, rhs, [](auto left, auto right) noexcept { return left / right; });
+		return _ext256_div_epi16(lhs, rhs);
 	}
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL modulus(auto lhs, auto rhs) noexcept
 	{
@@ -3335,8 +3334,7 @@ template <> struct SimdImpl256<int16_t>
 template <> struct SimdImpl256<uint16_t>
 {
 	/** @brief Selects 16-bit lanes from two registers using a canonical predicate register. */
-	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m256i VECTORCALL select(
-		__m256i condition, __m256i when_true, __m256i when_false) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m256i VECTORCALL select(__m256i condition, __m256i when_true, __m256i when_false) noexcept
 	{
 		return _mm256_blendv_epi8(when_false, when_true, condition);
 	}
@@ -3362,9 +3360,10 @@ template <> struct SimdImpl256<uint16_t>
 	{
 		return _mm256_mullo_epi16(lhs, rhs);
 	}
-	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE static auto VECTORCALL divide(auto lhs, auto rhs) noexcept
+	/** @brief Divides corresponding unsigned 16-bit lanes with scalar instructions and intrinsic reconstruction. */
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL divide(auto lhs, auto rhs) noexcept
 	{
-		return register_transform_binary<std::uint16_t>(lhs, rhs, [](auto left, auto right) noexcept { return left / right; });
+		return _ext256_div_epu16(lhs, rhs);
 	}
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL modulus(auto lhs, auto rhs) noexcept
 	{
@@ -3572,8 +3571,7 @@ template <> struct SimdImpl256<uint16_t>
 template <> struct SimdImpl256<int32_t>
 {
 	/** @brief Selects 32-bit lanes from two registers using a canonical predicate register. */
-	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m256i VECTORCALL select(
-		__m256i condition, __m256i when_true, __m256i when_false) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m256i VECTORCALL select(__m256i condition, __m256i when_true, __m256i when_false) noexcept
 	{
 		return _mm256_blendv_epi8(when_false, when_true, condition);
 	}
@@ -3601,9 +3599,10 @@ template <> struct SimdImpl256<int32_t>
 	{
 		return _mm256_mullo_epi32(lhs, rhs);
 	}
-	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE static auto VECTORCALL divide(auto lhs, auto rhs) noexcept
+	/** @brief Divides corresponding signed 32-bit lanes with scalar instructions and intrinsic reconstruction. */
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL divide(auto lhs, auto rhs) noexcept
 	{
-		return register_transform_binary<std::int32_t>(lhs, rhs, [](auto left, auto right) noexcept { return left / right; });
+		return _ext256_div_epi32(lhs, rhs);
 	}
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL modulus(auto lhs, auto rhs) noexcept
 	{
@@ -3764,8 +3763,7 @@ template <> struct SimdImpl256<int32_t>
 template <> struct SimdImpl256<uint32_t>
 {
 	/** @brief Selects 32-bit lanes from two registers using a canonical predicate register. */
-	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m256i VECTORCALL select(
-		__m256i condition, __m256i when_true, __m256i when_false) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m256i VECTORCALL select(__m256i condition, __m256i when_true, __m256i when_false) noexcept
 	{
 		return _mm256_blendv_epi8(when_false, when_true, condition);
 	}
@@ -3803,9 +3801,10 @@ template <> struct SimdImpl256<uint32_t>
 	{
 		return _mm256_mullo_epi32(lhs, rhs);
 	}
-	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE static auto VECTORCALL divide(auto lhs, auto rhs) noexcept
+	/** @brief Divides corresponding unsigned 32-bit lanes with scalar instructions and intrinsic reconstruction. */
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL divide(auto lhs, auto rhs) noexcept
 	{
-		return register_transform_binary<std::uint32_t>(lhs, rhs, [](auto left, auto right) noexcept { return left / right; });
+		return _ext256_div_epu32(lhs, rhs);
 	}
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL modulus(auto lhs, auto rhs) noexcept
 	{
@@ -3971,8 +3970,7 @@ template <> struct SimdImpl256<uint32_t>
 template <> struct SimdImpl256<int64_t>
 {
 	/** @brief Selects 64-bit lanes from two registers using a canonical predicate register. */
-	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m256i VECTORCALL select(
-		__m256i condition, __m256i when_true, __m256i when_false) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m256i VECTORCALL select(__m256i condition, __m256i when_true, __m256i when_false) noexcept
 	{
 		return _mm256_blendv_epi8(when_false, when_true, condition);
 	}
@@ -4000,7 +3998,8 @@ template <> struct SimdImpl256<int64_t>
 	{
 		return _ext256_mullo_epi64(lhs, rhs);
 	}
-	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE static auto VECTORCALL divide(auto lhs, auto rhs) noexcept
+	/** @brief Divides corresponding signed 64-bit lanes with scalar instructions and intrinsic reconstruction. */
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL divide(auto lhs, auto rhs) noexcept
 	{
 		return _ext256_div_epi64(lhs, rhs);
 	}
@@ -4145,8 +4144,7 @@ template <> struct SimdImpl256<int64_t>
 template <> struct SimdImpl256<uint64_t>
 {
 	/** @brief Selects 64-bit lanes from two registers using a canonical predicate register. */
-	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m256i VECTORCALL select(
-		__m256i condition, __m256i when_true, __m256i when_false) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m256i VECTORCALL select(__m256i condition, __m256i when_true, __m256i when_false) noexcept
 	{
 		return _mm256_blendv_epi8(when_false, when_true, condition);
 	}
@@ -4174,7 +4172,8 @@ template <> struct SimdImpl256<uint64_t>
 	{
 		return _ext256_mullo_epi64(lhs, rhs);
 	}
-	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE static auto VECTORCALL divide(auto lhs, auto rhs) noexcept
+	/** @brief Divides corresponding unsigned 64-bit lanes with scalar instructions and intrinsic reconstruction. */
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL divide(auto lhs, auto rhs) noexcept
 	{
 		return _ext256_div_epu64(lhs, rhs);
 	}
@@ -4319,8 +4318,7 @@ template <> struct SimdImpl256<uint64_t>
 template <> struct SimdImpl256<float>
 {
 	/** @brief Selects float lanes from two registers using a canonical predicate register. */
-	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m256 VECTORCALL select(
-		__m256 condition, __m256 when_true, __m256 when_false) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m256 VECTORCALL select(__m256 condition, __m256 when_true, __m256 when_false) noexcept
 	{
 		return _mm256_blendv_ps(when_false, when_true, condition);
 	}
@@ -4431,7 +4429,8 @@ template <> struct SimdImpl256<float>
 	{
 		constexpr int half_index = index / 4;
 		constexpr int lane_index = index % 4;
-		const __m128 half = [&]() {
+		const __m128 half = [&]()
+		{
 			if constexpr (half_index == 0)
 				return _mm256_castps256_ps128(lhs);
 			else
@@ -4491,8 +4490,7 @@ template <> struct SimdImpl256<float>
 template <> struct SimdImpl256<double>
 {
 	/** @brief Selects double lanes from two registers using a canonical predicate register. */
-	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m256d VECTORCALL select(
-		__m256d condition, __m256d when_true, __m256d when_false) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m256d VECTORCALL select(__m256d condition, __m256d when_true, __m256d when_false) noexcept
 	{
 		return _mm256_blendv_pd(when_false, when_true, condition);
 	}
@@ -4603,7 +4601,8 @@ template <> struct SimdImpl256<double>
 	{
 		constexpr int half_index = index / 2;
 		constexpr int lane_index = index % 2;
-		const __m128d half = [&]() {
+		const __m128d half = [&]()
+		{
 			if constexpr (half_index == 0)
 				return _mm256_castpd256_pd128(lhs);
 			else
@@ -4709,7 +4708,8 @@ template <class element_t> struct SimdMappings<256, element_t> : public SimdImpl
 		}
 	}
 
-	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static typename SimdMappings<128, element_t>::vector_t VECTORCALL lower_half(const vector_t lhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static typename SimdMappings<128, element_t>::vector_t VECTORCALL
+	lower_half(const vector_t lhs) noexcept
 	{
 		if constexpr (std::is_integral_v<element_t>)
 			return _mm256_castsi256_si128(lhs);
@@ -4788,7 +4788,8 @@ template <class element_t> struct SimdMappings<256, element_t> : public SimdImpl
 		return register_from_values<vector_t, element_t>(static_cast<element_t>(args)...);
 	}
 
-	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static vector_t VECTORCALL multiply_add(const vector_t lhs, const vector_t rhs, const vector_t addend) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static vector_t VECTORCALL multiply_add(const vector_t lhs, const vector_t rhs,
+																									   const vector_t addend) noexcept
 	{
 		if constexpr (requires(vector_t left, vector_t right, vector_t sum) { impl::multiply_add(left, right, sum); })
 			return impl::multiply_add(lhs, rhs, addend);

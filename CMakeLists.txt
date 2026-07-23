@@ -444,9 +444,11 @@ function(simdlib_add_register_codegen_gate register_width)
 	set(artifact_directory "${CMAKE_CURRENT_BINARY_DIR}/register-codegen/${register_width}")
 	set(stamp_file "${artifact_directory}/comparison.stamp")
 	set(register_only_stamp_file "${artifact_directory}/register-only-comparison.stamp")
+	set(reassignment_stamp_file "${artifact_directory}/reassignment-comparison.stamp")
 	set(lane_stamp_file "${artifact_directory}/lane-comparison.stamp")
 	set(default_abi_stamp_file "${artifact_directory}/default-abi.stamp")
 	set(abi_stamp_file "${artifact_directory}/abi-comparison.stamp")
+	set(consumer_abi_stamp_file "${artifact_directory}/consumer-abi-comparison.stamp")
 	add_custom_command(
 		OUTPUT "${stamp_file}"
 		COMMAND ${CMAKE_COMMAND} -E make_directory "${artifact_directory}"
@@ -489,7 +491,7 @@ function(simdlib_add_register_codegen_gate register_width)
 			-DREGISTER_WIDTH=${register_width}
 			-DVECTORCALL_ENABLED=${vectorcall_enabled}
 			-DSTACK_PROTECTOR_MODE=${stack_protector_mode}
-			-D"SYMBOL_PATTERN=simdlib_codegen_(unary|binary|ternary|scalar|mask|native|zero|broadcast_reuse|from_array|lane_|with_lane_last|special_members|pressure)"
+			"-DSYMBOL_PATTERN=simdlib_codegen_(unary|binary|ternary|scalar|mask|native|zero|broadcast_reuse|from_array|lane_|with_lane_last|special_members|pressure|basic_)"
 			-P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/CompareRegisterCodegen.cmake
 		COMMAND ${CMAKE_COMMAND} -E touch "${register_only_stamp_file}"
 		DEPENDS
@@ -523,6 +525,32 @@ function(simdlib_add_register_codegen_gate register_width)
 			$<TARGET_OBJECTS:${raw_target}>
 			cmake/CompareRegisterCodegen.cmake
 		COMMENT "Comparing ${register_width}-bit Register and raw constant-index lane extraction"
+		VERBATIM)
+	add_custom_command(
+		OUTPUT "${reassignment_stamp_file}"
+		COMMAND ${CMAKE_COMMAND} -E make_directory "${artifact_directory}/reassignment"
+		COMMAND ${CMAKE_COMMAND}
+			-DWRAPPER_OBJECT=$<TARGET_OBJECTS:${wrapper_target}>
+			-DRAW_OBJECT=$<TARGET_OBJECTS:${raw_target}>
+			-DOBJDUMP=${CMAKE_OBJDUMP}
+			-DARTIFACT_DIRECTORY=${artifact_directory}/reassignment
+			-DCOMPILER_ID=${CMAKE_CXX_COMPILER_ID}
+			-DCOMPILER_VERSION=${CMAKE_CXX_COMPILER_VERSION}
+			-DCOMPILER_PATH=${CMAKE_CXX_COMPILER}
+			-DSYSTEM_NAME=${CMAKE_SYSTEM_NAME}
+			-DSYSTEM_PROCESSOR=${CMAKE_SYSTEM_PROCESSOR}
+			-DCONFIGURATION=$<CONFIG>
+			-DREGISTER_WIDTH=${register_width}
+			-DVECTORCALL_ENABLED=${vectorcall_enabled}
+			-DSTACK_PROTECTOR_MODE=${stack_protector_mode}
+			-DSYMBOL_PATTERN=simdlib_codegen_reassignment_arithmetic
+			-P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/CompareRegisterCodegen.cmake
+		COMMAND ${CMAKE_COMMAND} -E touch "${reassignment_stamp_file}"
+		DEPENDS
+			$<TARGET_OBJECTS:${wrapper_target}>
+			$<TARGET_OBJECTS:${raw_target}>
+			cmake/CompareRegisterCodegen.cmake
+		COMMENT "Comparing ${register_width}-bit reassignment wrapper and raw generated code"
 		VERBATIM)
 	add_custom_command(
 		OUTPUT "${abi_stamp_file}"
@@ -575,12 +603,61 @@ function(simdlib_add_register_codegen_gate register_width)
 			cmake/RecordRegisterDefaultAbi.cmake
 		COMMENT "Recording ${register_width}-bit platform-default Register ABI"
 		VERBATIM)
-	set(codegen_gate_outputs
-		"${register_only_stamp_file}" "${lane_stamp_file}" "${abi_stamp_file}" "${default_abi_stamp_file}")
+	add_custom_command(
+		OUTPUT "${consumer_abi_stamp_file}"
+		COMMAND ${CMAKE_COMMAND} -E make_directory "${artifact_directory}/consumer-abi"
+		COMMAND ${CMAKE_COMMAND}
+			-DWRAPPER_OBJECT=$<TARGET_OBJECTS:${abi_wrapper_target}>
+			-DRAW_OBJECT=$<TARGET_OBJECTS:${abi_raw_target}>
+			-DOBJDUMP=${CMAKE_OBJDUMP}
+			-DARTIFACT_DIRECTORY=${artifact_directory}/consumer-abi
+			-DCOMPILER_ID=${CMAKE_CXX_COMPILER_ID}
+			-DCOMPILER_VERSION=${CMAKE_CXX_COMPILER_VERSION}
+			-DCOMPILER_PATH=${CMAKE_CXX_COMPILER}
+			-DSYSTEM_NAME=${CMAKE_SYSTEM_NAME}
+			-DSYSTEM_PROCESSOR=${CMAKE_SYSTEM_PROCESSOR}
+			-DCONFIGURATION=$<CONFIG>
+			-DREGISTER_WIDTH=${register_width}
+			-DVECTORCALL_ENABLED=${vectorcall_enabled}
+			-DSTACK_PROTECTOR_MODE=${stack_protector_mode}
+			-DSYMBOL_PATTERN=simdlib_consumer_abi_
+			-P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/CompareRegisterCodegen.cmake
+		COMMAND ${CMAKE_COMMAND} -E touch "${consumer_abi_stamp_file}"
+		DEPENDS
+			$<TARGET_OBJECTS:${abi_wrapper_target}>
+			$<TARGET_OBJECTS:${abi_raw_target}>
+			cmake/CompareRegisterCodegen.cmake
+		COMMENT "Comparing ${register_width}-bit downstream Register wrappers and raw ABI boundaries"
+		VERBATIM)
+	set(expression_codegen_gate_outputs
+		"${register_only_stamp_file}" "${reassignment_stamp_file}" "${lane_stamp_file}")
 	if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-		list(APPEND codegen_gate_outputs "${stamp_file}")
+		list(APPEND expression_codegen_gate_outputs "${stamp_file}")
 	endif()
+	add_custom_target(SimdLibRegisterExpressionCodegen${register_width}
+		DEPENDS ${expression_codegen_gate_outputs})
+	add_dependencies(SimdLibRegisterExpressionCodegen${register_width}
+		${wrapper_target} ${raw_target})
+	add_test(NAME SimdLib.RegisterExpressionCodegen.${register_width}
+		COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --config $<CONFIG>
+			--target SimdLibRegisterExpressionCodegen${register_width})
+	set_tests_properties(SimdLib.RegisterExpressionCodegen.${register_width} PROPERTIES
+		LABELS "REGISTER;CODEGEN" RUN_SERIAL TRUE)
+	add_custom_target(SimdLibRegisterConsumerAbi${register_width}
+		DEPENDS "${consumer_abi_stamp_file}")
+	add_dependencies(SimdLibRegisterConsumerAbi${register_width}
+		${abi_wrapper_target} ${abi_raw_target})
+	add_test(NAME SimdLib.RegisterConsumerAbi.${register_width}
+		COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --config $<CONFIG>
+			--target SimdLibRegisterConsumerAbi${register_width})
+	set_tests_properties(SimdLib.RegisterConsumerAbi.${register_width} PROPERTIES
+		LABELS "REGISTER;CODEGEN;ABI" RUN_SERIAL TRUE)
+	set(codegen_gate_outputs
+		${expression_codegen_gate_outputs} "${consumer_abi_stamp_file}" "${abi_stamp_file}" "${default_abi_stamp_file}")
 	add_custom_target(SimdLibRegisterCodegen${register_width} ALL DEPENDS ${codegen_gate_outputs})
+	add_dependencies(SimdLibRegisterCodegen${register_width}
+		${wrapper_target} ${raw_target} ${default_wrapper_target} ${default_raw_target}
+		${abi_wrapper_target} ${abi_raw_target})
 	add_test(NAME SimdLib.RegisterCodegen.${register_width}
 		COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --config $<CONFIG>
 			--target SimdLibRegisterCodegen${register_width})
@@ -667,12 +744,32 @@ if(SIMDLIB_BUILD_TESTS)
 	if(SIMDLIB_REGISTER_COMPILER_SUPPORTED)
 		simdlib_add_catch_test(SimdLibTestsRegister tests/Register.tests.cpp
 			SimdLib.Tests.Register "REGISTER;AVX2")
+		target_sources(SimdLibTestsRegister PRIVATE tests/RegisterBasicOperations.tests.cpp)
 		target_link_libraries(SimdLibTestsRegister PRIVATE SimdLib::Register)
 		if(SIMDLIB_MSVC_STYLE_DRIVER)
 			target_compile_options(SimdLibTestsRegister PRIVATE /arch:AVX2)
 		else()
 			target_compile_options(SimdLibTestsRegister PRIVATE -mavx2)
 		endif()
+
+		add_executable(SimdLibRegisterPreconditionTests tests/RegisterPreconditionFailure.tests.cpp)
+		target_link_libraries(SimdLibRegisterPreconditionTests PRIVATE SimdLib::Register Catch2::Catch2WithMain)
+		simdlib_enable_development_warnings(SimdLibRegisterPreconditionTests)
+		simdlib_set_coverage_profile_prefix(SimdLibRegisterPreconditionTests
+			"SimdLib.Tests.RegisterPreconditions")
+		if(SIMDLIB_MSVC_STYLE_DRIVER)
+			target_compile_options(SimdLibRegisterPreconditionTests PRIVATE /arch:AVX2)
+		else()
+			target_compile_options(SimdLibRegisterPreconditionTests PRIVATE -mavx2)
+		endif()
+		catch_discover_tests(SimdLibRegisterPreconditionTests
+			TEST_PREFIX "SimdLib.Tests.RegisterPreconditions."
+			TEST_LIST SimdLibRegisterPreconditionTests_DISCOVERED_TESTS
+			PROPERTIES
+				PASS_REGULAR_EXPRESSION "SIMDLIB_REGISTER_PRECONDITION_FAILURE_EXPECTED_61B4C2"
+				TIMEOUT 10)
+		simdlib_label_discovered_tests(SimdLibRegisterPreconditionTests_DISCOVERED_TESTS
+			"REGISTER;PRECONDITIONS;AVX2")
 	endif()
 
     simdlib_add_catch_test(SimdLibTestsBmiPortable tests/Bmi.tests.cpp

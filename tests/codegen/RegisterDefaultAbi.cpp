@@ -12,7 +12,7 @@ using register_type = SimdLib::Register<float, SIMDLIB_REGISTER_TEST_WIDTH>;
 /** @brief Records wrapper behavior under the platform-default calling convention. */
 SIMDLIB_CODEGEN_NOINLINE register_type simdlib_codegen_default(register_type lhs, register_type rhs) noexcept
 {
-	return register_type(api_type::add(lhs.native(), rhs.native()));
+	return register_type{api_type::add(lhs.native, rhs.native)};
 }
 
 #undef SIMDLIB_CODEGEN_NOINLINE

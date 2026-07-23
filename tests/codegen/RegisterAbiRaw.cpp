@@ -12,18 +12,6 @@ using api_type = SimdLib::Api<SIMDLIB_REGISTER_TEST_WIDTH, float>;
 using native_type = typename api_type::vector_t;
 using backend_type = SimdLib::Detail::SimdMappings<SIMDLIB_REGISTER_TEST_WIDTH, float>;
 
-/** @brief Returns a raw predicate across a separately compiled ABI boundary. */
-SIMDLIB_ABI_NOINLINE native_type VECTORCALL simdlib_abi_mask_return(native_type lhs, native_type rhs) noexcept
-{
-	return backend_type::cmpeq(lhs, rhs);
-}
-
-/** @brief Passes a raw predicate across a separately compiled ABI boundary. */
-SIMDLIB_ABI_NOINLINE native_type VECTORCALL simdlib_abi_mask_pass(native_type value) noexcept
-{
-	return value;
-}
-
 /** @brief Raw unary ABI mirror. */
 SIMDLIB_ABI_NOINLINE native_type VECTORCALL simdlib_abi_unary(native_type value) noexcept
 {
@@ -75,6 +63,32 @@ SIMDLIB_ABI_NOINLINE native_type &VECTORCALL simdlib_abi_mutate(native_type &lhs
 {
 	lhs = api_type::add(lhs, rhs);
 	return lhs;
+}
+
+/** @brief Returns a raw vector across the Register consumer-boundary mirror. */
+SIMDLIB_ABI_NOINLINE native_type VECTORCALL
+	simdlib_consumer_abi_register_return(native_type lhs, native_type rhs) noexcept
+{
+	return api_type::add(lhs, rhs);
+}
+
+/** @brief Passes a raw vector across the Register consumer-boundary mirror. */
+SIMDLIB_ABI_NOINLINE native_type VECTORCALL
+	simdlib_consumer_abi_register_pass(native_type value) noexcept
+{
+	return value;
+}
+
+/** @brief Returns a raw predicate across a separately compiled ABI boundary. */
+SIMDLIB_ABI_NOINLINE native_type VECTORCALL simdlib_consumer_abi_mask_return(native_type lhs, native_type rhs) noexcept
+{
+	return backend_type::cmpeq(lhs, rhs);
+}
+
+/** @brief Passes a raw predicate across a separately compiled ABI boundary. */
+SIMDLIB_ABI_NOINLINE native_type VECTORCALL simdlib_consumer_abi_mask_pass(native_type value) noexcept
+{
+	return value;
 }
 
 #undef SIMDLIB_ABI_NOINLINE

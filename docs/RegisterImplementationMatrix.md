@@ -46,16 +46,17 @@ These portability rules do not change a public declaration.
 | Build boundary | `SimdLib::SimdLib` remains C++20; `SimdLib::Register` requests C++23, requires Register availability, and selects `/std:c++latest` for Microsoft C++ | 1 | CMake consumer probes and generated command inspection |
 | Reproducible toolchains | GCC and GNU-like Clang container environments are pinned, locally and CI reusable, aggregate failures reliably, and remain explicitly separate from native Windows ABI evidence | 2 | Dockerfile provenance, Compose/orchestrator comparison, clean/failing matrix demonstrations |
 | Supported geometry | A specialization owns one complete 128-bit or 256-bit native register and has no logical active count | 3 | Availability, size, alignment, and lane-count assertions |
-| Representation | Register and RegisterMask each contain exactly one native vector member and no bases, metadata, allocation, proxies, or address-dependent state | 3 | Layout traits and ABI inspection |
-| Special members | Copy/move construction and assignment and destruction remain trivial; default construction is explicitly intrinsic-zeroed | 3, 4 | Type traits and zero-construction code generation |
+| Representation | Register and RegisterMask are aggregates with one public native vector member each; neither type has bases, metadata, allocation, proxies, or address-dependent state | 3 | Aggregate/layout traits and ABI inspection |
+| Special members | Register and RegisterMask use implicit trivial copy/move construction, assignment, and destruction; their member initializers explicitly use the intrinsic-backed zero operation | 3, 4 | Type traits and zero-construction code generation |
 | All-active invariant | Every lane participates in transfer, arithmetic, comparison, rearrangement, and reduction behavior | 4-9 | Distinctive highest-lane runtime and constexpr tests |
 | Transfer extent | Element and byte loads/stores use fixed extents equal to `lane_count` or `byte_count`; partial and unsafe forms do not exist | 4 | Compile rejection, canaries, and sanitizers |
 | Alignment | Aligned loads/stores require `byte_count` alignment and follow the existing SimdLib precondition configuration | 4, 10 | Checks-enabled failures and release code generation |
 | Scalar operands | Arithmetic and bitwise operations initially accept only the same Register type; scalar use requires explicit `broadcast()` | 4, 6 | Compile rejection and broadcast code generation |
-| Native interoperation | Register and RegisterMask expose by-value `native()` observers; Register has an explicit native constructor; mask native construction remains private | 4, 5 | Constructibility assertions and native-result ABI probes |
-| Explicit object parameters | Non-mutating members take the explicit object by value; compound assignment takes it by reference | 3-9 | Declaration audit and forced-inline/no-inline probes |
+| Integer division | Because x86 has no packed integer divide instruction, the named `_ext{128,256}_div_{epi,epu}{8,16,32,64}` methods explicitly extract, divide, and reinsert every lane with constant-index intrinsics; no fold helper, runtime selector, or addressable array participates | 6, 10 | Scalar-oracle correctness and register-only wrapper-versus-raw generated-code parity for every integer type and width |
+| Native interoperation | Register and RegisterMask support explicit aggregate-brace initialization from one complete native value and expose their representation through the public `native` member; direct mask initialization requires canonical predicate lanes | 4, 5 | Aggregate/constructibility assertions and native-result ABI probes |
+| Explicit object parameters | Active non-static members take the explicit object by value; compound assignment is intentionally disabled and its implementations remain preserved in source comments | 3-9 | Declaration audit, constraint rejection, and reassignment code-generation probes |
 | Calling convention | Register-shaped members use `VECTORCALL` where supported; consumer-defined non-inlined boundaries must opt in separately | 3, 10 | Vector/default convention wrapper-versus-raw mirrors |
-| Mask invariant | Each predicate lane is all-zero or all-one; arbitrary numeric/native values cannot publicly construct a mask | 5 | Constraint tests and predicate-bit tests |
+| Mask invariant | Comparisons and mask operations produce all-zero/all-one predicate lanes; direct aggregate initialization has the same canonical-lane precondition | 5 | Constraint tests, predicate-bit tests, and documented aggregate precondition |
 | Compact mask bits | `bits_type` is normalized from lane count, is `uint32_t` for initial widths, maps bit `i` to lane `i`, and clears unused bits | 5 | Static assertions and mask-pattern tests |
 | Comparison semantics | Named comparisons reproduce the selected intrinsic, including signedness, NaNs, signed zero, ordered/unordered predicates, and lane bit patterns | 5 | Runtime, portable, emulated, and constexpr parity |
 | Whole equality | `operator==` means all lanes compare equal; `operator!=` is its Boolean negation; relational operators are absent | 5 | Boolean and compile-rejection tests |
@@ -77,12 +78,13 @@ These portability rules do not change a public declaration.
 | Native-order `set` | `Api` compatibility-only | Public lane order is logical low-to-high |
 | Implicit scalar broadcast | Excluded | Broadcast cost and intent remain explicit |
 | Implicit native conversion or mutable native reference | Excluded | Native access is an explicit by-value boundary |
-| Public unchecked mask construction | Excluded | It would break the canonical predicate invariant |
+| Scalar mask construction or `from_bits()` | Excluded | Native aggregate interoperation stays explicit and scalar expansion policy remains deferred |
 | Runtime `extract` | Initial compatibility-only | Backend selector semantics are implementation-specific |
 | Generic `shuffle(args...)` | Initial compatibility-only | Implementation-specific signatures are not a portable value API |
 | `expand` and `compress` | Compatibility-only | Result width, lane consumption, and saturation are ambiguous |
 | Multi-register widening/narrowing | Separate future design | One Register operation produces one complete result Register |
 | Scalar arithmetic overloads | Deferred additive API | Real call sites and code generation must first justify them |
+| Compound assignment overloads | Excluded | Reassignment is equally expressive, while mutable wrapper references cause a redundant 32-byte stack-alignment frame for 256-bit values under MSVC 19.44 |
 | `RegisterMask::from_bits()` | Deferred additive API | Scalar-to-vector expansion cost and demand are not established |
 | 512-bit registers and AVX-512 predicate registers | Future extension | Initial storage and mask contract is limited to 128/256-bit vectors |
 | Span transforms and `transform_pack` | Collection-owned | Iteration and tail policy remain outside Register |
@@ -120,11 +122,11 @@ rows are verified absent from the preferred surface in Phase 9.
 | `set1` | `Register::broadcast(value)` | Phase 4 |
 | `setr` | `Register::from_lanes(...)` | Phase 4 |
 | `set`, `set_partial`, `setr_partial` | No Register operation | Compatibility |
-| `add` | `lhs + rhs`, `lhs += rhs` | Phase 6 |
-| `subtract` | `lhs - rhs`, `lhs -= rhs` | Phase 6 |
-| `multiply` | `lhs * rhs`, `lhs *= rhs` | Phase 6 |
-| `divide` | `lhs / rhs`, `lhs /= rhs` | Phase 6 |
-| `modulus` | `lhs % rhs`, `lhs %= rhs` | Phase 6 |
+| `add` | `lhs + rhs` | Phase 6 |
+| `subtract` | `lhs - rhs` | Phase 6 |
+| `multiply` | `lhs * rhs` | Phase 6 |
+| `divide` | `lhs / rhs` | Phase 6 |
+| `modulus` | `lhs % rhs` | Phase 6 |
 | `negate` | `-value` | Phase 6 |
 | `min` | `lhs.min(rhs)` | Phase 7 |
 | `max` | `lhs.max(rhs)` | Phase 7 |
@@ -149,9 +151,9 @@ rows are verified absent from the preferred surface in Phase 9.
 | `hsubtract_saturated` | `lhs.horizontal_subtract_saturated(rhs)` | Phase 7 |
 | `add_subtract` | `lhs.add_subtract(rhs)` | Phase 7 |
 | `dot_product` | `lhs.dot_product<imm8>(rhs)` | Phase 7 |
-| `bitwise_and` | `lhs & rhs`, `lhs &= rhs` | Phase 6 |
-| `bitwise_or` | `lhs \| rhs`, `lhs \|= rhs` | Phase 6 |
-| `bitwise_xor` | `lhs ^ rhs`, `lhs ^= rhs` | Phase 6 |
+| `bitwise_and` | `lhs & rhs` | Phase 6 |
+| `bitwise_or` | `lhs \| rhs` | Phase 6 |
+| `bitwise_xor` | `lhs ^ rhs` | Phase 6 |
 | `bitwise_not` | `~value` | Phase 6 |
 | `bitwise_andnot` | `lhs.andnot(rhs)` with preserved polarity | Phase 6 |
 | `movemask` | `value.movemask()` with intrinsic-native granularity | Phase 6 |
@@ -172,9 +174,9 @@ rows are verified absent from the preferred surface in Phase 9.
 | `shuffle_lo` | `value.shuffle_low<imm8>()` | Phase 8 |
 | `shuffle_hi` | `value.shuffle_high<imm8>()` | Phase 8 |
 | `blend` | `lhs.blend<imm8>(rhs)`; predicate selection uses `mask.select()` | Phase 8 and Phase 5 |
-| `shift_left` | `value << count`, `value <<= count` | Phase 6 |
+| `shift_left` | `value << count` | Phase 6 |
 | `shift_right` | `value.logical_shift_right(count)`; unsigned `operator>>` | Phase 6 |
-| `shift_right_arithmetic` | Signed `value >> count`, `value >>= count` | Phase 6 |
+| `shift_right_arithmetic` | Signed `value >> count` | Phase 6 |
 | `byte_shift_left` | `value.byte_shift_left(count)` | Phase 6 |
 | `byte_shift_right` | `value.byte_shift_right(count)` | Phase 6 |
 | Runtime `bit_shift_left` | `value.bit_shift_left(count)` | Phase 6 |

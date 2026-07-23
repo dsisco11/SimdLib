@@ -137,6 +137,69 @@ retq]=])
 	set(${accepted_variable} ON PARENT_SCOPE)
 endfunction()
 
+#[[
+The MSVC compound-assignment exception is disabled with the compound-assignment
+API. Reassignment avoids the mutable wrapper reference that triggers the
+redundant security-cookie and 32-byte stack-alignment frame, so its codegen gate
+requires exact parity. The former exception remains here for diagnostic history.
+# @brief Removes the one accepted MSVC compound-assignment security-cookie sequence.
+# @param input_text Allocation-independent wrapper instruction profile.
+# @param output_variable Variable that receives the comparable wrapper profile.
+# @param accepted_variable Variable that reports whether the exact exception was found.
+function(simdlib_accept_msvc_compound_cookie input_text output_variable accepted_variable)
+	set(${output_variable} "${input_text}" PARENT_SCOPE)
+	set(${accepted_variable} OFF PARENT_SCOPE)
+	if(NOT COMPILER_ID STREQUAL "MSVC" OR
+		NOT SYSTEM_NAME STREQUAL "Windows" OR
+		NOT VECTORCALL_ENABLED STREQUAL "1" OR
+		NOT SYMBOL_PATTERN STREQUAL "simdlib_codegen_compound_arithmetic")
+		return()
+	endif()
+
+	if(REGISTER_WIDTH STREQUAL "128")
+		set(cookie_profile [=[<symbol>:
+subq	$0x18, %rsp
+movq	(%rip), %rax            # 0x<target>
+xorq	%rsp, %rax
+movq	%rax, (%rsp)
+vaddps	%vreg, %vreg, %vreg
+vmulps	%vreg, %vreg, %vreg
+movq	(%rsp), %rcx
+xorq	%rsp, %rcx
+callq	0x<target>
+addq	$0x18, %rsp
+retq]=])
+	elseif(REGISTER_WIDTH STREQUAL "256")
+		set(cookie_profile [=[<symbol>:
+pushq	%rbp
+subq	$0x30, %rsp
+leaq	0x20(%rsp), %rbp
+andq	$-0x20, %rbp
+movq	(%rip), %rax            # 0x<target>
+xorq	%rsp, %rax
+movq	%rax, (%rbp)
+vaddps	%vreg, %vreg, %vreg
+vmulps	%vreg, %vreg, %vreg
+movq	(%rbp), %rcx
+xorq	%rsp, %rcx
+callq	0x<target>
+addq	$0x30, %rsp
+popq	%rbp
+retq]=])
+	else()
+		return()
+	endif()
+	set(raw_profile [=[<symbol>:
+vaddps	%vreg, %vreg, %vreg
+vmulps	%vreg, %vreg, %vreg
+retq]=])
+	if(input_text STREQUAL cookie_profile)
+		set(${output_variable} "${raw_profile}" PARENT_SCOPE)
+		set(${accepted_variable} ON PARENT_SCOPE)
+	endif()
+endfunction()
+]]
+
 simdlib_disassemble("${WRAPPER_OBJECT}" wrapper_disassembly)
 simdlib_disassemble("${RAW_OBJECT}" raw_disassembly)
 simdlib_normalize_disassembly("${wrapper_disassembly}" wrapper_normalized)
@@ -155,6 +218,18 @@ if(NOT wrapper_profile STREQUAL raw_profile)
 		set(accepted_exception "msvc-gs-scalar-cookie")
 	else()
 		set(comparison_result "failed")
+		#[[
+		The compound-assignment exception branch is disabled with the public
+		compound-assignment API. Reassignment must satisfy exact parity.
+		simdlib_accept_msvc_compound_cookie(
+			"${wrapper_profile}" comparable_wrapper_profile accepted_msvc_compound_cookie)
+		if(accepted_msvc_compound_cookie AND comparable_wrapper_profile STREQUAL raw_profile)
+			set(comparison_result "accepted-compiler-exception")
+			set(accepted_exception "msvc-gs-compound-cookie")
+		else()
+			set(comparison_result "failed")
+		endif()
+		]]
 	endif()
 endif()
 
@@ -188,5 +263,5 @@ if(comparison_result STREQUAL "failed")
 		"Register wrapper generated code differs from the raw fixture; inspect ${ARTIFACT_DIRECTORY}")
 elseif(comparison_result STREQUAL "accepted-compiler-exception")
 	message(STATUS
-		"Accepted the exact MSVC /GS scalar security-cookie exception; artifacts: ${ARTIFACT_DIRECTORY}")
+		"Accepted the exact MSVC /GS security-cookie exception ${accepted_exception}; artifacts: ${ARTIFACT_DIRECTORY}")
 endif()

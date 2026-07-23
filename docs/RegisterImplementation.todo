@@ -10,7 +10,7 @@ SimdLib Register Implementation Plan:
     ☐ Use the canonical template order `Register<T, Bits>` and associated Register-facing traits and aliases in `<T, Bits>` order.
     ☐ Support exactly one complete 128-bit or 256-bit register; every hardware lane is always active.
     ☐ Keep the base `SimdLib::SimdLib` target at C++20 and expose Register through the opt-in C++23 `SimdLib::Register` target.
-    ☐ Implement non-static operations as C++23 explicit-object members, taking non-mutating objects by value and mutating compound-assignment objects by reference.
+    ☐ Implement non-static operations as C++23 explicit-object members that take their objects by value; preserve compound-assignment implementations in disabled source comments and use explicit reassignment instead.
     ☐ Apply `VECTORCALL` where supported, while treating it as a call-boundary convention rather than a guarantee that a value can never spill.
     ☐ Guarantee zero wrapper-introduced runtime overhead relative to equivalent supported `Api` or raw-intrinsic code compiled with identical options and configuration.
     ☐ Use intrinsic-defined comparison semantics and represent lane predicates with the distinct `RegisterMask<T, Bits>` type.
@@ -19,7 +19,7 @@ SimdLib Register Implementation Plan:
   Non-Goals:
     ☐ Do not add partial loads, partial stores, automatically filled inactive lanes, dynamic-extent unsafe transfers, or native-order lane construction.
     ☐ Do not move span-wide transforms or collection-tail handling from `Api`, `SimdAlgo`, or higher-level abstractions into Register.
-    ☐ Do not add implicit scalar broadcasts, implicit native-register conversions, public mutable native references, or public unchecked mask construction.
+    ☐ Do not add implicit scalar broadcasts, implicit native-register conversions, or public mutable native references.
     ☐ Do not initially add runtime `extract`, generic implementation-specific shuffles, scalar arithmetic overloads, `RegisterMask::from_bits()`, multi-register widening results, or 512-bit Register support.
     ☐ Do not deprecate or remove `Api` as part of this implementation.
 
@@ -76,9 +76,9 @@ SimdLib Register Implementation Plan:
     ☒ Replace the broad MSVC `/GS` exception path with an exact-parity register-only gate; retain unmodified paired disassembly for genuinely memory-writing fixtures instead of suppressing their stack protection.
     ☒ Add declaration-complete skeletons for `Register<T, Bits>`, `RegisterMask<T, Bits>`, `RegisterAvailable<T, Bits>`, `is_register_available_v<T, Bits>`, and `NativeRegister<T>`.
 	☒ Constrain Register availability to the existing x64 128-bit SSE4.2 and 256-bit AVX2-backed `Api` specializations.
-    ☒ Store exactly one native vector data member in each Register and RegisterMask specialization with no bases, virtual functions, allocation, metadata, active-lane state, or address-dependent proxy state.
-    ☒ Add compile-time checks for exact native size and alignment, standard layout, trivial copy/move construction and assignment, trivial destruction, and trivial copyability across every supported type and width.
-    ☒ Default compiler-generated copy/move operations and confirm that the intrinsic-backed default constructor does not invalidate required value-type traits.
+	☒ Store exactly one public native vector data member in each Register and RegisterMask specialization with no bases, virtual functions, allocation, metadata, active-lane state, or address-dependent proxy state so both wrappers remain aggregates.
+	☒ Add compile-time checks for Register and RegisterMask aggregate classification, exact native size and alignment, standard layout, trivial copy/move construction and assignment, trivial destruction, and trivial copyability across every supported type and width.
+	☒ Use implicit compiler-generated special members and confirm that the intrinsic-backed data-member initializers do not invalidate required value-type traits.
     ☒ Build paired wrapper and raw-intrinsic generated-code fixtures before implementing the broad operation surface.
     ☒ Generate forced-inline expression probes and separately compiled no-inline ABI mirrors for unary, binary, ternary, scalar-result, mask-result, native-result, store, and mutating-reference signatures.
     ☒ Compare wrapper and raw fixtures compiled with identical compiler, architecture, ISA, optimization, calling-convention, and configuration settings.
@@ -89,11 +89,12 @@ SimdLib Register Implementation Plan:
     ☒ Record complete provenance beside each generated-code and ABI artifact so results from incompatible configurations cannot be merged or compared as one profile.
     ☒ End Phase 3 only when the minimal wrappers pass layout and call-boundary gates on each supported compiler before broad method implementation begins.
       Evidence: `include/SimdLib/Register.h`, `tests/register/RegisterRepresentation.tests.cpp`, the paired fixtures and ABI mirrors under `tests/codegen`, and the `SimdLibRegisterCodegen` CMake/CTest gates establish the representation, generated-code comparison, calling-convention coverage, and per-artifact provenance.
+	  Calling-convention result: Register and RegisterMask use public aggregate storage and no user-declared special members, which restores direct register passing and return for clang-cl Windows x64 `VECTORCALL` boundaries. Platform-default clang-cl boundaries may still return these wrappers through hidden storage and remain recorded separately.
       MSVC boundary: the register-only fixture subset must match the raw mirror exactly, without a security-cookie exception. Store, transfer, mutating-reference, opaque-call, and array-return fixtures that can write memory retain `/GS`, remain outside the MSVC zero-overhead claim, and preserve their paired disassembly for review.
 
   Phase 4 - Implement Register Construction, Observation, and Transfer:
-    ☒ Implement the default constructor and `zero()` through `Api::setzero()` or the corresponding intrinsic-backed implementation path with no temporary array or memory clear.
-    ☒ Implement the explicit native-value constructor and by-value `native()` observer without implicit native conversion or mutable native access.
+	☒ Implement intrinsic-backed default member initialization and `zero()` through `Api::setzero()` or the corresponding implementation path with no temporary array or memory clear.
+	☒ Implement public aggregate initialization from a complete native value and a by-value `native()` observer without implicit native conversion or mutable native access.
     ☒ Implement `broadcast(value)` as the only initial scalar-to-register construction path.
     ☒ Implement `from_lanes(...)` with exactly `lane_count` low-to-high logical lane arguments and compile-time rejection of partial or oversized lists.
     ☒ Implement `from_array()` and `to_array()` for one complete logical lane array.
@@ -111,9 +112,9 @@ SimdLib Register Implementation Plan:
 
   Phase 5 - Implement RegisterMask, Comparisons, and Selection:
     ☒ Implement `RegisterMask<T, Bits>` in its own public header with one native predicate register and the invariant that every lane is all-zero or all-one.
-    ☒ Implement an intrinsic-backed all-false default constructor and keep the native predicate constructor private to Register.
+    ☒ Implement intrinsic-backed all-false default member initialization and public native aggregate initialization with a documented canonical-predicate precondition.
     ☒ Define normalized unsigned `bits_type` from `lane_count`, using `uint32_t` for the initial 128/256-bit specializations rather than inheriting `Api::mask_t`.
-    ☒ Implement by-value `native()` observation without public native construction, mutable native access, `from_native_unchecked()`, or `from_bits()`.
+    ☒ Implement by-value `native()` observation and explicit native aggregate initialization without implicit conversion, `from_native_unchecked()`, or `from_bits()`.
     ☒ Implement `any()`, `all()`, `none()`, and `bits()` with one compact bit per logical lane and all unused scalar bits cleared.
     ☒ Implement mask `&`, `|`, `^`, `~`, `&=`, `|=`, and `^=` while preserving canonical predicate lanes.
     ☒ Implement `mask.select(when_true, when_false)` with the documented true/false polarity by delegating to constexpr-aware `Api::select` and intrinsic-backed implementation-layer variable blends.
@@ -122,24 +123,26 @@ SimdLib Register Implementation Plan:
     ☒ Implement `Register::operator==` as `compare_equal().all()` and `operator!=` as the logical negation of whole-register equality; do not add ambiguous relational operators.
     ☒ Reproduce the selected hardware intrinsic's signed/unsigned ordering, ordered/unordered floating behavior, NaN behavior, signed-zero behavior, and canonical predicate bit patterns in runtime, portable, emulated, and constexpr paths.
     ☒ Add all-false, all-true, alternating, first-lane-only, highest-lane-only, combined-mask, selection-polarity, and unused-bit tests for every lane geometry.
-    ☒ Add compile-time tests proving arbitrary native vectors, scalar bit fields, and numeric Registers cannot publicly construct a RegisterMask and that no implicit Boolean conversion exists.
+    ☒ Add compile-time tests proving native aggregate initialization is available, scalar bit fields and numeric Registers cannot construct a RegisterMask, and no implicit Boolean conversion exists.
     ☒ Add generated-code comparisons for compare/combine/select chains, Boolean reductions, compact bits, native observation, and mask pass/return boundaries.
     ☒ End Phase 5 only when masks remain register-shaped until an explicit scalar reduction and every comparison matches its documented intrinsic semantics.
       Evidence: `include/SimdLib/Register.h`, `include/SimdLib/RegisterMask.h`, `tests/Register.tests.cpp`, `tests/constexpr/RegisterConstexpr.tests.cpp`, `tests/register/RegisterRepresentation.tests.cpp`, and the paired generated-code and ABI fixtures under `tests/codegen` cover the complete mask, comparison, selection, constraint, and machine-code surface.
 
   Phase 6 - Implement Basic Arithmetic, Bitwise Operations, and Shifts:
-    ☐ Implement register-register `+`, `-`, `*`, `/`, and `%` only for supported type/width combinations, with matching `+=`, `-=`, `*=`, `/=`, and `%=` forms where the proposal includes them.
-    ☐ Implement unary negation with the existing backend edge behavior and availability constraints.
-    ☐ Keep scalar arithmetic absent; require explicit `Register::broadcast()` at call sites.
-    ☐ Implement register bitwise `&`, `|`, `^`, `~`, compound bitwise assignments, and named `andnot()` with the existing operand polarity.
-    ☐ Implement `movemask()` with the selected intrinsic's native bit granularity and `lane_sign_bits()` with exactly one compact bit per logical lane.
-    ☐ Implement per-lane left shift, logical right shift, and signed arithmetic right shift with their unambiguous operator and named-method spellings.
-    ☐ Implement 128-bit byte shifts and runtime/compile-time whole-register bit shifts only for the supported shapes.
-    ☐ Enforce nonnegative per-lane runtime shift preconditions and the documented zero, clamp, identity, or rejection behavior at every count boundary.
-    ☐ Add compile-time and runtime tests for counts `0`, `width - 1`, `width`, `width + 1`, negative invalid per-lane counts, nonpositive byte/whole-register counts, and oversized byte/whole-register counts.
-    ☐ Add independent scalar-oracle parity tests covering overflow, signed minima/maxima, unsigned high-bit values, division/remainder edge cases, and floating special values where applicable.
-    ☐ Add generated-code comparisons for individual methods, overloaded expressions, compound assignments, explicit broadcast chains, shift immediates, and runtime shift counts.
-    ☐ End Phase 6 only when every basic operator is constrained correctly, behaviorally matches `Api` and an independent oracle, and introduces no wrapper-only instructions.
+    ☒ Implement register-register `+`, `-`, `*`, `/`, and `%` only for supported type/width combinations; keep the compound-assignment implementations disabled in source comments and use reassignment at call sites.
+    ☒ Implement integral `/` through the explicit width-prefixed `_ext{128,256}_div_{epi,epu}{8,16,32,64}` suite, with every method naming each constant-index extraction, scalar division, and intrinsic insertion directly rather than using a fold helper, runtime selector, or lane array.
+    ☒ Implement unary negation with the existing backend edge behavior and availability constraints.
+    ☒ Keep scalar arithmetic absent; require explicit `Register::broadcast()` at call sites.
+    ☒ Implement register bitwise `&`, `|`, `^`, `~`, and named `andnot()` with the existing operand polarity; keep compound bitwise assignment disabled.
+    ☒ Implement `movemask()` with the selected intrinsic's native bit granularity and `lane_sign_bits()` with exactly one compact bit per logical lane.
+    ☒ Implement per-lane left shift, logical right shift, and signed arithmetic right shift with their unambiguous operator and named-method spellings.
+    ☒ Implement 128-bit byte shifts and runtime/compile-time whole-register bit shifts only for the supported shapes.
+    ☒ Enforce nonnegative per-lane runtime shift preconditions and the documented zero, clamp, identity, or rejection behavior at every count boundary.
+    ☒ Add compile-time and runtime tests for counts `0`, `width - 1`, `width`, `width + 1`, negative invalid per-lane counts, nonpositive byte/whole-register counts, and oversized byte/whole-register counts.
+    ☒ Add independent scalar-oracle parity tests covering overflow, signed minima/maxima, unsigned high-bit values, division/remainder edge cases, and floating special values where applicable.
+    ☒ Add generated-code comparisons for individual methods, overloaded and reassignment expressions, explicit broadcast chains, shift immediates, and runtime shift counts.
+    ☒ End Phase 6 only when every basic operator is constrained correctly, behaviorally matches `Api` and an independent oracle, and introduces no wrapper-only instructions.
+      Evidence: `include/SimdLib/Register.h`, `tests/RegisterBasicOperations.tests.cpp`, `tests/RegisterPreconditionFailure.tests.cpp`, `tests/constexpr/RegisterConstexpr.tests.cpp`, and `tests/register/RegisterRepresentation.tests.cpp` cover the constrained operation surface, scalar-oracle edge cases, count boundaries, invalid counts, constexpr paths, unavailable overloads, and the absence of compound assignment. `tests/codegen/RegisterCodegenFixture.h` and the 128/256-bit `SimdLibRegisterExpressionCodegen` gates compare direct Register expressions, explicit width-prefixed division for every signed and unsigned integer lane type, reassignments, broadcasts, and immediate/runtime shifts against raw `Api` expressions under MSVC, clang-cl 22, GCC 14, and GNU-like Clang 22; the GNU-like gates compile with strong stack protection. These expression gates are separate from the unresolved clang-cl no-inline wrapper ABI gate recorded under Phase 3. Pure register-only paths and reassignment expressions require exact instruction parity.
 
   Phase 7 - Implement Specialized Arithmetic and Reductions:
     ☐ Implement named `min()`, `max()`, `absolute()`, `sqrt()`, `average()`, and `multiply_add()` operations where supported.
@@ -218,10 +221,10 @@ SimdLib Register Implementation Plan:
     ☐ Phase 0 contract matrix, baseline commands, compiler/configuration provenance, and clean pre-change results recorded.
     ☐ Phase 1 availability, CMake target, language-mode, header-boundary, and external-consumer probes recorded.
     ☒ Phase 2 pinned Dockerfiles, Compose evaluation, orchestration decision, reproducibility checks, failure-propagation proof, and Windows-only evidence boundaries recorded.
-    ☒ Phase 3 layout, generated-code harness, ABI mirror, calling-convention, and register-pressure evidence recorded.
+    ☐ Phase 3 layout, generated-code harness, ABI mirror, calling-convention, and register-pressure evidence recorded.
     ☒ Phase 4 construction, transfer, lane, native-interoperation, sanitizer, and code-generation evidence recorded.
-    ☐ Phase 5 RegisterMask, comparison-intrinsic, selection, scalar-reduction, constraint, and code-generation evidence recorded.
-    ☐ Phase 6 basic arithmetic, bitwise, compound-assignment, shift-boundary, oracle, and generated-code evidence recorded.
+    ☒ Phase 5 RegisterMask, comparison-intrinsic, selection, scalar-reduction, constraint, and code-generation evidence recorded.
+    ☒ Phase 6 basic arithmetic, bitwise, disabled-compound-surface, shift-boundary, oracle, and generated-code evidence recorded.
     ☐ Phase 7 specialized arithmetic, reduction, result-alias, feature-profile, oracle, and generated-code evidence recorded.
     ☐ Phase 8 rearrangement, selector, conversion, width-change, compile-failure, lane-order, and generated-code evidence recorded.
     ☐ Phase 9 final operation matrix, Doxygen audit, public-boundary audit, and compatibility-only classifications recorded.
