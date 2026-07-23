@@ -443,6 +443,7 @@ function(simdlib_add_register_codegen_gate register_width)
 
 	set(artifact_directory "${CMAKE_CURRENT_BINARY_DIR}/register-codegen/${register_width}")
 	set(stamp_file "${artifact_directory}/comparison.stamp")
+	set(register_only_stamp_file "${artifact_directory}/register-only-comparison.stamp")
 	set(lane_stamp_file "${artifact_directory}/lane-comparison.stamp")
 	set(default_abi_stamp_file "${artifact_directory}/default-abi.stamp")
 	set(abi_stamp_file "${artifact_directory}/abi-comparison.stamp")
@@ -470,6 +471,32 @@ function(simdlib_add_register_codegen_gate register_width)
 			$<TARGET_OBJECTS:${raw_target}>
 			cmake/CompareRegisterCodegen.cmake
 		COMMENT "Comparing ${register_width}-bit Register and raw generated code"
+		VERBATIM)
+	add_custom_command(
+		OUTPUT "${register_only_stamp_file}"
+		COMMAND ${CMAKE_COMMAND} -E make_directory "${artifact_directory}/register-only"
+		COMMAND ${CMAKE_COMMAND}
+			-DWRAPPER_OBJECT=$<TARGET_OBJECTS:${wrapper_target}>
+			-DRAW_OBJECT=$<TARGET_OBJECTS:${raw_target}>
+			-DOBJDUMP=${CMAKE_OBJDUMP}
+			-DARTIFACT_DIRECTORY=${artifact_directory}/register-only
+			-DCOMPILER_ID=${CMAKE_CXX_COMPILER_ID}
+			-DCOMPILER_VERSION=${CMAKE_CXX_COMPILER_VERSION}
+			-DCOMPILER_PATH=${CMAKE_CXX_COMPILER}
+			-DSYSTEM_NAME=${CMAKE_SYSTEM_NAME}
+			-DSYSTEM_PROCESSOR=${CMAKE_SYSTEM_PROCESSOR}
+			-DCONFIGURATION=$<CONFIG>
+			-DREGISTER_WIDTH=${register_width}
+			-DVECTORCALL_ENABLED=${vectorcall_enabled}
+			-DSTACK_PROTECTOR_MODE=${stack_protector_mode}
+			-D"SYMBOL_PATTERN=simdlib_codegen_(unary|binary|ternary|scalar|mask|native|zero|broadcast_reuse|from_array|lane_|with_lane_last|special_members|pressure)"
+			-P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/CompareRegisterCodegen.cmake
+		COMMAND ${CMAKE_COMMAND} -E touch "${register_only_stamp_file}"
+		DEPENDS
+			$<TARGET_OBJECTS:${wrapper_target}>
+			$<TARGET_OBJECTS:${raw_target}>
+			cmake/CompareRegisterCodegen.cmake
+		COMMENT "Comparing ${register_width}-bit register-only wrapper and raw generated code"
 		VERBATIM)
 	add_custom_command(
 		OUTPUT "${lane_stamp_file}"
@@ -549,7 +576,7 @@ function(simdlib_add_register_codegen_gate register_width)
 		COMMENT "Recording ${register_width}-bit platform-default Register ABI"
 		VERBATIM)
 	set(codegen_gate_outputs
-		"${lane_stamp_file}" "${abi_stamp_file}" "${default_abi_stamp_file}")
+		"${register_only_stamp_file}" "${lane_stamp_file}" "${abi_stamp_file}" "${default_abi_stamp_file}")
 	if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
 		list(APPEND codegen_gate_outputs "${stamp_file}")
 	endif()

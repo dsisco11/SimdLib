@@ -63,8 +63,8 @@ These portability rules do not change a public declaration.
 | Immediate controls | Every `imm8` is constrained to `0..255`; logical selectors have exact counts and valid source indices | 7, 8 | Compile-success/failure boundaries |
 | Type-changing results | Public operations name the exact constrained namespace-level result alias and never expose a raw intrinsic result | 7 | Type assertions and unsupported-combination rejection |
 | Conversion split | `bit_cast()` preserves bits; `convert()` changes numeric values; `widen_low()` explicitly consumes only low source lanes | 8 | Independent bit/numeric/lane-consumption tests |
-| Zero overhead | No supported wrapper expression or call boundary adds instructions, moves, spills, reloads, stack traffic, temporaries, return buffers, branches, or indirection relative to the identical raw baseline, except for an explicitly recorded compiler-generated security protection | 3, 10 | Mandatory generated-code and ABI gates with provenance |
-| MSVC `/GS` exception | Constant-index lane extraction and ABI mirrors retain strict wrapper-versus-raw gates. Construction, transfer, and Register-valued lane-replacement fixtures affected by the broader MSVC security-cookie heuristic cannot support a zero-overhead claim until each exact exception is represented in the comparison ledger; their original paired disassembly remains review evidence | 3, 10 | Lane and ABI comparison stamps, paired profiles, comparison result, and provenance |
+| Zero overhead | No supported register-only wrapper expression or call boundary adds instructions, moves, spills, reloads, stack traffic, temporaries, return buffers, branches, or indirection relative to the identical raw baseline | 3, 10 | Mandatory exact-parity generated-code and ABI gates with provenance |
+| MSVC `/GS` boundary | The complete register-only fixture subset and ABI mirrors retain strict wrapper-versus-raw gates without cookie exceptions. Store, transfer, mutating-reference, opaque-call, and array-return fixtures that can write memory retain `/GS`, stay outside the MSVC zero-overhead claim, and preserve their original paired disassembly as review evidence | 3, 10 | Register-only, lane, and ABI comparison stamps; paired memory-writing profiles; comparison result; and provenance |
 | Compatibility | `Api` remains supported; collection transforms and compatibility-only operations do not migrate | 9, 11 | Final ledger audit and unchanged C++20 matrix |
 | Public exposure | `Register.h` remains out of the umbrella until correctness and zero-overhead qualification succeeds | 1, 11 | Header and migration gates |
 
@@ -228,7 +228,7 @@ escape classification.
 | C++20 core | Clang 22.1.8 | x64; Debug and Release | Existing full public matrix remains supported |
 | C++20 core | GCC 13.2 | x64; Debug and Release | Existing full public matrix remains supported; Register unavailable |
 | C++20 core sanitizer | Clang 22.1.8 | x64 Debug, `-O1`, ASan/UBSan, frame pointers | No sanitizer diagnostics |
-| Register | MSVC 19.44 | `/std:c++latest`; supported x64 profiles | Constant-index lane-extraction and ABI gates must pass exactly; broader `/GS`-affected fixtures require explicit exception-ledger qualification before supporting zero-overhead claims |
+| Register | MSVC 19.44 | `/std:c++latest`; supported x64 profiles | Register-only, lane-extraction, and ABI gates pass exactly; memory-writing fixtures retain `/GS` and do not support an MSVC zero-overhead claim |
 | Register | clang-cl 22.1.8 | C++23; supported x64 profiles | Standard feature macro and complete Register gates pass |
 | Register | Clang 22.1.8 | C++23; supported x64 profiles | Standard feature macro and complete Register gates pass |
 | Register | GCC 14 or newer | C++23; supported x64 profiles | Standard feature macro and complete Register gates pass |

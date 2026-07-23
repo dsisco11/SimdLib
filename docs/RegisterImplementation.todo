@@ -73,7 +73,7 @@ SimdLib Register Implementation Plan:
 
   Phase 3 - Establish the Representation and Performance Harness:
     ☒ Make every full generated-code and ABI comparison stamp depend on its concrete object files. Constant-index lane extraction retains a separate object-dependent exact-parity gate.
-    ☐ Extend the reviewed MSVC `/GS` exception ledger to every cookie-affected fixture without weakening strict comparison for unaffected functions.
+    ☒ Replace the broad MSVC `/GS` exception path with an exact-parity register-only gate; retain unmodified paired disassembly for genuinely memory-writing fixtures instead of suppressing their stack protection.
     ☒ Add declaration-complete skeletons for `Register<T, Bits>`, `RegisterMask<T, Bits>`, `RegisterAvailable<T, Bits>`, `is_register_available_v<T, Bits>`, and `NativeRegister<T>`.
 	☒ Constrain Register availability to the existing x64 128-bit SSE4.2 and 256-bit AVX2-backed `Api` specializations.
     ☒ Store exactly one native vector data member in each Register and RegisterMask specialization with no bases, virtual functions, allocation, metadata, active-lane state, or address-dependent proxy state.
@@ -89,7 +89,7 @@ SimdLib Register Implementation Plan:
     ☒ Record complete provenance beside each generated-code and ABI artifact so results from incompatible configurations cannot be merged or compared as one profile.
     ☒ End Phase 3 only when the minimal wrappers pass layout and call-boundary gates on each supported compiler before broad method implementation begins.
       Evidence: `include/SimdLib/Register.h`, `tests/register/RegisterRepresentation.tests.cpp`, the paired fixtures and ABI mirrors under `tests/codegen`, and the `SimdLibRegisterCodegen` CMake/CTest gates establish the representation, generated-code comparison, calling-convention coverage, and per-artifact provenance.
-      Accepted exception: MSVC may add only the exact `/GS` security-cookie prologue and epilogue recognized for the wrapper `simdlib_codegen_scalar` fixture at 128 and 256 bits. The gate preserves the original profiles, records the exception, compares the remaining instructions with the raw mirror, and rejects every other difference.
+      MSVC boundary: the register-only fixture subset must match the raw mirror exactly, without a security-cookie exception. Store, transfer, mutating-reference, opaque-call, and array-return fixtures that can write memory retain `/GS`, remain outside the MSVC zero-overhead claim, and preserve their paired disassembly for review.
 
   Phase 4 - Implement Register Construction, Observation, and Transfer:
     ☒ Implement the default constructor and `zero()` through `Api::setzero()` or the corresponding intrinsic-backed implementation path with no temporary array or memory clear.

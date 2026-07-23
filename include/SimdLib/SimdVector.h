@@ -60,17 +60,17 @@ class SimdVector final
 
 	constexpr static inline mask_t inactive_cmp_mask = static_cast<mask_t>(full_cmp_mask & ~active_cmp_mask);
 
-	SIMDLIB_FORCE_INLINE constexpr static bool mask_has_any(const mask_t mask) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr static bool mask_has_any(const mask_t mask) noexcept
 	{
 		return (mask & active_cmp_mask) != 0;
 	}
 
-	SIMDLIB_FORCE_INLINE constexpr static bool mask_has_all(const mask_t mask) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr static bool mask_has_all(const mask_t mask) noexcept
 	{
 		return (mask & active_cmp_mask) == active_cmp_mask;
 	}
 
-	SIMDLIB_FORCE_INLINE constexpr static bool inactive_mask_has_all(const mask_t mask) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr static bool inactive_mask_has_all(const mask_t mask) noexcept
 	{
 		return (mask & inactive_cmp_mask) == inactive_cmp_mask;
 	}
@@ -80,7 +80,7 @@ class SimdVector final
 	 *  @param operation Name of the operation validating the result.
 	 *  @return `value` unchanged.
 	 */
-	template <class result_t> SIMDLIB_FORCE_INLINE constexpr static result_t CheckResultInactiveLanesZero(const result_t value, const char *operation) noexcept
+	template <class result_t> SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr static result_t CheckResultInactiveLanesZero(const result_t value, const char *operation) noexcept
 	{
 #if SIMDLIB_ENABLE_CHECKS
 		if constexpr (element_count != simd::element_count && std::same_as<std::remove_cvref_t<result_t>, vector_t>)
@@ -102,7 +102,7 @@ class SimdVector final
 	 *  @param fillValue Scalar written into every inactive hardware lane.
 	 *  @return Register with unchanged active lanes and filled inactive lanes.
 	 */
-	SIMDLIB_FORCE_INLINE constexpr static vector_t FillInactiveLanes(const vector_t value, const element_t fillValue) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr static vector_t FillInactiveLanes(const vector_t value, const element_t fillValue) noexcept
 	{
 		if constexpr (element_count == simd::element_count)
 		{
@@ -142,7 +142,7 @@ class SimdVector final
 	/** @brief Constructs a new SIMD vector with all elements set to zero.
 	 *  @return Zero-initialized SIMD vector storage.
 	 */
-	SIMDLIB_FORCE_INLINE constexpr SimdVector() noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr SimdVector() noexcept
 	{
 		m_data = simd::setzero();
 	}
@@ -151,7 +151,7 @@ class SimdVector final
 	 *  @param data Source SIMD register.
 	 *  @return SIMD vector that wraps `data` unchanged.
 	 */
-	SIMDLIB_FORCE_INLINE constexpr SimdVector(vector_t data) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr SimdVector(vector_t data) noexcept
 	{
 		m_data = data;
 	};
@@ -160,7 +160,7 @@ class SimdVector final
 	 *  @param v Scalar value broadcast into every register lane.
 	 *  @return SIMD vector whose lanes are all initialized from `v`.
 	 */
-	SIMDLIB_FORCE_INLINE constexpr explicit SimdVector(element_t v) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr explicit SimdVector(element_t v) noexcept
 	{
 		if constexpr (element_count == simd::element_count)
 		{
@@ -177,7 +177,7 @@ class SimdVector final
 	 *  @param data Source span containing one full register worth of elements.
 	 *  @return SIMD vector loaded from `data`.
 	 */
-	SIMDLIB_FORCE_INLINE constexpr explicit SimdVector(std::span<element_t, simd::element_count> data) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr explicit SimdVector(std::span<element_t, simd::element_count> data) noexcept
 	{
 		m_data = simd::load(std::span<const element_t, simd::element_count>(data.data(), data.size()));
 	};
@@ -186,7 +186,7 @@ class SimdVector final
 	 *  @param data Source span containing one full register worth of elements.
 	 *  @return SIMD vector loaded from `data`.
 	 */
-	SIMDLIB_FORCE_INLINE constexpr explicit SimdVector(std::span<const element_t, simd::element_count> data) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr explicit SimdVector(std::span<const element_t, simd::element_count> data) noexcept
 	{
 		m_data = simd::load(data);
 	};
@@ -195,7 +195,7 @@ class SimdVector final
 	 *  @param data Source span containing exactly the active logical elements.
 	 *  @return SIMD vector loaded from `data` without requiring caller-side padding.
 	 */
-	SIMDLIB_FORCE_INLINE constexpr explicit SimdVector(std::span<element_t, element_count> data) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr explicit SimdVector(std::span<element_t, element_count> data) noexcept
 		requires(element_count != simd::element_count)
 	{
 		m_data = simd::template load_partial<element_count>(std::span<const element_t, element_count>(data));
@@ -205,7 +205,7 @@ class SimdVector final
 	 *  @param data Source span containing exactly the active logical elements.
 	 *  @return SIMD vector loaded from `data` without requiring caller-side padding.
 	 */
-	SIMDLIB_FORCE_INLINE constexpr explicit SimdVector(std::span<const element_t, element_count> data) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr explicit SimdVector(std::span<const element_t, element_count> data) noexcept
 		requires(element_count != simd::element_count)
 	{
 		m_data = simd::template load_partial<element_count>(data);
@@ -215,7 +215,7 @@ class SimdVector final
 	 *  @param data Source array containing one full register worth of elements.
 	 *  @return SIMD vector loaded from `data`.
 	 */
-	SIMDLIB_FORCE_INLINE constexpr explicit SimdVector(const std::array<element_t, simd::element_count> &data) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr explicit SimdVector(const std::array<element_t, simd::element_count> &data) noexcept
 	{
 		m_data = simd::construct(data);
 	};
@@ -224,7 +224,7 @@ class SimdVector final
 	 *  @param data Source array containing exactly the active logical elements.
 	 *  @return SIMD vector loaded from `data` without requiring caller-side padding.
 	 */
-	SIMDLIB_FORCE_INLINE constexpr explicit SimdVector(const std::array<element_t, element_count> &data) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr explicit SimdVector(const std::array<element_t, element_count> &data) noexcept
 		requires(element_count != simd::element_count)
 	{
 		m_data = simd::template load_partial<element_count>(std::span<const element_t, element_count>(data));
@@ -237,7 +237,7 @@ class SimdVector final
 	 */
 	template <class source_t>
 		requires(std::is_integral_v<source_t> && std::is_integral_v<element_t> && sizeof(source_t) < sizeof(element_t))
-	SIMDLIB_FORCE_INLINE constexpr explicit SimdVector(const SimdVector<source_t, element_count> &other) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr explicit SimdVector(const SimdVector<source_t, element_count> &other) noexcept
 	{
 		using source_simd = typename SimdVector<source_t, element_count>::simd;
 		m_data = source_simd::template widen<simd>(other.getRegister());
@@ -249,7 +249,7 @@ class SimdVector final
 	 */
 	template <std::convertible_to<element_t>... Args>
 		requires(sizeof...(Args) == element_count)
-	SIMDLIB_FORCE_INLINE constexpr explicit SimdVector(Args &&...args) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr explicit SimdVector(Args &&...args) noexcept
 	{
 		m_data = simd::setr_partial(static_cast<element_t>(std::forward<Args>(args))...);
 	}
@@ -263,7 +263,7 @@ class SimdVector final
 	 *  @param rhs Right-hand input register.
 	 *  @return Register containing the per-lane sum.
 	 */
-	SIMDLIB_FORCE_INLINE vector_t VECTORCALL operator+(vector_t rhs) const noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE vector_t VECTORCALL operator+(vector_t rhs) const noexcept
 	{
 		return CheckResultInactiveLanesZero(simd::add(m_data, rhs), "SimdVector::operator+(vector_t)");
 	}
@@ -272,7 +272,7 @@ class SimdVector final
 	 *  @param rhs Scalar value added to every active logical element.
 	 *  @return Register containing the per-lane sum.
 	 */
-	SIMDLIB_FORCE_INLINE vector_t VECTORCALL operator+(element_t rhs) const noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE vector_t VECTORCALL operator+(element_t rhs) const noexcept
 	{
 		const SimdVector scalarRhs(rhs);
 		return simd::add(m_data, scalarRhs.getRegister());
@@ -282,7 +282,7 @@ class SimdVector final
 	 *  @param rhs Right-hand input register.
 	 *  @return Register containing the per-lane difference.
 	 */
-	SIMDLIB_FORCE_INLINE vector_t VECTORCALL operator-(vector_t rhs) const noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE vector_t VECTORCALL operator-(vector_t rhs) const noexcept
 	{
 		return CheckResultInactiveLanesZero(simd::subtract(m_data, rhs), "SimdVector::operator-(vector_t)");
 	}
@@ -291,7 +291,7 @@ class SimdVector final
 	 *  @param rhs Scalar value subtracted from every active logical element.
 	 *  @return Register containing the per-lane difference.
 	 */
-	SIMDLIB_FORCE_INLINE vector_t VECTORCALL operator-(element_t rhs) const noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE vector_t VECTORCALL operator-(element_t rhs) const noexcept
 	{
 		const SimdVector scalarRhs(rhs);
 		return simd::subtract(m_data, scalarRhs.getRegister());
@@ -301,7 +301,7 @@ class SimdVector final
 	 *  @param rhs Right-hand input register.
 	 *  @return Register containing the per-lane product.
 	 */
-	SIMDLIB_FORCE_INLINE vector_t VECTORCALL operator*(vector_t rhs) const noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE vector_t VECTORCALL operator*(vector_t rhs) const noexcept
 	{
 		return CheckResultInactiveLanesZero(simd::multiply(m_data, rhs), "SimdVector::operator*(vector_t)");
 	}
@@ -310,7 +310,7 @@ class SimdVector final
 	 *  @param rhs Scalar value multiplied into every active logical element.
 	 *  @return Register containing the per-lane product.
 	 */
-	SIMDLIB_FORCE_INLINE vector_t VECTORCALL operator*(element_t rhs) const noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE vector_t VECTORCALL operator*(element_t rhs) const noexcept
 	{
 		const SimdVector scalarRhs(rhs);
 		return simd::multiply(m_data, scalarRhs.getRegister());
@@ -322,7 +322,7 @@ class SimdVector final
 	 *  @return SIMD vector containing `(this - minInclusive + 1)` per active lane, widened when needed.
 	 */
 	template <class target_element_t = area_element_t>
-	SIMDLIB_FORCE_INLINE auto VECTORCALL size(vector_t minInclusive) const noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE auto VECTORCALL size(vector_t minInclusive) const noexcept
 		requires(std::is_integral_v<element_t> && std::is_integral_v<target_element_t> && sizeof(target_element_t) >= sizeof(element_t))
 	{
 		if constexpr (sizeof(target_element_t) > sizeof(element_t))
@@ -346,7 +346,7 @@ class SimdVector final
 	 *  @return Product of `(this - minInclusive + 1)` over the active logical lanes.
 	 */
 	template <class target_element_t = area_element_t>
-	SIMDLIB_FORCE_INLINE auto VECTORCALL area(vector_t minInclusive) const noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE auto VECTORCALL area(vector_t minInclusive) const noexcept
 		requires(std::is_integral_v<element_t> && std::is_integral_v<target_element_t> && sizeof(target_element_t) >= sizeof(element_t))
 	{
 		return this->template size<target_element_t>(minInclusive).area();
@@ -356,7 +356,7 @@ class SimdVector final
 	 *  @param rhs Right-hand input register.
 	 *  @return Register containing the per-lane quotient.
 	 */
-	SIMDLIB_FORCE_INLINE vector_t VECTORCALL operator/(vector_t rhs) const noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE vector_t VECTORCALL operator/(vector_t rhs) const noexcept
 	{
 		return CheckResultInactiveLanesZero(simd::divide(m_data, FillInactiveLanes(rhs, element_t{1})), "SimdVector::operator/(vector_t)");
 	}
@@ -365,7 +365,7 @@ class SimdVector final
 	 *  @param rhs Scalar value that divides every active logical element.
 	 *  @return Register containing the per-lane quotient.
 	 */
-	SIMDLIB_FORCE_INLINE vector_t VECTORCALL operator/(element_t rhs) const noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE vector_t VECTORCALL operator/(element_t rhs) const noexcept
 	{
 		return simd::divide(m_data, simd::set1(rhs));
 	}
@@ -374,7 +374,7 @@ class SimdVector final
 	 *  @param rhs Right-hand input register.
 	 *  @return Register containing the per-lane remainder.
 	 */
-	SIMDLIB_FORCE_INLINE vector_t VECTORCALL operator%(vector_t rhs) const noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE vector_t VECTORCALL operator%(vector_t rhs) const noexcept
 	{
 		return CheckResultInactiveLanesZero(simd::modulus(m_data, FillInactiveLanes(rhs, element_t{1})), "SimdVector::operator%(vector_t)");
 	}
@@ -383,7 +383,7 @@ class SimdVector final
 	 *  @param rhs Scalar value used as the modulus for every active logical element.
 	 *  @return Register containing the per-lane remainder.
 	 */
-	SIMDLIB_FORCE_INLINE vector_t VECTORCALL operator%(element_t rhs) const noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE vector_t VECTORCALL operator%(element_t rhs) const noexcept
 	{
 		return simd::modulus(m_data, simd::set1(rhs));
 	}
@@ -391,7 +391,7 @@ class SimdVector final
 	/** @brief Negates each lane of this vector.
 	 *  @return Register containing the per-lane negation.
 	 */
-	SIMDLIB_FORCE_INLINE vector_t VECTORCALL operator-() const noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE vector_t VECTORCALL operator-() const noexcept
 	{
 		return simd::negate(m_data);
 	}
@@ -400,7 +400,7 @@ class SimdVector final
 	 *  @param rhs Right-hand input register.
 	 *  @return Reference to this SIMD vector after the update.
 	 */
-	SIMDLIB_FORCE_INLINE SimdVector &VECTORCALL operator+=(vector_t rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SimdVector &VECTORCALL operator+=(vector_t rhs) noexcept
 	{
 		m_data = CheckResultInactiveLanesZero(simd::add(m_data, rhs), "SimdVector::operator+=(vector_t)");
 		return *this;
@@ -410,7 +410,7 @@ class SimdVector final
 	 *  @param rhs Scalar value added to every active logical element.
 	 *  @return Reference to this SIMD vector after the update.
 	 */
-	SIMDLIB_FORCE_INLINE SimdVector &VECTORCALL operator+=(element_t rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SimdVector &VECTORCALL operator+=(element_t rhs) noexcept
 	{
 		const SimdVector scalarRhs(rhs);
 		m_data = simd::add(m_data, scalarRhs.getRegister());
@@ -421,7 +421,7 @@ class SimdVector final
 	 *  @param rhs Right-hand input register.
 	 *  @return Reference to this SIMD vector after the update.
 	 */
-	SIMDLIB_FORCE_INLINE SimdVector &VECTORCALL operator-=(vector_t rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SimdVector &VECTORCALL operator-=(vector_t rhs) noexcept
 	{
 		m_data = CheckResultInactiveLanesZero(simd::subtract(m_data, rhs), "SimdVector::operator-=(vector_t)");
 		return *this;
@@ -431,7 +431,7 @@ class SimdVector final
 	 *  @param rhs Scalar value subtracted from every active logical element.
 	 *  @return Reference to this SIMD vector after the update.
 	 */
-	SIMDLIB_FORCE_INLINE SimdVector &VECTORCALL operator-=(element_t rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SimdVector &VECTORCALL operator-=(element_t rhs) noexcept
 	{
 		const SimdVector scalarRhs(rhs);
 		m_data = simd::subtract(m_data, scalarRhs.getRegister());
@@ -442,7 +442,7 @@ class SimdVector final
 	 *  @param rhs Right-hand input register.
 	 *  @return Reference to this SIMD vector after the update.
 	 */
-	SIMDLIB_FORCE_INLINE SimdVector &VECTORCALL operator*=(vector_t rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SimdVector &VECTORCALL operator*=(vector_t rhs) noexcept
 	{
 		m_data = CheckResultInactiveLanesZero(simd::multiply(m_data, rhs), "SimdVector::operator*=(vector_t)");
 		return *this;
@@ -452,7 +452,7 @@ class SimdVector final
 	 *  @param rhs Scalar value multiplied into every active logical element.
 	 *  @return Reference to this SIMD vector after the update.
 	 */
-	SIMDLIB_FORCE_INLINE SimdVector &VECTORCALL operator*=(element_t rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SimdVector &VECTORCALL operator*=(element_t rhs) noexcept
 	{
 		const SimdVector scalarRhs(rhs);
 		m_data = simd::multiply(m_data, scalarRhs.getRegister());
@@ -463,7 +463,7 @@ class SimdVector final
 	 *  @param rhs Right-hand input register.
 	 *  @return Reference to this SIMD vector after the update.
 	 */
-	SIMDLIB_FORCE_INLINE SimdVector &VECTORCALL operator/=(vector_t rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SimdVector &VECTORCALL operator/=(vector_t rhs) noexcept
 	{
 		m_data = CheckResultInactiveLanesZero(simd::divide(m_data, FillInactiveLanes(rhs, element_t{1})), "SimdVector::operator/=(vector_t)");
 		return *this;
@@ -473,7 +473,7 @@ class SimdVector final
 	 *  @param rhs Scalar value that divides every active logical element.
 	 *  @return Reference to this SIMD vector after the update.
 	 */
-	SIMDLIB_FORCE_INLINE SimdVector &VECTORCALL operator/=(element_t rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SimdVector &VECTORCALL operator/=(element_t rhs) noexcept
 	{
 		m_data = simd::divide(m_data, simd::set1(rhs));
 		return *this;
@@ -483,7 +483,7 @@ class SimdVector final
 	 *  @param rhs Right-hand input register.
 	 *  @return Reference to this SIMD vector after the update.
 	 */
-	SIMDLIB_FORCE_INLINE SimdVector &VECTORCALL operator%=(vector_t rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SimdVector &VECTORCALL operator%=(vector_t rhs) noexcept
 	{
 		m_data = CheckResultInactiveLanesZero(simd::modulus(m_data, FillInactiveLanes(rhs, element_t{1})), "SimdVector::operator%=(vector_t)");
 		return *this;
@@ -493,7 +493,7 @@ class SimdVector final
 	 *  @param rhs Scalar value used as the modulus for every active logical element.
 	 *  @return Reference to this SIMD vector after the update.
 	 */
-	SIMDLIB_FORCE_INLINE SimdVector &VECTORCALL operator%=(element_t rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SimdVector &VECTORCALL operator%=(element_t rhs) noexcept
 	{
 		m_data = simd::modulus(m_data, simd::set1(rhs));
 		return *this;
@@ -507,7 +507,7 @@ class SimdVector final
 	 *  @param rhs Right-hand input register.
 	 *  @return Saturated sum of `m_data` and `rhs`.
 	 */
-	SIMDLIB_FORCE_INLINE vector_t VECTORCALL add_saturated(vector_t rhs) const noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE vector_t VECTORCALL add_saturated(vector_t rhs) const noexcept
 		requires requires(vector_t lhsValue, vector_t rhsValue) { simd::add_saturated(lhsValue, rhsValue); }
 	{
 		return CheckResultInactiveLanesZero(simd::add_saturated(m_data, rhs), "SimdVector::add_saturated(vector_t)");
@@ -517,7 +517,7 @@ class SimdVector final
 	 *  @param rhs Scalar value added to every active logical element.
 	 *  @return Saturated sum of `m_data` and the broadcast scalar value.
 	 */
-	SIMDLIB_FORCE_INLINE vector_t VECTORCALL add_saturated(element_t rhs) const noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE vector_t VECTORCALL add_saturated(element_t rhs) const noexcept
 		requires requires(vector_t lhsValue, vector_t rhsValue) { simd::add_saturated(lhsValue, rhsValue); }
 	{
 		const SimdVector scalarRhs(rhs);
@@ -528,7 +528,7 @@ class SimdVector final
 	 *  @param rhs Right-hand input register.
 	 *  @return Saturated difference of `m_data` and `rhs`.
 	 */
-	SIMDLIB_FORCE_INLINE vector_t VECTORCALL subtract_saturated(vector_t rhs) const noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE vector_t VECTORCALL subtract_saturated(vector_t rhs) const noexcept
 		requires requires(vector_t lhsValue, vector_t rhsValue) { simd::subtract_saturated(lhsValue, rhsValue); }
 	{
 		return CheckResultInactiveLanesZero(simd::subtract_saturated(m_data, rhs), "SimdVector::subtract_saturated(vector_t)");
@@ -538,7 +538,7 @@ class SimdVector final
 	 *  @param rhs Scalar value subtracted from every active logical element.
 	 *  @return Saturated difference of `m_data` and the scalar value.
 	 */
-	SIMDLIB_FORCE_INLINE vector_t VECTORCALL subtract_saturated(element_t rhs) const noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE vector_t VECTORCALL subtract_saturated(element_t rhs) const noexcept
 		requires requires(vector_t lhsValue, vector_t rhsValue) { simd::subtract_saturated(lhsValue, rhsValue); }
 	{
 		const SimdVector scalarRhs(rhs);
@@ -549,7 +549,7 @@ class SimdVector final
 	 *  @param rhs Right-hand input register.
 	 *  @return Saturated product of `m_data` and `rhs`.
 	 */
-	SIMDLIB_FORCE_INLINE vector_t VECTORCALL multiply_saturated(vector_t rhs) const noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE vector_t VECTORCALL multiply_saturated(vector_t rhs) const noexcept
 		requires requires(vector_t lhsValue, vector_t rhsValue) { simd::multiply_saturated(lhsValue, rhsValue); }
 	{
 		return CheckResultInactiveLanesZero(simd::multiply_saturated(m_data, rhs), "SimdVector::multiply_saturated(vector_t)");
@@ -559,7 +559,7 @@ class SimdVector final
 	 *  @param rhs Scalar value multiplied into every active logical element.
 	 *  @return Saturated product of `m_data` and the scalar value.
 	 */
-	SIMDLIB_FORCE_INLINE vector_t VECTORCALL multiply_saturated(element_t rhs) const noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE vector_t VECTORCALL multiply_saturated(element_t rhs) const noexcept
 		requires requires(vector_t lhsValue, vector_t rhsValue) { simd::multiply_saturated(lhsValue, rhsValue); }
 	{
 		const SimdVector scalarRhs(rhs);
@@ -573,7 +573,7 @@ class SimdVector final
 	/** @brief Inverts every bit in the underlying register.
 	 *  @return SIMD vector containing the bitwise inverse.
 	 */
-	SIMDLIB_FORCE_INLINE SimdVector VECTORCALL operator~() const noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SimdVector VECTORCALL operator~() const noexcept
 	{
 		if constexpr (element_count == simd::element_count)
 		{
@@ -592,7 +592,7 @@ class SimdVector final
 	 *  @param rhs Right-hand input register.
 	 *  @return SIMD vector containing the bitwise AND result.
 	 */
-	SIMDLIB_FORCE_INLINE SimdVector VECTORCALL operator&(vector_t rhs) const noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SimdVector VECTORCALL operator&(vector_t rhs) const noexcept
 	{
 		return CheckResultInactiveLanesZero(simd::bitwise_and(m_data, rhs), "SimdVector::operator&(vector_t)");
 	}
@@ -601,7 +601,7 @@ class SimdVector final
 	 *  @param rhs Right-hand input register.
 	 *  @return SIMD vector containing the bitwise OR result.
 	 */
-	SIMDLIB_FORCE_INLINE SimdVector VECTORCALL operator|(vector_t rhs) const noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SimdVector VECTORCALL operator|(vector_t rhs) const noexcept
 	{
 		return CheckResultInactiveLanesZero(simd::bitwise_or(m_data, rhs), "SimdVector::operator|(vector_t)");
 	}
@@ -610,7 +610,7 @@ class SimdVector final
 	 *  @param rhs Right-hand input register.
 	 *  @return SIMD vector containing the bitwise XOR result.
 	 */
-	SIMDLIB_FORCE_INLINE SimdVector VECTORCALL operator^(vector_t rhs) const noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SimdVector VECTORCALL operator^(vector_t rhs) const noexcept
 	{
 		return CheckResultInactiveLanesZero(simd::bitwise_xor(m_data, rhs), "SimdVector::operator^(vector_t)");
 	}
@@ -619,7 +619,7 @@ class SimdVector final
 	 *  @param rhs Right-hand input register.
 	 *  @return Reference to this SIMD vector after the update.
 	 */
-	SIMDLIB_FORCE_INLINE SimdVector &VECTORCALL operator&=(vector_t rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SimdVector &VECTORCALL operator&=(vector_t rhs) noexcept
 	{
 		m_data = CheckResultInactiveLanesZero(simd::bitwise_and(m_data, rhs), "SimdVector::operator&=(vector_t)");
 		return *this;
@@ -629,7 +629,7 @@ class SimdVector final
 	 *  @param rhs Right-hand input register.
 	 *  @return Reference to this SIMD vector after the update.
 	 */
-	SIMDLIB_FORCE_INLINE SimdVector &VECTORCALL operator|=(vector_t rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SimdVector &VECTORCALL operator|=(vector_t rhs) noexcept
 	{
 		m_data = CheckResultInactiveLanesZero(simd::bitwise_or(m_data, rhs), "SimdVector::operator|=(vector_t)");
 		return *this;
@@ -639,7 +639,7 @@ class SimdVector final
 	 *  @param rhs Right-hand input register.
 	 *  @return Reference to this SIMD vector after the update.
 	 */
-	SIMDLIB_FORCE_INLINE SimdVector &VECTORCALL operator^=(vector_t rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SimdVector &VECTORCALL operator^=(vector_t rhs) noexcept
 	{
 		m_data = CheckResultInactiveLanesZero(simd::bitwise_xor(m_data, rhs), "SimdVector::operator^=(vector_t)");
 		return *this;
@@ -653,7 +653,7 @@ class SimdVector final
 	 *  @param shift Shift count applied to every active lane.
 	 *  @return SIMD vector containing the shifted values.
 	 */
-	SIMDLIB_FORCE_INLINE constexpr SimdVector VECTORCALL operator<<(int shift) const noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr SimdVector VECTORCALL operator<<(int shift) const noexcept
 	{
 		return simd::shift_left(m_data, shift);
 	}
@@ -662,7 +662,7 @@ class SimdVector final
 	 *  @param shift Shift count applied to every active lane.
 	 *  @return SIMD vector containing the shifted values using arithmetic or logical shift semantics for the element type.
 	 */
-	SIMDLIB_FORCE_INLINE constexpr SimdVector VECTORCALL operator>>(int shift) const noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr SimdVector VECTORCALL operator>>(int shift) const noexcept
 	{
 		if constexpr (std::is_signed_v<element_t>)
 			return simd::shift_right_arithmetic(m_data, shift);
@@ -674,7 +674,7 @@ class SimdVector final
 	 *  @param shift Shift count applied to every active lane.
 	 *  @return Reference to this SIMD vector after the update.
 	 */
-	SIMDLIB_FORCE_INLINE constexpr SimdVector &VECTORCALL operator<<=(int shift) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr SimdVector &VECTORCALL operator<<=(int shift) noexcept
 	{
 		m_data = simd::shift_left(m_data, shift);
 		return *this;
@@ -684,7 +684,7 @@ class SimdVector final
 	 *  @param shift Shift count applied to every active lane.
 	 *  @return Reference to this SIMD vector after the update.
 	 */
-	SIMDLIB_FORCE_INLINE constexpr SimdVector &VECTORCALL operator>>=(int shift) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr SimdVector &VECTORCALL operator>>=(int shift) noexcept
 	{
 		if constexpr (std::is_signed_v<element_t>)
 			m_data = simd::shift_right_arithmetic(m_data, shift);
@@ -701,7 +701,7 @@ class SimdVector final
 	 *  @param rhs Right-hand input register.
 	 *  @return `true` when every active element compares equal.
 	 */
-	SIMDLIB_FORCE_INLINE constexpr bool VECTORCALL operator==(vector_t rhs) const noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr bool VECTORCALL operator==(vector_t rhs) const noexcept
 	{
 		return mask_has_all(simd::cmp_eq_mask(m_data, rhs));
 	}
@@ -710,7 +710,7 @@ class SimdVector final
 	 *  @param rhs Right-hand input register.
 	 *  @return `true` when every active element is greater than its counterpart.
 	 */
-	SIMDLIB_FORCE_INLINE constexpr bool VECTORCALL operator>(vector_t rhs) const noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr bool VECTORCALL operator>(vector_t rhs) const noexcept
 	{
 		return mask_has_all(simd::cmp_gt_mask(m_data, rhs));
 	}
@@ -719,7 +719,7 @@ class SimdVector final
 	 *  @param rhs Right-hand input register.
 	 *  @return `true` when every active element is greater than or equal to its counterpart.
 	 */
-	SIMDLIB_FORCE_INLINE constexpr bool VECTORCALL operator>=(vector_t rhs) const noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr bool VECTORCALL operator>=(vector_t rhs) const noexcept
 	{
 		return mask_has_all(simd::cmp_ge_mask(m_data, rhs));
 	}
@@ -728,7 +728,7 @@ class SimdVector final
 	 *  @param rhs Right-hand input register.
 	 *  @return `true` when every active element is less than its counterpart.
 	 */
-	SIMDLIB_FORCE_INLINE constexpr bool VECTORCALL operator<(vector_t rhs) const noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr bool VECTORCALL operator<(vector_t rhs) const noexcept
 	{
 		return mask_has_all(simd::cmp_lt_mask(m_data, rhs));
 	}
@@ -737,7 +737,7 @@ class SimdVector final
 	 *  @param rhs Right-hand input register.
 	 *  @return `true` when every active element is less than or equal to its counterpart.
 	 */
-	SIMDLIB_FORCE_INLINE constexpr bool VECTORCALL operator<=(vector_t rhs) const noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr bool VECTORCALL operator<=(vector_t rhs) const noexcept
 	{
 		return mask_has_all(simd::cmp_le_mask(m_data, rhs));
 	}
@@ -746,7 +746,7 @@ class SimdVector final
 	 *  @param rhs Right-hand input register.
 	 *  @return `true` when at least one active element compares equal.
 	 */
-	SIMDLIB_FORCE_INLINE constexpr bool VECTORCALL any_equal(vector_t rhs) const noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr bool VECTORCALL any_equal(vector_t rhs) const noexcept
 	{
 		return mask_has_any(simd::cmp_eq_mask(m_data, rhs));
 	}
@@ -755,7 +755,7 @@ class SimdVector final
 	 *  @param rhs Right-hand input register.
 	 *  @return `true` when every active element compares equal.
 	 */
-	SIMDLIB_FORCE_INLINE constexpr bool VECTORCALL all_equal(vector_t rhs) const noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr bool VECTORCALL all_equal(vector_t rhs) const noexcept
 	{
 		return mask_has_all(simd::cmp_eq_mask(m_data, rhs));
 	}
@@ -764,7 +764,7 @@ class SimdVector final
 	 *  @param rhs Right-hand input register.
 	 *  @return `true` when at least one active element is greater than its counterpart.
 	 */
-	SIMDLIB_FORCE_INLINE constexpr bool VECTORCALL any_greater(vector_t rhs) const noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr bool VECTORCALL any_greater(vector_t rhs) const noexcept
 	{
 		return mask_has_any(simd::cmp_gt_mask(m_data, rhs));
 	}
@@ -773,7 +773,7 @@ class SimdVector final
 	 *  @param rhs Right-hand input register.
 	 *  @return `true` when every active element is greater than its counterpart.
 	 */
-	SIMDLIB_FORCE_INLINE constexpr bool VECTORCALL all_greater(vector_t rhs) const noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr bool VECTORCALL all_greater(vector_t rhs) const noexcept
 	{
 		return mask_has_all(simd::cmp_gt_mask(m_data, rhs));
 	}
@@ -782,7 +782,7 @@ class SimdVector final
 	 *  @param rhs Right-hand input register.
 	 *  @return `true` when at least one active element is greater than or equal to its counterpart.
 	 */
-	SIMDLIB_FORCE_INLINE constexpr bool VECTORCALL any_greater_equal(vector_t rhs) const noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr bool VECTORCALL any_greater_equal(vector_t rhs) const noexcept
 	{
 		return mask_has_any(simd::cmp_ge_mask(m_data, rhs));
 	}
@@ -791,7 +791,7 @@ class SimdVector final
 	 *  @param rhs Right-hand input register.
 	 *  @return `true` when every active element is greater than or equal to its counterpart.
 	 */
-	SIMDLIB_FORCE_INLINE constexpr bool VECTORCALL all_greater_equal(vector_t rhs) const noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr bool VECTORCALL all_greater_equal(vector_t rhs) const noexcept
 	{
 		return mask_has_all(simd::cmp_ge_mask(m_data, rhs));
 	}
@@ -800,7 +800,7 @@ class SimdVector final
 	 *  @param rhs Right-hand input register.
 	 *  @return `true` when at least one active element is less than its counterpart.
 	 */
-	SIMDLIB_FORCE_INLINE constexpr bool VECTORCALL any_less(vector_t rhs) const noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr bool VECTORCALL any_less(vector_t rhs) const noexcept
 	{
 		return mask_has_any(simd::cmp_lt_mask(m_data, rhs));
 	}
@@ -809,7 +809,7 @@ class SimdVector final
 	 *  @param rhs Right-hand input register.
 	 *  @return `true` when every active element is less than its counterpart.
 	 */
-	SIMDLIB_FORCE_INLINE constexpr bool VECTORCALL all_less(vector_t rhs) const noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr bool VECTORCALL all_less(vector_t rhs) const noexcept
 	{
 		return mask_has_all(simd::cmp_lt_mask(m_data, rhs));
 	}
@@ -818,7 +818,7 @@ class SimdVector final
 	 *  @param rhs Right-hand input register.
 	 *  @return `true` when at least one active element is less than or equal to its counterpart.
 	 */
-	SIMDLIB_FORCE_INLINE constexpr bool VECTORCALL any_less_equal(vector_t rhs) const noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr bool VECTORCALL any_less_equal(vector_t rhs) const noexcept
 	{
 		return mask_has_any(simd::cmp_le_mask(m_data, rhs));
 	}
@@ -827,7 +827,7 @@ class SimdVector final
 	 *  @param rhs Right-hand input register.
 	 *  @return `true` when every active element is less than or equal to its counterpart.
 	 */
-	SIMDLIB_FORCE_INLINE constexpr bool VECTORCALL all_less_equal(vector_t rhs) const noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr bool VECTORCALL all_less_equal(vector_t rhs) const noexcept
 	{
 		return mask_has_all(simd::cmp_le_mask(m_data, rhs));
 	}
@@ -840,7 +840,7 @@ class SimdVector final
 	 *  @param rhs Right-hand input register.
 	 *  @return Register whose lanes are `min(m_data[i], rhs[i])`.
 	 */
-	SIMDLIB_FORCE_INLINE vector_t VECTORCALL min(vector_t rhs) const noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE vector_t VECTORCALL min(vector_t rhs) const noexcept
 	{
 		return CheckResultInactiveLanesZero(simd::min(m_data, rhs), "SimdVector::min(vector_t)");
 	}
@@ -849,7 +849,7 @@ class SimdVector final
 	 *  @param rhs Right-hand input register.
 	 *  @return Register whose lanes are `max(m_data[i], rhs[i])`.
 	 */
-	SIMDLIB_FORCE_INLINE vector_t VECTORCALL max(vector_t rhs) const noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE vector_t VECTORCALL max(vector_t rhs) const noexcept
 	{
 		return CheckResultInactiveLanesZero(simd::max(m_data, rhs), "SimdVector::max(vector_t)");
 	}
@@ -861,7 +861,7 @@ class SimdVector final
 	/** @brief Returns a SIMD register containing the absolute value of each element.
 	 *  @return Register containing the per-element absolute values of `m_data`.
 	 */
-	SIMDLIB_FORCE_INLINE vector_t VECTORCALL abs() const noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE vector_t VECTORCALL abs() const noexcept
 		requires requires(vector_t value) { simd::absolute(value); }
 	{
 		return simd::absolute(m_data);
@@ -870,7 +870,7 @@ class SimdVector final
 	/** @brief Computes the square root of each element.
 	 *  @return Register containing the per-lane square roots.
 	 */
-	SIMDLIB_FORCE_INLINE auto VECTORCALL sqrt() const noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE auto VECTORCALL sqrt() const noexcept
 		requires requires(vector_t value) { simd::sqrt(value); }
 	{
 		return simd::sqrt(m_data);
@@ -879,7 +879,7 @@ class SimdVector final
 	/** @brief Computes the per-128-bit-lane magnitude when the underlying Simd specialization supports it.
 	 *  @return Register containing the lane-local magnitudes broadcast across each lane group.
 	 */
-	SIMDLIB_FORCE_INLINE auto VECTORCALL magnitude() const noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE auto VECTORCALL magnitude() const noexcept
 		requires requires(vector_t value) { simd::magnitude(value); }
 	{
 		return simd::magnitude(m_data);
@@ -888,7 +888,7 @@ class SimdVector final
 	/** @brief Computes the multiplicative product of the active logical lanes.
 	 *  @return Product of the declared logical lanes, widened to 32-bit for sub-32-bit integer vectors and reduced modulo the result width.
 	 */
-	SIMDLIB_FORCE_INLINE area_element_t VECTORCALL area() const noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE area_element_t VECTORCALL area() const noexcept
 		requires std::is_integral_v<element_t>
 	{
 		if constexpr (element_count == 1)
@@ -926,7 +926,7 @@ class SimdVector final
 	/** @brief Normalizes floating-point lanes using the Simd API's lane-local length semantics.
 	 *  @return Register containing normalized per-lane values.
 	 */
-	SIMDLIB_FORCE_INLINE auto VECTORCALL normalize() const noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE auto VECTORCALL normalize() const noexcept
 		requires requires(vector_t value) { simd::normalize(value); }
 	{
 		return simd::normalize(m_data);
@@ -936,7 +936,7 @@ class SimdVector final
 	 *  @param rhs Right-hand input register.
 	 *  @return Register containing the per-lane averages.
 	 */
-	SIMDLIB_FORCE_INLINE auto VECTORCALL avg(vector_t rhs) const noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE auto VECTORCALL avg(vector_t rhs) const noexcept
 		requires requires(vector_t lhsValue, vector_t rhsValue) { simd::avg(lhsValue, rhsValue); }
 	{
 		return CheckResultInactiveLanesZero(simd::avg(m_data, rhs), "SimdVector::avg(vector_t)");
@@ -947,7 +947,7 @@ class SimdVector final
 	 *  @param addend Register added to the product.
 	 *  @return Register containing the multiply-add result.
 	 */
-	SIMDLIB_FORCE_INLINE auto VECTORCALL multiply_add(vector_t rhs, vector_t addend) const noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE auto VECTORCALL multiply_add(vector_t rhs, vector_t addend) const noexcept
 		requires requires(vector_t lhsValue, vector_t rhsValue, vector_t addValue) { simd::multiply_add(lhsValue, rhsValue, addValue); }
 	{
 		return CheckResultInactiveLanesZero(simd::multiply_add(m_data, rhs, addend), "SimdVector::multiply_add(vector_t, vector_t)");
@@ -957,7 +957,7 @@ class SimdVector final
 	 *  @param rhs Right-hand input register.
 	 *  @return Register containing pairwise horizontal sums.
 	 */
-	SIMDLIB_FORCE_INLINE auto VECTORCALL add_horizontal(vector_t rhs) const noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE auto VECTORCALL add_horizontal(vector_t rhs) const noexcept
 		requires requires(vector_t lhsValue, vector_t rhsValue) { simd::add_horizontal(lhsValue, rhsValue); }
 	{
 		return simd::add_horizontal(m_data, rhs);
@@ -967,7 +967,7 @@ class SimdVector final
 	 *  @param rhs Right-hand input register.
 	 *  @return Register containing pairwise horizontal differences.
 	 */
-	SIMDLIB_FORCE_INLINE auto VECTORCALL subtract_horizontal(vector_t rhs) const noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE auto VECTORCALL subtract_horizontal(vector_t rhs) const noexcept
 		requires requires(vector_t lhsValue, vector_t rhsValue) { simd::subtract_horizontal(lhsValue, rhsValue); }
 	{
 		return simd::subtract_horizontal(m_data, rhs);
@@ -977,7 +977,7 @@ class SimdVector final
 	 *  @param rhs Right-hand input register.
 	 *  @return Register containing saturated horizontal sums.
 	 */
-	SIMDLIB_FORCE_INLINE auto VECTORCALL add_horizontal_saturated(vector_t rhs) const noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE auto VECTORCALL add_horizontal_saturated(vector_t rhs) const noexcept
 		requires requires(vector_t lhsValue, vector_t rhsValue) { simd::hadd_saturated(lhsValue, rhsValue); }
 	{
 		return simd::hadd_saturated(m_data, rhs);
@@ -987,7 +987,7 @@ class SimdVector final
 	 *  @param rhs Right-hand input register.
 	 *  @return Register containing saturated horizontal differences.
 	 */
-	SIMDLIB_FORCE_INLINE auto VECTORCALL subtract_horizontal_saturated(vector_t rhs) const noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE auto VECTORCALL subtract_horizontal_saturated(vector_t rhs) const noexcept
 		requires requires(vector_t lhsValue, vector_t rhsValue) { simd::hsubtract_saturated(lhsValue, rhsValue); }
 	{
 		return simd::hsubtract_saturated(m_data, rhs);
@@ -997,7 +997,7 @@ class SimdVector final
 	 *  @param rhs Right-hand input register.
 	 *  @return Register whose lane type follows the promoted integer mapping.
 	 */
-	SIMDLIB_FORCE_INLINE auto VECTORCALL multiply_add_adjacent(vector_t rhs) const noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE auto VECTORCALL multiply_add_adjacent(vector_t rhs) const noexcept
 		requires requires(vector_t lhsValue, vector_t rhsValue) { simd::multiply_add_adjacent(lhsValue, rhsValue); }
 	{
 		return simd::multiply_add_adjacent(m_data, rhs);
@@ -1007,7 +1007,7 @@ class SimdVector final
 	 *  @param rhs Right-hand input register whose bytes are interpreted as signed.
 	 *  @return Register containing signed 16-bit accumulation results.
 	 */
-	SIMDLIB_FORCE_INLINE auto VECTORCALL multiply_add_unsigned_signed_bytes(vector_t rhs) const noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE auto VECTORCALL multiply_add_unsigned_signed_bytes(vector_t rhs) const noexcept
 		requires requires(vector_t lhsValue, vector_t rhsValue) { simd::multiply_add_unsigned_signed_bytes(lhsValue, rhsValue); }
 	{
 		return CheckResultInactiveLanesZero(simd::multiply_add_unsigned_signed_bytes(m_data, rhs), "SimdVector::multiply_add_unsigned_signed_bytes(vector_t)");
@@ -1017,7 +1017,7 @@ class SimdVector final
 	 *  @param rhs Right-hand input register interpreted byte-wise.
 	 *  @return Register containing 64-bit absolute-difference accumulations.
 	 */
-	SIMDLIB_FORCE_INLINE auto VECTORCALL sum_absolute_byte_differences(vector_t rhs) const noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE auto VECTORCALL sum_absolute_byte_differences(vector_t rhs) const noexcept
 		requires requires(vector_t lhsValue, vector_t rhsValue) { simd::sum_absolute_byte_differences(lhsValue, rhsValue); }
 	{
 		return CheckResultInactiveLanesZero(simd::sum_absolute_byte_differences(m_data, rhs), "SimdVector::sum_absolute_byte_differences(vector_t)");
@@ -1029,7 +1029,7 @@ class SimdVector final
 	 *  @return Register containing byte-window absolute-difference accumulations.
 	 */
 	template <int imm8>
-	SIMDLIB_FORCE_INLINE auto VECTORCALL multi_sum_absolute_byte_differences(vector_t rhs) const noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE auto VECTORCALL multi_sum_absolute_byte_differences(vector_t rhs) const noexcept
 		requires requires(vector_t lhsValue, vector_t rhsValue) { simd::template multi_sum_absolute_byte_differences<imm8>(lhsValue, rhsValue); }
 	{
 		return CheckResultInactiveLanesZero(simd::template multi_sum_absolute_byte_differences<imm8>(m_data, rhs),
@@ -1039,7 +1039,7 @@ class SimdVector final
 	/** @brief Returns the first index of the minimum value in the vector.
 	 *  @return Zero-based index of the first minimum element.
 	 */
-	SIMDLIB_FORCE_INLINE std::size_t VECTORCALL min_position() const noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE std::size_t VECTORCALL min_position() const noexcept
 		requires requires(vector_t value) { simd::min_position(value); }
 	{
 		return simd::min_position(FillInactiveLanes(m_data, std::numeric_limits<element_t>::max()));
@@ -1048,7 +1048,7 @@ class SimdVector final
 	/** @brief Returns the first index of the maximum value in the vector.
 	 *  @return Zero-based index of the first maximum element.
 	 */
-	SIMDLIB_FORCE_INLINE std::size_t VECTORCALL max_position() const noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE std::size_t VECTORCALL max_position() const noexcept
 		requires requires(vector_t value) { simd::max_position(value); }
 	{
 		return simd::max_position(FillInactiveLanes(m_data, std::numeric_limits<element_t>::lowest()));
@@ -1058,7 +1058,7 @@ class SimdVector final
 	 *  @param rhs Right-hand input register.
 	 *  @return Register containing alternating subtract/add results.
 	 */
-	SIMDLIB_FORCE_INLINE auto VECTORCALL add_subtract(vector_t rhs) const noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE auto VECTORCALL add_subtract(vector_t rhs) const noexcept
 		requires requires(vector_t lhsValue, vector_t rhsValue) { simd::add_subtract(lhsValue, rhsValue); }
 	{
 		return simd::add_subtract(m_data, rhs);
@@ -1068,7 +1068,7 @@ class SimdVector final
 	 *  @param rhs Right-hand input register.
 	 *  @return Scalar dot-product result for the active vector dimensions.
 	 */
-	SIMDLIB_FORCE_INLINE element_t VECTORCALL dot_product(vector_t rhs) const noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE element_t VECTORCALL dot_product(vector_t rhs) const noexcept
 		requires(std::is_floating_point_v<element_t> &&
 				 requires(vector_t lhsValue, vector_t rhsValue) { simd::template dot_product<0x11>(lhsValue, rhsValue); })
 	{
@@ -1109,7 +1109,7 @@ class SimdVector final
 	 *  @param maxValue Register containing the per-element upper bounds.
 	 *  @return Register containing `m_data` clamped to `[minValue, maxValue]` per lane.
 	 */
-	SIMDLIB_FORCE_INLINE vector_t VECTORCALL clamp(vector_t minValue, vector_t maxValue) const noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE vector_t VECTORCALL clamp(vector_t minValue, vector_t maxValue) const noexcept
 		requires requires(vector_t value) {
 			simd::min(value, value);
 			simd::max(value, value);
@@ -1126,7 +1126,7 @@ class SimdVector final
 	 *  @param maxValue Scalar upper bound broadcast to every lane.
 	 *  @return Register containing `m_data` clamped to `[minValue, maxValue]` per lane.
 	 */
-	SIMDLIB_FORCE_INLINE vector_t VECTORCALL clamp(element_t minValue, element_t maxValue) const noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE vector_t VECTORCALL clamp(element_t minValue, element_t maxValue) const noexcept
 		requires requires(vector_t value) {
 			simd::min(value, value);
 			simd::max(value, value);
@@ -1138,7 +1138,7 @@ class SimdVector final
 	/** @brief Returns the sign of each element as -1, 0, or 1, or 0 and 1 for unsigned types.
 	 *  @return Register containing the per-element sign classification of `m_data`.
 	 */
-	SIMDLIB_FORCE_INLINE vector_t VECTORCALL sign() const noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE vector_t VECTORCALL sign() const noexcept
 		requires requires(vector_t value) {
 			simd::cmpgt(value, value);
 			simd::bitwise_and(value, value);
@@ -1170,7 +1170,7 @@ class SimdVector final
 	/** @brief Implicitly converts this wrapper to the underlying SIMD register.
 	 *  @return Copy of the wrapped SIMD register.
 	 */
-	SIMDLIB_FORCE_INLINE VECTORCALL operator vector_t() const noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE VECTORCALL operator vector_t() const noexcept
 	{
 		return m_data;
 	}
@@ -1178,7 +1178,7 @@ class SimdVector final
 	/** @brief Returns a mutable span view over the underlying register storage.
 	 *  @return Mutable span covering every hardware lane in the register.
 	 */
-	SIMDLIB_FORCE_INLINE operator std::span<element_t, simd::element_count>() noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE operator std::span<element_t, simd::element_count>() noexcept
 	{
 		return std::span<element_t, simd::element_count>(Detail::register_data<element_t>(m_data), simd::element_count);
 	}
@@ -1186,7 +1186,7 @@ class SimdVector final
 	/** @brief Returns a readonly span view over the underlying register storage.
 	 *  @return Readonly span covering every hardware lane in the register.
 	 */
-	SIMDLIB_FORCE_INLINE operator std::span<const element_t, simd::element_count>() const noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE operator std::span<const element_t, simd::element_count>() const noexcept
 	{
 		return std::span<const element_t, simd::element_count>(Detail::register_data<element_t>(m_data), simd::element_count);
 	}
@@ -1194,7 +1194,7 @@ class SimdVector final
 	/** @brief Converts the wrapped SIMD register to a fixed array.
 	 *  @return Array containing the full underlying register contents in lane order.
 	 */
-	SIMDLIB_FORCE_INLINE constexpr explicit operator std::array<element_t, simd::element_count>() const noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr explicit operator std::array<element_t, simd::element_count>() const noexcept
 	{
 		return simd::to_array(m_data);
 	}
@@ -1202,7 +1202,7 @@ class SimdVector final
 	/** @brief Converts the SIMD vector to an array of elements.
 	 *  @return Array containing the full underlying register contents in lane order.
 	 */
-	SIMDLIB_FORCE_INLINE constexpr std::array<element_t, simd::element_count> toArray() const noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr std::array<element_t, simd::element_count> toArray() const noexcept
 	{
 		return static_cast<std::array<element_t, simd::element_count>>(*this);
 	}
@@ -1210,7 +1210,7 @@ class SimdVector final
 	/** @brief Returns a span over the SIMD vector's elements.
 	 *  @return Mutable span view of the full underlying register storage.
 	 */
-	SIMDLIB_FORCE_INLINE std::span<element_t, simd::element_count> getSpan() noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE std::span<element_t, simd::element_count> getSpan() noexcept
 	{
 		return static_cast<std::span<element_t, simd::element_count>>(*this);
 	}
@@ -1218,7 +1218,7 @@ class SimdVector final
 	/** @brief Returns a readonly span over the SIMD vector's elements.
 	 *  @return Readonly span view of the full underlying register storage.
 	 */
-	SIMDLIB_FORCE_INLINE std::span<const element_t, simd::element_count> getSpan() const noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE std::span<const element_t, simd::element_count> getSpan() const noexcept
 	{
 		return static_cast<std::span<const element_t, simd::element_count>>(*this);
 	}
@@ -1226,7 +1226,7 @@ class SimdVector final
 	/** @brief Returns the underlying SIMD register.
 	 *  @return Mutable reference to the wrapped SIMD register.
 	 */
-	SIMDLIB_FORCE_INLINE vector_t &VECTORCALL getRegister() noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE vector_t &VECTORCALL getRegister() noexcept
 	{
 		return m_data;
 	}
@@ -1234,7 +1234,7 @@ class SimdVector final
 	/** @brief Returns the underlying SIMD register.
 	 *  @return Copy of the wrapped SIMD register.
 	 */
-	SIMDLIB_FORCE_INLINE vector_t VECTORCALL getRegister() const noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE vector_t VECTORCALL getRegister() const noexcept
 	{
 		return m_data;
 	}
@@ -1242,7 +1242,7 @@ class SimdVector final
 	/** @brief Returns a tuple containing the span view used by tuple-like integrations.
 	 *  @return Tuple containing the readonly span view of this SIMD vector.
 	 */
-	SIMDLIB_FORCE_INLINE constexpr auto getTuple() const noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr auto getTuple() const noexcept
 	{
 		return std::tuple{this->getSpan()};
 	}

@@ -42,27 +42,27 @@ template <integer_like int_t> [[nodiscard]] SIMDLIB_FORCE_INLINE constexpr stati
 /// @brief Branchless selection between two values based on a switch bit.
 /// @param selectionBit The bit that will determine which value to select. (0 = lhs, 1 = rhs)
 template <integer_like int_t>
-[[nodiscard]] [[msvc::flatten]] SIMDLIB_FORCE_INLINE constexpr static int_t select(const int_t lhs, const int_t rhs, const bool selectionBit) noexcept
+[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr static int_t select(const int_t lhs, const int_t rhs, const bool selectionBit) noexcept
 {
 	const int_t mask = boolmask<int_t>(selectionBit);
 	return (~mask & lhs) | (rhs & mask); // Select between lhs and rhs
 }
 
 /// @brief Branchless find maximum of two values.
-template <std::integral int_t> [[nodiscard]] [[msvc::flatten]] SIMDLIB_FORCE_INLINE constexpr static int_t max(const int_t lhs, const int_t rhs) noexcept
+template <std::integral int_t> [[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr static int_t max(const int_t lhs, const int_t rhs) noexcept
 {
 	return select(lhs, rhs, lhs < rhs);
 }
 
 /// @brief Branchless find minimum of two values.
-template <std::integral int_t> [[nodiscard]] [[msvc::flatten]] SIMDLIB_FORCE_INLINE constexpr static int_t min(const int_t lhs, const int_t rhs) noexcept
+template <std::integral int_t> [[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr static int_t min(const int_t lhs, const int_t rhs) noexcept
 {
 	return select(lhs, rhs, lhs > rhs);
 }
 
 /// @brief Branchless find absolute value of the input.
 /// @note For the minimum signed value, returns the unchanged two's-complement magnitude bit pattern because its positive magnitude is not representable.
-template <std::integral int_t> [[nodiscard]] [[msvc::flatten]] SIMDLIB_FORCE_INLINE constexpr static int_t abs(const int_t lhs) noexcept
+template <std::integral int_t> [[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr static int_t abs(const int_t lhs) noexcept
 {
 	if constexpr (std::is_signed_v<int_t>)
 	{
@@ -294,7 +294,7 @@ template <integer_like int_t> [[nodiscard]] SIMDLIB_FORCE_INLINE constexpr stati
 }
 
 /// @brief Extract and reset the lowest set bit in source.
-template <integer_like int_t> [[nodiscard]] [[msvc::flatten]] SIMDLIB_FORCE_INLINE constexpr static int_t blse(const int_t source, int_t &out_lsb) noexcept
+template <integer_like int_t> [[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr static int_t blse(const int_t source, int_t &out_lsb) noexcept
 {
 	out_lsb = blsi(source);
 	return source ^ out_lsb;
@@ -302,7 +302,7 @@ template <integer_like int_t> [[nodiscard]] [[msvc::flatten]] SIMDLIB_FORCE_INLI
 
 /// @brief Extract and reset the lowest set bit in source.
 /// @return A tuple containing the source integer with the bits reset and the extracted bits.
-template <integer_like int_t> [[nodiscard]] [[msvc::flatten]] SIMDLIB_FORCE_INLINE constexpr static std::tuple<int_t, int_t> blse(const int_t source) noexcept
+template <integer_like int_t> [[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr static std::tuple<int_t, int_t> blse(const int_t source) noexcept
 {
 	const int_t out_lsb = blsi(source);
 	return {static_cast<int_t>(source ^ out_lsb), out_lsb};
@@ -405,7 +405,7 @@ template <integer_like int_t> [[nodiscard]] SIMDLIB_FORCE_INLINE constexpr stati
 }
 
 /// @brief Computes the parallel-prefix OR of the given value, which is the result of or'ing each bit with all bits to the left (low-bits). [eg: 10100 => 11111 ]
-template <integer_like int_t> [[nodiscard]] [[msvc::flatten]] SIMDLIB_FORCE_INLINE constexpr static int_t pp_or(const int_t value) noexcept
+template <integer_like int_t> [[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr static int_t pp_or(const int_t value) noexcept
 {
 	using Bmi::bzhi;
 	using std::bit_width;
@@ -421,7 +421,7 @@ template <integer_like int_t> [[nodiscard]] SIMDLIB_FORCE_INLINE constexpr stati
 
 /// @brief Computes the parallel-prefix-least-significant-OR of the given value, which is the result of clearing all bits to the right (high-bits) of the lsb and
 /// then or'ing each bit with all bits to the left (low-bits). [eg: 10100 => 00111 ]
-template <integer_like int_t> [[nodiscard]] [[msvc::flatten]] SIMDLIB_FORCE_INLINE constexpr static int_t pp_lsor(const int_t value) noexcept
+template <integer_like int_t> [[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr static int_t pp_lsor(const int_t value) noexcept
 {
 	using Bmi::blsi;
 	using Bmi::bzhi;
@@ -473,7 +473,7 @@ template <integer_like int_t> [[nodiscard]] SIMDLIB_FORCE_INLINE constexpr stati
 #pragma region BMI Extended Operations
 /// @brief Extract the highest set bit from source integer and set the corresponding bit in dst. All other bits in dst are zeroed, and all bits are zeroed if no
 /// bits are set in source.
-template <integer_like int_t> [[nodiscard]] [[msvc::flatten]] SIMDLIB_FORCE_INLINE constexpr static int_t bmsi(const int_t value) noexcept
+template <integer_like int_t> [[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr static int_t bmsi(const int_t value) noexcept
 {
 	using std::bit_floor;
 	return bit_floor(value);
@@ -483,7 +483,7 @@ template <integer_like int_t> [[nodiscard]] [[msvc::flatten]] SIMDLIB_FORCE_INLI
 }
 
 /// @brief Copy all bits from source to dst, and reset (set to 0) the bit in dst that corresponds to the highest set bit in source.
-template <integer_like int_t> [[nodiscard]] [[msvc::flatten]] SIMDLIB_FORCE_INLINE constexpr static int_t bmsr(const int_t value) noexcept
+template <integer_like int_t> [[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr static int_t bmsr(const int_t value) noexcept
 {
 	using Bmi::bzhi;
 	using std::bit_width;
@@ -492,7 +492,7 @@ template <integer_like int_t> [[nodiscard]] [[msvc::flatten]] SIMDLIB_FORCE_INLI
 }
 
 /// @brief Copy all bits from source to dst, and reset (set to 0) the bit in dst that corresponds to the highest set bit in source.
-template <integer_like int_t> [[nodiscard]] [[msvc::flatten]] SIMDLIB_FORCE_INLINE constexpr static int_t bmsr(const int_t value, int &out_msb_index) noexcept
+template <integer_like int_t> [[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr static int_t bmsr(const int_t value, int &out_msb_index) noexcept
 {
 	using std::bit_width;
 	out_msb_index = bit_width(value) - 1;
@@ -500,7 +500,7 @@ template <integer_like int_t> [[nodiscard]] [[msvc::flatten]] SIMDLIB_FORCE_INLI
 }
 
 /// @brief Extract and reset the highest set bit in source.
-template <integer_like int_t> [[nodiscard]] [[msvc::flatten]] SIMDLIB_FORCE_INLINE constexpr static int_t bmse(const int_t value, int_t &out_msb) noexcept
+template <integer_like int_t> [[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr static int_t bmse(const int_t value, int_t &out_msb) noexcept
 {
 	using std::bit_floor;
 	out_msb = bit_floor(value);
@@ -509,7 +509,7 @@ template <integer_like int_t> [[nodiscard]] [[msvc::flatten]] SIMDLIB_FORCE_INLI
 
 /// @brief Extract and reset the highest set bit in source.
 /// @return A tuple containing the source integer with the bits reset and the extracted bits.
-template <integer_like int_t> [[nodiscard]] [[msvc::flatten]] SIMDLIB_FORCE_INLINE constexpr static std::tuple<int_t, int_t> bmse(const int_t value) noexcept
+template <integer_like int_t> [[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr static std::tuple<int_t, int_t> bmse(const int_t value) noexcept
 {
 	using std::bit_floor;
 	const int_t msb = bit_floor(value);

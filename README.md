@@ -127,10 +127,20 @@ formatting together in one short program.
 > value entirely in SIMD registers. This is compiler-generated overhead, not a
 > spill required by the `Register` representation.
 
-SimdLib uses
+SimdLib marks narrowly audited functions with `SIMDLIB_REGISTER_ONLY` when
+their runtime path cannot write through pointers, references, spans, arrays,
+or addressable local buffers. The macro expands to
 [`__declspec(safebuffers)`](https://learn.microsoft.com/en-us/cpp/cpp/safebuffers?view=msvc-170)
-only on narrowly audited, register-only internal functions where no stack
-buffer can be overwritten.
+on MSVC and to nothing on other compilers. It is deliberately separate from
+`VECTORCALL`: stores, transforms, dynamic array-backed fallbacks, and other
+memory-writing functions retain normal `/GS` protection.
+
+The operational methods in the `Api`, `Register`, `RegisterMask`, and legacy
+`SimdVector` facades use `SIMDLIB_FLATTEN` to make their transitive-inlining
+intent explicit. The mapping facades do the same for paths inherited directly
+by `Api`. Flattening is an optimization request rather than proof of generated
+code, so the mandatory codegen gates still compare wrapper and raw-intrinsic
+objects.
 
 Consumer-defined, non-inlined functions can therefore still encounter this
 MSVC behavior. Keep `/GS` enabled globally. Only after reviewing an individual
@@ -138,12 +148,12 @@ hot function and its generated code should a consumer consider applying
 `__declspec(safebuffers)` to that function; the annotation disables `/GS`
 protection for the entire annotated function.
 
-The mandatory MSVC generated-code gate keeps constant-index lane extraction and
-the ABI mirrors under strict wrapper-versus-raw comparison. Construction,
-transfer, and Register-valued lane-replacement fixtures affected by the broader
-`/GS` heuristic do not support a zero-overhead claim until each exact
-compiler-generated exception is represented in the comparison ledger; their
-unmodified wrapper and raw disassembly remains available for that review.
+The mandatory MSVC generated-code gate compares the complete register-only
+fixture subset with its raw-intrinsic mirror without a cookie exception. The
+separate store, transfer, mutating-reference, opaque-call, and array-return
+fixtures intentionally retain `/GS`; operations that can write memory do not
+make a zero-overhead claim when MSVC adds a wrapper-only security cookie. Their
+unmodified wrapper and raw disassembly remains available for review.
 
 ## Learn more
 

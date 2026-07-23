@@ -119,7 +119,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param data Source elements matching the full register width.
 	 *  @return Register populated with the provided elements.
 	 */
-	SIMDLIB_FORCE_INLINE static vector_t VECTORCALL load(std::span<const element_t, element_count> data) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static vector_t VECTORCALL load(std::span<const element_t, element_count> data) noexcept
 	{
 		return impl::load_unaligned(data.data());
 	}
@@ -129,21 +129,21 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 * @param data Source containing exactly one register of bytes.
 	 * @return Register containing the source object representation.
 	 */
-	SIMDLIB_FORCE_INLINE static vector_t VECTORCALL load(
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static vector_t VECTORCALL load(
 		std::span<const std::byte, byte_count> data) noexcept
 	{
 		return impl::load_bytes(data.data());
 	}
 
 	/** @brief Loads a full register from storage aligned to the register byte width. */
-	SIMDLIB_FORCE_INLINE static vector_t VECTORCALL load_aligned(std::span<const element_t, element_count> data) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static vector_t VECTORCALL load_aligned(std::span<const element_t, element_count> data) noexcept
 	{
 		SIMDLIB_PRECONDITION(reinterpret_cast<std::uintptr_t>(data.data()) % byte_count == 0, "Aligned SIMD load requires register-width alignment");
 		return impl::load(data.data());
 	}
 
 	/** @brief Explicit spelling for an unaligned full-register load. */
-	SIMDLIB_FORCE_INLINE static vector_t VECTORCALL load_unaligned(std::span<const element_t, element_count> data) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static vector_t VECTORCALL load_unaligned(std::span<const element_t, element_count> data) noexcept
 	{
 		return impl::load_unaligned(data.data());
 	}
@@ -154,7 +154,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @return Register containing the requested active values followed by zero-filled inactive lanes.
 	 */
 	template <std::size_t active_count>
-	SIMDLIB_FORCE_INLINE constexpr static vector_t VECTORCALL load_partial(std::span<const element_t> data) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static vector_t VECTORCALL load_partial(std::span<const element_t> data) noexcept
 		requires(active_count <= element_count)
 	{
 		if (!std::is_constant_evaluated())
@@ -177,7 +177,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param data Source span whose leading elements are read into the register.
 	 *  @return Register populated from the provided span.
 	 */
-	SIMDLIB_FORCE_INLINE static vector_t VECTORCALL load_unsafe(std::span<const element_t> data) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static vector_t VECTORCALL load_unsafe(std::span<const element_t> data) noexcept
 	{
 		return impl::load_unaligned(data.data());
 	}
@@ -187,7 +187,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param data Destination span that receives all register elements.
 	 *  @return None.
 	 */
-	SIMDLIB_FORCE_INLINE static void VECTORCALL store(vector_t vector, std::span<element_t, element_count> data) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE static void VECTORCALL store(vector_t vector, std::span<element_t, element_count> data) noexcept
 	{
 		impl::store_unaligned(vector, data.data());
 	}
@@ -197,7 +197,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 * @param vector Register value to store.
 	 * @param data Destination containing exactly one register of bytes.
 	 */
-	SIMDLIB_FORCE_INLINE static void VECTORCALL store(
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE static void VECTORCALL store(
 		vector_t vector,
 		std::span<std::byte, byte_count> data) noexcept
 	{
@@ -205,14 +205,14 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	}
 
 	/** @brief Stores a full register to storage aligned to the register byte width. */
-	SIMDLIB_FORCE_INLINE static void VECTORCALL store_aligned(vector_t vector, std::span<element_t, element_count> data) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE static void VECTORCALL store_aligned(vector_t vector, std::span<element_t, element_count> data) noexcept
 	{
 		SIMDLIB_PRECONDITION(reinterpret_cast<std::uintptr_t>(data.data()) % byte_count == 0, "Aligned SIMD store requires register-width alignment");
 		impl::store(vector, data.data());
 	}
 
 	/** @brief Explicit spelling for an unaligned full-register store. */
-	SIMDLIB_FORCE_INLINE static void VECTORCALL store_unaligned(vector_t vector, std::span<element_t, element_count> data) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE static void VECTORCALL store_unaligned(vector_t vector, std::span<element_t, element_count> data) noexcept
 	{
 		impl::store_unaligned(vector, data.data());
 	}
@@ -222,7 +222,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param data Destination byte span with capacity for the full register payload.
 	 *  @return None.
 	 */
-	SIMDLIB_FORCE_INLINE static void VECTORCALL store(vector_t vector, std::span<std::byte> data) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE static void VECTORCALL store(vector_t vector, std::span<std::byte> data) noexcept
 	{
 		SIMDLIB_PRECONDITION(data.size() >= byte_count, "Data byte span must be at least the byte size of the register");
 		impl::store_unaligned(vector, data.data());
@@ -232,7 +232,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param data Source array containing one full register worth of elements.
 	 *  @return Register populated with the provided array contents.
 	 */
-	SIMDLIB_FORCE_INLINE constexpr static vector_t VECTORCALL construct(const std::array<element_t, element_count> &data) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static vector_t VECTORCALL construct(const std::array<element_t, element_count> &data) noexcept
 	{
 		return impl::construct(data);
 	}
@@ -241,7 +241,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param vector Register value to unpack.
 	 *  @return Array containing the register elements in lane order.
 	 */
-	SIMDLIB_FORCE_INLINE constexpr static std::array<element_t, element_count> VECTORCALL to_array(const vector_t vector) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr static std::array<element_t, element_count> VECTORCALL to_array(const vector_t vector) noexcept
 	{
 		if (std::is_constant_evaluated())
 			return to_array_constexpr(vector);
@@ -256,7 +256,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @return Register containing the lane-local magnitudes broadcast to every source lane.
 	 */
 	template <class partial_element_t>
-	SIMDLIB_FORCE_INLINE static vector_t VECTORCALL
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE static vector_t VECTORCALL
 	FinishIntegerMagnitudeFromPairSums(typename Api<register_width, partial_element_t>::vector_t pairSums) noexcept
 	{
 		using partial_simd = Api<register_width, partial_element_t>;
@@ -293,7 +293,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	/** @brief Returns a zero-initialized SIMD register.
 	 *  @return Register with every lane initialized to zero.
 	 */
-	SIMDLIB_FORCE_INLINE constexpr static vector_t VECTORCALL setzero() noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static vector_t VECTORCALL setzero() noexcept
 		requires requires { impl::setzero(); }
 	{
 		return impl::setzero();
@@ -303,7 +303,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param value Scalar value to broadcast.
 	 *  @return Register with every lane initialized to `value`.
 	 */
-	SIMDLIB_FORCE_INLINE constexpr static vector_t VECTORCALL set1(const element_t value) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static vector_t VECTORCALL set1(const element_t value) noexcept
 		requires requires(element_t scalar) { impl::set1(scalar); }
 	{
 		return impl::set1(value);
@@ -315,7 +315,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @return Register containing the provided lane values.
 	 */
 	template <class... Args>
-	SIMDLIB_FORCE_INLINE constexpr static auto VECTORCALL set(Args &&...args) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static auto VECTORCALL set(Args &&...args) noexcept
 		requires requires(Args &&...values) { impl::set(std::forward<Args>(values)...); }
 	{
 		return impl::set(std::forward<Args>(args)...);
@@ -327,7 +327,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @return Register containing the provided lanes with any remaining lanes initialized to zero.
 	 */
 	template <class... Args>
-	SIMDLIB_FORCE_INLINE constexpr static auto VECTORCALL set_partial(Args &&...args) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static auto VECTORCALL set_partial(Args &&...args) noexcept
 		requires(sizeof...(Args) <= element_count)
 	{
 		return []<std::size_t... ZeroIndices>(std::index_sequence<ZeroIndices...>, Args &&...values) constexpr noexcept
@@ -342,7 +342,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @return Register containing the provided lane values.
 	 */
 	template <class... Args>
-	SIMDLIB_FORCE_INLINE constexpr static auto VECTORCALL setr(Args &&...args) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static auto VECTORCALL setr(Args &&...args) noexcept
 		requires requires(Args &&...values) { impl::setr(std::forward<Args>(values)...); }
 	{
 		return impl::setr(std::forward<Args>(args)...);
@@ -354,7 +354,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @return Register containing the provided lanes with any remaining lanes initialized to zero.
 	 */
 	template <class... Args>
-	SIMDLIB_FORCE_INLINE constexpr static auto VECTORCALL setr_partial(Args &&...args) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static auto VECTORCALL setr_partial(Args &&...args) noexcept
 		requires(sizeof...(Args) <= element_count)
 	{
 		return []<std::size_t... ZeroIndices>(std::index_sequence<ZeroIndices...>, Args &&...values) constexpr noexcept
@@ -369,7 +369,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param addend Register added to the product.
 	 *  @return Register containing the multiply-add result.
 	 */
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL multiply_add(const vector_t lhs, const vector_t rhs, const vector_t addend) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL multiply_add(const vector_t lhs, const vector_t rhs, const vector_t addend) noexcept
 		requires requires(vector_t left, vector_t right, vector_t sum) { impl::multiply_add(left, right, sum); }
 	{
 		return impl::multiply_add(lhs, rhs, addend);
@@ -380,7 +380,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param lhs Source register to widen.
 	 *  @return Destination register widened according to the source element signedness.
 	 */
-	template <class target_simd> SIMDLIB_FORCE_INLINE static typename target_simd::vector_t VECTORCALL widen(const vector_t lhs) noexcept
+	template <class target_simd> SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static typename target_simd::vector_t VECTORCALL widen(const vector_t lhs) noexcept
 	{
 		static_assert(is_widen_target_v<target_simd>,
 					  "Api::widen<target_simd> requires a destination SIMD type with element_type, vector_t, and register_width.");
@@ -407,7 +407,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param rhs Divisor register.
 	 *  @return Register containing per-lane remainder results.
 	 */
-	SIMDLIB_FORCE_INLINE static vector_t VECTORCALL modulus(const vector_t lhs, const vector_t rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE static vector_t VECTORCALL modulus(const vector_t lhs, const vector_t rhs) noexcept
 		requires requires(vector_t left, vector_t right) { impl::modulus(left, right); }
 	{
 		return impl::modulus(lhs, rhs);
@@ -417,7 +417,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param lhs Input register.
 	 *  @return Register containing the negated element values.
 	 */
-	SIMDLIB_FORCE_INLINE static vector_t VECTORCALL negate(const vector_t lhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static vector_t VECTORCALL negate(const vector_t lhs) noexcept
 		requires requires(vector_t value) { impl::negate(value); }
 	{
 		return impl::negate(lhs);
@@ -427,7 +427,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param lhs Input register.
 	 *  @return Register containing per-lane absolute values.
 	 */
-	SIMDLIB_FORCE_INLINE static vector_t VECTORCALL absolute(const vector_t lhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static vector_t VECTORCALL absolute(const vector_t lhs) noexcept
 		requires requires(vector_t value) { impl::absolute(value); }
 	{
 		return impl::absolute(lhs);
@@ -437,7 +437,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param lhs Input register.
 	 *  @return Register containing per-lane square roots.
 	 */
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL sqrt(const vector_t lhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE static auto VECTORCALL sqrt(const vector_t lhs) noexcept
 		requires requires(vector_t value) { impl::sqrt(value); }
 	{
 		return impl::sqrt(lhs);
@@ -447,7 +447,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param lhs Input register.
 	 *  @return Register containing the lane-local magnitudes broadcast within each 128-bit lane.
 	 */
-	SIMDLIB_FORCE_INLINE static vector_t VECTORCALL magnitude(const vector_t lhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static vector_t VECTORCALL magnitude(const vector_t lhs) noexcept
 		requires((std::is_floating_point_v<element_t> && requires(vector_t left, vector_t right) {
 					 impl::sqrt(left);
 					 impl::template dot_product<0x11>(left, right);
@@ -495,7 +495,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param lhs Input floating-point register.
 	 *  @return Register containing the normalized per-lane values.
 	 */
-	SIMDLIB_FORCE_INLINE static vector_t VECTORCALL normalize(const vector_t lhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE static vector_t VECTORCALL normalize(const vector_t lhs) noexcept
 		requires(std::is_floating_point_v<element_t> && requires(vector_t left, vector_t right) {
 			magnitude(left);
 			impl::divide(left, right);
@@ -509,7 +509,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param rhs Right-hand input register.
 	 *  @return Register containing per-lane averages.
 	 */
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL avg(const vector_t lhs, const vector_t rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL avg(const vector_t lhs, const vector_t rhs) noexcept
 		requires requires(vector_t left, vector_t right) { impl::avg(left, right); }
 	{
 		return impl::avg(lhs, rhs);
@@ -520,7 +520,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param rhs Right-hand input register.
 	 *  @return Register containing pairwise horizontal sums.
 	 */
-	SIMDLIB_FORCE_INLINE static vector_t VECTORCALL add_horizontal(const vector_t lhs, const vector_t rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static vector_t VECTORCALL add_horizontal(const vector_t lhs, const vector_t rhs) noexcept
 		requires requires(vector_t left, vector_t right) { impl::add_horizontal(left, right); }
 	{
 		return impl::add_horizontal(lhs, rhs);
@@ -531,7 +531,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param rhs Right-hand input register.
 	 *  @return Register containing pairwise horizontal differences.
 	 */
-	SIMDLIB_FORCE_INLINE static vector_t VECTORCALL subtract_horizontal(const vector_t lhs, const vector_t rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static vector_t VECTORCALL subtract_horizontal(const vector_t lhs, const vector_t rhs) noexcept
 		requires requires(vector_t left, vector_t right) { impl::subtract_horizontal(left, right); }
 	{
 		return impl::subtract_horizontal(lhs, rhs);
@@ -542,7 +542,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param rhs Right-hand input register.
 	 *  @return Register whose lane type follows the promoted integer mapping rather than `vector_t`.
 	 */
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL multiply_add_adjacent(const vector_t lhs, const vector_t rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL multiply_add_adjacent(const vector_t lhs, const vector_t rhs) noexcept
 		requires(using_int && requires(vector_t left, vector_t right) { impl::multiply_add_adjacent(left, right); })
 	{
 		return impl::multiply_add_adjacent(lhs, rhs);
@@ -553,7 +553,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param rhs Right-hand input register whose bytes are interpreted as signed.
 	 *  @return Register containing signed 16-bit accumulation results derived from the raw register bytes.
 	 */
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL multiply_add_unsigned_signed_bytes(const vector_t lhs, const vector_t rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL multiply_add_unsigned_signed_bytes(const vector_t lhs, const vector_t rhs) noexcept
 		requires(using_int && requires(vector_t left, vector_t right) { impl::multiply_add_unsigned_signed_bytes(left, right); })
 	{
 		return impl::multiply_add_unsigned_signed_bytes(lhs, rhs);
@@ -564,7 +564,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param rhs Right-hand input register interpreted byte-wise.
 	 *  @return Register containing 64-bit absolute-difference accumulations derived from the raw register bytes.
 	 */
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL sum_absolute_byte_differences(const vector_t lhs, const vector_t rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL sum_absolute_byte_differences(const vector_t lhs, const vector_t rhs) noexcept
 		requires(using_int && requires(vector_t left, vector_t right) { impl::sum_absolute_byte_differences(left, right); })
 	{
 		return impl::sum_absolute_byte_differences(lhs, rhs);
@@ -577,7 +577,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @return Register containing byte-window absolute-difference accumulations derived from the raw register bytes.
 	 */
 	template <int imm8>
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL multi_sum_absolute_byte_differences(const vector_t lhs, const vector_t rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL multi_sum_absolute_byte_differences(const vector_t lhs, const vector_t rhs) noexcept
 		requires(using_int && requires(vector_t left, vector_t right) { impl::template multi_sum_absolute_byte_differences<imm8>(left, right); })
 	{
 		return impl::template multi_sum_absolute_byte_differences<imm8>(lhs, rhs);
@@ -587,7 +587,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param lhs Input register.
 	 *  @return Zero-based index of the first minimum element across the full SIMD register.
 	 */
-	SIMDLIB_FORCE_INLINE constexpr static std::size_t VECTORCALL min_position(const vector_t lhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr static std::size_t VECTORCALL min_position(const vector_t lhs) noexcept
 		requires(using_int && requires(vector_t value) {
 			impl::min_position(value);
 			impl::template extract<1>(value);
@@ -603,7 +603,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param lhs Input register.
 	 *  @return Zero-based index of the first maximum element across the full SIMD register.
 	 */
-	SIMDLIB_FORCE_INLINE constexpr static std::size_t VECTORCALL max_position(const vector_t lhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr static std::size_t VECTORCALL max_position(const vector_t lhs) noexcept
 		requires(using_int && requires(vector_t value) {
 			impl::min_position(value);
 			impl::template extract<1>(value);
@@ -628,7 +628,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param rhs Right-hand input register.
 	 *  @return Register containing saturated sums.
 	 */
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL add_saturated(const vector_t lhs, const vector_t rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL add_saturated(const vector_t lhs, const vector_t rhs) noexcept
 		requires requires(vector_t left, vector_t right) { impl::add_saturated(left, right); }
 	{
 		return impl::add_saturated(lhs, rhs);
@@ -639,7 +639,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param rhs Right-hand input register.
 	 *  @return Register containing saturated differences.
 	 */
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL subtract_saturated(const vector_t lhs, const vector_t rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL subtract_saturated(const vector_t lhs, const vector_t rhs) noexcept
 		requires requires(vector_t left, vector_t right) { impl::subtract_saturated(left, right); }
 	{
 		return impl::subtract_saturated(lhs, rhs);
@@ -650,7 +650,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param rhs Right-hand input register.
 	 *  @return Register containing saturated horizontal sums.
 	 */
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL hadd_saturated(const vector_t lhs, const vector_t rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL hadd_saturated(const vector_t lhs, const vector_t rhs) noexcept
 		requires requires(vector_t left, vector_t right) { impl::hadd_saturated(left, right); }
 	{
 		return impl::hadd_saturated(lhs, rhs);
@@ -661,7 +661,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param rhs Right-hand input register.
 	 *  @return Register containing saturated horizontal differences.
 	 */
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL hsubtract_saturated(const vector_t lhs, const vector_t rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL hsubtract_saturated(const vector_t lhs, const vector_t rhs) noexcept
 		requires requires(vector_t left, vector_t right) { impl::hsubtract_saturated(left, right); }
 	{
 		return impl::hsubtract_saturated(lhs, rhs);
@@ -672,7 +672,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param rhs Right-hand input register.
 	 *  @return Register containing alternating subtract/add results.
 	 */
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL add_subtract(const vector_t lhs, const vector_t rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL add_subtract(const vector_t lhs, const vector_t rhs) noexcept
 		requires requires(vector_t left, vector_t right) { impl::add_subtract(left, right); }
 	{
 		return impl::add_subtract(lhs, rhs);
@@ -685,7 +685,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @return Register containing the masked dot-product result.
 	 */
 	template <int imm8>
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL dot_product(const vector_t lhs, const vector_t rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL dot_product(const vector_t lhs, const vector_t rhs) noexcept
 		requires requires(vector_t left, vector_t right) { impl::template dot_product<imm8>(left, right); }
 	{
 		return impl::template dot_product<imm8>(lhs, rhs);
@@ -700,7 +700,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param rhs Right-hand input register.
 	 *  @return Register containing the bitwise AND result.
 	 */
-	SIMDLIB_FORCE_INLINE constexpr static vector_t VECTORCALL bitwise_and(
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static vector_t VECTORCALL bitwise_and(
 		const vector_t lhs,
 		const vector_t rhs) noexcept
 		requires requires(vector_t left, vector_t right) { impl::bitwise_and(left, right); }
@@ -716,7 +716,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param rhs Right-hand input register.
 	 *  @return Register containing the bitwise OR result.
 	 */
-	SIMDLIB_FORCE_INLINE constexpr static vector_t VECTORCALL bitwise_or(
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static vector_t VECTORCALL bitwise_or(
 		const vector_t lhs,
 		const vector_t rhs) noexcept
 		requires requires(vector_t left, vector_t right) { impl::bitwise_or(left, right); }
@@ -732,7 +732,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param rhs Right-hand input register.
 	 *  @return Register containing the bitwise XOR result.
 	 */
-	SIMDLIB_FORCE_INLINE constexpr static vector_t VECTORCALL bitwise_xor(
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static vector_t VECTORCALL bitwise_xor(
 		const vector_t lhs,
 		const vector_t rhs) noexcept
 		requires requires(vector_t left, vector_t right) { impl::bitwise_xor(left, right); }
@@ -748,7 +748,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param rhs Right-hand input register.
 	 *  @return Register containing the bitwise AND-NOT result.
 	 */
-	SIMDLIB_FORCE_INLINE constexpr static vector_t VECTORCALL bitwise_andnot(
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static vector_t VECTORCALL bitwise_andnot(
 		const vector_t lhs,
 		const vector_t rhs) noexcept
 		requires requires(vector_t left, vector_t right) { impl::bitwise_andnot(left, right); }
@@ -763,7 +763,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param lhs Input register.
 	 *  @return Register containing the bitwise NOT result.
 	 */
-	SIMDLIB_FORCE_INLINE constexpr static vector_t VECTORCALL bitwise_not(const vector_t lhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static vector_t VECTORCALL bitwise_not(const vector_t lhs) noexcept
 		requires requires(vector_t value) { impl::bitwise_not(value); }
 	{
 		if (std::is_constant_evaluated())
@@ -782,7 +782,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param when_false Register selected where the corresponding predicate lane is false.
 	 *  @return Register containing the selected lanes without reducing the predicate.
 	 */
-	SIMDLIB_FORCE_INLINE constexpr static vector_t VECTORCALL select(
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static vector_t VECTORCALL select(
 		const vector_t condition,
 		const vector_t when_true,
 		const vector_t when_false) noexcept
@@ -806,7 +806,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param lhs Input register.
 	 *  @return Byte-granular movemask for the register contents.
 	 */
-	SIMDLIB_FORCE_INLINE constexpr static mask_t VECTORCALL movemask(const vector_t lhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static mask_t VECTORCALL movemask(const vector_t lhs) noexcept
 	{
 		if (std::is_constant_evaluated())
 			return movemask_constexpr(lhs);
@@ -820,7 +820,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param lhs Input register.
 	 *  @return Element-granular movemask for the register contents.
 	 */
-	SIMDLIB_FORCE_INLINE constexpr static mask_t VECTORCALL movemask_slim(const vector_t lhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static mask_t VECTORCALL movemask_slim(const vector_t lhs) noexcept
 	{
 		if (std::is_constant_evaluated())
 			return movemask_slim_constexpr(lhs);
@@ -839,7 +839,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param rhs Right-hand input register.
 	 *  @return Native predicate register containing an all-one true lane or an all-zero false lane.
 	 */
-	SIMDLIB_FORCE_INLINE constexpr static vector_t VECTORCALL compare_equal(
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static vector_t VECTORCALL compare_equal(
 		const vector_t lhs,
 		const vector_t rhs) noexcept
 	{
@@ -854,7 +854,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param rhs Right-hand input register.
 	 *  @return Native predicate register containing an all-one true lane or an all-zero false lane.
 	 */
-	SIMDLIB_FORCE_INLINE constexpr static vector_t VECTORCALL compare_greater(
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static vector_t VECTORCALL compare_greater(
 		const vector_t lhs,
 		const vector_t rhs) noexcept
 	{
@@ -869,7 +869,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param rhs Right-hand input register.
 	 *  @return Native predicate register containing an all-one true lane or an all-zero false lane.
 	 */
-	SIMDLIB_FORCE_INLINE constexpr static vector_t VECTORCALL compare_greater_equal(
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static vector_t VECTORCALL compare_greater_equal(
 		const vector_t lhs,
 		const vector_t rhs) noexcept
 	{
@@ -884,7 +884,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param rhs Right-hand input register.
 	 *  @return Native predicate register containing an all-one true lane or an all-zero false lane.
 	 */
-	SIMDLIB_FORCE_INLINE constexpr static vector_t VECTORCALL compare_less(
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static vector_t VECTORCALL compare_less(
 		const vector_t lhs,
 		const vector_t rhs) noexcept
 	{
@@ -899,7 +899,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param rhs Right-hand input register.
 	 *  @return Native predicate register containing an all-one true lane or an all-zero false lane.
 	 */
-	SIMDLIB_FORCE_INLINE constexpr static vector_t VECTORCALL compare_less_equal(
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static vector_t VECTORCALL compare_less_equal(
 		const vector_t lhs,
 		const vector_t rhs) noexcept
 	{
@@ -918,7 +918,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param rhs Right-hand input register.
 	 *  @return Mask with one set bit for every all-one byte produced by the comparison.
 	 */
-	SIMDLIB_FORCE_INLINE constexpr static mask_t VECTORCALL cmp_eq_mask(const vector_t lhs, const vector_t rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static mask_t VECTORCALL cmp_eq_mask(const vector_t lhs, const vector_t rhs) noexcept
 	{
 		return movemask(compare_equal(lhs, rhs));
 	}
@@ -928,7 +928,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param rhs Right-hand input register.
 	 *  @return Mask with one set bit for every all-one byte produced by the comparison.
 	 */
-	SIMDLIB_FORCE_INLINE constexpr static mask_t VECTORCALL cmp_gt_mask(const vector_t lhs, const vector_t rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static mask_t VECTORCALL cmp_gt_mask(const vector_t lhs, const vector_t rhs) noexcept
 	{
 		return movemask(compare_greater(lhs, rhs));
 	}
@@ -938,7 +938,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param rhs Right-hand input register.
 	 *  @return Mask with one set bit for every all-one byte produced by the comparison.
 	 */
-	SIMDLIB_FORCE_INLINE constexpr static mask_t VECTORCALL cmp_ge_mask(const vector_t lhs, const vector_t rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static mask_t VECTORCALL cmp_ge_mask(const vector_t lhs, const vector_t rhs) noexcept
 	{
 		return movemask(compare_greater_equal(lhs, rhs));
 	}
@@ -948,7 +948,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param rhs Right-hand input register.
 	 *  @return Mask with one set bit for every all-one byte produced by the comparison.
 	 */
-	SIMDLIB_FORCE_INLINE constexpr static mask_t VECTORCALL cmp_lt_mask(const vector_t lhs, const vector_t rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static mask_t VECTORCALL cmp_lt_mask(const vector_t lhs, const vector_t rhs) noexcept
 	{
 		return movemask(compare_less(lhs, rhs));
 	}
@@ -958,7 +958,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param rhs Right-hand input register.
 	 *  @return Mask with one set bit for every all-one byte produced by the comparison.
 	 */
-	SIMDLIB_FORCE_INLINE constexpr static mask_t VECTORCALL cmp_le_mask(const vector_t lhs, const vector_t rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static mask_t VECTORCALL cmp_le_mask(const vector_t lhs, const vector_t rhs) noexcept
 	{
 		return movemask(compare_less_equal(lhs, rhs));
 	}
@@ -972,7 +972,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param rhs Right-hand input register.
 	 *  @return Mask with one set bit for every true predicate lane.
 	 */
-	SIMDLIB_FORCE_INLINE constexpr static mask_t VECTORCALL cmp_eq_slim(const vector_t lhs, const vector_t rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static mask_t VECTORCALL cmp_eq_slim(const vector_t lhs, const vector_t rhs) noexcept
 	{
 		return movemask_slim(compare_equal(lhs, rhs));
 	}
@@ -982,7 +982,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param rhs Right-hand input register.
 	 *  @return Mask with one set bit for every true predicate lane.
 	 */
-	SIMDLIB_FORCE_INLINE constexpr static mask_t VECTORCALL cmp_gt_slim(const vector_t lhs, const vector_t rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static mask_t VECTORCALL cmp_gt_slim(const vector_t lhs, const vector_t rhs) noexcept
 	{
 		return movemask_slim(compare_greater(lhs, rhs));
 	}
@@ -992,7 +992,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param rhs Right-hand input register.
 	 *  @return Mask with one set bit for every true predicate lane.
 	 */
-	SIMDLIB_FORCE_INLINE constexpr static mask_t VECTORCALL cmp_ge_slim(const vector_t lhs, const vector_t rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static mask_t VECTORCALL cmp_ge_slim(const vector_t lhs, const vector_t rhs) noexcept
 	{
 		return movemask_slim(compare_greater_equal(lhs, rhs));
 	}
@@ -1002,7 +1002,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param rhs Right-hand input register.
 	 *  @return Mask with one set bit for every true predicate lane.
 	 */
-	SIMDLIB_FORCE_INLINE constexpr static mask_t VECTORCALL cmp_lt_slim(const vector_t lhs, const vector_t rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static mask_t VECTORCALL cmp_lt_slim(const vector_t lhs, const vector_t rhs) noexcept
 	{
 		return movemask_slim(compare_less(lhs, rhs));
 	}
@@ -1012,7 +1012,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param rhs Right-hand input register.
 	 *  @return Mask with one set bit for every true predicate lane.
 	 */
-	SIMDLIB_FORCE_INLINE constexpr static mask_t VECTORCALL cmp_le_slim(const vector_t lhs, const vector_t rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static mask_t VECTORCALL cmp_le_slim(const vector_t lhs, const vector_t rhs) noexcept
 	{
 		return movemask_slim(compare_less_equal(lhs, rhs));
 	}
@@ -1025,7 +1025,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @deprecated Use cmp_eq_mask() instead.
 	 */
 	[[deprecated("Use cmp_eq_mask() instead.")]]
-	SIMDLIB_FORCE_INLINE constexpr static mask_t VECTORCALL cmp_eq(const vector_t lhs, const vector_t rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static mask_t VECTORCALL cmp_eq(const vector_t lhs, const vector_t rhs) noexcept
 	{
 		return cmp_eq_mask(lhs, rhs);
 	}
@@ -1034,7 +1034,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @deprecated Use cmp_gt_mask() instead.
 	 */
 	[[deprecated("Use cmp_gt_mask() instead.")]]
-	SIMDLIB_FORCE_INLINE constexpr static mask_t VECTORCALL cmp_gt(const vector_t lhs, const vector_t rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static mask_t VECTORCALL cmp_gt(const vector_t lhs, const vector_t rhs) noexcept
 	{
 		return cmp_gt_mask(lhs, rhs);
 	}
@@ -1043,7 +1043,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @deprecated Use cmp_ge_mask() instead.
 	 */
 	[[deprecated("Use cmp_ge_mask() instead.")]]
-	SIMDLIB_FORCE_INLINE constexpr static mask_t VECTORCALL cmp_ge(const vector_t lhs, const vector_t rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static mask_t VECTORCALL cmp_ge(const vector_t lhs, const vector_t rhs) noexcept
 	{
 		return cmp_ge_mask(lhs, rhs);
 	}
@@ -1052,7 +1052,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @deprecated Use cmp_lt_mask() instead.
 	 */
 	[[deprecated("Use cmp_lt_mask() instead.")]]
-	SIMDLIB_FORCE_INLINE constexpr static mask_t VECTORCALL cmp_lt(const vector_t lhs, const vector_t rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static mask_t VECTORCALL cmp_lt(const vector_t lhs, const vector_t rhs) noexcept
 	{
 		return cmp_lt_mask(lhs, rhs);
 	}
@@ -1061,7 +1061,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @deprecated Use cmp_le_mask() instead.
 	 */
 	[[deprecated("Use cmp_le_mask() instead.")]]
-	SIMDLIB_FORCE_INLINE constexpr static mask_t VECTORCALL cmp_le(const vector_t lhs, const vector_t rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static mask_t VECTORCALL cmp_le(const vector_t lhs, const vector_t rhs) noexcept
 	{
 		return cmp_le_mask(lhs, rhs);
 	}
@@ -1077,7 +1077,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param rhs Auxiliary source register when required by the implementation.
 	 *  @return Expanded register value.
 	 */
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL expand(const vector_t lhs, const vector_t rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL expand(const vector_t lhs, const vector_t rhs) noexcept
 		requires requires(vector_t left, vector_t right) { impl::expand(left, right); }
 	{
 		return impl::expand(lhs, rhs);
@@ -1088,7 +1088,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param rhs Right-hand source register.
 	 *  @return Compressed register value.
 	 */
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL compress(const vector_t lhs, const vector_t rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL compress(const vector_t lhs, const vector_t rhs) noexcept
 		requires requires(vector_t left, vector_t right) { impl::compress(left, right); }
 	{
 		return impl::compress(lhs, rhs);
@@ -1100,7 +1100,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @return Extracted value as defined by the specialization.
 	 */
 	template <int index>
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL extract(const vector_t lhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL extract(const vector_t lhs) noexcept
 		requires requires(vector_t value) { impl::template extract<index>(value); }
 	{
 		return impl::template extract<index>(lhs);
@@ -1112,7 +1112,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @return Extracted value as defined by the specialization.
 	 */
 	template <class selector_t>
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL extract(const vector_t lhs, selector_t rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE static auto VECTORCALL extract(const vector_t lhs, selector_t rhs) noexcept
 		requires requires(vector_t left, selector_t selector) { impl::extract(left, selector); }
 	{
 		return impl::extract(lhs, rhs);
@@ -1122,7 +1122,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param lhs Source register.
 	 *  @return Register containing the low 128-bit half in the corresponding 128-bit SIMD family.
 	 */
-	SIMDLIB_FORCE_INLINE static typename SimdLib::Detail::SimdMappings<128, element_t>::vector_t VECTORCALL lower_half(const vector_t lhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static typename SimdLib::Detail::SimdMappings<128, element_t>::vector_t VECTORCALL lower_half(const vector_t lhs) noexcept
 		requires(register_width == 256 && requires(vector_t value) { impl::lower_half(value); })
 	{
 		return impl::lower_half(lhs);
@@ -1135,7 +1135,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @return Register with lane `index` replaced.
 	 */
 	template <std::size_t index>
-	SIMDLIB_FORCE_INLINE constexpr static vector_t VECTORCALL insert(
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static vector_t VECTORCALL insert(
 		const vector_t lhs,
 		const element_t rhs) noexcept
 		requires(index < element_count)
@@ -1152,7 +1152,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @return Register containing the inserted value.
 	 */
 	template <class... Args>
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(Args &&...args) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(Args &&...args) noexcept
 		requires requires(Args &&...values) { impl::insert(std::forward<Args>(values)...); }
 	{
 		return impl::insert(std::forward<Args>(args)...);
@@ -1163,7 +1163,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param rhs Right-hand input register.
 	 *  @return Register containing the unpacked low-lane interleave.
 	 */
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL unpack_lo(const vector_t lhs, const vector_t rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL unpack_lo(const vector_t lhs, const vector_t rhs) noexcept
 		requires requires(vector_t left, vector_t right) { impl::unpack_lo(left, right); }
 	{
 		return impl::unpack_lo(lhs, rhs);
@@ -1174,7 +1174,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param rhs Right-hand input register.
 	 *  @return Register containing the unpacked high-lane interleave.
 	 */
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL unpack_hi(const vector_t lhs, const vector_t rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL unpack_hi(const vector_t lhs, const vector_t rhs) noexcept
 		requires requires(vector_t left, vector_t right) { impl::unpack_hi(left, right); }
 	{
 		return impl::unpack_hi(lhs, rhs);
@@ -1186,7 +1186,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @return Register containing the shuffled result.
 	 */
 	template <std::size_t... indices>
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL shuffle(const int_vector_t lhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL shuffle(const int_vector_t lhs) noexcept
 		requires requires(int_vector_t value) { impl::template shuffle<indices...>(value); }
 	{
 		return impl::template shuffle<indices...>(lhs);
@@ -1198,7 +1198,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @return Register containing the shuffled result.
 	 */
 	template <class... Args>
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL shuffle(Args &&...args) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL shuffle(Args &&...args) noexcept
 		requires requires(Args &&...values) { impl::shuffle(std::forward<Args>(values)...); }
 	{
 		return impl::shuffle(std::forward<Args>(args)...);
@@ -1210,7 +1210,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @return Register containing the shuffled low-half result.
 	 */
 	template <class... Args>
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL shuffle_lo(Args &&...args) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL shuffle_lo(Args &&...args) noexcept
 		requires requires(Args &&...values) { impl::shuffle_lo(std::forward<Args>(values)...); }
 	{
 		return impl::shuffle_lo(std::forward<Args>(args)...);
@@ -1222,7 +1222,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @return Register containing the shuffled high-half result.
 	 */
 	template <class... Args>
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL shuffle_hi(Args &&...args) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL shuffle_hi(Args &&...args) noexcept
 		requires requires(Args &&...values) { impl::shuffle_hi(std::forward<Args>(values)...); }
 	{
 		return impl::shuffle_hi(std::forward<Args>(args)...);
@@ -1234,7 +1234,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @return Register containing the blended result.
 	 */
 	template <class... Args>
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL blend(Args &&...args) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL blend(Args &&...args) noexcept
 		requires requires(Args &&...values) { impl::blend(std::forward<Args>(values)...); }
 	{
 		return impl::blend(std::forward<Args>(args)...);
@@ -1249,7 +1249,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param shift Shift count applied to each lane.
 	 *  @return Register containing per-lane left-shifted values.
 	 */
-	SIMDLIB_FORCE_INLINE constexpr static int_vector_t VECTORCALL shift_left(const int_vector_t lhs, int shift) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static int_vector_t VECTORCALL shift_left(const int_vector_t lhs, int shift) noexcept
 		requires(using_int)
 	{
 		if (std::is_constant_evaluated())
@@ -1263,7 +1263,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param shift Shift count applied to each lane.
 	 *  @return Register containing per-lane right-shifted values.
 	 */
-	SIMDLIB_FORCE_INLINE constexpr static int_vector_t VECTORCALL shift_right(const int_vector_t lhs, int shift) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static int_vector_t VECTORCALL shift_right(const int_vector_t lhs, int shift) noexcept
 		requires(using_int)
 	{
 		if (std::is_constant_evaluated())
@@ -1277,7 +1277,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param shift Shift count applied to each lane.
 	 *  @return Register containing per-lane arithmetic right-shifted values.
 	 */
-	SIMDLIB_FORCE_INLINE constexpr static int_vector_t VECTORCALL shift_right_arithmetic(const int_vector_t lhs, int shift) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static int_vector_t VECTORCALL shift_right_arithmetic(const int_vector_t lhs, int shift) noexcept
 		requires(using_int)
 	{
 		if (std::is_constant_evaluated())
@@ -1297,7 +1297,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 * @param shift The runtime byte count.
 	 * @return The byte-shifted register.
 	 */
-	SIMDLIB_FORCE_INLINE constexpr static int_vector_t VECTORCALL byte_shift_left(const int_vector_t lhs, const int shift) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr static int_vector_t VECTORCALL byte_shift_left(const int_vector_t lhs, const int shift) noexcept
 		requires(using_int && register_width == 128)
 	{
 		if (std::is_constant_evaluated())
@@ -1316,7 +1316,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 * @param shift The runtime byte count.
 	 * @return The byte-shifted register.
 	 */
-	SIMDLIB_FORCE_INLINE constexpr static int_vector_t VECTORCALL byte_shift_right(const int_vector_t lhs, const int shift) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr static int_vector_t VECTORCALL byte_shift_right(const int_vector_t lhs, const int shift) noexcept
 		requires(using_int && register_width == 128)
 	{
 		if (std::is_constant_evaluated())
@@ -1329,7 +1329,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 * unsigned 128-bit bit string.
 	 * A zero or negative runtime count returns the input; counts of 128 or more return zero.
 	 */
-	SIMDLIB_FORCE_INLINE constexpr static int_vector_t VECTORCALL bit_shift_left(const int_vector_t lhs, const int shift) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr static int_vector_t VECTORCALL bit_shift_left(const int_vector_t lhs, const int shift) noexcept
 		requires(using_int && register_width == 128)
 	{
 		return impl::bit_shift_left(lhs, shift);
@@ -1337,7 +1337,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 
 	/** @brief Compile-time complete-register left shift. Counts of 128 or more return zero. */
 	template <int shift>
-	SIMDLIB_FORCE_INLINE constexpr static int_vector_t VECTORCALL bit_shift_left(const int_vector_t lhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr static int_vector_t VECTORCALL bit_shift_left(const int_vector_t lhs) noexcept
 		requires(using_int && register_width == 128)
 	{
 		static_assert(shift >= 0, "Whole-register shifts require a non-negative count.");
@@ -1349,7 +1349,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 * unsigned 128-bit bit string.
 	 * A zero or negative runtime count returns the input; counts of 128 or more return zero.
 	 */
-	SIMDLIB_FORCE_INLINE constexpr static int_vector_t VECTORCALL bit_shift_right(const int_vector_t lhs, const int shift) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr static int_vector_t VECTORCALL bit_shift_right(const int_vector_t lhs, const int shift) noexcept
 		requires(using_int && register_width == 128)
 	{
 		return impl::bit_shift_right(lhs, shift);
@@ -1357,7 +1357,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 
 	/** @brief Compile-time complete-register right shift. Counts of 128 or more return zero. */
 	template <int shift>
-	SIMDLIB_FORCE_INLINE constexpr static int_vector_t VECTORCALL bit_shift_right(const int_vector_t lhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr static int_vector_t VECTORCALL bit_shift_right(const int_vector_t lhs) noexcept
 		requires(using_int && register_width == 128)
 	{
 		static_assert(shift >= 0, "Whole-register shifts require a non-negative count.");
@@ -1372,7 +1372,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param vector Input integer register.
 	 *  @return Floating-point register containing the converted lane values.
 	 */
-	SIMDLIB_FORCE_INLINE static float_vector_t VECTORCALL convert_to_float(int_vector_t vector) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static float_vector_t VECTORCALL convert_to_float(int_vector_t vector) noexcept
 		requires(element_width == 32)
 	{
 		static_assert(element_width == 32, "Only 32 bit integers can be converted to floats");
@@ -1396,7 +1396,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param vector Input floating-point register.
 	 *  @return Integer register containing the converted lane values.
 	 */
-	SIMDLIB_FORCE_INLINE static int_vector_t VECTORCALL convert_to_int(float_vector_t vector) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static int_vector_t VECTORCALL convert_to_int(float_vector_t vector) noexcept
 		requires(element_width == 32)
 	{
 		static_assert(element_width == 32, "Only 32 bit floats can be converted to integers");
@@ -1414,7 +1414,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param vector Input register.
 	 *  @return Register converted to the complementary 32-bit scalar representation.
 	 */
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL convert(vector_t vector) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL convert(vector_t vector) noexcept
 		requires(element_width == 32)
 	{
 		if constexpr (std::is_floating_point_v<element_t>)
@@ -1980,7 +1980,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param lhs Input integer register.
 	 *  @return Transformed register whose first minimum corresponds to the original first maximum.
 	 */
-	SIMDLIB_FORCE_INLINE static vector_t VECTORCALL TransformForMaxPosition(const vector_t lhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static vector_t VECTORCALL TransformForMaxPosition(const vector_t lhs) noexcept
 	{
 		if constexpr (using_unsigned)
 		{

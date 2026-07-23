@@ -48,14 +48,14 @@ struct SimdImpl128
 template <> struct SimdImpl128<int8_t>
 {
 	/** @brief Selects bytes from two registers using a canonical predicate register. */
-	SIMDLIB_FORCE_INLINE static __m128i VECTORCALL select(
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m128i VECTORCALL select(
 		__m128i condition, __m128i when_true, __m128i when_false) noexcept
 	{
 		return _mm_blendv_epi8(when_false, when_true, condition);
 	}
 
 	// arithmetic
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL add(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL add(auto lhs, auto rhs) noexcept
 	{
 		return _mm_add_epi8(lhs, rhs);
 	}
@@ -71,15 +71,15 @@ template <> struct SimdImpl128<int8_t>
 	{
 		return _mm_maddubs_epi16(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL subtract(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL subtract(auto lhs, auto rhs) noexcept
 	{
 		return _mm_sub_epi8(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL multiply(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL multiply(auto lhs, auto rhs) noexcept
 	{
 		return _ext_mul_epi8(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL divide(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE static auto VECTORCALL divide(auto lhs, auto rhs) noexcept
 	{
 		return register_transform_binary<std::int8_t>(lhs, rhs, [](auto left, auto right) noexcept { return left / right; });
 	}
@@ -141,11 +141,11 @@ template <> struct SimdImpl128<int8_t>
 	{
 		return _mm_sub_epi8(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL min(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL min(auto lhs, auto rhs) noexcept
 	{
 		return _mm_min_epi8(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL max(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL max(auto lhs, auto rhs) noexcept
 	{
 		return _mm_max_epi8(lhs, rhs);
 	}
@@ -175,26 +175,26 @@ template <> struct SimdImpl128<int8_t>
 	}
 
 	// loading
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL set1(auto lhs) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL set1(auto lhs) noexcept
 	{
 		return _mm_set1_epi8(lhs);
 	}
 
-	template <typename... Args> SIMDLIB_FORCE_INLINE static auto VECTORCALL set(Args... args) noexcept
+	template <typename... Args> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL set(Args... args) noexcept
 	{
 		return _mm_set_epi8(static_cast<char>(args)...);
 	}
-	template <typename... Args> SIMDLIB_FORCE_INLINE static auto VECTORCALL setr(Args... args) noexcept
+	template <typename... Args> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL setr(Args... args) noexcept
 	{
 		return _mm_setr_epi8(static_cast<char>(args)...);
 	}
 
 	// comparison
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL cmpeq(auto lhs, auto rhs) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL cmpeq(auto lhs, auto rhs) noexcept
 	{
 		return _mm_cmpeq_epi8(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL cmpgt(auto lhs, auto rhs) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL cmpgt(auto lhs, auto rhs) noexcept
 	{
 		return _mm_cmpgt_epi8(lhs, rhs);
 	}
@@ -238,7 +238,7 @@ template <> struct SimdImpl128<int8_t>
 	}
 
 	// extract / insert
-	template <int index> SIMDLIB_FORCE_INLINE static auto VECTORCALL extract(auto lhs) noexcept
+	template <int index> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL extract(auto lhs) noexcept
 	{
 		return static_cast<int8_t>(_mm_extract_epi8(lhs, index));
 	}
@@ -252,7 +252,7 @@ template <> struct SimdImpl128<int8_t>
 		return register_insert<int8_t>(lhs, rhs, static_cast<std::size_t>(index));
 	}
 	/** @brief Replaces the compile-time-selected signed 8-bit lane. */
-	template <int index> SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, const int8_t rhs) noexcept
+	template <int index> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL insert(auto lhs, const int8_t rhs) noexcept
 	{
 		return _mm_insert_epi8(lhs, static_cast<int>(rhs), index);
 	}
@@ -276,11 +276,11 @@ template <> struct SimdImpl128<int8_t>
 	{
 		return _mm_shuffle_epi8(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL blend(auto lhs, auto rhs, auto mask) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL blend(auto lhs, auto rhs, auto mask) noexcept
 	{
 		return register_blend_bytes(lhs, rhs, mask);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL movemask(auto lhs) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL movemask(auto lhs) noexcept
 	{
 		return _mm_movemask_epi8(lhs);
 	}
@@ -289,14 +289,14 @@ template <> struct SimdImpl128<int8_t>
 template <> struct SimdImpl128<uint8_t>
 {
 	/** @brief Selects bytes from two registers using a canonical predicate register. */
-	SIMDLIB_FORCE_INLINE static __m128i VECTORCALL select(
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m128i VECTORCALL select(
 		__m128i condition, __m128i when_true, __m128i when_false) noexcept
 	{
 		return _mm_blendv_epi8(when_false, when_true, condition);
 	}
 
 	// arithmetic
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL add(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL add(auto lhs, auto rhs) noexcept
 	{
 		return _mm_add_epi8(lhs, rhs);
 	}
@@ -312,15 +312,15 @@ template <> struct SimdImpl128<uint8_t>
 	{
 		return _mm_maddubs_epi16(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL subtract(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL subtract(auto lhs, auto rhs) noexcept
 	{
 		return _mm_sub_epi8(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL multiply(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL multiply(auto lhs, auto rhs) noexcept
 	{
 		return _ext_mul_epi8(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL divide(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE static auto VECTORCALL divide(auto lhs, auto rhs) noexcept
 	{
 		return register_transform_binary<std::uint8_t>(lhs, rhs, [](auto left, auto right) noexcept { return left / right; });
 	}
@@ -383,11 +383,11 @@ template <> struct SimdImpl128<uint8_t>
 	{
 		return _mm_sub_epi8(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL min(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL min(auto lhs, auto rhs) noexcept
 	{
 		return _mm_min_epu8(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL max(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL max(auto lhs, auto rhs) noexcept
 	{
 		return _mm_max_epu8(lhs, rhs);
 	}
@@ -425,25 +425,25 @@ template <> struct SimdImpl128<uint8_t>
 	}
 
 	// loading
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL set1(auto lhs) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL set1(auto lhs) noexcept
 	{
 		return _ext_set1_epu8(lhs);
 	}
-	template <typename... Args> SIMDLIB_FORCE_INLINE static auto VECTORCALL set(Args &&...args) noexcept
+	template <typename... Args> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL set(Args &&...args) noexcept
 	{
 		return _mm_set_epi8(static_cast<char>(args)...);
 	}
-	template <typename... Args> SIMDLIB_FORCE_INLINE static auto VECTORCALL setr(Args &&...args) noexcept
+	template <typename... Args> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL setr(Args &&...args) noexcept
 	{
 		return _mm_setr_epi8(static_cast<char>(args)...);
 	}
 
 	// comparison
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL cmpeq(auto lhs, auto rhs) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL cmpeq(auto lhs, auto rhs) noexcept
 	{
 		return _mm_cmpeq_epi8(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL cmpgt(auto lhs, auto rhs) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL cmpgt(auto lhs, auto rhs) noexcept
 	{
 		return _ext_cmpgt_epu8(lhs, rhs);
 	}
@@ -487,7 +487,7 @@ template <> struct SimdImpl128<uint8_t>
 	}
 
 	// extract / insert
-	template <int index> SIMDLIB_FORCE_INLINE static auto VECTORCALL extract(auto lhs) noexcept
+	template <int index> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL extract(auto lhs) noexcept
 	{
 		return static_cast<uint8_t>(_mm_extract_epi8(lhs, index));
 	}
@@ -501,7 +501,7 @@ template <> struct SimdImpl128<uint8_t>
 		return register_insert<uint8_t>(lhs, rhs, static_cast<std::size_t>(index));
 	}
 	/** @brief Replaces the compile-time-selected unsigned 8-bit lane. */
-	template <int index> SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, const uint8_t rhs) noexcept
+	template <int index> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL insert(auto lhs, const uint8_t rhs) noexcept
 	{
 		return _mm_insert_epi8(lhs, static_cast<int>(rhs), index);
 	}
@@ -525,11 +525,11 @@ template <> struct SimdImpl128<uint8_t>
 	{
 		return _mm_shuffle_epi8(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL blend(auto lhs, auto rhs, auto mask) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL blend(auto lhs, auto rhs, auto mask) noexcept
 	{
 		return register_blend_bytes(lhs, rhs, mask);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL movemask(auto lhs) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL movemask(auto lhs) noexcept
 	{
 		return _mm_movemask_epi8(lhs);
 	}
@@ -538,14 +538,14 @@ template <> struct SimdImpl128<uint8_t>
 template <> struct SimdImpl128<int16_t>
 {
 	/** @brief Selects 16-bit lanes from two registers using a canonical predicate register. */
-	SIMDLIB_FORCE_INLINE static __m128i VECTORCALL select(
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m128i VECTORCALL select(
 		__m128i condition, __m128i when_true, __m128i when_false) noexcept
 	{
 		return _mm_blendv_epi8(when_false, when_true, condition);
 	}
 
 	// arithmetic
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL add(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL add(auto lhs, auto rhs) noexcept
 	{
 		return _mm_add_epi16(lhs, rhs);
 	}
@@ -557,15 +557,15 @@ template <> struct SimdImpl128<int16_t>
 	{
 		return _mm_maddubs_epi16(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL subtract(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL subtract(auto lhs, auto rhs) noexcept
 	{
 		return _mm_sub_epi16(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL multiply(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL multiply(auto lhs, auto rhs) noexcept
 	{
 		return _mm_mullo_epi16(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL divide(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE static auto VECTORCALL divide(auto lhs, auto rhs) noexcept
 	{
 		return register_transform_binary<std::int16_t>(lhs, rhs, [](auto left, auto right) noexcept { return left / right; });
 	}
@@ -622,11 +622,11 @@ template <> struct SimdImpl128<int16_t>
 	{
 		return _mm_sub_epi16(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL min(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL min(auto lhs, auto rhs) noexcept
 	{
 		return _mm_min_epi16(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL max(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL max(auto lhs, auto rhs) noexcept
 	{
 		return _mm_max_epi16(lhs, rhs);
 	}
@@ -682,25 +682,25 @@ template <> struct SimdImpl128<int16_t>
 	}
 
 	// loading
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL set1(auto lhs) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL set1(auto lhs) noexcept
 	{
 		return _mm_set1_epi16(lhs);
 	}
-	template <typename... Args> SIMDLIB_FORCE_INLINE static auto VECTORCALL set(Args &&...args) noexcept
+	template <typename... Args> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL set(Args &&...args) noexcept
 	{
 		return _mm_set_epi16(static_cast<short>(args)...);
 	}
-	template <typename... Args> SIMDLIB_FORCE_INLINE static auto VECTORCALL setr(Args &&...args) noexcept
+	template <typename... Args> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL setr(Args &&...args) noexcept
 	{
 		return _mm_setr_epi16(static_cast<short>(args)...);
 	}
 
 	// comparison
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL cmpeq(auto lhs, auto rhs) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL cmpeq(auto lhs, auto rhs) noexcept
 	{
 		return _mm_cmpeq_epi16(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL cmpgt(auto lhs, auto rhs) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL cmpgt(auto lhs, auto rhs) noexcept
 	{
 		return _mm_cmpgt_epi16(lhs, rhs);
 	}
@@ -744,7 +744,7 @@ template <> struct SimdImpl128<int16_t>
 	}
 
 	// extract / insert
-	template <int index> SIMDLIB_FORCE_INLINE static auto VECTORCALL extract(auto lhs) noexcept
+	template <int index> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL extract(auto lhs) noexcept
 	{
 		return static_cast<int16_t>(_mm_extract_epi16(lhs, index));
 	}
@@ -758,7 +758,7 @@ template <> struct SimdImpl128<int16_t>
 		return register_insert<int16_t>(lhs, rhs, static_cast<std::size_t>(index));
 	}
 	/** @brief Replaces the compile-time-selected signed 16-bit lane. */
-	template <int index> SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, const int16_t rhs) noexcept
+	template <int index> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL insert(auto lhs, const int16_t rhs) noexcept
 	{
 		return _mm_insert_epi16(lhs, static_cast<int>(rhs), index);
 	}
@@ -795,14 +795,14 @@ template <> struct SimdImpl128<int16_t>
 template <> struct SimdImpl128<uint16_t>
 {
 	/** @brief Selects 16-bit lanes from two registers using a canonical predicate register. */
-	SIMDLIB_FORCE_INLINE static __m128i VECTORCALL select(
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m128i VECTORCALL select(
 		__m128i condition, __m128i when_true, __m128i when_false) noexcept
 	{
 		return _mm_blendv_epi8(when_false, when_true, condition);
 	}
 
 	// arithmetic
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL add(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL add(auto lhs, auto rhs) noexcept
 	{
 		return _mm_add_epi16(lhs, rhs);
 	}
@@ -822,15 +822,15 @@ template <> struct SimdImpl128<uint16_t>
 	{
 		return _mm_minpos_epu16(lhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL subtract(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL subtract(auto lhs, auto rhs) noexcept
 	{
 		return _mm_sub_epi16(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL multiply(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL multiply(auto lhs, auto rhs) noexcept
 	{
 		return _mm_mullo_epi16(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL divide(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE static auto VECTORCALL divide(auto lhs, auto rhs) noexcept
 	{
 		return register_transform_binary<std::uint16_t>(lhs, rhs, [](auto left, auto right) noexcept { return left / right; });
 	}
@@ -863,11 +863,11 @@ template <> struct SimdImpl128<uint16_t>
 	{
 		return _mm_sub_epi16(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL min(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL min(auto lhs, auto rhs) noexcept
 	{
 		return _mm_min_epu16(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL max(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL max(auto lhs, auto rhs) noexcept
 	{
 		return _mm_max_epu16(lhs, rhs);
 	}
@@ -927,25 +927,25 @@ template <> struct SimdImpl128<uint16_t>
 	}
 
 	// loading
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL set1(auto lhs) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL set1(auto lhs) noexcept
 	{
 		return _mm_set1_epi16(lhs);
 	}
-	template <typename... Args> SIMDLIB_FORCE_INLINE static auto VECTORCALL set(Args &&...args) noexcept
+	template <typename... Args> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL set(Args &&...args) noexcept
 	{
 		return _mm_set_epi16(static_cast<short>(args)...);
 	}
-	template <typename... Args> SIMDLIB_FORCE_INLINE static auto VECTORCALL setr(Args &&...args) noexcept
+	template <typename... Args> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL setr(Args &&...args) noexcept
 	{
 		return _mm_setr_epi16(static_cast<short>(args)...);
 	}
 
 	// comparison
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL cmpeq(auto lhs, auto rhs) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL cmpeq(auto lhs, auto rhs) noexcept
 	{
 		return _mm_cmpeq_epi16(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL cmpgt(auto lhs, auto rhs) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL cmpgt(auto lhs, auto rhs) noexcept
 	{
 		return _ext_cmpgt_epu16(lhs, rhs);
 	}
@@ -989,7 +989,7 @@ template <> struct SimdImpl128<uint16_t>
 	}
 
 	// extract / insert
-	template <int index> SIMDLIB_FORCE_INLINE static auto VECTORCALL extract(auto lhs) noexcept
+	template <int index> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL extract(auto lhs) noexcept
 	{
 		return static_cast<uint16_t>(_mm_extract_epi16(lhs, index));
 	}
@@ -1003,7 +1003,7 @@ template <> struct SimdImpl128<uint16_t>
 		return register_insert<uint16_t>(lhs, rhs, static_cast<std::size_t>(index));
 	}
 	/** @brief Replaces the compile-time-selected unsigned 16-bit lane. */
-	template <int index> SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, const uint16_t rhs) noexcept
+	template <int index> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL insert(auto lhs, const uint16_t rhs) noexcept
 	{
 		return _mm_insert_epi16(lhs, static_cast<int>(rhs), index);
 	}
@@ -1040,14 +1040,14 @@ template <> struct SimdImpl128<uint16_t>
 template <> struct SimdImpl128<int32_t>
 {
 	/** @brief Selects 32-bit lanes from two registers using a canonical predicate register. */
-	SIMDLIB_FORCE_INLINE static __m128i VECTORCALL select(
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m128i VECTORCALL select(
 		__m128i condition, __m128i when_true, __m128i when_false) noexcept
 	{
 		return _mm_blendv_epi8(when_false, when_true, condition);
 	}
 
 	// arithmetic
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL add(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL add(auto lhs, auto rhs) noexcept
 	{
 		return _mm_add_epi32(lhs, rhs);
 	}
@@ -1061,15 +1061,15 @@ template <> struct SimdImpl128<int32_t>
 	{
 		return _mm_maddubs_epi16(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL subtract(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL subtract(auto lhs, auto rhs) noexcept
 	{
 		return _mm_sub_epi32(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL multiply(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL multiply(auto lhs, auto rhs) noexcept
 	{
 		return _mm_mullo_epi32(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL divide(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE static auto VECTORCALL divide(auto lhs, auto rhs) noexcept
 	{
 		return _ext_div_epi32(lhs, rhs);
 	}
@@ -1119,11 +1119,11 @@ template <> struct SimdImpl128<int32_t>
 	{
 		return _mm_sub_epi32(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL min(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL min(auto lhs, auto rhs) noexcept
 	{
 		return _mm_min_epi32(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL max(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL max(auto lhs, auto rhs) noexcept
 	{
 		return _mm_max_epi32(lhs, rhs);
 	}
@@ -1153,25 +1153,25 @@ template <> struct SimdImpl128<int32_t>
 	}
 
 	// loading
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL set1(auto lhs) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL set1(auto lhs) noexcept
 	{
 		return _mm_set1_epi32(lhs);
 	}
-	template <typename... Args> SIMDLIB_FORCE_INLINE static auto VECTORCALL set(Args &&...args) noexcept
+	template <typename... Args> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL set(Args &&...args) noexcept
 	{
 		return _mm_set_epi32(args...);
 	}
-	template <typename... Args> SIMDLIB_FORCE_INLINE static auto VECTORCALL setr(Args &&...args) noexcept
+	template <typename... Args> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL setr(Args &&...args) noexcept
 	{
 		return _mm_setr_epi32(args...);
 	}
 
 	// comparison
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL cmpeq(auto lhs, auto rhs) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL cmpeq(auto lhs, auto rhs) noexcept
 	{
 		return _mm_cmpeq_epi32(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL cmpgt(auto lhs, auto rhs) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL cmpgt(auto lhs, auto rhs) noexcept
 	{
 		return _mm_cmpgt_epi32(lhs, rhs);
 	}
@@ -1205,7 +1205,7 @@ template <> struct SimdImpl128<int32_t>
 	}
 
 	// extract / insert
-	template <int index> SIMDLIB_FORCE_INLINE static auto VECTORCALL extract(auto lhs) noexcept
+	template <int index> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL extract(auto lhs) noexcept
 	{
 		return static_cast<int32_t>(_mm_extract_epi32(lhs, index));
 	}
@@ -1219,7 +1219,7 @@ template <> struct SimdImpl128<int32_t>
 		return register_insert<int32_t>(lhs, rhs, static_cast<std::size_t>(index));
 	}
 	/** @brief Replaces the compile-time-selected signed 32-bit lane. */
-	template <int index> SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, const int32_t rhs) noexcept
+	template <int index> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL insert(auto lhs, const int32_t rhs) noexcept
 	{
 		return _mm_insert_epi32(lhs, rhs, index);
 	}
@@ -1256,14 +1256,14 @@ template <> struct SimdImpl128<int32_t>
 template <> struct SimdImpl128<uint32_t>
 {
 	/** @brief Selects 32-bit lanes from two registers using a canonical predicate register. */
-	SIMDLIB_FORCE_INLINE static __m128i VECTORCALL select(
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m128i VECTORCALL select(
 		__m128i condition, __m128i when_true, __m128i when_false) noexcept
 	{
 		return _mm_blendv_epi8(when_false, when_true, condition);
 	}
 
 	// arithmetic
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL add(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL add(auto lhs, auto rhs) noexcept
 	{
 		return _mm_add_epi32(lhs, rhs);
 	}
@@ -1287,11 +1287,11 @@ template <> struct SimdImpl128<uint32_t>
 	{
 		return _mm_maddubs_epi16(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL subtract(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL subtract(auto lhs, auto rhs) noexcept
 	{
 		return _mm_sub_epi32(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL multiply(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL multiply(auto lhs, auto rhs) noexcept
 	{
 		return _mm_mullo_epi32(lhs, rhs);
 	}
@@ -1302,7 +1302,7 @@ template <> struct SimdImpl128<uint32_t>
 	 * @param rhs The nonzero divisor lanes.
 	 * @return The truncating integer quotients.
 	 */
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL divide(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE static auto VECTORCALL divide(auto lhs, auto rhs) noexcept
 	{
 		return register_transform_binary<std::uint32_t>(lhs, rhs, [](auto left, auto right) noexcept { return left / right; });
 	}
@@ -1353,11 +1353,11 @@ template <> struct SimdImpl128<uint32_t>
 	{
 		return _mm_sub_epi32(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL min(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL min(auto lhs, auto rhs) noexcept
 	{
 		return _mm_min_epu32(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL max(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL max(auto lhs, auto rhs) noexcept
 	{
 		return _mm_max_epu32(lhs, rhs);
 	}
@@ -1387,25 +1387,25 @@ template <> struct SimdImpl128<uint32_t>
 	}
 
 	// loading
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL set1(auto lhs) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL set1(auto lhs) noexcept
 	{
 		return _mm_set1_epi32(lhs);
 	}
-	template <typename... Args> SIMDLIB_FORCE_INLINE static auto VECTORCALL set(Args... args) noexcept
+	template <typename... Args> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL set(Args... args) noexcept
 	{
 		return _mm_set_epi32(args...);
 	}
-	template <typename... Args> SIMDLIB_FORCE_INLINE static auto VECTORCALL setr(Args... args) noexcept
+	template <typename... Args> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL setr(Args... args) noexcept
 	{
 		return _mm_setr_epi32(args...);
 	}
 
 	// comparison
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL cmpeq(auto lhs, auto rhs) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL cmpeq(auto lhs, auto rhs) noexcept
 	{
 		return _mm_cmpeq_epi32(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL cmpgt(auto lhs, auto rhs) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL cmpgt(auto lhs, auto rhs) noexcept
 	{
 		return _ext_cmpgt_epu32(lhs, rhs);
 	}
@@ -1439,7 +1439,7 @@ template <> struct SimdImpl128<uint32_t>
 	}
 
 	// extract / insert
-	template <int index> SIMDLIB_FORCE_INLINE static auto VECTORCALL extract(auto lhs) noexcept
+	template <int index> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL extract(auto lhs) noexcept
 	{
 		return static_cast<uint32_t>(_mm_extract_epi32(lhs, index));
 	}
@@ -1453,7 +1453,7 @@ template <> struct SimdImpl128<uint32_t>
 		return register_insert<uint32_t>(lhs, rhs, static_cast<std::size_t>(index));
 	}
 	/** @brief Replaces the compile-time-selected unsigned 32-bit lane. */
-	template <int index> SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, const uint32_t rhs) noexcept
+	template <int index> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL insert(auto lhs, const uint32_t rhs) noexcept
 	{
 		return _mm_insert_epi32(lhs, std::bit_cast<int32_t>(rhs), index);
 	}
@@ -1490,14 +1490,14 @@ template <> struct SimdImpl128<uint32_t>
 template <> struct SimdImpl128<int64_t>
 {
 	/** @brief Selects 64-bit lanes from two registers using a canonical predicate register. */
-	SIMDLIB_FORCE_INLINE static __m128i VECTORCALL select(
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m128i VECTORCALL select(
 		__m128i condition, __m128i when_true, __m128i when_false) noexcept
 	{
 		return _mm_blendv_epi8(when_false, when_true, condition);
 	}
 
 	// arithmetic
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL add(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL add(auto lhs, auto rhs) noexcept
 	{
 		return _mm_add_epi64(lhs, rhs);
 	}
@@ -1518,15 +1518,15 @@ template <> struct SimdImpl128<int64_t>
 	{
 		return _mm_maddubs_epi16(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL subtract(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL subtract(auto lhs, auto rhs) noexcept
 	{
 		return _mm_sub_epi64(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL multiply(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL multiply(auto lhs, auto rhs) noexcept
 	{
 		return _ext_mullo_epi64(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL divide(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE static auto VECTORCALL divide(auto lhs, auto rhs) noexcept
 	{
 		return _ext_div_epi64(lhs, rhs);
 	}
@@ -1571,11 +1571,11 @@ template <> struct SimdImpl128<int64_t>
 	{
 		return _mm_sub_epi64(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL min(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL min(auto lhs, auto rhs) noexcept
 	{
 		return _ext_min_epi64(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL max(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL max(auto lhs, auto rhs) noexcept
 	{
 		return _ext_max_epi64(lhs, rhs);
 	}
@@ -1595,31 +1595,31 @@ template <> struct SimdImpl128<int64_t>
 	}
 
 	// loading
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL set1(auto lhs) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL set1(auto lhs) noexcept
 	{
 		return _mm_set1_epi64x(lhs);
 	}
-	template <typename... Args> SIMDLIB_FORCE_INLINE static auto VECTORCALL set(Args... args) noexcept
+	template <typename... Args> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL set(Args... args) noexcept
 	{
 		return _mm_set_epi64x(args...);
 	}
-	template <typename... Args> SIMDLIB_FORCE_INLINE static auto VECTORCALL setr(Args... args) noexcept
+	template <typename... Args> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL setr(Args... args) noexcept
 	{
 		return register_from_values<__m128i, std::int64_t>(args...);
 	}
 
 	// comparison
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL cmpeq(auto lhs, auto rhs) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL cmpeq(auto lhs, auto rhs) noexcept
 	{
 		return _mm_cmpeq_epi64(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL cmpgt(auto lhs, auto rhs) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL cmpgt(auto lhs, auto rhs) noexcept
 	{
 		return _mm_cmpgt_epi64(lhs, rhs);
 	}
 
 	// extract / insert
-	template <int index> SIMDLIB_FORCE_INLINE static auto VECTORCALL extract(auto lhs) noexcept
+	template <int index> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL extract(auto lhs) noexcept
 	{
 		return static_cast<int64_t>(_mm_extract_epi64(lhs, index));
 	}
@@ -1633,11 +1633,11 @@ template <> struct SimdImpl128<int64_t>
 		return register_insert<int64_t>(lhs, rhs, static_cast<std::size_t>(index));
 	}
 	/** @brief Replaces the compile-time-selected signed 64-bit lane. */
-	template <int index> SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, const int64_t rhs) noexcept
+	template <int index> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL insert(auto lhs, const int64_t rhs) noexcept
 	{
 		return _mm_insert_epi64(lhs, rhs, index);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, auto rhs, int index) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL insert(auto lhs, auto rhs, int index) noexcept
 	{
 		return register_insert<std::int64_t>(lhs, rhs, static_cast<std::size_t>(index));
 	}
@@ -1656,14 +1656,14 @@ template <> struct SimdImpl128<int64_t>
 template <> struct SimdImpl128<uint64_t>
 {
 	/** @brief Selects 64-bit lanes from two registers using a canonical predicate register. */
-	SIMDLIB_FORCE_INLINE static __m128i VECTORCALL select(
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m128i VECTORCALL select(
 		__m128i condition, __m128i when_true, __m128i when_false) noexcept
 	{
 		return _mm_blendv_epi8(when_false, when_true, condition);
 	}
 
 	// arithmetic
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL add(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL add(auto lhs, auto rhs) noexcept
 	{
 		return _mm_add_epi64(lhs, rhs);
 	}
@@ -1684,15 +1684,15 @@ template <> struct SimdImpl128<uint64_t>
 	{
 		return _mm_maddubs_epi16(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL subtract(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL subtract(auto lhs, auto rhs) noexcept
 	{
 		return _mm_sub_epi64(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL multiply(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL multiply(auto lhs, auto rhs) noexcept
 	{
 		return _ext_mullo_epi64(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL divide(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE static auto VECTORCALL divide(auto lhs, auto rhs) noexcept
 	{
 		return _ext_div_epu64(lhs, rhs);
 	}
@@ -1739,11 +1739,11 @@ template <> struct SimdImpl128<uint64_t>
 	{
 		return _mm_sub_epi64(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL min(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL min(auto lhs, auto rhs) noexcept
 	{
 		return _ext_min_epu64(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL max(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL max(auto lhs, auto rhs) noexcept
 	{
 		return _ext_max_epu64(lhs, rhs);
 	}
@@ -1763,31 +1763,31 @@ template <> struct SimdImpl128<uint64_t>
 	}
 
 	// loading
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL set1(auto lhs) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL set1(auto lhs) noexcept
 	{
 		return _mm_set1_epi64x(lhs);
 	}
-	template <typename... Args> SIMDLIB_FORCE_INLINE static auto VECTORCALL set(Args &&...args) noexcept
+	template <typename... Args> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL set(Args &&...args) noexcept
 	{
 		return _mm_set_epi64x(args...);
 	}
-	template <typename... Args> SIMDLIB_FORCE_INLINE static auto VECTORCALL setr(Args &&...args) noexcept
+	template <typename... Args> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL setr(Args &&...args) noexcept
 	{
 		return register_from_values<__m128i, std::int64_t>(args...);
 	}
 
 	// comparison
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL cmpeq(auto lhs, auto rhs) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL cmpeq(auto lhs, auto rhs) noexcept
 	{
 		return _mm_cmpeq_epi64(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL cmpgt(auto lhs, auto rhs) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL cmpgt(auto lhs, auto rhs) noexcept
 	{
 		return _ext_cmpgt_epu64(lhs, rhs);
 	}
 
 	// extract / insert
-	template <int index> SIMDLIB_FORCE_INLINE static auto VECTORCALL extract(auto lhs) noexcept
+	template <int index> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL extract(auto lhs) noexcept
 	{
 		return static_cast<uint64_t>(_mm_extract_epi64(lhs, index));
 	}
@@ -1801,11 +1801,11 @@ template <> struct SimdImpl128<uint64_t>
 		return register_insert<uint64_t>(lhs, rhs, static_cast<std::size_t>(index));
 	}
 	/** @brief Replaces the compile-time-selected unsigned 64-bit lane. */
-	template <int index> SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, const uint64_t rhs) noexcept
+	template <int index> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL insert(auto lhs, const uint64_t rhs) noexcept
 	{
 		return _mm_insert_epi64(lhs, std::bit_cast<int64_t>(rhs), index);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, auto rhs, int index) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL insert(auto lhs, auto rhs, int index) noexcept
 	{
 		return register_insert<std::int64_t>(lhs, rhs, static_cast<std::size_t>(index));
 	}
@@ -1824,14 +1824,14 @@ template <> struct SimdImpl128<uint64_t>
 template <> struct SimdImpl128<float>
 {
 	/** @brief Selects float lanes from two registers using a canonical predicate register. */
-	SIMDLIB_FORCE_INLINE static __m128 VECTORCALL select(
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m128 VECTORCALL select(
 		__m128 condition, __m128 when_true, __m128 when_false) noexcept
 	{
 		return _mm_blendv_ps(when_false, when_true, condition);
 	}
 
 	// arithmetic
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL add(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL add(auto lhs, auto rhs) noexcept
 	{
 		return _mm_add_ps(lhs, rhs);
 	}
@@ -1839,15 +1839,15 @@ template <> struct SimdImpl128<float>
 	{
 		return _mm_addsub_ps(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL subtract(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL subtract(auto lhs, auto rhs) noexcept
 	{
 		return _mm_sub_ps(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL multiply(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL multiply(auto lhs, auto rhs) noexcept
 	{
 		return _mm_mul_ps(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL divide(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL divide(auto lhs, auto rhs) noexcept
 	{
 		return _mm_div_ps(lhs, rhs);
 	}
@@ -1872,11 +1872,11 @@ template <> struct SimdImpl128<float>
 	{
 		return _ext_abs_ps(lhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL min(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL min(auto lhs, auto rhs) noexcept
 	{
 		return _mm_min_ps(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL max(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL max(auto lhs, auto rhs) noexcept
 	{
 		return _mm_max_ps(lhs, rhs);
 	}
@@ -1892,25 +1892,25 @@ template <> struct SimdImpl128<float>
 	}
 
 	// loading
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL set1(auto lhs) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL set1(auto lhs) noexcept
 	{
 		return _mm_set_ps1(lhs);
 	}
-	template <typename... Args> SIMDLIB_FORCE_INLINE static auto VECTORCALL set(Args... args) noexcept
+	template <typename... Args> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL set(Args... args) noexcept
 	{
 		return _mm_set_ps(args...);
 	}
-	template <typename... Args> SIMDLIB_FORCE_INLINE static auto VECTORCALL setr(Args... args) noexcept
+	template <typename... Args> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL setr(Args... args) noexcept
 	{
 		return _mm_setr_ps(args...);
 	}
 
 	// comparison
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL cmpeq(auto lhs, auto rhs) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL cmpeq(auto lhs, auto rhs) noexcept
 	{
 		return _mm_cmpeq_ps(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL cmpgt(auto lhs, auto rhs) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL cmpgt(auto lhs, auto rhs) noexcept
 	{
 		return _mm_cmpgt_ps(lhs, rhs);
 	}
@@ -1923,7 +1923,7 @@ template <> struct SimdImpl128<float>
 	// static SIMDLIB_FORCE_INLINE auto VECTORCALL compress (auto lhs, auto rhs) noexcept { return _mm_cvtepi32_ps(lhs, rhs); }
 
 	// extract / insert
-	template <int index> SIMDLIB_FORCE_INLINE static auto VECTORCALL extract(auto lhs) noexcept
+	template <int index> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL extract(auto lhs) noexcept
 	{
 		return _mm_cvtss_f32(_mm_shuffle_ps(lhs, lhs, index));
 	}
@@ -1938,7 +1938,7 @@ template <> struct SimdImpl128<float>
 		return register_insert<float>(lhs, rhs, static_cast<std::size_t>(index));
 	}
 	/** @brief Replaces the compile-time-selected 32-bit floating-point lane. */
-	template <int index> SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, const float rhs) noexcept
+	template <int index> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL insert(auto lhs, const float rhs) noexcept
 	{
 		return _mm_insert_ps(lhs, _mm_set_ss(rhs), index << 4);
 	}
@@ -1962,11 +1962,11 @@ template <> struct SimdImpl128<float>
 	{
 		return register_shuffle_float(lhs, rhs, imm8);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL blend(auto lhs, auto rhs, const int imm8) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL blend(auto lhs, auto rhs, const int imm8) noexcept
 	{
 		return register_blend<float>(lhs, rhs, static_cast<unsigned int>(imm8));
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL movemask(auto lhs) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL movemask(auto lhs) noexcept
 	{
 		return _mm_movemask_ps(lhs);
 	}
@@ -1975,14 +1975,14 @@ template <> struct SimdImpl128<float>
 template <> struct SimdImpl128<double>
 {
 	/** @brief Selects double lanes from two registers using a canonical predicate register. */
-	SIMDLIB_FORCE_INLINE static __m128d VECTORCALL select(
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m128d VECTORCALL select(
 		__m128d condition, __m128d when_true, __m128d when_false) noexcept
 	{
 		return _mm_blendv_pd(when_false, when_true, condition);
 	}
 
 	// arithmetic
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL add(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL add(auto lhs, auto rhs) noexcept
 	{
 		return _mm_add_pd(lhs, rhs);
 	}
@@ -1990,15 +1990,15 @@ template <> struct SimdImpl128<double>
 	{
 		return _mm_addsub_pd(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL subtract(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL subtract(auto lhs, auto rhs) noexcept
 	{
 		return _mm_sub_pd(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL multiply(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL multiply(auto lhs, auto rhs) noexcept
 	{
 		return _mm_mul_pd(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL divide(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL divide(auto lhs, auto rhs) noexcept
 	{
 		return _mm_div_pd(lhs, rhs);
 	}
@@ -2023,11 +2023,11 @@ template <> struct SimdImpl128<double>
 	{
 		return _ext_abs_pd(lhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL min(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL min(auto lhs, auto rhs) noexcept
 	{
 		return _mm_min_pd(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL max(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL max(auto lhs, auto rhs) noexcept
 	{
 		return _mm_max_pd(lhs, rhs);
 	}
@@ -2043,25 +2043,25 @@ template <> struct SimdImpl128<double>
 	}
 
 	// loading
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL set1(auto lhs) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL set1(auto lhs) noexcept
 	{
 		return _mm_set1_pd(lhs);
 	}
-	template <typename... Args> SIMDLIB_FORCE_INLINE static auto VECTORCALL set(Args... args) noexcept
+	template <typename... Args> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL set(Args... args) noexcept
 	{
 		return _mm_set_pd(args...);
 	}
-	template <typename... Args> SIMDLIB_FORCE_INLINE static auto VECTORCALL setr(Args... args) noexcept
+	template <typename... Args> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL setr(Args... args) noexcept
 	{
 		return _mm_setr_pd(args...);
 	}
 
 	// comparison
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL cmpeq(auto lhs, auto rhs) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL cmpeq(auto lhs, auto rhs) noexcept
 	{
 		return _mm_cmpeq_pd(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL cmpgt(auto lhs, auto rhs) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL cmpgt(auto lhs, auto rhs) noexcept
 	{
 		return _mm_cmpgt_pd(lhs, rhs);
 	}
@@ -2075,7 +2075,7 @@ template <> struct SimdImpl128<double>
 	// static SIMDLIB_FORCE_INLINE auto VECTORCALL compress (auto lhs, auto rhs) noexcept { return _mm_cvtepi32_pd(lhs, rhs); }
 
 	// extract / insert
-	template <int index> SIMDLIB_FORCE_INLINE static auto VECTORCALL extract(auto lhs) noexcept
+	template <int index> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL extract(auto lhs) noexcept
 	{
 		if constexpr (index == 0)
 			return _mm_cvtsd_f64(lhs);
@@ -2092,7 +2092,7 @@ template <> struct SimdImpl128<double>
 		return register_insert<double>(lhs, rhs, static_cast<std::size_t>(index));
 	}
 	/** @brief Replaces the compile-time-selected 64-bit floating-point lane. */
-	template <int index> SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, const double rhs) noexcept
+	template <int index> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL insert(auto lhs, const double rhs) noexcept
 	{
 		const __m128d replacement = _mm_set_sd(rhs);
 		if constexpr (index == 0)
@@ -2120,11 +2120,11 @@ template <> struct SimdImpl128<double>
 	{
 		return register_shuffle_double(lhs, rhs, imm8);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL blend(auto lhs, auto rhs, const int imm8) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL blend(auto lhs, auto rhs, const int imm8) noexcept
 	{
 		return register_blend<double>(lhs, rhs, static_cast<unsigned int>(imm8));
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL movemask(auto lhs) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL movemask(auto lhs) noexcept
 	{
 		return _mm_movemask_pd(lhs);
 	}
@@ -2157,7 +2157,7 @@ template <class element_t> struct SimdMappings<128, element_t> : public SimdImpl
 	constexpr static inline std::size_t element_count = register_width / (sizeof(element_t) * 8);
 	constexpr static inline int_vector_t vector0 = register_from_values<int_vector_t, std::uint64_t>(0, 0);
 
-	template <int index> SIMDLIB_FORCE_INLINE static auto VECTORCALL extract(const vector_t lhs) noexcept
+	template <int index> SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL extract(const vector_t lhs) noexcept
 	{
 		static_assert(index >= 0 && static_cast<std::size_t>(index) < element_count, "SimdMappings<128>::extract index out of range.");
 		if constexpr (requires(vector_t value) { impl::template extract<index>(value); })
@@ -2171,7 +2171,7 @@ template <class element_t> struct SimdMappings<128, element_t> : public SimdImpl
 	}
 
 #pragma region Set
-	SIMDLIB_FORCE_INLINE constexpr static vector_t VECTORCALL setzero() noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static vector_t VECTORCALL setzero() noexcept
 	{
 		if (std::is_constant_evaluated())
 		{
@@ -2190,11 +2190,11 @@ template <class element_t> struct SimdMappings<128, element_t> : public SimdImpl
 
 	template <std::convertible_to<element_t>... Args>
 		requires(sizeof...(Args) == element_count)
-	SIMDLIB_FORCE_INLINE constexpr static vector_t VECTORCALL setr(Args &&...args) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static vector_t VECTORCALL setr(Args &&...args) noexcept
 	{
 		if (std::is_constant_evaluated())
 		{
-			return register_from_values<vector_t, element_t>(static_cast<element_t>(args)...);
+			return setr_constexpr(std::forward<Args>(args)...);
 		}
 		else
 		{
@@ -2202,7 +2202,7 @@ template <class element_t> struct SimdMappings<128, element_t> : public SimdImpl
 		}
 	}
 
-	SIMDLIB_FORCE_INLINE constexpr static vector_t VECTORCALL construct(const std::array<element_t, element_count> data) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr static vector_t VECTORCALL construct(const std::array<element_t, element_count> data) noexcept
 	{
 		if (std::is_constant_evaluated())
 		{
@@ -2214,17 +2214,31 @@ template <class element_t> struct SimdMappings<128, element_t> : public SimdImpl
 		}
 	}
 
-	SIMDLIB_FORCE_INLINE constexpr static vector_t VECTORCALL set1(const element_t value) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static vector_t VECTORCALL set1(const element_t value) noexcept
 	{
 		if (std::is_constant_evaluated())
-			return register_from_repeated_value<vector_t>(value);
+			return set1_constexpr(value);
 		else
 		{
 			return impl::set1(value);
 		}
 	}
 
-	SIMDLIB_FORCE_INLINE static vector_t VECTORCALL multiply_add(const vector_t lhs, const vector_t rhs, const vector_t addend) noexcept
+	/** @brief Broadcasts one value through the portable compile-time register representation. */
+	constexpr static vector_t set1_constexpr(const element_t value) noexcept
+	{
+		return register_from_repeated_value<vector_t>(value);
+	}
+
+	/** @brief Constructs a register from forward-order lanes during constant evaluation. */
+	template <std::convertible_to<element_t>... Args>
+		requires(sizeof...(Args) == element_count)
+	constexpr static vector_t setr_constexpr(Args &&...args) noexcept
+	{
+		return register_from_values<vector_t, element_t>(static_cast<element_t>(args)...);
+	}
+
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static vector_t VECTORCALL multiply_add(const vector_t lhs, const vector_t rhs, const vector_t addend) noexcept
 	{
 		if constexpr (requires(vector_t left, vector_t right, vector_t sum) { impl::multiply_add(left, right, sum); })
 			return impl::multiply_add(lhs, rhs, addend);
@@ -2233,29 +2247,29 @@ template <class element_t> struct SimdMappings<128, element_t> : public SimdImpl
 	}
 
 	/// <summary>Broadcasts a 128-bit integer vector into both 128-bit lanes of a 256-bit integer vector.</summary>
-	SIMDLIB_FORCE_INLINE static __m256i VECTORCALL broadcast_128(const typename SimdMappings<128, element_t>::int_vector_t v) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m256i VECTORCALL broadcast_128(const typename SimdMappings<128, element_t>::int_vector_t v) noexcept
 		requires std::is_integral_v<element_t>
 	{
 		return _mm256_broadcastsi128_si256(v);
 	}
 
-	SIMDLIB_FORCE_INLINE constexpr static vector_t VECTORCALL set_element(vector_t vec, int index, element_t value) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr static vector_t VECTORCALL set_element(vector_t vec, int index, element_t value) noexcept
 	{
 		register_set<element_t>(vec, static_cast<std::size_t>(index), value);
 		return vec;
 	}
 
-	SIMDLIB_FORCE_INLINE constexpr static element_t VECTORCALL get_element(vector_t vec, int index) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr static element_t VECTORCALL get_element(vector_t vec, int index) noexcept
 	{
 		return register_get<element_t>(vec, static_cast<std::size_t>(index));
 	}
 
-	SIMDLIB_FORCE_INLINE static std::span<element_t, element_count> VECTORCALL view_data(vector_t &vec) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE static std::span<element_t, element_count> VECTORCALL view_data(vector_t &vec) noexcept
 	{
 		return std::span<element_t, element_count>{register_data<element_t>(vec), element_count};
 	}
 
-	SIMDLIB_FORCE_INLINE static std::span<const element_t, element_count> VECTORCALL view_data(const vector_t &vec) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE static std::span<const element_t, element_count> VECTORCALL view_data(const vector_t &vec) noexcept
 	{
 		return std::span<const element_t, element_count>{register_data<element_t>(vec), element_count};
 	}
@@ -2267,7 +2281,7 @@ template <class element_t> struct SimdMappings<128, element_t> : public SimdImpl
 	 * @param ptr Source containing at least 16 accessible bytes.
 	 * @return Native register preserving every source bit.
 	 */
-	SIMDLIB_FORCE_INLINE static vector_t VECTORCALL load_bytes(const void *ptr) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static vector_t VECTORCALL load_bytes(const void *ptr) noexcept
 	{
 		const int_vector_t bits = _mm_loadu_si128(reinterpret_cast<const int_vector_t *>(ptr));
 		if constexpr (std::is_integral_v<element_t>)
@@ -2279,14 +2293,14 @@ template <class element_t> struct SimdMappings<128, element_t> : public SimdImpl
 	}
 
 	/// <summary>Loads a full register from memory. Pointer must be appropriately aligned for the register width.</summary>
-	SIMDLIB_FORCE_INLINE static int_vector_t VECTORCALL load(const element_t *ptr) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static int_vector_t VECTORCALL load(const element_t *ptr) noexcept
 		requires std::is_integral_v<element_t>
 	{
 		return _mm_load_si128(reinterpret_cast<const int_vector_t *>(ptr));
 	}
 
 	/// <summary>Loads a full register from memory without requiring alignment.</summary>
-	SIMDLIB_FORCE_INLINE static int_vector_t VECTORCALL load_unaligned(const element_t *ptr) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static int_vector_t VECTORCALL load_unaligned(const element_t *ptr) noexcept
 		requires std::is_integral_v<element_t>
 	{
 		return _mm_loadu_si128(reinterpret_cast<const int_vector_t *>(ptr));
@@ -2296,14 +2310,14 @@ template <class element_t> struct SimdMappings<128, element_t> : public SimdImpl
 	/// Loads the lower half of the register from memory (in bytes), zeroing the upper half.
 	/// Intended for safe tail handling without over-reading past the end of a buffer.
 	/// </summary>
-	SIMDLIB_FORCE_INLINE static int_vector_t VECTORCALL load_half(const element_t *ptr) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static int_vector_t VECTORCALL load_half(const element_t *ptr) noexcept
 		requires std::is_integral_v<element_t>
 	{
 		return _mm_loadl_epi64(reinterpret_cast<const int_vector_t *>(ptr));
 	}
 
 	/// <summary>Loads a full register from memory. Pointer must be appropriately aligned for the register width.</summary>
-	SIMDLIB_FORCE_INLINE static vector_t VECTORCALL load(const element_t *ptr) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static vector_t VECTORCALL load(const element_t *ptr) noexcept
 		requires std::is_floating_point_v<element_t>
 	{
 		if constexpr (std::is_same_v<element_t, float>)
@@ -2313,7 +2327,7 @@ template <class element_t> struct SimdMappings<128, element_t> : public SimdImpl
 	}
 
 	/// <summary>Loads a full register from memory without requiring alignment.</summary>
-	SIMDLIB_FORCE_INLINE static vector_t VECTORCALL load_unaligned(const element_t *ptr) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static vector_t VECTORCALL load_unaligned(const element_t *ptr) noexcept
 		requires std::is_floating_point_v<element_t>
 	{
 		if constexpr (std::is_same_v<element_t, float>)
@@ -2325,14 +2339,14 @@ template <class element_t> struct SimdMappings<128, element_t> : public SimdImpl
 
 #pragma region Store
 	/// <summary>Stores a full register to memory. Pointer must be appropriately aligned for the register width.</summary>
-	SIMDLIB_FORCE_INLINE static void VECTORCALL store(int_vector_t lhs, void *ptr) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE static void VECTORCALL store(int_vector_t lhs, void *ptr) noexcept
 		requires std::is_integral_v<element_t>
 	{
 		_mm_store_si128(reinterpret_cast<int_vector_t *>(ptr), lhs);
 	}
 
 	/// <summary>Stores a full register to memory without requiring alignment.</summary>
-	SIMDLIB_FORCE_INLINE static void VECTORCALL store_unaligned(int_vector_t lhs, void *ptr) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE static void VECTORCALL store_unaligned(int_vector_t lhs, void *ptr) noexcept
 		requires std::is_integral_v<element_t>
 	{
 		_mm_storeu_si128(reinterpret_cast<int_vector_t *>(ptr), lhs);
@@ -2342,14 +2356,14 @@ template <class element_t> struct SimdMappings<128, element_t> : public SimdImpl
 	/// Stores the lower half of the register to memory (in bytes).
 	/// Intended for safe tail handling without over-writing past the end of a buffer.
 	/// </summary>
-	SIMDLIB_FORCE_INLINE static void VECTORCALL store_half(int_vector_t lhs, void *ptr) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE static void VECTORCALL store_half(int_vector_t lhs, void *ptr) noexcept
 		requires std::is_integral_v<element_t>
 	{
 		_mm_storel_epi64(reinterpret_cast<int_vector_t *>(ptr), lhs);
 	}
 
 	/// <summary>Stores a full register to memory. Pointer must be appropriately aligned for the register width.</summary>
-	SIMDLIB_FORCE_INLINE static void VECTORCALL store(vector_t lhs, void *ptr) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE static void VECTORCALL store(vector_t lhs, void *ptr) noexcept
 		requires std::is_floating_point_v<element_t>
 	{
 		if constexpr (std::is_same_v<element_t, float>)
@@ -2359,7 +2373,7 @@ template <class element_t> struct SimdMappings<128, element_t> : public SimdImpl
 	}
 
 	/// <summary>Stores a full register to memory without requiring alignment.</summary>
-	SIMDLIB_FORCE_INLINE static void VECTORCALL store_unaligned(vector_t lhs, void *ptr) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE static void VECTORCALL store_unaligned(vector_t lhs, void *ptr) noexcept
 		requires std::is_floating_point_v<element_t>
 	{
 		if constexpr (std::is_same_v<element_t, float>)
@@ -2377,7 +2391,7 @@ template <class element_t> struct SimdMappings<128, element_t> : public SimdImpl
 	 * @param rhs The second register.
 	 * @return The resulting mapped register.
 	 */
-	SIMDLIB_FORCE_INLINE static vector_t VECTORCALL bitwise_and(vector_t lhs, vector_t rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static vector_t VECTORCALL bitwise_and(vector_t lhs, vector_t rhs) noexcept
 	{
 		if constexpr (std::is_integral_v<element_t>)
 			return _mm_and_si128(lhs, rhs);
@@ -2393,7 +2407,7 @@ template <class element_t> struct SimdMappings<128, element_t> : public SimdImpl
 	 * @param rhs The second register.
 	 * @return The resulting mapped register.
 	 */
-	SIMDLIB_FORCE_INLINE static vector_t VECTORCALL bitwise_or(vector_t lhs, vector_t rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static vector_t VECTORCALL bitwise_or(vector_t lhs, vector_t rhs) noexcept
 	{
 		if constexpr (std::is_integral_v<element_t>)
 			return _mm_or_si128(lhs, rhs);
@@ -2409,7 +2423,7 @@ template <class element_t> struct SimdMappings<128, element_t> : public SimdImpl
 	 * @param rhs The second register.
 	 * @return The resulting mapped register.
 	 */
-	SIMDLIB_FORCE_INLINE static vector_t VECTORCALL bitwise_xor(vector_t lhs, vector_t rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static vector_t VECTORCALL bitwise_xor(vector_t lhs, vector_t rhs) noexcept
 	{
 		if constexpr (std::is_integral_v<element_t>)
 			return _mm_xor_si128(lhs, rhs);
@@ -2424,7 +2438,7 @@ template <class element_t> struct SimdMappings<128, element_t> : public SimdImpl
 	 * @param lhs The source register.
 	 * @return The resulting mapped register.
 	 */
-	SIMDLIB_FORCE_INLINE static vector_t VECTORCALL bitwise_not(vector_t lhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static vector_t VECTORCALL bitwise_not(vector_t lhs) noexcept
 	{
 		if constexpr (std::is_integral_v<element_t>)
 			return _mm_xor_si128(lhs, _mm_cmpeq_epi32(_mm_setzero_si128(), _mm_setzero_si128()));
@@ -2440,7 +2454,7 @@ template <class element_t> struct SimdMappings<128, element_t> : public SimdImpl
 	 * @param rhs The register to combine with the complement.
 	 * @return The resulting mapped register.
 	 */
-	SIMDLIB_FORCE_INLINE static vector_t VECTORCALL bitwise_andnot(vector_t lhs, vector_t rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static vector_t VECTORCALL bitwise_andnot(vector_t lhs, vector_t rhs) noexcept
 	{
 		if constexpr (std::is_integral_v<element_t>)
 			return _mm_andnot_si128(lhs, rhs);
@@ -2452,7 +2466,7 @@ template <class element_t> struct SimdMappings<128, element_t> : public SimdImpl
 #pragma endregion
 
 #pragma region Arithmetic Operations
-	SIMDLIB_FORCE_INLINE static int_vector_t VECTORCALL negate(int_vector_t lhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static int_vector_t VECTORCALL negate(int_vector_t lhs) noexcept
 		requires std::is_integral_v<element_t>
 	{
 		if constexpr (sizeof(element_t) == 8)
@@ -2465,7 +2479,7 @@ template <class element_t> struct SimdMappings<128, element_t> : public SimdImpl
 			return _mm_sub_epi8(_mm_setzero_si128(), lhs);
 	}
 
-	SIMDLIB_FORCE_INLINE static vector_t VECTORCALL negate(vector_t lhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static vector_t VECTORCALL negate(vector_t lhs) noexcept
 		requires std::is_floating_point_v<element_t>
 	{
 		if constexpr (std::same_as<element_t, float>)
@@ -2478,37 +2492,37 @@ template <class element_t> struct SimdMappings<128, element_t> : public SimdImpl
 #pragma region 128-bit Shifting
 
 	/// <summary> Shifts all bytes in the vector to the left by the specified number of bytes. </summary>
-	SIMDLIB_FORCE_INLINE static int_vector_t VECTORCALL byte_shift_left(int_vector_t lhs, int shift) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE static int_vector_t VECTORCALL byte_shift_left(int_vector_t lhs, int shift) noexcept
 	{
 		return register_byte_shift_left(lhs, shift);
 	}
 
 	/// <summary> Shifts all bytes in the vector to the right by the specified number of bytes. </summary>
-	SIMDLIB_FORCE_INLINE static int_vector_t VECTORCALL byte_shift_right(int_vector_t lhs, int shift) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE static int_vector_t VECTORCALL byte_shift_right(int_vector_t lhs, int shift) noexcept
 	{
 		return register_byte_shift_right(lhs, shift);
 	}
 
 	/// <summary> Shifts all bits of the vector to the left by the specified number of bits. </summary>
-	SIMDLIB_FORCE_INLINE constexpr static int_vector_t VECTORCALL bit_shift_left(int_vector_t lhs, int shift) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr static int_vector_t VECTORCALL bit_shift_left(int_vector_t lhs, int shift) noexcept
 	{
 		return _ext128_shift_left_bits_dynamic(lhs, shift);
 	}
 
 	/// <summary> Shifts all bits of the vector to the right by the specified number of bits. </summary>
-	SIMDLIB_FORCE_INLINE constexpr static int_vector_t VECTORCALL bit_shift_right(int_vector_t lhs, int shift) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr static int_vector_t VECTORCALL bit_shift_right(int_vector_t lhs, int shift) noexcept
 	{
 		return _ext128_shift_right_bits_dynamic(lhs, shift);
 	}
 
 	/// <summary> Shifts all bits of the vector to the left by the specified number of bits. </summary>
-	template <int shift> SIMDLIB_FORCE_INLINE constexpr static int_vector_t VECTORCALL bit_shift_left(int_vector_t lhs) noexcept
+	template <int shift> SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr static int_vector_t VECTORCALL bit_shift_left(int_vector_t lhs) noexcept
 	{
 		return _ext128_shift_left_bits_static<shift>(lhs);
 	}
 
 	/// <summary> Shifts all bits of the vector to the right by the specified number of bits. </summary>
-	template <int shift> SIMDLIB_FORCE_INLINE constexpr static int_vector_t VECTORCALL bit_shift_right(int_vector_t lhs) noexcept
+	template <int shift> SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr static int_vector_t VECTORCALL bit_shift_right(int_vector_t lhs) noexcept
 	{
 		return _ext128_shift_right_bits_static<shift>(lhs);
 	}
@@ -2517,7 +2531,7 @@ template <class element_t> struct SimdMappings<128, element_t> : public SimdImpl
 
 #pragma region Shuffling
 	/// <summary> Shuffles the 32-bit integers in the vector using the specified control mask. </summary>
-	SIMDLIB_FORCE_INLINE static int_vector_t VECTORCALL shuffle_32(int_vector_t lhs, std::uint32_t imm8) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static int_vector_t VECTORCALL shuffle_32(int_vector_t lhs, std::uint32_t imm8) noexcept
 		requires std::is_integral_v<element_t>
 	{
 		return register_shuffle_32(lhs, imm8);
@@ -2525,14 +2539,14 @@ template <class element_t> struct SimdMappings<128, element_t> : public SimdImpl
 
 	/// <summary> Shuffles the 32-bit integers in the vector using a compile-time control mask. </summary>
 	template <std::uint32_t imm8>
-	SIMDLIB_FORCE_INLINE static int_vector_t VECTORCALL shuffle_32(int_vector_t lhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static int_vector_t VECTORCALL shuffle_32(int_vector_t lhs) noexcept
 		requires std::is_integral_v<element_t>
 	{
 		return _mm_shuffle_epi32(lhs, imm8);
 	}
 
 	/// <summary> Shuffles the bytes in the vector using the indexes in the second vector. </summary>
-	SIMDLIB_FORCE_INLINE static int_vector_t VECTORCALL shuffle(int_vector_t lhs, int_vector_t indices) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static int_vector_t VECTORCALL shuffle(int_vector_t lhs, int_vector_t indices) noexcept
 		requires std::is_integral_v<element_t>
 	{
 		return _mm_shuffle_epi8(lhs, indices);
@@ -2541,7 +2555,7 @@ template <class element_t> struct SimdMappings<128, element_t> : public SimdImpl
 	/// <summary> Shuffles the bytes in the vector using the templated index sequence. </summary>
 	template <std::size_t... indices>
 		requires(sizeof...(indices) == 16)
-	SIMDLIB_FORCE_INLINE static int_vector_t VECTORCALL shuffle(int_vector_t lhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static int_vector_t VECTORCALL shuffle(int_vector_t lhs) noexcept
 	{
 		// A constexpr register initializer was intentionally replaced by the portable runtime intrinsic.
 		// The active compiler-independent constexpr register construction lives in Detail::register_from_values.
@@ -2552,7 +2566,7 @@ template <class element_t> struct SimdMappings<128, element_t> : public SimdImpl
 #pragma region Miscellaneous Operations
 
 	/// <summary> Returns a mask of the most significant BIT of each BYTE in each element. </summary>
-	SIMDLIB_FORCE_INLINE static mask_t VECTORCALL movemask(const vector_t lhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static mask_t VECTORCALL movemask(const vector_t lhs) noexcept
 	{
 		if constexpr (std::is_integral_v<element_t>)
 			return _mm_movemask_epi8(lhs);
@@ -2563,7 +2577,7 @@ template <class element_t> struct SimdMappings<128, element_t> : public SimdImpl
 	}
 
 	/// <summary> Returns a mask of the most significant BIT of each element. </summary>
-	SIMDLIB_FORCE_INLINE static mask_t VECTORCALL movemask_slim(const vector_t lhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static mask_t VECTORCALL movemask_slim(const vector_t lhs) noexcept
 	{
 		if constexpr (std::is_integral_v<element_t>)
 			return movemask(swizzle_msb(lhs));
@@ -2575,14 +2589,14 @@ template <class element_t> struct SimdMappings<128, element_t> : public SimdImpl
 
 	/// <summary> Compute the bitwise AND of 128 bits (representing integer data) in a and b, and set ZF to 1 if the result is zero, otherwise set ZF to 0.
 	/// Compute the bitwise NOT of a and then AND with b, and set CF to 1 if the result is zero, otherwise set CF to 0. Return the CF value. </summary>
-	SIMDLIB_FORCE_INLINE static int VECTORCALL test(int_vector_t lhs, int_vector_t rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static int VECTORCALL test(int_vector_t lhs, int_vector_t rhs) noexcept
 	{
 		return _mm_testc_si128(lhs, rhs);
 	}
 
 	/// <summary> Compute the bitwise AND of 128 bits (representing integer data) in a and b, and set ZF to 1 if the result is zero, otherwise set ZF to 0.
 	/// Compute the bitwise NOT of a and then AND with b, and set CF to 1 if the result is zero, otherwise set CF to 0. Return the ZF value. </summary>
-	SIMDLIB_FORCE_INLINE static int VECTORCALL testz(int_vector_t lhs, int_vector_t rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static int VECTORCALL testz(int_vector_t lhs, int_vector_t rhs) noexcept
 	{
 		return _mm_testz_si128(lhs, rhs);
 	}
@@ -2590,7 +2604,7 @@ template <class element_t> struct SimdMappings<128, element_t> : public SimdImpl
 	/// <summary> Compute the bitwise AND of 128 bits (representing integer data) in a and b, and set ZF to 1 if the result is zero, otherwise set ZF to 0.
 	/// Compute the bitwise NOT of a and then AND with b, and set CF to 1 if the result is zero, otherwise set CF to 0. Return 1 if both the ZF and CF values
 	/// are zero, otherwise return 0. </summary>
-	SIMDLIB_FORCE_INLINE static int VECTORCALL testnzc(int_vector_t lhs, int_vector_t rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static int VECTORCALL testnzc(int_vector_t lhs, int_vector_t rhs) noexcept
 	{
 		return _mm_testnzc_si128(lhs, rhs);
 	}
@@ -2619,7 +2633,7 @@ template <class element_t> struct SimdMappings<128, element_t> : public SimdImpl
 	}
 
 	/// <summary> Swizzle the vector to only contain the most significant bit of each byte. </summary>
-	SIMDLIB_FORCE_INLINE static int_vector_t VECTORCALL swizzle_msb(int_vector_t lhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static int_vector_t VECTORCALL swizzle_msb(int_vector_t lhs) noexcept
 	{
 		return shuffle(lhs, get_msb_swizzle_order());
 	}
@@ -2642,14 +2656,14 @@ struct SimdImpl256
 template <> struct SimdImpl256<int8_t>
 {
 	/** @brief Selects bytes from two registers using a canonical predicate register. */
-	SIMDLIB_FORCE_INLINE static __m256i VECTORCALL select(
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m256i VECTORCALL select(
 		__m256i condition, __m256i when_true, __m256i when_false) noexcept
 	{
 		return _mm256_blendv_epi8(when_false, when_true, condition);
 	}
 
 	// arithmetic
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL add(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL add(auto lhs, auto rhs) noexcept
 	{
 		return _mm256_add_epi8(lhs, rhs);
 	}
@@ -2675,15 +2689,15 @@ template <> struct SimdImpl256<int8_t>
 	{
 		return _mm256_maddubs_epi16(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL subtract(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL subtract(auto lhs, auto rhs) noexcept
 	{
 		return _mm256_sub_epi8(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL multiply(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL multiply(auto lhs, auto rhs) noexcept
 	{
 		return _ext256_mul_epi8(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL divide(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE static auto VECTORCALL divide(auto lhs, auto rhs) noexcept
 	{
 		return register_transform_binary<std::int8_t>(lhs, rhs, [](auto left, auto right) noexcept { return left / right; });
 	}
@@ -2749,11 +2763,11 @@ template <> struct SimdImpl256<int8_t>
 	{
 		return _mm256_sub_epi8(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL min(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL min(auto lhs, auto rhs) noexcept
 	{
 		return _mm256_min_epi8(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL max(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL max(auto lhs, auto rhs) noexcept
 	{
 		return _mm256_max_epi8(lhs, rhs);
 	}
@@ -2783,25 +2797,25 @@ template <> struct SimdImpl256<int8_t>
 	}
 
 	// loading
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL set1(auto lhs) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL set1(auto lhs) noexcept
 	{
 		return _mm256_set1_epi8(lhs);
 	}
-	template <typename... Args> SIMDLIB_FORCE_INLINE static auto VECTORCALL set(Args &&...args) noexcept
+	template <typename... Args> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL set(Args &&...args) noexcept
 	{
 		return _mm256_set_epi8(args...);
 	}
-	template <typename... Args> SIMDLIB_FORCE_INLINE static auto VECTORCALL setr(Args &&...args) noexcept
+	template <typename... Args> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL setr(Args &&...args) noexcept
 	{
 		return _mm256_setr_epi8(args...);
 	}
 
 	// comparison
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL cmpeq(auto lhs, auto rhs) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL cmpeq(auto lhs, auto rhs) noexcept
 	{
 		return _mm256_cmpeq_epi8(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL cmpgt(auto lhs, auto rhs) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL cmpgt(auto lhs, auto rhs) noexcept
 	{
 		return _mm256_cmpgt_epi8(lhs, rhs);
 	}
@@ -2813,7 +2827,7 @@ template <> struct SimdImpl256<int8_t>
 	}
 
 	// extract / insert
-	template <int index> SIMDLIB_FORCE_INLINE static auto VECTORCALL extract(auto lhs) noexcept
+	template <int index> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL extract(auto lhs) noexcept
 	{
 		return static_cast<int8_t>(_mm256_extract_epi8(lhs, index));
 	}
@@ -2827,11 +2841,11 @@ template <> struct SimdImpl256<int8_t>
 		return register_insert<int8_t>(lhs, rhs, static_cast<std::size_t>(index));
 	}
 	/** @brief Replaces the compile-time-selected signed 8-bit lane. */
-	template <int index> SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, const int8_t rhs) noexcept
+	template <int index> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL insert(auto lhs, const int8_t rhs) noexcept
 	{
 		return _mm256_insert_epi8(lhs, static_cast<int>(rhs), index);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, auto rhs, const int imm8) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL insert(auto lhs, auto rhs, const int imm8) noexcept
 	{
 		return register_insert<std::int8_t>(lhs, rhs, static_cast<std::size_t>(imm8));
 	}
@@ -2851,11 +2865,11 @@ template <> struct SimdImpl256<int8_t>
 	{
 		return _mm256_shuffle_epi8(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL blend(auto lhs, auto rhs, auto mask) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL blend(auto lhs, auto rhs, auto mask) noexcept
 	{
 		return register_blend_bytes(lhs, rhs, mask);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL movemask(auto lhs) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL movemask(auto lhs) noexcept
 	{
 		return _mm256_movemask_epi8(lhs);
 	}
@@ -2864,14 +2878,14 @@ template <> struct SimdImpl256<int8_t>
 template <> struct SimdImpl256<uint8_t>
 {
 	/** @brief Selects bytes from two registers using a canonical predicate register. */
-	SIMDLIB_FORCE_INLINE static __m256i VECTORCALL select(
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m256i VECTORCALL select(
 		__m256i condition, __m256i when_true, __m256i when_false) noexcept
 	{
 		return _mm256_blendv_epi8(when_false, when_true, condition);
 	}
 
 	// arithmetic
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL add(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL add(auto lhs, auto rhs) noexcept
 	{
 		return _mm256_add_epi8(lhs, rhs);
 	}
@@ -2897,15 +2911,15 @@ template <> struct SimdImpl256<uint8_t>
 	{
 		return _mm256_maddubs_epi16(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL subtract(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL subtract(auto lhs, auto rhs) noexcept
 	{
 		return _mm256_sub_epi8(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL multiply(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL multiply(auto lhs, auto rhs) noexcept
 	{
 		return _ext256_mul_epi8(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL divide(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE static auto VECTORCALL divide(auto lhs, auto rhs) noexcept
 	{
 		return register_transform_binary<std::uint8_t>(lhs, rhs, [](auto left, auto right) noexcept { return left / right; });
 	}
@@ -2969,11 +2983,11 @@ template <> struct SimdImpl256<uint8_t>
 	{
 		return _mm256_sub_epi8(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL min(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL min(auto lhs, auto rhs) noexcept
 	{
 		return _mm256_min_epu8(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL max(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL max(auto lhs, auto rhs) noexcept
 	{
 		return _mm256_max_epu8(lhs, rhs);
 	}
@@ -3007,25 +3021,25 @@ template <> struct SimdImpl256<uint8_t>
 	}
 
 	// loading
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL set1(auto lhs) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL set1(auto lhs) noexcept
 	{
 		return _ext256_set1_epu8(lhs);
 	}
-	template <typename... Args> SIMDLIB_FORCE_INLINE static auto VECTORCALL set(Args &&...args) noexcept
+	template <typename... Args> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL set(Args &&...args) noexcept
 	{
 		return _mm256_set_epi8(args...);
 	}
-	template <typename... Args> SIMDLIB_FORCE_INLINE static auto VECTORCALL setr(Args &&...args) noexcept
+	template <typename... Args> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL setr(Args &&...args) noexcept
 	{
 		return _mm256_setr_epi8(args...);
 	}
 
 	// comparison
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL cmpeq(auto lhs, auto rhs) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL cmpeq(auto lhs, auto rhs) noexcept
 	{
 		return _mm256_cmpeq_epi8(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL cmpgt(auto lhs, auto rhs) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL cmpgt(auto lhs, auto rhs) noexcept
 	{
 		return _ext256_cmpgt_epu8(lhs, rhs);
 	}
@@ -3037,7 +3051,7 @@ template <> struct SimdImpl256<uint8_t>
 	}
 
 	// extract / insert
-	template <int index> SIMDLIB_FORCE_INLINE static auto VECTORCALL extract(auto lhs) noexcept
+	template <int index> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL extract(auto lhs) noexcept
 	{
 		return static_cast<uint8_t>(_mm256_extract_epi8(lhs, index));
 	}
@@ -3051,11 +3065,11 @@ template <> struct SimdImpl256<uint8_t>
 		return register_insert<uint8_t>(lhs, rhs, static_cast<std::size_t>(index));
 	}
 	/** @brief Replaces the compile-time-selected unsigned 8-bit lane. */
-	template <int index> SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, const uint8_t rhs) noexcept
+	template <int index> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL insert(auto lhs, const uint8_t rhs) noexcept
 	{
 		return _mm256_insert_epi8(lhs, static_cast<int>(rhs), index);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, auto rhs, const int imm8) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL insert(auto lhs, auto rhs, const int imm8) noexcept
 	{
 		return register_insert<std::int8_t>(lhs, rhs, static_cast<std::size_t>(imm8));
 	}
@@ -3075,11 +3089,11 @@ template <> struct SimdImpl256<uint8_t>
 	{
 		return _mm256_shuffle_epi8(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL blend(auto lhs, auto rhs, auto mask) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL blend(auto lhs, auto rhs, auto mask) noexcept
 	{
 		return register_blend_bytes(lhs, rhs, mask);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL movemask(auto lhs) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL movemask(auto lhs) noexcept
 	{
 		return _mm256_movemask_epi8(lhs);
 	}
@@ -3088,14 +3102,14 @@ template <> struct SimdImpl256<uint8_t>
 template <> struct SimdImpl256<int16_t>
 {
 	/** @brief Selects 16-bit lanes from two registers using a canonical predicate register. */
-	SIMDLIB_FORCE_INLINE static __m256i VECTORCALL select(
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m256i VECTORCALL select(
 		__m256i condition, __m256i when_true, __m256i when_false) noexcept
 	{
 		return _mm256_blendv_epi8(when_false, when_true, condition);
 	}
 
 	// arithmetic
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL add(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL add(auto lhs, auto rhs) noexcept
 	{
 		return _mm256_add_epi16(lhs, rhs);
 	}
@@ -3107,15 +3121,15 @@ template <> struct SimdImpl256<int16_t>
 	{
 		return _mm256_maddubs_epi16(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL subtract(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL subtract(auto lhs, auto rhs) noexcept
 	{
 		return _mm256_sub_epi16(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL multiply(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL multiply(auto lhs, auto rhs) noexcept
 	{
 		return _mm256_mullo_epi16(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL divide(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE static auto VECTORCALL divide(auto lhs, auto rhs) noexcept
 	{
 		return register_transform_binary<std::int16_t>(lhs, rhs, [](auto left, auto right) noexcept { return left / right; });
 	}
@@ -3170,11 +3184,11 @@ template <> struct SimdImpl256<int16_t>
 	{
 		return _mm256_sub_epi16(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL min(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL min(auto lhs, auto rhs) noexcept
 	{
 		return _mm256_min_epi16(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL max(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL max(auto lhs, auto rhs) noexcept
 	{
 		return _mm256_max_epi16(lhs, rhs);
 	}
@@ -3236,25 +3250,25 @@ template <> struct SimdImpl256<int16_t>
 	}
 
 	// loading
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL set1(auto lhs) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL set1(auto lhs) noexcept
 	{
 		return _mm256_set1_epi16(lhs);
 	}
-	template <typename... Args> SIMDLIB_FORCE_INLINE static auto VECTORCALL set(Args &&...args) noexcept
+	template <typename... Args> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL set(Args &&...args) noexcept
 	{
 		return _mm256_set_epi16(args...);
 	}
-	template <typename... Args> SIMDLIB_FORCE_INLINE static auto VECTORCALL setr(Args &&...args) noexcept
+	template <typename... Args> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL setr(Args &&...args) noexcept
 	{
 		return _mm256_setr_epi16(args...);
 	}
 
 	// comparison
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL cmpeq(auto lhs, auto rhs) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL cmpeq(auto lhs, auto rhs) noexcept
 	{
 		return _mm256_cmpeq_epi16(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL cmpgt(auto lhs, auto rhs) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL cmpgt(auto lhs, auto rhs) noexcept
 	{
 		return _mm256_cmpgt_epi16(lhs, rhs);
 	}
@@ -3270,7 +3284,7 @@ template <> struct SimdImpl256<int16_t>
 	}
 
 	// extract / insert
-	template <int index> SIMDLIB_FORCE_INLINE static auto VECTORCALL extract(auto lhs) noexcept
+	template <int index> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL extract(auto lhs) noexcept
 	{
 		return static_cast<int16_t>(_mm256_extract_epi16(lhs, index));
 	}
@@ -3284,11 +3298,11 @@ template <> struct SimdImpl256<int16_t>
 		return register_insert<int16_t>(lhs, rhs, static_cast<std::size_t>(index));
 	}
 	/** @brief Replaces the compile-time-selected signed 16-bit lane. */
-	template <int index> SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, const int16_t rhs) noexcept
+	template <int index> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL insert(auto lhs, const int16_t rhs) noexcept
 	{
 		return _mm256_insert_epi16(lhs, static_cast<int>(rhs), index);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, auto rhs, const int imm8) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL insert(auto lhs, auto rhs, const int imm8) noexcept
 	{
 		return register_insert<std::int16_t>(lhs, rhs, static_cast<std::size_t>(imm8));
 	}
@@ -3321,14 +3335,14 @@ template <> struct SimdImpl256<int16_t>
 template <> struct SimdImpl256<uint16_t>
 {
 	/** @brief Selects 16-bit lanes from two registers using a canonical predicate register. */
-	SIMDLIB_FORCE_INLINE static __m256i VECTORCALL select(
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m256i VECTORCALL select(
 		__m256i condition, __m256i when_true, __m256i when_false) noexcept
 	{
 		return _mm256_blendv_epi8(when_false, when_true, condition);
 	}
 
 	// arithmetic
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL add(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL add(auto lhs, auto rhs) noexcept
 	{
 		return _mm256_add_epi16(lhs, rhs);
 	}
@@ -3340,15 +3354,15 @@ template <> struct SimdImpl256<uint16_t>
 	{
 		return _mm256_madd_epi16(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL subtract(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL subtract(auto lhs, auto rhs) noexcept
 	{
 		return _mm256_sub_epi16(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL multiply(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL multiply(auto lhs, auto rhs) noexcept
 	{
 		return _mm256_mullo_epi16(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL divide(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE static auto VECTORCALL divide(auto lhs, auto rhs) noexcept
 	{
 		return register_transform_binary<std::uint16_t>(lhs, rhs, [](auto left, auto right) noexcept { return left / right; });
 	}
@@ -3403,11 +3417,11 @@ template <> struct SimdImpl256<uint16_t>
 	{
 		return _mm256_sub_epi16(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL min(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL min(auto lhs, auto rhs) noexcept
 	{
 		return _mm256_min_epu16(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL max(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL max(auto lhs, auto rhs) noexcept
 	{
 		return _mm256_max_epu16(lhs, rhs);
 	}
@@ -3473,25 +3487,25 @@ template <> struct SimdImpl256<uint16_t>
 	}
 
 	// loading
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL set1(auto lhs) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL set1(auto lhs) noexcept
 	{
 		return _mm256_set1_epi16(lhs);
 	}
-	template <typename... Args> SIMDLIB_FORCE_INLINE static auto VECTORCALL set(Args... args) noexcept
+	template <typename... Args> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL set(Args... args) noexcept
 	{
 		return _mm256_set_epi16(args...);
 	}
-	template <typename... Args> SIMDLIB_FORCE_INLINE static auto VECTORCALL setr(Args... args) noexcept
+	template <typename... Args> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL setr(Args... args) noexcept
 	{
 		return _mm256_setr_epi16(args...);
 	}
 
 	// comparison
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL cmpeq(auto lhs, auto rhs) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL cmpeq(auto lhs, auto rhs) noexcept
 	{
 		return _mm256_cmpeq_epi16(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL cmpgt(auto lhs, auto rhs) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL cmpgt(auto lhs, auto rhs) noexcept
 	{
 		return _ext256_cmpgt_epu16(lhs, rhs);
 	}
@@ -3507,7 +3521,7 @@ template <> struct SimdImpl256<uint16_t>
 	}
 
 	// extract / insert
-	template <int index> SIMDLIB_FORCE_INLINE static auto VECTORCALL extract(auto lhs) noexcept
+	template <int index> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL extract(auto lhs) noexcept
 	{
 		return static_cast<uint16_t>(_mm256_extract_epi16(lhs, index));
 	}
@@ -3521,11 +3535,11 @@ template <> struct SimdImpl256<uint16_t>
 		return register_insert<uint16_t>(lhs, rhs, static_cast<std::size_t>(index));
 	}
 	/** @brief Replaces the compile-time-selected unsigned 16-bit lane. */
-	template <int index> SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, const uint16_t rhs) noexcept
+	template <int index> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL insert(auto lhs, const uint16_t rhs) noexcept
 	{
 		return _mm256_insert_epi16(lhs, static_cast<int>(rhs), index);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, auto rhs, const int imm8) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL insert(auto lhs, auto rhs, const int imm8) noexcept
 	{
 		return register_insert<std::int16_t>(lhs, rhs, static_cast<std::size_t>(imm8));
 	}
@@ -3558,14 +3572,14 @@ template <> struct SimdImpl256<uint16_t>
 template <> struct SimdImpl256<int32_t>
 {
 	/** @brief Selects 32-bit lanes from two registers using a canonical predicate register. */
-	SIMDLIB_FORCE_INLINE static __m256i VECTORCALL select(
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m256i VECTORCALL select(
 		__m256i condition, __m256i when_true, __m256i when_false) noexcept
 	{
 		return _mm256_blendv_epi8(when_false, when_true, condition);
 	}
 
 	// arithmetic
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL add(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL add(auto lhs, auto rhs) noexcept
 	{
 		return _mm256_add_epi32(lhs, rhs);
 	}
@@ -3579,15 +3593,15 @@ template <> struct SimdImpl256<int32_t>
 	{
 		return _mm256_maddubs_epi16(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL subtract(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL subtract(auto lhs, auto rhs) noexcept
 	{
 		return _mm256_sub_epi32(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL multiply(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL multiply(auto lhs, auto rhs) noexcept
 	{
 		return _mm256_mullo_epi32(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL divide(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE static auto VECTORCALL divide(auto lhs, auto rhs) noexcept
 	{
 		return register_transform_binary<std::int32_t>(lhs, rhs, [](auto left, auto right) noexcept { return left / right; });
 	}
@@ -3631,11 +3645,11 @@ template <> struct SimdImpl256<int32_t>
 	{
 		return _mm256_sub_epi32(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL min(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL min(auto lhs, auto rhs) noexcept
 	{
 		return _mm256_min_epi32(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL max(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL max(auto lhs, auto rhs) noexcept
 	{
 		return _mm256_max_epi32(lhs, rhs);
 	}
@@ -3665,25 +3679,25 @@ template <> struct SimdImpl256<int32_t>
 	}
 
 	// loading
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL set1(auto lhs) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL set1(auto lhs) noexcept
 	{
 		return _mm256_set1_epi32(lhs);
 	}
-	template <typename... Args> SIMDLIB_FORCE_INLINE static auto VECTORCALL set(Args... args) noexcept
+	template <typename... Args> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL set(Args... args) noexcept
 	{
 		return _mm256_set_epi32(args...);
 	}
-	template <typename... Args> SIMDLIB_FORCE_INLINE static auto VECTORCALL setr(Args... args) noexcept
+	template <typename... Args> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL setr(Args... args) noexcept
 	{
 		return _mm256_setr_epi32(args...);
 	}
 
 	// comparison
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL cmpeq(auto lhs, auto rhs) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL cmpeq(auto lhs, auto rhs) noexcept
 	{
 		return _mm256_cmpeq_epi32(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL cmpgt(auto lhs, auto rhs) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL cmpgt(auto lhs, auto rhs) noexcept
 	{
 		return _mm256_cmpgt_epi32(lhs, rhs);
 	}
@@ -3699,7 +3713,7 @@ template <> struct SimdImpl256<int32_t>
 	}
 
 	// extract / insert
-	template <int index> SIMDLIB_FORCE_INLINE static auto VECTORCALL extract(auto lhs) noexcept
+	template <int index> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL extract(auto lhs) noexcept
 	{
 		return static_cast<int32_t>(_mm256_extract_epi32(lhs, index));
 	}
@@ -3713,11 +3727,11 @@ template <> struct SimdImpl256<int32_t>
 		return register_insert<int32_t>(lhs, rhs, static_cast<std::size_t>(index));
 	}
 	/** @brief Replaces the compile-time-selected signed 32-bit lane. */
-	template <int index> SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, const int32_t rhs) noexcept
+	template <int index> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL insert(auto lhs, const int32_t rhs) noexcept
 	{
 		return _mm256_insert_epi32(lhs, rhs, index);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, auto rhs, const int imm8) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL insert(auto lhs, auto rhs, const int imm8) noexcept
 	{
 		return register_insert<std::int32_t>(lhs, rhs, static_cast<std::size_t>(imm8));
 	}
@@ -3750,14 +3764,14 @@ template <> struct SimdImpl256<int32_t>
 template <> struct SimdImpl256<uint32_t>
 {
 	/** @brief Selects 32-bit lanes from two registers using a canonical predicate register. */
-	SIMDLIB_FORCE_INLINE static __m256i VECTORCALL select(
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m256i VECTORCALL select(
 		__m256i condition, __m256i when_true, __m256i when_false) noexcept
 	{
 		return _mm256_blendv_epi8(when_false, when_true, condition);
 	}
 
 	// arithmetic
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL add(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL add(auto lhs, auto rhs) noexcept
 	{
 		return _mm256_add_epi32(lhs, rhs);
 	}
@@ -3781,15 +3795,15 @@ template <> struct SimdImpl256<uint32_t>
 	{
 		return _mm256_maddubs_epi16(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL subtract(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL subtract(auto lhs, auto rhs) noexcept
 	{
 		return _mm256_sub_epi32(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL multiply(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL multiply(auto lhs, auto rhs) noexcept
 	{
 		return _mm256_mullo_epi32(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL divide(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE static auto VECTORCALL divide(auto lhs, auto rhs) noexcept
 	{
 		return register_transform_binary<std::uint32_t>(lhs, rhs, [](auto left, auto right) noexcept { return left / right; });
 	}
@@ -3838,11 +3852,11 @@ template <> struct SimdImpl256<uint32_t>
 	{
 		return _mm256_sub_epi32(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL min(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL min(auto lhs, auto rhs) noexcept
 	{
 		return _mm256_min_epu32(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL max(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL max(auto lhs, auto rhs) noexcept
 	{
 		return _mm256_max_epu32(lhs, rhs);
 	}
@@ -3872,25 +3886,25 @@ template <> struct SimdImpl256<uint32_t>
 	}
 
 	// loading
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL set1(auto lhs) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL set1(auto lhs) noexcept
 	{
 		return _mm256_set1_epi32(lhs);
 	}
-	template <typename... Args> SIMDLIB_FORCE_INLINE static auto VECTORCALL set(Args... args) noexcept
+	template <typename... Args> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL set(Args... args) noexcept
 	{
 		return _mm256_set_epi32(args...);
 	}
-	template <typename... Args> SIMDLIB_FORCE_INLINE static auto VECTORCALL setr(Args... args) noexcept
+	template <typename... Args> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL setr(Args... args) noexcept
 	{
 		return _mm256_setr_epi32(args...);
 	}
 
 	// comparison
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL cmpeq(auto lhs, auto rhs) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL cmpeq(auto lhs, auto rhs) noexcept
 	{
 		return _mm256_cmpeq_epi32(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL cmpgt(auto lhs, auto rhs) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL cmpgt(auto lhs, auto rhs) noexcept
 	{
 		return _ext256_cmpgt_epu32(lhs, rhs);
 	}
@@ -3906,7 +3920,7 @@ template <> struct SimdImpl256<uint32_t>
 	}
 
 	// extract / insert
-	template <int index> SIMDLIB_FORCE_INLINE static auto VECTORCALL extract(auto lhs) noexcept
+	template <int index> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL extract(auto lhs) noexcept
 	{
 		return static_cast<uint32_t>(_mm256_extract_epi32(lhs, index));
 	}
@@ -3920,7 +3934,7 @@ template <> struct SimdImpl256<uint32_t>
 		return register_insert<uint32_t>(lhs, rhs, static_cast<std::size_t>(index));
 	}
 	/** @brief Replaces the compile-time-selected unsigned 32-bit lane. */
-	template <int index> SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, const uint32_t rhs) noexcept
+	template <int index> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL insert(auto lhs, const uint32_t rhs) noexcept
 	{
 		return _mm256_insert_epi32(lhs, std::bit_cast<int32_t>(rhs), index);
 	}
@@ -3957,14 +3971,14 @@ template <> struct SimdImpl256<uint32_t>
 template <> struct SimdImpl256<int64_t>
 {
 	/** @brief Selects 64-bit lanes from two registers using a canonical predicate register. */
-	SIMDLIB_FORCE_INLINE static __m256i VECTORCALL select(
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m256i VECTORCALL select(
 		__m256i condition, __m256i when_true, __m256i when_false) noexcept
 	{
 		return _mm256_blendv_epi8(when_false, when_true, condition);
 	}
 
 	// arithmetic
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL add(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL add(auto lhs, auto rhs) noexcept
 	{
 		return _mm256_add_epi64(lhs, rhs);
 	}
@@ -3978,15 +3992,15 @@ template <> struct SimdImpl256<int64_t>
 	{
 		return _mm256_maddubs_epi16(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL subtract(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL subtract(auto lhs, auto rhs) noexcept
 	{
 		return _mm256_sub_epi64(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL multiply(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL multiply(auto lhs, auto rhs) noexcept
 	{
 		return _ext256_mullo_epi64(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL divide(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE static auto VECTORCALL divide(auto lhs, auto rhs) noexcept
 	{
 		return _ext256_div_epi64(lhs, rhs);
 	}
@@ -4043,11 +4057,11 @@ template <> struct SimdImpl256<int64_t>
 	{
 		return _mm256_sub_epi64(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL min(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL min(auto lhs, auto rhs) noexcept
 	{
 		return _ext256_min_epi64(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL max(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL max(auto lhs, auto rhs) noexcept
 	{
 		return _ext256_max_epi64(lhs, rhs);
 	}
@@ -4067,25 +4081,25 @@ template <> struct SimdImpl256<int64_t>
 	}
 
 	// loading
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL set1(auto lhs) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL set1(auto lhs) noexcept
 	{
 		return _mm256_set1_epi64x(lhs);
 	}
-	template <typename... Args> SIMDLIB_FORCE_INLINE static auto VECTORCALL set(Args... args) noexcept
+	template <typename... Args> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL set(Args... args) noexcept
 	{
 		return _mm256_set_epi64x(args...);
 	}
-	template <typename... Args> SIMDLIB_FORCE_INLINE static auto VECTORCALL setr(Args... args) noexcept
+	template <typename... Args> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL setr(Args... args) noexcept
 	{
 		return _mm256_setr_epi64x(args...);
 	}
 
 	// comparison
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL cmpeq(auto lhs, auto rhs) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL cmpeq(auto lhs, auto rhs) noexcept
 	{
 		return _mm256_cmpeq_epi64(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL cmpgt(auto lhs, auto rhs) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL cmpgt(auto lhs, auto rhs) noexcept
 	{
 		return _mm256_cmpgt_epi64(lhs, rhs);
 	}
@@ -4094,7 +4108,7 @@ template <> struct SimdImpl256<int64_t>
 	// static SIMDLIB_FORCE_INLINE auto VECTORCALL expand (auto lhs, auto rhs) noexcept { return _mm256_cvtepi64_epi128(lhs, rhs); }
 
 	// extract / insert
-	template <int index> SIMDLIB_FORCE_INLINE static auto VECTORCALL extract(auto lhs) noexcept
+	template <int index> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL extract(auto lhs) noexcept
 	{
 		return static_cast<int64_t>(_mm256_extract_epi64(lhs, index));
 	}
@@ -4108,7 +4122,7 @@ template <> struct SimdImpl256<int64_t>
 		return register_insert<int64_t>(lhs, rhs, static_cast<std::size_t>(index));
 	}
 	/** @brief Replaces the compile-time-selected signed 64-bit lane. */
-	template <int index> SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, const int64_t rhs) noexcept
+	template <int index> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL insert(auto lhs, const int64_t rhs) noexcept
 	{
 		return _mm256_insert_epi64(lhs, rhs, index);
 	}
@@ -4131,14 +4145,14 @@ template <> struct SimdImpl256<int64_t>
 template <> struct SimdImpl256<uint64_t>
 {
 	/** @brief Selects 64-bit lanes from two registers using a canonical predicate register. */
-	SIMDLIB_FORCE_INLINE static __m256i VECTORCALL select(
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m256i VECTORCALL select(
 		__m256i condition, __m256i when_true, __m256i when_false) noexcept
 	{
 		return _mm256_blendv_epi8(when_false, when_true, condition);
 	}
 
 	// arithmetic
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL add(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL add(auto lhs, auto rhs) noexcept
 	{
 		return _mm256_add_epi64(lhs, rhs);
 	}
@@ -4152,15 +4166,15 @@ template <> struct SimdImpl256<uint64_t>
 	{
 		return _mm256_maddubs_epi16(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL subtract(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL subtract(auto lhs, auto rhs) noexcept
 	{
 		return _mm256_sub_epi64(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL multiply(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL multiply(auto lhs, auto rhs) noexcept
 	{
 		return _ext256_mullo_epi64(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL divide(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE static auto VECTORCALL divide(auto lhs, auto rhs) noexcept
 	{
 		return _ext256_div_epu64(lhs, rhs);
 	}
@@ -4217,11 +4231,11 @@ template <> struct SimdImpl256<uint64_t>
 	{
 		return _mm256_sub_epi64(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL min(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL min(auto lhs, auto rhs) noexcept
 	{
 		return _ext256_min_epu64(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL max(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL max(auto lhs, auto rhs) noexcept
 	{
 		return _ext256_max_epu64(lhs, rhs);
 	}
@@ -4241,25 +4255,25 @@ template <> struct SimdImpl256<uint64_t>
 	}
 
 	// loading
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL set1(auto lhs) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL set1(auto lhs) noexcept
 	{
 		return _mm256_set1_epi64x(lhs);
 	}
-	template <typename... Args> SIMDLIB_FORCE_INLINE static auto VECTORCALL set(Args... args) noexcept
+	template <typename... Args> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL set(Args... args) noexcept
 	{
 		return _mm256_set_epi64x(args...);
 	}
-	template <typename... Args> SIMDLIB_FORCE_INLINE static auto VECTORCALL setr(Args... args) noexcept
+	template <typename... Args> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL setr(Args... args) noexcept
 	{
 		return _mm256_setr_epi64x(args...);
 	}
 
 	// comparison
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL cmpeq(auto lhs, auto rhs) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL cmpeq(auto lhs, auto rhs) noexcept
 	{
 		return _mm256_cmpeq_epi64(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL cmpgt(auto lhs, auto rhs) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL cmpgt(auto lhs, auto rhs) noexcept
 	{
 		return _ext256_cmpgt_epu64(lhs, rhs);
 	}
@@ -4268,7 +4282,7 @@ template <> struct SimdImpl256<uint64_t>
 	// static SIMDLIB_FORCE_INLINE auto VECTORCALL expand (auto lhs, auto rhs) noexcept { return _mm256_cvtepu64_epi128(lhs, rhs); }
 
 	// extract / insert
-	template <int index> SIMDLIB_FORCE_INLINE static auto VECTORCALL extract(auto lhs) noexcept
+	template <int index> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL extract(auto lhs) noexcept
 	{
 		return static_cast<uint64_t>(_mm256_extract_epi64(lhs, index));
 	}
@@ -4282,7 +4296,7 @@ template <> struct SimdImpl256<uint64_t>
 		return register_insert<uint64_t>(lhs, rhs, static_cast<std::size_t>(index));
 	}
 	/** @brief Replaces the compile-time-selected unsigned 64-bit lane. */
-	template <int index> SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, const uint64_t rhs) noexcept
+	template <int index> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL insert(auto lhs, const uint64_t rhs) noexcept
 	{
 		return _mm256_insert_epi64(lhs, std::bit_cast<int64_t>(rhs), index);
 	}
@@ -4305,14 +4319,14 @@ template <> struct SimdImpl256<uint64_t>
 template <> struct SimdImpl256<float>
 {
 	/** @brief Selects float lanes from two registers using a canonical predicate register. */
-	SIMDLIB_FORCE_INLINE static __m256 VECTORCALL select(
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m256 VECTORCALL select(
 		__m256 condition, __m256 when_true, __m256 when_false) noexcept
 	{
 		return _mm256_blendv_ps(when_false, when_true, condition);
 	}
 
 	// arithmetic
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL add(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL add(auto lhs, auto rhs) noexcept
 	{
 		return _mm256_add_ps(lhs, rhs);
 	}
@@ -4320,15 +4334,15 @@ template <> struct SimdImpl256<float>
 	{
 		return _mm256_addsub_ps(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL subtract(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL subtract(auto lhs, auto rhs) noexcept
 	{
 		return _mm256_sub_ps(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL multiply(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL multiply(auto lhs, auto rhs) noexcept
 	{
 		return _mm256_mul_ps(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL divide(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL divide(auto lhs, auto rhs) noexcept
 	{
 		return _mm256_div_ps(lhs, rhs);
 	}
@@ -4363,11 +4377,11 @@ template <> struct SimdImpl256<float>
 	{
 		return _mm256_sub_ps(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL min(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL min(auto lhs, auto rhs) noexcept
 	{
 		return _mm256_min_ps(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL max(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL max(auto lhs, auto rhs) noexcept
 	{
 		return _mm256_max_ps(lhs, rhs);
 	}
@@ -4383,25 +4397,25 @@ template <> struct SimdImpl256<float>
 	}
 
 	// loading
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL set1(auto lhs) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL set1(auto lhs) noexcept
 	{
 		return _mm256_set1_ps(lhs);
 	}
-	template <typename... Args> SIMDLIB_FORCE_INLINE static auto VECTORCALL set(Args... args) noexcept
+	template <typename... Args> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL set(Args... args) noexcept
 	{
 		return _mm256_set_ps(args...);
 	}
-	template <typename... Args> SIMDLIB_FORCE_INLINE static auto VECTORCALL setr(Args... args) noexcept
+	template <typename... Args> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL setr(Args... args) noexcept
 	{
 		return _mm256_setr_ps(args...);
 	}
 
 	// comparison
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL cmpeq(auto lhs, auto rhs) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL cmpeq(auto lhs, auto rhs) noexcept
 	{
 		return _ext256_cmpeq_ps(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL cmpgt(auto lhs, auto rhs) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL cmpgt(auto lhs, auto rhs) noexcept
 	{
 		return _ext256_cmpgt_ps(lhs, rhs);
 	}
@@ -4413,7 +4427,7 @@ template <> struct SimdImpl256<float>
 	}
 
 	// extract / insert
-	template <int index> SIMDLIB_FORCE_INLINE static auto VECTORCALL extract(auto lhs) noexcept
+	template <int index> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL extract(auto lhs) noexcept
 	{
 		constexpr int half_index = index / 4;
 		constexpr int lane_index = index % 4;
@@ -4436,7 +4450,7 @@ template <> struct SimdImpl256<float>
 		return register_insert<float>(lhs, rhs, static_cast<std::size_t>(index));
 	}
 	/** @brief Replaces the compile-time-selected 32-bit floating-point lane. */
-	template <int index> SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, const float rhs) noexcept
+	template <int index> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL insert(auto lhs, const float rhs) noexcept
 	{
 		constexpr int half_index = index / 4;
 		constexpr int lane_index = index % 4;
@@ -4477,14 +4491,14 @@ template <> struct SimdImpl256<float>
 template <> struct SimdImpl256<double>
 {
 	/** @brief Selects double lanes from two registers using a canonical predicate register. */
-	SIMDLIB_FORCE_INLINE static __m256d VECTORCALL select(
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m256d VECTORCALL select(
 		__m256d condition, __m256d when_true, __m256d when_false) noexcept
 	{
 		return _mm256_blendv_pd(when_false, when_true, condition);
 	}
 
 	// arithmetic
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL add(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL add(auto lhs, auto rhs) noexcept
 	{
 		return _mm256_add_pd(lhs, rhs);
 	}
@@ -4492,15 +4506,15 @@ template <> struct SimdImpl256<double>
 	{
 		return _mm256_addsub_pd(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL subtract(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL subtract(auto lhs, auto rhs) noexcept
 	{
 		return _mm256_sub_pd(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL multiply(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL multiply(auto lhs, auto rhs) noexcept
 	{
 		return _mm256_mul_pd(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL divide(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL divide(auto lhs, auto rhs) noexcept
 	{
 		return _mm256_div_pd(lhs, rhs);
 	}
@@ -4535,11 +4549,11 @@ template <> struct SimdImpl256<double>
 	{
 		return _mm256_sub_pd(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL min(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL min(auto lhs, auto rhs) noexcept
 	{
 		return _mm256_min_pd(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL max(auto lhs, auto rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL max(auto lhs, auto rhs) noexcept
 	{
 		return _mm256_max_pd(lhs, rhs);
 	}
@@ -4555,25 +4569,25 @@ template <> struct SimdImpl256<double>
 	}
 
 	// loading
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL set1(auto lhs) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL set1(auto lhs) noexcept
 	{
 		return _mm256_set1_pd(lhs);
 	}
-	template <typename... Args> SIMDLIB_FORCE_INLINE static auto VECTORCALL set(Args... args) noexcept
+	template <typename... Args> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL set(Args... args) noexcept
 	{
 		return _mm256_set_pd(args...);
 	}
-	template <typename... Args> SIMDLIB_FORCE_INLINE static auto VECTORCALL setr(Args... args) noexcept
+	template <typename... Args> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL setr(Args... args) noexcept
 	{
 		return _mm256_setr_pd(args...);
 	}
 
 	// comparison
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL cmpeq(auto lhs, auto rhs) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL cmpeq(auto lhs, auto rhs) noexcept
 	{
 		return _ext256_cmpeq_pd(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL cmpgt(auto lhs, auto rhs) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL cmpgt(auto lhs, auto rhs) noexcept
 	{
 		return _ext256_cmpgt_pd(lhs, rhs);
 	}
@@ -4585,7 +4599,7 @@ template <> struct SimdImpl256<double>
 	}
 
 	// extract / insert
-	template <int index> SIMDLIB_FORCE_INLINE static auto VECTORCALL extract(auto lhs) noexcept
+	template <int index> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL extract(auto lhs) noexcept
 	{
 		constexpr int half_index = index / 2;
 		constexpr int lane_index = index % 2;
@@ -4611,7 +4625,7 @@ template <> struct SimdImpl256<double>
 		return register_insert<double>(lhs, rhs, static_cast<std::size_t>(index));
 	}
 	/** @brief Replaces the compile-time-selected 64-bit floating-point lane. */
-	template <int index> SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, const double rhs) noexcept
+	template <int index> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL insert(auto lhs, const double rhs) noexcept
 	{
 		constexpr int half_index = index / 2;
 		constexpr int lane_index = index % 2;
@@ -4682,7 +4696,7 @@ template <class element_t> struct SimdMappings<256, element_t> : public SimdImpl
 	constexpr static inline std::size_t element_size = sizeof(element_t);
 	constexpr static inline std::size_t element_width = 8 * element_size;
 
-	template <int index> SIMDLIB_FORCE_INLINE static auto VECTORCALL extract(const vector_t lhs) noexcept
+	template <int index> SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL extract(const vector_t lhs) noexcept
 	{
 		static_assert(index >= 0 && static_cast<std::size_t>(index) < element_count, "SimdMappings<256>::extract index out of range.");
 		if constexpr (requires(vector_t value) { impl::template extract<index>(value); })
@@ -4695,7 +4709,7 @@ template <class element_t> struct SimdMappings<256, element_t> : public SimdImpl
 		}
 	}
 
-	SIMDLIB_FORCE_INLINE static typename SimdMappings<128, element_t>::vector_t VECTORCALL lower_half(const vector_t lhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static typename SimdMappings<128, element_t>::vector_t VECTORCALL lower_half(const vector_t lhs) noexcept
 	{
 		if constexpr (std::is_integral_v<element_t>)
 			return _mm256_castsi256_si128(lhs);
@@ -4707,7 +4721,7 @@ template <class element_t> struct SimdMappings<256, element_t> : public SimdImpl
 
 #pragma region Set
 	/// <summary> Set all elements of the register to 0 (often a noop). </summary>
-	SIMDLIB_FORCE_INLINE constexpr static vector_t VECTORCALL setzero() noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static vector_t VECTORCALL setzero() noexcept
 	{
 		if (std::is_constant_evaluated())
 		{
@@ -4726,11 +4740,11 @@ template <class element_t> struct SimdMappings<256, element_t> : public SimdImpl
 
 	template <std::convertible_to<element_t>... Args>
 		requires(sizeof...(Args) == element_count)
-	SIMDLIB_FORCE_INLINE constexpr static vector_t VECTORCALL setr(Args &&...args) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static vector_t VECTORCALL setr(Args &&...args) noexcept
 	{
 		if (std::is_constant_evaluated())
 		{
-			return register_from_values<vector_t, element_t>(static_cast<element_t>(args)...);
+			return setr_constexpr(std::forward<Args>(args)...);
 		}
 		else
 		{
@@ -4738,7 +4752,7 @@ template <class element_t> struct SimdMappings<256, element_t> : public SimdImpl
 		}
 	}
 
-	SIMDLIB_FORCE_INLINE constexpr static vector_t VECTORCALL construct(std::array<element_t, element_count> data) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr static vector_t VECTORCALL construct(std::array<element_t, element_count> data) noexcept
 	{
 		if (std::is_constant_evaluated())
 		{
@@ -4750,17 +4764,31 @@ template <class element_t> struct SimdMappings<256, element_t> : public SimdImpl
 		}
 	}
 
-	SIMDLIB_FORCE_INLINE constexpr static vector_t VECTORCALL set1(const element_t value) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static vector_t VECTORCALL set1(const element_t value) noexcept
 	{
 		if (std::is_constant_evaluated())
-			return register_from_repeated_value<vector_t>(value);
+			return set1_constexpr(value);
 		else
 		{
 			return impl::set1(value);
 		}
 	}
 
-	SIMDLIB_FORCE_INLINE static vector_t VECTORCALL multiply_add(const vector_t lhs, const vector_t rhs, const vector_t addend) noexcept
+	/** @brief Broadcasts one value through the portable compile-time register representation. */
+	constexpr static vector_t set1_constexpr(const element_t value) noexcept
+	{
+		return register_from_repeated_value<vector_t>(value);
+	}
+
+	/** @brief Constructs a register from forward-order lanes during constant evaluation. */
+	template <std::convertible_to<element_t>... Args>
+		requires(sizeof...(Args) == element_count)
+	constexpr static vector_t setr_constexpr(Args &&...args) noexcept
+	{
+		return register_from_values<vector_t, element_t>(static_cast<element_t>(args)...);
+	}
+
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static vector_t VECTORCALL multiply_add(const vector_t lhs, const vector_t rhs, const vector_t addend) noexcept
 	{
 		if constexpr (requires(vector_t left, vector_t right, vector_t sum) { impl::multiply_add(left, right, sum); })
 			return impl::multiply_add(lhs, rhs, addend);
@@ -4768,23 +4796,23 @@ template <class element_t> struct SimdMappings<256, element_t> : public SimdImpl
 			return impl::add(impl::multiply(lhs, rhs), addend);
 	}
 
-	SIMDLIB_FORCE_INLINE constexpr static vector_t VECTORCALL set_element(vector_t vec, int index, element_t value) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr static vector_t VECTORCALL set_element(vector_t vec, int index, element_t value) noexcept
 	{
 		register_set<element_t>(vec, static_cast<std::size_t>(index), value);
 		return vec;
 	}
 
-	SIMDLIB_FORCE_INLINE constexpr static element_t VECTORCALL get_element(vector_t vec, int index) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr static element_t VECTORCALL get_element(vector_t vec, int index) noexcept
 	{
 		return register_get<element_t>(vec, static_cast<std::size_t>(index));
 	}
 
-	SIMDLIB_FORCE_INLINE static std::span<element_t, element_count> VECTORCALL view_data(vector_t &vec) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE static std::span<element_t, element_count> VECTORCALL view_data(vector_t &vec) noexcept
 	{
 		return std::span<element_t, element_count>{register_data<element_t>(vec), element_count};
 	}
 
-	SIMDLIB_FORCE_INLINE static std::span<const element_t, element_count> VECTORCALL view_data(const vector_t &vec) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE static std::span<const element_t, element_count> VECTORCALL view_data(const vector_t &vec) noexcept
 	{
 		return std::span<const element_t, element_count>{register_data<element_t>(vec), element_count};
 	}
@@ -4797,7 +4825,7 @@ template <class element_t> struct SimdMappings<256, element_t> : public SimdImpl
 	 * @param ptr Source containing at least 32 accessible bytes.
 	 * @return Native register preserving every source bit.
 	 */
-	SIMDLIB_FORCE_INLINE static vector_t VECTORCALL load_bytes(const void *ptr) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static vector_t VECTORCALL load_bytes(const void *ptr) noexcept
 	{
 		const int_vector_t bits = _mm256_loadu_si256(reinterpret_cast<const int_vector_t *>(ptr));
 		if constexpr (std::is_integral_v<element_t>)
@@ -4809,14 +4837,14 @@ template <class element_t> struct SimdMappings<256, element_t> : public SimdImpl
 	}
 
 	/// <summary>Loads a full register from memory. Pointer must be appropriately aligned for the register width.</summary>
-	SIMDLIB_FORCE_INLINE static int_vector_t VECTORCALL load(const element_t *ptr) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static int_vector_t VECTORCALL load(const element_t *ptr) noexcept
 		requires std::is_integral_v<element_t>
 	{
 		return _mm256_load_si256(reinterpret_cast<const int_vector_t *>(ptr));
 	}
 
 	/// <summary>Loads a full register from memory without requiring alignment.</summary>
-	SIMDLIB_FORCE_INLINE static int_vector_t VECTORCALL load_unaligned(const element_t *ptr) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static int_vector_t VECTORCALL load_unaligned(const element_t *ptr) noexcept
 		requires std::is_integral_v<element_t>
 	{
 		return _mm256_loadu_si256(reinterpret_cast<const int_vector_t *>(ptr));
@@ -4827,7 +4855,7 @@ template <class element_t> struct SimdMappings<256, element_t> : public SimdImpl
 	/// For 256-bit registers this loads the low 128-bit lane and clears the high lane.
 	/// Intended for safe tail handling without over-reading past the end of a buffer.
 	/// </summary>
-	SIMDLIB_FORCE_INLINE static int_vector_t VECTORCALL load_half(const element_t *ptr) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static int_vector_t VECTORCALL load_half(const element_t *ptr) noexcept
 		requires std::is_integral_v<element_t>
 	{
 		const __m128i lo = _mm_loadu_si128(reinterpret_cast<const __m128i *>(ptr));
@@ -4835,7 +4863,7 @@ template <class element_t> struct SimdMappings<256, element_t> : public SimdImpl
 	}
 
 	/// <summary>Loads a full register from memory. Pointer must be appropriately aligned for the register width.</summary>
-	SIMDLIB_FORCE_INLINE static vector_t VECTORCALL load(const element_t *ptr) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static vector_t VECTORCALL load(const element_t *ptr) noexcept
 		requires std::is_floating_point_v<element_t>
 	{
 		if constexpr (std::is_same_v<element_t, float>)
@@ -4845,7 +4873,7 @@ template <class element_t> struct SimdMappings<256, element_t> : public SimdImpl
 	}
 
 	/// <summary>Loads a full register from memory without requiring alignment.</summary>
-	SIMDLIB_FORCE_INLINE static vector_t VECTORCALL load_unaligned(const element_t *ptr) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static vector_t VECTORCALL load_unaligned(const element_t *ptr) noexcept
 		requires std::is_floating_point_v<element_t>
 	{
 		if constexpr (std::is_same_v<element_t, float>)
@@ -4857,14 +4885,14 @@ template <class element_t> struct SimdMappings<256, element_t> : public SimdImpl
 
 #pragma region Store
 	/// <summary>Stores a full register to memory. Pointer must be appropriately aligned for the register width.</summary>
-	SIMDLIB_FORCE_INLINE static void VECTORCALL store(int_vector_t lhs, void *ptr) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE static void VECTORCALL store(int_vector_t lhs, void *ptr) noexcept
 		requires std::is_integral_v<element_t>
 	{
 		_mm256_store_si256(reinterpret_cast<int_vector_t *>(ptr), lhs);
 	}
 
 	/// <summary>Stores a full register to memory without requiring alignment.</summary>
-	SIMDLIB_FORCE_INLINE static void VECTORCALL store_unaligned(int_vector_t lhs, void *ptr) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE static void VECTORCALL store_unaligned(int_vector_t lhs, void *ptr) noexcept
 		requires std::is_integral_v<element_t>
 	{
 		_mm256_storeu_si256(reinterpret_cast<int_vector_t *>(ptr), lhs);
@@ -4875,7 +4903,7 @@ template <class element_t> struct SimdMappings<256, element_t> : public SimdImpl
 	/// For 256-bit registers this stores only the low 128-bit lane.
 	/// Intended for safe tail handling without over-writing past the end of a buffer.
 	/// </summary>
-	SIMDLIB_FORCE_INLINE static void VECTORCALL store_half(int_vector_t lhs, void *ptr) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE static void VECTORCALL store_half(int_vector_t lhs, void *ptr) noexcept
 		requires std::is_integral_v<element_t>
 	{
 		const __m128i lo = _mm256_castsi256_si128(lhs);
@@ -4883,7 +4911,7 @@ template <class element_t> struct SimdMappings<256, element_t> : public SimdImpl
 	}
 
 	/// <summary>Stores a full register to memory. Pointer must be appropriately aligned for the register width.</summary>
-	SIMDLIB_FORCE_INLINE static void VECTORCALL store(vector_t lhs, void *ptr) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE static void VECTORCALL store(vector_t lhs, void *ptr) noexcept
 		requires std::is_floating_point_v<element_t>
 	{
 		if constexpr (std::is_same_v<element_t, float>)
@@ -4893,7 +4921,7 @@ template <class element_t> struct SimdMappings<256, element_t> : public SimdImpl
 	}
 
 	/// <summary>Stores a full register to memory without requiring alignment.</summary>
-	SIMDLIB_FORCE_INLINE static void VECTORCALL store_unaligned(vector_t lhs, void *ptr) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE static void VECTORCALL store_unaligned(vector_t lhs, void *ptr) noexcept
 		requires std::is_floating_point_v<element_t>
 	{
 		if constexpr (std::is_same_v<element_t, float>)
@@ -4911,7 +4939,7 @@ template <class element_t> struct SimdMappings<256, element_t> : public SimdImpl
 	 * @param rhs The second register.
 	 * @return The resulting mapped register.
 	 */
-	SIMDLIB_FORCE_INLINE static vector_t VECTORCALL bitwise_and(vector_t lhs, vector_t rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static vector_t VECTORCALL bitwise_and(vector_t lhs, vector_t rhs) noexcept
 	{
 		if constexpr (std::is_integral_v<element_t>)
 			return _mm256_and_si256(lhs, rhs);
@@ -4927,7 +4955,7 @@ template <class element_t> struct SimdMappings<256, element_t> : public SimdImpl
 	 * @param rhs The second register.
 	 * @return The resulting mapped register.
 	 */
-	SIMDLIB_FORCE_INLINE static vector_t VECTORCALL bitwise_or(vector_t lhs, vector_t rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static vector_t VECTORCALL bitwise_or(vector_t lhs, vector_t rhs) noexcept
 	{
 		if constexpr (std::is_integral_v<element_t>)
 			return _mm256_or_si256(lhs, rhs);
@@ -4943,7 +4971,7 @@ template <class element_t> struct SimdMappings<256, element_t> : public SimdImpl
 	 * @param rhs The second register.
 	 * @return The resulting mapped register.
 	 */
-	SIMDLIB_FORCE_INLINE static vector_t VECTORCALL bitwise_xor(vector_t lhs, vector_t rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static vector_t VECTORCALL bitwise_xor(vector_t lhs, vector_t rhs) noexcept
 	{
 		if constexpr (std::is_integral_v<element_t>)
 			return _mm256_xor_si256(lhs, rhs);
@@ -4959,7 +4987,7 @@ template <class element_t> struct SimdMappings<256, element_t> : public SimdImpl
 	 * @param rhs The register to combine with the complement.
 	 * @return The resulting mapped register.
 	 */
-	SIMDLIB_FORCE_INLINE static vector_t VECTORCALL bitwise_andnot(vector_t lhs, vector_t rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static vector_t VECTORCALL bitwise_andnot(vector_t lhs, vector_t rhs) noexcept
 	{
 		if constexpr (std::is_integral_v<element_t>)
 			return _mm256_andnot_si256(lhs, rhs);
@@ -4974,7 +5002,7 @@ template <class element_t> struct SimdMappings<256, element_t> : public SimdImpl
 	 * @param lhs The source register.
 	 * @return The resulting mapped register.
 	 */
-	SIMDLIB_FORCE_INLINE static vector_t VECTORCALL bitwise_not(vector_t lhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static vector_t VECTORCALL bitwise_not(vector_t lhs) noexcept
 	{
 		if constexpr (std::is_integral_v<element_t>)
 			return _mm256_xor_si256(lhs, _mm256_cmpeq_epi32(_mm256_setzero_si256(), _mm256_setzero_si256()));
@@ -4986,7 +5014,7 @@ template <class element_t> struct SimdMappings<256, element_t> : public SimdImpl
 #pragma endregion
 
 #pragma region Arithmetic Operations
-	SIMDLIB_FORCE_INLINE static int_vector_t VECTORCALL negate(int_vector_t lhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static int_vector_t VECTORCALL negate(int_vector_t lhs) noexcept
 		requires std::is_integral_v<element_t>
 	{
 		if constexpr (sizeof(element_t) == 8)
@@ -4999,7 +5027,7 @@ template <class element_t> struct SimdMappings<256, element_t> : public SimdImpl
 			return _mm256_sub_epi8(_mm256_setzero_si256(), lhs);
 	}
 
-	SIMDLIB_FORCE_INLINE static vector_t VECTORCALL negate(vector_t lhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static vector_t VECTORCALL negate(vector_t lhs) noexcept
 		requires std::is_floating_point_v<element_t>
 	{
 		if constexpr (std::same_as<element_t, float>)
@@ -5011,7 +5039,7 @@ template <class element_t> struct SimdMappings<256, element_t> : public SimdImpl
 
 #pragma region Shuffling
 	/// <summary> Shuffles the 32-bit integers in the vector using the specified control mask. </summary>
-	SIMDLIB_FORCE_INLINE static int_vector_t VECTORCALL shuffle_32(int_vector_t lhs, std::uint32_t imm8) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static int_vector_t VECTORCALL shuffle_32(int_vector_t lhs, std::uint32_t imm8) noexcept
 		requires std::is_integral_v<element_t>
 	{
 		return register_shuffle_32(lhs, imm8);
@@ -5019,14 +5047,14 @@ template <class element_t> struct SimdMappings<256, element_t> : public SimdImpl
 
 	/// <summary> Shuffles the 32-bit integers in the vector using a compile-time control mask. </summary>
 	template <std::uint32_t imm8>
-	SIMDLIB_FORCE_INLINE static int_vector_t VECTORCALL shuffle_32(int_vector_t lhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static int_vector_t VECTORCALL shuffle_32(int_vector_t lhs) noexcept
 		requires std::is_integral_v<element_t>
 	{
 		return _mm256_shuffle_epi32(lhs, imm8);
 	}
 
 	/// <summary> Shuffles the bytes in the vector using the indexes in the second vector. </summary>
-	SIMDLIB_FORCE_INLINE static int_vector_t VECTORCALL shuffle(int_vector_t lhs, int_vector_t rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static int_vector_t VECTORCALL shuffle(int_vector_t lhs, int_vector_t rhs) noexcept
 		requires std::is_integral_v<element_t>
 	{
 		return _mm256_shuffle_epi8(lhs, rhs);
@@ -5035,7 +5063,7 @@ template <class element_t> struct SimdMappings<256, element_t> : public SimdImpl
 	/// <summary> Shuffles the bytes in the vector using the templated index sequence. </summary>
 	template <std::size_t... indices>
 		requires(sizeof...(indices) == 32)
-	SIMDLIB_FORCE_INLINE static int_vector_t VECTORCALL shuffle(int_vector_t lhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static int_vector_t VECTORCALL shuffle(int_vector_t lhs) noexcept
 	{
 		// A constexpr register initializer was intentionally replaced by the portable runtime intrinsic.
 		// The active compiler-independent constexpr register construction lives in Detail::register_from_values.
@@ -5045,7 +5073,7 @@ template <class element_t> struct SimdMappings<256, element_t> : public SimdImpl
 
 #pragma region Miscellaneous Operations
 	/// <summary> Returns a mask of the most significant BIT of each BYTE in each element. </summary>
-	SIMDLIB_FORCE_INLINE static mask_t VECTORCALL movemask(const vector_t lhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static mask_t VECTORCALL movemask(const vector_t lhs) noexcept
 	{
 		if constexpr (std::is_integral_v<element_t>)
 			return _mm256_movemask_epi8(lhs);
@@ -5056,7 +5084,7 @@ template <class element_t> struct SimdMappings<256, element_t> : public SimdImpl
 	}
 
 	/// <summary> Returns a mask of the most significant BIT of each element. </summary>
-	SIMDLIB_FORCE_INLINE static mask_t VECTORCALL movemask_slim(const vector_t lhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static mask_t VECTORCALL movemask_slim(const vector_t lhs) noexcept
 	{
 		if constexpr (std::is_integral_v<element_t>)
 		{
@@ -5092,14 +5120,14 @@ template <class element_t> struct SimdMappings<256, element_t> : public SimdImpl
 
 	/// <summary> Compute the bitwise AND of 256 bits (representing integer data) in a and b, and set ZF to 1 if the result is zero, otherwise set ZF to 0.
 	/// Compute the bitwise NOT of a and then AND with b, and set CF to 1 if the result is zero, otherwise set CF to 0. Return the CF value. </summary>
-	SIMDLIB_FORCE_INLINE static int VECTORCALL test(int_vector_t lhs, int_vector_t rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static int VECTORCALL test(int_vector_t lhs, int_vector_t rhs) noexcept
 	{
 		return _mm256_testc_si256(lhs, rhs);
 	}
 
 	/// <summary> Compute the bitwise AND of 256 bits (representing integer data) in a and b, and set ZF to 1 if the result is zero, otherwise set ZF to 0.
 	/// Compute the bitwise NOT of a and then AND with b, and set CF to 1 if the result is zero, otherwise set CF to 0. Return the ZF value. </summary>
-	SIMDLIB_FORCE_INLINE static int VECTORCALL testz(int_vector_t lhs, int_vector_t rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static int VECTORCALL testz(int_vector_t lhs, int_vector_t rhs) noexcept
 	{
 		return _mm256_testz_si256(lhs, rhs);
 	}
@@ -5107,7 +5135,7 @@ template <class element_t> struct SimdMappings<256, element_t> : public SimdImpl
 	/// <summary> Compute the bitwise AND of 256 bits (representing integer data) in a and b, and set ZF to 1 if the result is zero, otherwise set ZF to 0.
 	/// Compute the bitwise NOT of a and then AND with b, and set CF to 1 if the result is zero, otherwise set CF to 0. Return 1 if both the ZF and CF values
 	/// are zero, otherwise return 0. </summary>
-	SIMDLIB_FORCE_INLINE static int VECTORCALL testnzc(int_vector_t lhs, int_vector_t rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static int VECTORCALL testnzc(int_vector_t lhs, int_vector_t rhs) noexcept
 	{
 		return _mm256_testnzc_si256(lhs, rhs);
 	}
@@ -5140,7 +5168,7 @@ template <class element_t> struct SimdMappings<256, element_t> : public SimdImpl
 	}
 
 	/// <summary> Swizzle the vector to only contain the most significant bit of each byte. </summary>
-	SIMDLIB_FORCE_INLINE static int_vector_t VECTORCALL swizzle_msb(int_vector_t lhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static int_vector_t VECTORCALL swizzle_msb(int_vector_t lhs) noexcept
 	{
 		return shuffle(lhs, get_msb_swizzle_order());
 	}
