@@ -2154,6 +2154,6 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
  */
 template <class element_t>
 	requires ApiAvailable<128, element_t>
-using NativeApi = Api<is_api_available_v<256, element_t> ? 256 : 128, element_t>;
+using NativeApi = Api<(is_api_available_v<256, element_t> ? 256 : 128), element_t>;
 
 } // namespace SimdLib

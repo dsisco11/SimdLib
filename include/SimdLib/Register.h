@@ -898,6 +898,6 @@ RegisterMask<element_t, register_bits>::select(this RegisterMask condition, regi
  */
 template <class element_t>
 	requires RegisterAvailable<element_t, 128>
-using NativeRegister = Register<element_t, is_register_available_v<element_t, 256> ? 256 : 128>;
+using NativeRegister = Register<element_t, (is_register_available_v<element_t, 256> ? 256 : 128)>;
 
 } // namespace SimdLib
