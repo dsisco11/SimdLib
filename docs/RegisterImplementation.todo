@@ -176,16 +176,17 @@ SimdLib Register Implementation Plan:
       Evidence: `include/SimdLib/Register.h`, `include/SimdLib/Api.h`, and `include/SimdLib/Detail/Implementations.h` define the constrained register-only surface, constexpr semantics, and intrinsic runtime mappings. `tests/RegisterRearrangementConversion.tests.cpp`, `tests/constexpr/RegisterConstexpr.tests.cpp`, and the rearrangement compile-failure probes independently cover logical lane order, 128-bit grouping, selector and immediate domains, bit preservation, numeric conversion boundaries, low-lane widening consumption, and excluded compatibility operations. `tests/codegen/RegisterRearrangementCodegenFixture.h` enumerates every supported source, destination, element, and width shape for exact wrapper-versus-raw comparison under the register code-generation gates, including strong stack protection on GNU-like compilers.
 
   Phase 9 - Complete the Operation and Constraint Matrix:
-    ☐ Implement any remaining register-local operation in the proposal ledger that was not completed in Phases 4-8.
-    ☐ Re-audit every current public `Api` declaration and mark it implemented on Register, intentionally compatibility-only, internal-only, or collection-owned.
-    ☐ Verify each Register method uses a `requires` clause or concept that removes unsupported type/width/feature combinations before entering the implementation body.
-    ☐ Verify all Register-facing traits, aliases, concepts, examples, and diagnostics use `<T, Bits>` ordering even when delegating internally to `Api<Bits, T>`.
-    ☐ Verify every class and method has complete Doxygen documentation covering parameters, return values, template parameters, preconditions, intrinsic semantics, lane ordering, and availability where applicable.
-    ☐ Verify no public Register declaration leaks `SimdLib::Detail`, inherited backend members, raw result types, or implementation-specific selector signatures.
-    ☐ Verify no operation silently discards active lanes except the explicitly named and documented `widen_low()` contract.
-    ☐ Verify unsupported partial, unsafe, scalar, native-order, runtime-selector, and collection operations are absent through compile-failure probes rather than merely undocumented.
-    ☐ Extend the public-operation/type/width matrix with runtime, constexpr, constraint, code-generation, and ABI evidence links for every supported cell.
-    ☐ End Phase 9 only when the proposal ledger and implementation matrix agree with no unclassified `Api` operation or untested public Register declaration.
+    ☒ Implement any remaining register-local operation in the proposal ledger that was not completed in Phases 4-8.
+    ☒ Re-audit every current public `Api` declaration and mark it implemented on Register, intentionally compatibility-only, internal-only, or collection-owned.
+    ☒ Verify each Register method uses a `requires` clause or concept that removes unsupported type/width/feature combinations before entering the implementation body.
+    ☒ Verify all Register-facing traits, aliases, concepts, examples, and diagnostics use `<T, Bits>` ordering even when delegating internally to `Api<Bits, T>`.
+    ☒ Verify every class and method has complete Doxygen documentation covering parameters, return values, template parameters, preconditions, intrinsic semantics, lane ordering, and availability where applicable.
+    ☒ Verify no public Register declaration leaks `SimdLib::Detail`, inherited backend members, raw result types, or implementation-specific selector signatures.
+    ☒ Verify no operation silently discards active lanes except the explicitly named and documented `widen_low()` contract.
+    ☒ Verify unsupported partial, unsafe, scalar, native-order, runtime-selector, and collection operations are absent through compile-failure probes rather than merely undocumented.
+    ☒ Extend the public-operation/type/width matrix with runtime, constexpr, constraint, code-generation, and ABI evidence links for every supported cell.
+    ☒ End Phase 9 only when the proposal ledger and implementation matrix agree with no unclassified `Api` operation or untested public Register declaration.
+      Evidence: `docs/RegisterProposal.md` and `docs/RegisterImplementationMatrix.md` classify the complete public `Api` operation inventory and link every Register family to its runtime, constexpr, constraint, code-generation, and ABI evidence. `include/SimdLib/IRegister.h`, `include/SimdLib/IRegisterMask.h`, `include/SimdLib/Register.h`, `include/SimdLib/RegisterMask.h`, and `include/SimdLib/RegisterFwd.h` define the constrained, documented public boundary without implementation-detail dependencies. `tests/RegisterOperationMatrix.tests.cpp` exhaustively instantiates the type, width, operation, conversion, widening, and mask availability matrix, while the register compile-failure probes mechanically exclude compatibility-only, partial, unsafe, scalar, native-order, runtime-selector, and collection operations.
 
   Phase 10 - Qualify Correctness, Constexpr, Preconditions, ABI, and Performance:
     ☐ Run runtime parity against independent scalar references and use `Api` only as an additional migration oracle so both interfaces cannot agree on the same defect unnoticed.
@@ -229,6 +230,6 @@ SimdLib Register Implementation Plan:
     ☒ Phase 6 basic arithmetic, bitwise, disabled-compound-surface, shift-boundary, oracle, and generated-code evidence recorded.
     ☒ Phase 7 specialized arithmetic, reduction, result-alias, feature-profile, oracle, and generated-code evidence recorded.
     ☒ Phase 8 rearrangement, selector, conversion, width-change, compile-failure, lane-order, and generated-code evidence recorded.
-    ☐ Phase 9 final operation matrix, Doxygen audit, public-boundary audit, and compatibility-only classifications recorded.
+    ☒ Phase 9 final operation matrix, Doxygen audit, public-boundary audit, and compatibility-only classifications recorded.
     ☐ Phase 10 complete correctness, constexpr, precondition, sanitizer, optimized code-generation, ABI, and exception ledger recorded.
     ☐ Phase 11 umbrella exposure, migration, documentation, full compiler/configuration matrix, and close-out evidence recorded in `docs/Validation.md`.

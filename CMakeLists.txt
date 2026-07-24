@@ -248,6 +248,7 @@ if(SIMDLIB_BUILD_HEADER_TESTS)
         IApi
         IImpl
         IRegister
+        IRegisterMask
         Api
         SimdApi
         SimdVector
@@ -336,7 +337,8 @@ if(SIMDLIB_BUILD_CONFIGURATION_TESTS)
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/RegisterInvalidRearrangementImmediate.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/RegisterUnsupportedConversionTarget.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/RegisterUnavailableWidthChange.cpp
-		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/RegisterCompatibilityRearrangement.cpp)
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/RegisterCompatibilityRearrangement.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/RegisterCollectionOperations.cpp)
 
 	simdlib_add_language_probe(SimdLibRegisterCxx20UmbrellaProbe
 		tests/availability/RegisterCxx20UmbrellaProbe.cpp 20 SimdLib::SimdLib)
@@ -406,6 +408,9 @@ if(SIMDLIB_BUILD_CONFIGURATION_TESTS)
 		simdlib_expect_language_probe_failure(RegisterCompatibilityRearrangementFailure
 			tests/compile_fail/register/RegisterCompatibilityRearrangement.cpp 23
 			SIMDLIB_REGISTER_REJECTS_COMPATIBILITY_REARRANGEMENT)
+		simdlib_expect_language_probe_failure(RegisterCollectionOperationsFailure
+			tests/compile_fail/register/RegisterCollectionOperations.cpp 23
+			SIMDLIB_REGISTER_REJECTS_COLLECTION_OPERATIONS)
 		if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
 			simdlib_add_language_probe(SimdLibRegisterMsvcFallbackProbe
 				tests/availability/RegisterMsvcFallbackProbe.cpp 23 SimdLib::Register)
@@ -895,7 +900,8 @@ if(SIMDLIB_BUILD_TESTS)
 		target_sources(SimdLibTestsRegister PRIVATE
 			tests/RegisterBasicOperations.tests.cpp
 			tests/RegisterSpecializedOperations.tests.cpp
-			tests/RegisterRearrangementConversion.tests.cpp)
+			tests/RegisterRearrangementConversion.tests.cpp
+			tests/RegisterOperationMatrix.tests.cpp)
 		target_link_libraries(SimdLibTestsRegister PRIVATE SimdLib::Register)
 		if(SIMDLIB_MSVC_STYLE_DRIVER)
 			target_compile_options(SimdLibTestsRegister PRIVATE /arch:AVX2)

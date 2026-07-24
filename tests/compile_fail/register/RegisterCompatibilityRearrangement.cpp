@@ -22,5 +22,14 @@ concept has_expand = requires(value_t value) { value.expand(value); };
 template <class value_t>
 concept has_compress = requires(value_t value) { value.compress(value); };
 
-static_assert(has_runtime_extract<register_type> || has_generic_shuffle<register_type> || has_expand<register_type> || has_compress<register_type>,
+/** @brief Reports whether implementation-specific generic insertion leaks into the preferred Register surface. */
+template <class value_t>
+concept has_generic_insert = requires(value_t value) { value.insert(value); };
+
+/** @brief Reports whether complementary-type conversion inference leaks into the preferred Register surface. */
+template <class value_t>
+concept has_inferred_convert = requires(value_t value) { value.convert(); };
+
+static_assert(has_runtime_extract<register_type> || has_generic_shuffle<register_type> || has_expand<register_type> || has_compress<register_type> ||
+				  has_generic_insert<register_type> || has_inferred_convert<register_type>,
 			  "SIMDLIB_REGISTER_REJECTS_COMPATIBILITY_REARRANGEMENT");

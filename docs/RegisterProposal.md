@@ -863,7 +863,8 @@ the explicit-object surface by generated-code and ABI tests.
 | `store` to element span | `value.store(fixed_span)` | Canonical potentially unaligned full store |
 | `store_aligned` | `value.store_aligned(fixed_span)` | Retained with alignment precondition |
 | `store_unaligned` | `value.store(fixed_span)` | Redundant spelling omitted |
-| `store` to byte span | `value.store_bytes(fixed_byte_span)` | Renamed to make bit-pattern transfer explicit |
+| `store` to fixed byte span | `value.store_bytes(fixed_byte_span)` | Renamed to make bit-pattern transfer explicit |
+| `store` to dynamic byte span | None | Dynamic-extent transfer remains compatibility-only on `Api` |
 | Fixed-byte `load` | `Register::load_bytes(fixed_byte_span)` | Symmetric bit-pattern transfer |
 | `construct(array)` | `Register::from_array(array)` | Static factory; no ambiguous storage constructor |
 | `to_array` | `value.to_array()` | Retained as a value conversion |
@@ -872,7 +873,6 @@ the explicit-object surface by generated-code and ABI tests.
 | `setr` | `Register::from_lanes(...)` | Requires exactly `lane_count` logical-order values |
 | `set` | None | Native intrinsic argument order remains compatibility-only |
 | `set_partial`, `setr_partial` | None | No partial or automatically filled lanes |
-| `FinishIntegerMagnitudeFromPairSums` | None | Implementation helper; must not be copied to `Register` |
 
 ### Arithmetic and reduction ledger
 
@@ -937,12 +937,13 @@ formed mechanically.
 | `bitwise_xor` | `lhs ^ rhs` | Same register type |
 | `bitwise_not` | `~value` | Same register type |
 | `bitwise_andnot` | `lhs.andnot(rhs)` | Same register type with existing operand polarity |
+| `select` | `mask.select(when_true, when_false)` | Same Register type; canonical predicate remains Register-shaped |
 | `movemask` | `value.movemask()` | Scalar mask with the selected intrinsic's native granularity |
 | `movemask_slim` | `value.lane_sign_bits()` | Scalar mask with one bit per lane |
 | `compare_equal`, `compare_greater`, `compare_greater_equal`, `compare_less`, `compare_less_equal` | Corresponding named comparison | `RegisterMask<T, Bits>` preserving native predicates |
-| `cmp_*_mask` | No compact-mask Register counterpart | Byte-granular legacy-compatible scalar mask |
-| `cmp_*_slim` | Corresponding named comparison followed by `.bits()` | One compact bit per lane |
-| Deprecated `cmp_eq`, `cmp_gt`, `cmp_ge`, `cmp_lt`, `cmp_le` | Corresponding `cmp_*_mask` method | Byte-granular compatibility spelling |
+| `cmp_eq_mask`, `cmp_gt_mask`, `cmp_ge_mask`, `cmp_lt_mask`, `cmp_le_mask` | No compact-mask Register counterpart | Byte-granular legacy-compatible scalar mask |
+| `cmp_eq_slim`, `cmp_gt_slim`, `cmp_ge_slim`, `cmp_lt_slim`, `cmp_le_slim` | Corresponding named comparison followed by `.bits()` | One compact bit per lane |
+| Deprecated `cmp_eq`, `cmp_gt`, `cmp_ge`, `cmp_lt`, `cmp_le` | Corresponding explicitly named `cmp_*_mask` method | Byte-granular compatibility spelling |
 
 The legacy scalar comparison-mask layout is not uniform across integral and
 floating backends. `mask.bits()` deliberately normalizes it to one bit
@@ -966,7 +967,8 @@ requires an explicit integer reinterpretation followed by integer comparison.
 | `extract<index>` | `value.lane<index>()` | Compile-time logical lane extraction |
 | Runtime `extract` | None initially | Implementation-specific selector remains compatibility-only |
 | `lower_half` | `value.lower_half()` | Returns `Register<T, 128>` from a 256-bit source |
-| `insert` | `value.with_lane<index>(lane)` | Compile-time logical lane replacement |
+| `insert<index>` | `value.with_lane<index>(lane)` | Compile-time logical lane replacement |
+| Generic `insert(args...)` | None initially | Implementation-specific signature remains compatibility-only |
 | `unpack_lo` | `lhs.unpack_low(rhs)` | Wrapped backend result |
 | `unpack_hi` | `lhs.unpack_high(rhs)` | Wrapped backend result |
 | `shuffle<indices...>` | `value.shuffle<indices...>()` | Compile-time logical selector |
@@ -988,9 +990,11 @@ requires an explicit integer reinterpretation followed by integer comparison.
 | Compile-time `bit_shift_left` | `value.bit_shift_left<count>()` | Complete 128-bit bit-string shift |
 | Runtime `bit_shift_right` | `value.bit_shift_right(count)` | Complete 128-bit bit-string shift |
 | Compile-time `bit_shift_right` | `value.bit_shift_right<count>()` | Complete 128-bit bit-string shift |
+| `bit_cast` | `value.bit_cast<target_t>()` | Full-width bit-preserving reinterpretation |
 | `convert_to_float` | `value.convert<float>()` | `Register<float, Bits>` from supported 32-bit integer lanes |
 | `convert_to_int` | `value.convert<std::int32_t>()` | `Register<std::int32_t, Bits>` from float lanes |
-| `convert` | `value.convert<target_t>()` | Explicit target type; no complementary-type inference |
+| Explicit-target `convert<target_t>` | `value.convert<target_t>()` | Explicit target type |
+| Inferred-target `convert` | None | Complementary-type inference remains compatibility-only on `Api` |
 
 `operator>>` is available only when it has one unambiguous hardware meaning.
 Unsigned lanes use the logical shift. Signed lanes use the arithmetic shift.

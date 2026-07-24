@@ -115,7 +115,8 @@ rows are verified absent from the preferred surface in Phase 9.
 | Element `store` | `value.store(fixed_span)` | Phase 4 |
 | `store_aligned` | `value.store_aligned(fixed_span)` | Phase 4 |
 | `store_unaligned` | Canonicalized to `value.store(fixed_span)` | Phase 4 |
-| Byte `store` | `value.store_bytes(fixed_byte_span)` | Phase 4 |
+| Fixed-byte `store` | `value.store_bytes(fixed_byte_span)` | Phase 4 |
+| Dynamic-byte `store` | No Register operation | Compatibility |
 | Fixed-byte `load` | `Register::load_bytes(fixed_byte_span)` | Phase 4 |
 | `construct(array)` | `Register::from_array(array)` | Phase 4 |
 | `to_array` | `value.to_array()` | Phase 4 |
@@ -158,17 +159,19 @@ rows are verified absent from the preferred surface in Phase 9.
 | `bitwise_xor` | `lhs ^ rhs` | Phase 6 |
 | `bitwise_not` | `~value` | Phase 6 |
 | `bitwise_andnot` | `lhs.andnot(rhs)` with preserved polarity | Phase 6 |
+| `select` | `mask.select(when_true, when_false)` | Phase 5 |
 | `movemask` | `value.movemask()` with intrinsic-native granularity | Phase 6 |
 | `movemask_slim` | `value.lane_sign_bits()` with one bit per lane | Phase 6 |
 | `compare_equal`, `compare_greater`, `compare_greater_equal`, `compare_less`, `compare_less_equal` | Corresponding named comparison | Phase 5 |
-| `cmp_*_mask` | No compact-mask Register counterpart | Compatibility |
-| `cmp_*_slim` | Corresponding named comparison followed by `.bits()` | Phase 5 |
-| Deprecated `cmp_eq`, `cmp_gt`, `cmp_ge`, `cmp_lt`, `cmp_le` | Corresponding `cmp_*_mask` method | Compatibility |
+| `cmp_eq_mask`, `cmp_gt_mask`, `cmp_ge_mask`, `cmp_lt_mask`, `cmp_le_mask` | No compact-mask Register counterpart | Compatibility |
+| `cmp_eq_slim`, `cmp_gt_slim`, `cmp_ge_slim`, `cmp_lt_slim`, `cmp_le_slim` | Corresponding named comparison followed by `.bits()` | Phase 5 |
+| Deprecated `cmp_eq`, `cmp_gt`, `cmp_ge`, `cmp_lt`, `cmp_le` | Corresponding explicitly named `cmp_*_mask` method | Compatibility |
 | `expand`, `compress` | No Register operation | Compatibility |
 | `extract<index>` | `value.lane<index>()` | Phase 4 |
 | Runtime `extract` | No initial Register operation | Compatibility |
 | `lower_half` | `value.lower_half()` | Phase 8 |
-| `insert` | `value.with_lane<index>(lane)` | Phase 4 |
+| `insert<index>` | `value.with_lane<index>(lane)` | Phase 4 |
+| Generic `insert(args...)` | No initial Register operation | Compatibility |
 | `unpack_lo` | `lhs.unpack_low(rhs)` | Phase 8 |
 | `unpack_hi` | `lhs.unpack_high(rhs)` | Phase 8 |
 | `shuffle<indices...>` | `value.shuffle<indices...>()` | Phase 8 |
@@ -185,26 +188,73 @@ rows are verified absent from the preferred surface in Phase 9.
 | Compile-time `bit_shift_left` | `value.bit_shift_left<count>()` | Phase 6 |
 | Runtime `bit_shift_right` | `value.bit_shift_right(count)` | Phase 6 |
 | Compile-time `bit_shift_right` | `value.bit_shift_right<count>()` | Phase 6 |
+| `bit_cast` | `value.bit_cast<target_t>()` | Phase 8 |
 | `convert_to_float` | `value.convert<float>()` | Phase 8 |
 | `convert_to_int` | `value.convert<int32_t>()` | Phase 8 |
-| `convert` | `value.convert<target_t>()` | Phase 8 |
+| Explicit-target `convert<target_t>` | `value.convert<target_t>()` | Phase 8 |
+| Inferred-target `convert` | No Register operation | Compatibility |
 | `transform_pack` | No Register operation | Collection |
 | Unary and binary span `transform` overloads | No Register operation | Collection |
-| `FinishIntegerMagnitudeFromPairSums` | No Register operation | Internal |
 | `TransformForMaxPosition` | No Register operation | Internal |
 | `compare_each_element` | Internal comparison fallback only | Internal |
 
 ### Inventory audit
 
-A declaration audit of `include/SimdLib/Api.h` found 76 unique public or
-documented internal static-operation names declared with the SimdLib inline
-surface. Every name appears in the matrix above. The six operations exposed
-through inherited `using impl::...` declarations—`add`, `divide`, `max`, `min`,
-`multiply`, and `subtract`—also appear explicitly. Overloaded `load`, `store`,
-`extract`, `shuffle`, `bit_shift_*`, and span `transform` families are split or
-collapsed only where their Register disposition is identical. Phase 9 repeats
-this mechanical audit against the then-current `Api.h` so later additions cannot
-escape classification.
+A Clang AST declaration audit of `include/SimdLib/Api.h` identifies 92 unique
+public static-operation names after excluding compiler-generated lambda call
+helpers. The six additional operations exposed through inherited
+`using impl::...` declarations—`add`, `divide`, `max`, `min`, `multiply`, and
+`subtract`—produce 98 unique public operation names. Every name is classified
+above. Overloaded `load`, `store`, `extract`, `insert`, `shuffle`,
+`shuffle_lo`, `shuffle_hi`, `blend`, `bit_shift_*`, `convert`, and span
+`transform` families are split whenever their Register dispositions differ.
+The protected `TransformForMaxPosition` and `compare_each_element` helpers are
+classified separately as internal operations.
+
+### Register evidence matrix
+
+The supported-cell oracle is executable rather than hand-maintained:
+`tests/RegisterOperationMatrix.tests.cpp` instantiates all ten element types at
+128 and 256 bits, compares every conditional `IRegister` concept against its
+`IApi` counterpart, verifies every unconditional `IRegister` and `IRegisterMask`
+declaration, and audits every source/target cell for `bit_cast`, `convert`, and
+`widen_low`. A supported cell is therefore exactly a cell accepted by that
+compile-time audit; no prose-only availability list can drift independently.
+
+| Public family | Runtime semantics | Constexpr semantics | Constraints and exclusions | Generated code | ABI |
+| --- | --- | --- | --- | --- | --- |
+| Construction, observation, and full-width transfer | [`Register.tests.cpp`](../tests/Register.tests.cpp) | [`RegisterConstexpr.tests.cpp`](../tests/constexpr/RegisterConstexpr.tests.cpp) | [`RegisterOperationMatrix.tests.cpp`](../tests/RegisterOperationMatrix.tests.cpp), [`RegisterDynamicTransfer.cpp`](../tests/compile_fail/register/RegisterDynamicTransfer.cpp), and the lane-list/native/scalar/uninitialized probes in [`tests/compile_fail/register`](../tests/compile_fail/register) | [`RegisterCodegenFixture.h`](../tests/codegen/RegisterCodegenFixture.h) | [`RegisterAbi.cpp`](../tests/codegen/RegisterAbi.cpp), [`RegisterAbiRaw.cpp`](../tests/codegen/RegisterAbiRaw.cpp), [`RegisterDefaultAbi.cpp`](../tests/codegen/RegisterDefaultAbi.cpp), and [`RegisterDefaultAbiRaw.cpp`](../tests/codegen/RegisterDefaultAbiRaw.cpp) |
+| RegisterMask, comparisons, reductions, and predicate selection | [`Register.tests.cpp`](../tests/Register.tests.cpp) | [`RegisterConstexpr.tests.cpp`](../tests/constexpr/RegisterConstexpr.tests.cpp) | [`RegisterOperationMatrix.tests.cpp`](../tests/RegisterOperationMatrix.tests.cpp) | [`RegisterCodegenFixture.h`](../tests/codegen/RegisterCodegenFixture.h) | Register and mask signatures in the paired ABI fixtures above |
+| Basic arithmetic, bitwise operations, compact masks, and shifts | [`RegisterBasicOperations.tests.cpp`](../tests/RegisterBasicOperations.tests.cpp) and [`RegisterPreconditionFailure.tests.cpp`](../tests/RegisterPreconditionFailure.tests.cpp) | [`RegisterConstexpr.tests.cpp`](../tests/constexpr/RegisterConstexpr.tests.cpp) for the Api-constexpr subset | [`RegisterOperationMatrix.tests.cpp`](../tests/RegisterOperationMatrix.tests.cpp) and [`RegisterPreconditionFailure.tests.cpp`](../tests/RegisterPreconditionFailure.tests.cpp) | [`RegisterCodegenFixture.h`](../tests/codegen/RegisterCodegenFixture.h) | Paired Register/native unary, binary, scalar-result, and mutating-signature ABI fixtures above |
+| Specialized arithmetic and reductions | [`RegisterSpecializedOperations.tests.cpp`](../tests/RegisterSpecializedOperations.tests.cpp) | Not a constant-evaluated `Api` surface unless a method is separately covered by the constexpr fixture | [`RegisterOperationMatrix.tests.cpp`](../tests/RegisterOperationMatrix.tests.cpp) | [`RegisterSpecializedCodegenFixture.h`](../tests/codegen/RegisterSpecializedCodegenFixture.h) | Type-changing and scalar-result signatures in the paired ABI fixtures above |
+| Rearrangement, immediate controls, and lower-half extraction | [`RegisterRearrangementConversion.tests.cpp`](../tests/RegisterRearrangementConversion.tests.cpp) | [`RegisterConstexpr.tests.cpp`](../tests/constexpr/RegisterConstexpr.tests.cpp) | [`RegisterOperationMatrix.tests.cpp`](../tests/RegisterOperationMatrix.tests.cpp) and the selector/immediate/compatibility probes in [`tests/compile_fail/register`](../tests/compile_fail/register) | [`RegisterRearrangementCodegenFixture.h`](../tests/codegen/RegisterRearrangementCodegenFixture.h) | Register/native return signatures in the paired ABI fixtures above |
+| Bit reinterpretation, numeric conversion, and explicit low-lane widening | [`RegisterRearrangementConversion.tests.cpp`](../tests/RegisterRearrangementConversion.tests.cpp) | [`RegisterConstexpr.tests.cpp`](../tests/constexpr/RegisterConstexpr.tests.cpp) | All source/target cells in [`RegisterOperationMatrix.tests.cpp`](../tests/RegisterOperationMatrix.tests.cpp), plus unsupported-target and unavailable-width probes in [`tests/compile_fail/register`](../tests/compile_fail/register) | [`RegisterRearrangementCodegenFixture.h`](../tests/codegen/RegisterRearrangementCodegenFixture.h) | Type-changing Register/native return signatures in the paired ABI fixtures above |
+| Compatibility-only partial, unsafe, scalar, native-order, runtime-selector, inferred-target, generic-selector, and collection operations | Not part of Register | Not part of Register | Dedicated compile-failure probes in [`tests/compile_fail/register`](../tests/compile_fail/register), including [`RegisterCollectionOperations.cpp`](../tests/compile_fail/register/RegisterCollectionOperations.cpp) | Not part of Register | Not part of Register |
+
+### Public-surface invariants
+
+- `Register<T, Bits>` and `RegisterMask<T, Bits>` are constrained at the class
+  boundary by `RegisterAvailable<T, Bits>`. Operations available for every
+  valid specialization inherit that constraint; conditional operations add an
+  `IApi` concept or an immediate/index/width constraint before the body.
+- Register-facing traits, concepts, aliases, examples, diagnostics, and result
+  types use `<T, Bits>` order. Only internal delegation uses `Api<Bits, T>`.
+- Public operation results are Register, RegisterMask, or documented scalar
+  types. Register has no base class, inherited backend members, public
+  implementation selector, or public `SimdLib::Detail` dependency.
+- All ordinary operations consume every active input lane. `widen_low()` names
+  and documents its consumed source prefix; `lower_half()` explicitly names its
+  lower-half result; sparse integer magnitude layouts document every defined
+  result lane and still consume every input lane.
+- Every production class and active method in `Register.h`, `RegisterMask.h`,
+  and `RegisterFwd.h` has a Doxygen contract. Conditional methods document
+  availability, selectors and lane-moving methods document logical order, and
+  preconditioned methods document their valid domains.
+- Partial and dynamic transfer, implicit scalar/native construction,
+  native-order construction, runtime extraction, generic implementation
+  selectors, inferred conversion targets, and collection algorithms are
+  rejected by the registered compile-failure sources under
+  `tests/compile_fail/register`.
 
 ## Precondition and selector matrix
 
@@ -246,8 +296,9 @@ the complete correctness, layout, ABI, and generated-code gates pass.
 | Evidence family | Planned source owner | Planned CMake/CTest owner |
 | --- | --- | --- |
 | Runtime Register correctness | `tests/Register.tests.cpp` | `SimdLibTestsRegister` |
-| Runtime mask/comparison correctness | `tests/RegisterMask.tests.cpp` | Register runtime targets, split by width/profile |
-| Shared independent scalar oracles | `tests/RegisterTestSupport.h` | Included only by public Register tests |
+| Runtime mask/comparison correctness | `tests/Register.tests.cpp` | `SimdLibTestsRegister` |
+| Complete public-surface and availability audit | `tests/RegisterOperationMatrix.tests.cpp` | `SimdLibTestsRegister` |
+| Shared independent scalar oracles | Focused helpers in each Register runtime test source | Included only by public Register tests |
 | Constexpr contracts | `tests/constexpr/RegisterConstexpr.tests.cpp` | `SimdLibRegisterConstexpr128`, `SimdLibRegisterConstexpr256` |
 | Availability and language modes | `tests/availability/Register*.cpp` | Compile-only Register availability targets |
 | Configuration fallback/exclusion | `tests/config/Register*.cpp` | Compile-only Register configuration targets |

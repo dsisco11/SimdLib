@@ -4,6 +4,7 @@
 #include <SimdLib/Bmi.h>
 #include <SimdLib/Config.h>
 #include <SimdLib/IRegister.h>
+#include <SimdLib/IRegisterMask.h>
 #include <SimdLib/SimdAlgo.h>
 #include <SimdLib/SimdApi.h>
 #include <SimdLib/SimdResample.h>

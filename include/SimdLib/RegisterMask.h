@@ -6,6 +6,7 @@
 #error "SIMDLIB_REGISTER_MASK_HEADER_REQUIRES_CXX23: <SimdLib/RegisterMask.h> requires C++23 explicit object parameter support"
 #endif
 
+#include <SimdLib/IRegisterMask.h>
 #include <SimdLib/RegisterFwd.h>
 
 #include <cstddef>
@@ -46,57 +47,109 @@ class RegisterMask final
 	 */
 	native_type native = api_type::setzero();
 
-	/** @brief Tests whether any predicate lane is true. */
+	/**
+	 * @brief Tests whether any predicate lane is true.
+	 * @param value Canonical predicate register to reduce.
+	 * @return `true` when at least
+	 * one logical predicate lane is all-one.
+	 */
 	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr bool VECTORCALL any(this RegisterMask value) noexcept
 	{
 		return value.bits() != 0;
 	}
 
-	/** @brief Tests whether every predicate lane is true. */
+	/**
+	 * @brief Tests whether every predicate lane is true.
+	 * @param value Canonical predicate register to reduce.
+	 * @return `true` when every
+	 * logical predicate lane is all-one.
+	 */
 	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr bool VECTORCALL all(this RegisterMask value) noexcept
 	{
 		return value.bits() == all_bits;
 	}
 
-	/** @brief Tests whether every predicate lane is false. */
+	/**
+	 * @brief Tests whether every predicate lane is false.
+	 * @param value Canonical predicate register to reduce.
+	 * @return `true` when every
+	 * logical predicate lane is all-zero.
+	 */
 	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr bool VECTORCALL none(this RegisterMask value) noexcept
 	{
 		return value.bits() == 0;
 	}
 
-	/** @brief Returns one compact bit per logical predicate lane. */
+	/**
+	 * @brief Returns one compact bit per logical predicate lane.
+	 * @param value Canonical predicate register to reduce.
+	 * @return Scalar whose
+	 * bit `i` reports logical predicate lane `i`; all unused high bits are zero.
+	 */
 	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr bits_type VECTORCALL bits(this RegisterMask value) noexcept
 	{
 		return static_cast<bits_type>(api_type::movemask_slim(value.native));
 	}
 
-	/** @brief Selects true or false register lanes according to this predicate. */
+	/**
+	 * @brief Selects corresponding true or false Register lanes according to this predicate.
+	 * @param condition Canonical predicate lanes; all-one
+	 * selects `when_true` and all-zero selects `when_false`.
+	 * @param when_true Register supplying lanes selected by true predicates.
+	 * @param when_false
+	 * Register supplying lanes selected by false predicates.
+	 * @return Register containing the intrinsic-backed per-lane selection in logical lane order.
+
+	 */
 	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr register_type VECTORCALL select(this RegisterMask condition,
 																													   register_type when_true,
 																													   register_type when_false) noexcept;
 
-	/** @brief Computes the intersection of two predicate registers. */
+	/**
+	 * @brief Computes the intersection of two predicate registers.
+	 * @param lhs Left canonical predicate register.
+	 * @param rhs Right
+	 * canonical predicate register.
+	 * @return Canonical predicate register whose lane is true only where both input lanes are true.
+	 */
 	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr RegisterMask VECTORCALL operator&(this RegisterMask lhs,
 																														 RegisterMask rhs) noexcept
 	{
 		return RegisterMask{bitwise_and(lhs.native, rhs.native)};
 	}
 
-	/** @brief Computes the union of two predicate registers. */
+	/**
+	 * @brief Computes the union of two predicate registers.
+	 * @param lhs Left canonical predicate register.
+	 * @param rhs Right canonical
+	 * predicate register.
+	 * @return Canonical predicate register whose lane is true where either input lane is true.
+	 */
 	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr RegisterMask VECTORCALL operator|(this RegisterMask lhs,
 																														 RegisterMask rhs) noexcept
 	{
 		return RegisterMask{bitwise_or(lhs.native, rhs.native)};
 	}
 
-	/** @brief Computes the exclusive union of two predicate registers. */
+	/**
+	 * @brief Computes the exclusive union of two predicate registers.
+	 * @param lhs Left canonical predicate register.
+	 * @param rhs Right
+	 * canonical predicate register.
+	 * @return Canonical predicate register whose lane is true where exactly one input lane is true.
+	 */
 	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr RegisterMask VECTORCALL operator^(this RegisterMask lhs,
 																														 RegisterMask rhs) noexcept
 	{
 		return RegisterMask{bitwise_xor(lhs.native, rhs.native)};
 	}
 
-	/** @brief Inverts every predicate lane. */
+	/**
+	 * @brief Inverts every predicate lane.
+	 * @param value Canonical predicate register.
+	 * @return Canonical predicate register with true and
+	 * false lanes exchanged.
+	 */
 	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr RegisterMask VECTORCALL operator~(this RegisterMask value) noexcept
 	{
 		return RegisterMask{bitwise_not(value.native)};
@@ -137,35 +190,66 @@ class RegisterMask final
 			return (bits_type{1} << lane_count) - 1;
 	}();
 
-	/** @brief Computes the bitwise intersection of two native predicate registers. */
+	/**
+	 * @brief Computes the bitwise intersection of two native predicate registers.
+	 * @param lhs Left canonical native predicate.
+	 * @param rhs Right
+	 * canonical native predicate.
+	 * @return Canonical native predicate containing `lhs & rhs`.
+	 */
 	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static native_type VECTORCALL bitwise_and(const native_type lhs,
 																																 const native_type rhs) noexcept
 	{
 		return api_type::bitwise_and(lhs, rhs);
 	}
 
-	/** @brief Computes the bitwise union of two native predicate registers. */
+	/**
+	 * @brief Computes the bitwise union of two native predicate registers.
+	 * @param lhs Left canonical native predicate.
+	 * @param rhs Right
+	 * canonical native predicate.
+	 * @return Canonical native predicate containing `lhs | rhs`.
+	 */
 	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static native_type VECTORCALL bitwise_or(const native_type lhs,
 																																const native_type rhs) noexcept
 	{
 		return api_type::bitwise_or(lhs, rhs);
 	}
 
-	/** @brief Computes the bitwise exclusive union of two native predicate registers. */
+	/**
+	 * @brief Computes the bitwise exclusive union of two native predicate registers.
+	 * @param lhs Left canonical native predicate.
+	 * @param rhs
+	 * Right canonical native predicate.
+	 * @return Canonical native predicate containing `lhs ^ rhs`.
+	 */
 	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static native_type VECTORCALL bitwise_xor(const native_type lhs,
 																																 const native_type rhs) noexcept
 	{
 		return api_type::bitwise_xor(lhs, rhs);
 	}
 
-	/** @brief Inverts every bit in a native predicate register. */
+	/**
+	 * @brief Inverts every bit in a native predicate register.
+	 * @param value Canonical native predicate.
+	 * @return Canonical native
+	 * predicate containing the complemented lanes.
+	 */
 	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static native_type VECTORCALL
 	bitwise_not(const native_type value) noexcept
 	{
 		return api_type::bitwise_not(value);
 	}
 
-	/** @brief Selects native true or false lanes according to a canonical predicate register. */
+	/**
+	 * @brief Selects native true or false lanes according to a canonical predicate register.
+	 * @param condition Canonical predicate selecting the
+	 * source of every logical lane.
+	 * @param when_true Native register selected by all-one predicate lanes.
+	 * @param when_false Native register
+	 * selected by all-zero predicate lanes.
+	 * @return Intrinsic-backed native register containing the selected lane values.
+	 */
 	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr native_type VECTORCALL
 	select_native(this RegisterMask condition, const native_type when_true, const native_type when_false) noexcept
 	{

@@ -25,29 +25,25 @@ template <class element_t, std::size_t bits> inline constexpr bool is_register_a
 template <class element_t, std::size_t bits>
 concept RegisterAvailable = is_register_available_v<element_t, bits>;
 
+/**
+ * @brief Owns one complete SIMD register whose logical lanes are all active.
+ * @tparam element_t Scalar interpretation of every logical lane.
+ * @tparam bits Native register width in bits.
+ * @remarks Declared only when `RegisterAvailable<element_t, bits>` is satisfied.
+ */
 template <class element_t, std::size_t bits>
 	requires RegisterAvailable<element_t, bits>
 class Register;
 
+/**
+ * @brief Owns one complete canonical SIMD predicate register associated with a Register geometry.
+ * @tparam element_t Scalar geometry represented by every logical predicate lane.
+ * @tparam bits Native predicate-register width in bits.
+ * @remarks Declared only when `RegisterAvailable<element_t, bits>` is satisfied.
+ */
 template <class element_t, std::size_t bits>
 	requires RegisterAvailable<element_t, bits>
 class RegisterMask;
-
-namespace Detail
-{
-
-/**
- * @brief Maps an integral lane type to the result lane produced by adjacent multiply-add.
- * @tparam element_t Source integral lane type.
- */
-template <class element_t>
-using multiply_add_adjacent_element_t = std::conditional_t<
-	(sizeof(element_t) >= sizeof(std::int64_t)), element_t,
-	std::conditional_t<std::is_signed_v<element_t>,
-					   std::conditional_t<sizeof(element_t) == 1, std::int16_t, std::conditional_t<sizeof(element_t) == 2, std::int32_t, std::int64_t>>,
-					   std::conditional_t<sizeof(element_t) == 1, std::uint16_t, std::conditional_t<sizeof(element_t) == 2, std::uint32_t, std::uint64_t>>>>;
-
-} // namespace Detail
 
 /**
  * @brief Result Register produced by adjacent integer multiply-add.
@@ -56,7 +52,14 @@ using multiply_add_adjacent_element_t = std::conditional_t<
  */
 template <class element_t, std::size_t bits>
 	requires RegisterAvailable<element_t, bits> && std::is_integral_v<element_t> && IApi::MultiplyAddAdjacent<Api<bits, element_t>>
-using multiply_add_adjacent_result_t = Register<Detail::multiply_add_adjacent_element_t<element_t>, bits>;
+using multiply_add_adjacent_result_t =
+	Register<std::conditional_t<
+				 (sizeof(element_t) >= sizeof(std::int64_t)), element_t,
+				 std::conditional_t<
+					 std::is_signed_v<element_t>,
+					 std::conditional_t<sizeof(element_t) == 1, std::int16_t, std::conditional_t<sizeof(element_t) == 2, std::int32_t, std::int64_t>>,
+					 std::conditional_t<sizeof(element_t) == 1, std::uint16_t, std::conditional_t<sizeof(element_t) == 2, std::uint32_t, std::uint64_t>>>>,
+			 bits>;
 
 /**
  * @brief Signed 16-bit result Register produced by unsigned/signed byte multiply-add.
