@@ -21,92 +21,76 @@ concept SetOne = Mapping<implementation_t> && requires(scalar_t value) { impleme
 
 /** @brief Reports whether a backend accepts a native-order lane list. */
 template <class implementation_t, class... argument_t>
-concept Set =
-	Mapping<implementation_t> && requires(argument_t &&...values) { implementation_t::set(std::forward<argument_t>(values)...); };
+concept Set = Mapping<implementation_t> && requires(argument_t &&...values) { implementation_t::set(std::forward<argument_t>(values)...); };
 
 /** @brief Reports whether a backend accepts a logical-order lane list. */
 template <class implementation_t, class... argument_t>
-concept SetReverse =
-	Mapping<implementation_t> && requires(argument_t &&...values) { implementation_t::setr(std::forward<argument_t>(values)...); };
+concept SetReverse = Mapping<implementation_t> && requires(argument_t &&...values) { implementation_t::setr(std::forward<argument_t>(values)...); };
 
 /** @brief Reports whether a backend exposes lane-wise addition. */
 template <class implementation_t>
-concept Add =
-	Mapping<implementation_t> &&
-	requires(typename implementation_t::vector_t lhs, typename implementation_t::vector_t rhs) { implementation_t::add(lhs, rhs); };
+concept Add = Mapping<implementation_t> &&
+			  requires(typename implementation_t::vector_t lhs, typename implementation_t::vector_t rhs) { implementation_t::add(lhs, rhs); };
 
 /** @brief Reports whether a backend exposes lane-wise subtraction. */
 template <class implementation_t>
-concept Subtract =
-	Mapping<implementation_t> &&
-	requires(typename implementation_t::vector_t lhs, typename implementation_t::vector_t rhs) { implementation_t::subtract(lhs, rhs); };
+concept Subtract = Mapping<implementation_t> &&
+				   requires(typename implementation_t::vector_t lhs, typename implementation_t::vector_t rhs) { implementation_t::subtract(lhs, rhs); };
 
 /** @brief Reports whether a backend exposes lane-wise multiplication. */
 template <class implementation_t>
-concept Multiply =
-	Mapping<implementation_t> &&
-	requires(typename implementation_t::vector_t lhs, typename implementation_t::vector_t rhs) { implementation_t::multiply(lhs, rhs); };
+concept Multiply = Mapping<implementation_t> &&
+				   requires(typename implementation_t::vector_t lhs, typename implementation_t::vector_t rhs) { implementation_t::multiply(lhs, rhs); };
 
 /** @brief Reports whether a backend exposes lane-wise division. */
 template <class implementation_t>
-concept Divide =
-	Mapping<implementation_t> &&
-	requires(typename implementation_t::vector_t lhs, typename implementation_t::vector_t rhs) { implementation_t::divide(lhs, rhs); };
+concept Divide = Mapping<implementation_t> &&
+				 requires(typename implementation_t::vector_t lhs, typename implementation_t::vector_t rhs) { implementation_t::divide(lhs, rhs); };
 
 /** @brief Reports whether a backend exposes lane-wise remainder. */
 template <class implementation_t>
-concept Modulus =
-	Mapping<implementation_t> &&
-	requires(typename implementation_t::vector_t lhs, typename implementation_t::vector_t rhs) { implementation_t::modulus(lhs, rhs); };
+concept Modulus = Mapping<implementation_t> &&
+				  requires(typename implementation_t::vector_t lhs, typename implementation_t::vector_t rhs) { implementation_t::modulus(lhs, rhs); };
 
 /** @brief Reports whether a backend exposes arithmetic negation. */
 template <class implementation_t>
-concept Negate =
-	Mapping<implementation_t> && requires(typename implementation_t::vector_t value) { implementation_t::negate(value); };
+concept Negate = Mapping<implementation_t> && requires(typename implementation_t::vector_t value) { implementation_t::negate(value); };
 
 /** @brief Reports whether a backend exposes lane-wise minimum. */
 template <class implementation_t>
-concept Min =
-	Mapping<implementation_t> &&
-	requires(typename implementation_t::vector_t lhs, typename implementation_t::vector_t rhs) { implementation_t::min(lhs, rhs); };
+concept Min = Mapping<implementation_t> &&
+			  requires(typename implementation_t::vector_t lhs, typename implementation_t::vector_t rhs) { implementation_t::min(lhs, rhs); };
 
 /** @brief Reports whether a backend exposes lane-wise maximum. */
 template <class implementation_t>
-concept Max =
-	Mapping<implementation_t> &&
-	requires(typename implementation_t::vector_t lhs, typename implementation_t::vector_t rhs) { implementation_t::max(lhs, rhs); };
+concept Max = Mapping<implementation_t> &&
+			  requires(typename implementation_t::vector_t lhs, typename implementation_t::vector_t rhs) { implementation_t::max(lhs, rhs); };
 
 /** @brief Reports whether a backend exposes lane-wise absolute value. */
 template <class implementation_t>
-concept Absolute =
-	Mapping<implementation_t> && requires(typename implementation_t::vector_t value) { implementation_t::absolute(value); };
+concept Absolute = Mapping<implementation_t> && requires(typename implementation_t::vector_t value) { implementation_t::absolute(value); };
 
 /** @brief Reports whether a backend exposes lane-wise square root. */
 template <class implementation_t>
-concept Sqrt =
-	Mapping<implementation_t> && requires(typename implementation_t::vector_t value) { implementation_t::sqrt(value); };
+concept Sqrt = Mapping<implementation_t> && requires(typename implementation_t::vector_t value) { implementation_t::sqrt(value); };
 
 /** @brief Reports whether a backend exposes a register magnitude operation. */
 template <class implementation_t>
-concept Magnitude =
-	Mapping<implementation_t> && requires(typename implementation_t::vector_t value) { implementation_t::magnitude(value); };
+concept Magnitude = Mapping<implementation_t> && requires(typename implementation_t::vector_t value) { implementation_t::magnitude(value); };
 
 /** @brief Reports whether a backend exposes checked integer magnitude. */
 template <class implementation_t>
-concept MagnitudeChecked =
-	Mapping<implementation_t> && requires(typename implementation_t::vector_t value) { implementation_t::magnitude_checked(value); };
+concept MagnitudeChecked = Mapping<implementation_t> && requires(typename implementation_t::vector_t value) { implementation_t::magnitude_checked(value); };
 
 /** @brief Reports whether a backend exposes lane-wise average. */
 template <class implementation_t>
-concept Average =
-	Mapping<implementation_t> &&
-	requires(typename implementation_t::vector_t lhs, typename implementation_t::vector_t rhs) { implementation_t::avg(lhs, rhs); };
+concept Average = Mapping<implementation_t> &&
+				  requires(typename implementation_t::vector_t lhs, typename implementation_t::vector_t rhs) { implementation_t::avg(lhs, rhs); };
 
 /** @brief Reports whether a backend exposes fused or emulated multiply-add. */
 template <class implementation_t>
-concept MultiplyAdd =
-	Mapping<implementation_t> && requires(typename implementation_t::vector_t lhs, typename implementation_t::vector_t rhs,
-														typename implementation_t::vector_t addend) { implementation_t::multiply_add(lhs, rhs, addend); };
+concept MultiplyAdd = Mapping<implementation_t> && requires(typename implementation_t::vector_t lhs, typename implementation_t::vector_t rhs,
+															typename implementation_t::vector_t addend) { implementation_t::multiply_add(lhs, rhs, addend); };
 
 /** @brief Reports whether backend primitives required by normalization are available. */
 template <class implementation_t>
@@ -114,41 +98,39 @@ concept Normalize = Magnitude<implementation_t> && Divide<implementation_t>;
 
 /** @brief Reports whether a backend exposes adjacent horizontal addition. */
 template <class implementation_t>
-concept HorizontalAdd =
-	Mapping<implementation_t> &&
-	requires(typename implementation_t::vector_t lhs, typename implementation_t::vector_t rhs) { implementation_t::add_horizontal(lhs, rhs); };
+concept HorizontalAdd = Mapping<implementation_t> && requires(typename implementation_t::vector_t lhs, typename implementation_t::vector_t rhs) {
+	implementation_t::add_horizontal(lhs, rhs);
+};
 
 /** @brief Reports whether a backend exposes adjacent horizontal subtraction. */
 template <class implementation_t>
-concept HorizontalSubtract =
-	Mapping<implementation_t> &&
-	requires(typename implementation_t::vector_t lhs, typename implementation_t::vector_t rhs) { implementation_t::subtract_horizontal(lhs, rhs); };
+concept HorizontalSubtract = Mapping<implementation_t> && requires(typename implementation_t::vector_t lhs, typename implementation_t::vector_t rhs) {
+	implementation_t::subtract_horizontal(lhs, rhs);
+};
 
 /** @brief Reports whether a backend exposes adjacent multiply-add. */
 template <class implementation_t>
-concept MultiplyAddAdjacent =
-	Mapping<implementation_t> &&
-	requires(typename implementation_t::vector_t lhs, typename implementation_t::vector_t rhs) { implementation_t::multiply_add_adjacent(lhs, rhs); };
+concept MultiplyAddAdjacent = Mapping<implementation_t> && requires(typename implementation_t::vector_t lhs, typename implementation_t::vector_t rhs) {
+	implementation_t::multiply_add_adjacent(lhs, rhs);
+};
 
 /** @brief Reports whether a backend exposes unsigned-byte by signed-byte multiply-add. */
 template <class implementation_t>
-concept ByteMultiplyAdd =
-	Mapping<implementation_t> && requires(typename implementation_t::vector_t lhs, typename implementation_t::vector_t rhs) {
-		implementation_t::multiply_add_unsigned_signed_bytes(lhs, rhs);
-	};
+concept ByteMultiplyAdd = Mapping<implementation_t> && requires(typename implementation_t::vector_t lhs, typename implementation_t::vector_t rhs) {
+	implementation_t::multiply_add_unsigned_signed_bytes(lhs, rhs);
+};
 
 /** @brief Reports whether a backend exposes byte sum-of-absolute-differences. */
 template <class implementation_t>
-concept Sad =
-	Mapping<implementation_t> &&
-	requires(typename implementation_t::vector_t lhs, typename implementation_t::vector_t rhs) { implementation_t::sum_absolute_byte_differences(lhs, rhs); };
+concept Sad = Mapping<implementation_t> && requires(typename implementation_t::vector_t lhs, typename implementation_t::vector_t rhs) {
+	implementation_t::sum_absolute_byte_differences(lhs, rhs);
+};
 
 /** @brief Reports whether a backend exposes immediate-controlled multi-SAD. */
 template <class implementation_t, int immediate>
-concept MultiSad =
-	Mapping<implementation_t> && requires(typename implementation_t::vector_t lhs, typename implementation_t::vector_t rhs) {
-		implementation_t::template multi_sum_absolute_byte_differences<immediate>(lhs, rhs);
-	};
+concept MultiSad = Mapping<implementation_t> && requires(typename implementation_t::vector_t lhs, typename implementation_t::vector_t rhs) {
+	implementation_t::template multi_sum_absolute_byte_differences<immediate>(lhs, rhs);
+};
 
 /** @brief Reports whether a backend exposes the primitives used to locate an extremum. */
 template <class implementation_t>
@@ -159,150 +141,145 @@ concept Position = Mapping<implementation_t> && requires(typename implementation
 
 /** @brief Reports whether a backend exposes saturating addition. */
 template <class implementation_t>
-concept AddSaturated =
-	Mapping<implementation_t> &&
-	requires(typename implementation_t::vector_t lhs, typename implementation_t::vector_t rhs) { implementation_t::add_saturated(lhs, rhs); };
+concept AddSaturated = Mapping<implementation_t> && requires(typename implementation_t::vector_t lhs, typename implementation_t::vector_t rhs) {
+	implementation_t::add_saturated(lhs, rhs);
+};
 
 /** @brief Reports whether a backend exposes saturating subtraction. */
 template <class implementation_t>
-concept SubtractSaturated =
-	Mapping<implementation_t> &&
-	requires(typename implementation_t::vector_t lhs, typename implementation_t::vector_t rhs) { implementation_t::subtract_saturated(lhs, rhs); };
+concept SubtractSaturated = Mapping<implementation_t> && requires(typename implementation_t::vector_t lhs, typename implementation_t::vector_t rhs) {
+	implementation_t::subtract_saturated(lhs, rhs);
+};
 
 /** @brief Reports whether a backend exposes saturating horizontal addition. */
 template <class implementation_t>
-concept HorizontalAddSaturated =
-	Mapping<implementation_t> &&
-	requires(typename implementation_t::vector_t lhs, typename implementation_t::vector_t rhs) { implementation_t::hadd_saturated(lhs, rhs); };
+concept HorizontalAddSaturated = Mapping<implementation_t> && requires(typename implementation_t::vector_t lhs, typename implementation_t::vector_t rhs) {
+	implementation_t::hadd_saturated(lhs, rhs);
+};
 
 /** @brief Reports whether a backend exposes saturating horizontal subtraction. */
 template <class implementation_t>
-concept HorizontalSubtractSaturated =
-	Mapping<implementation_t> &&
-	requires(typename implementation_t::vector_t lhs, typename implementation_t::vector_t rhs) { implementation_t::hsubtract_saturated(lhs, rhs); };
+concept HorizontalSubtractSaturated = Mapping<implementation_t> && requires(typename implementation_t::vector_t lhs, typename implementation_t::vector_t rhs) {
+	implementation_t::hsubtract_saturated(lhs, rhs);
+};
 
 /** @brief Reports whether a backend exposes alternating add-subtract. */
 template <class implementation_t>
-concept AddSubtract =
-	Mapping<implementation_t> &&
-	requires(typename implementation_t::vector_t lhs, typename implementation_t::vector_t rhs) { implementation_t::add_subtract(lhs, rhs); };
+concept AddSubtract = Mapping<implementation_t> &&
+					  requires(typename implementation_t::vector_t lhs, typename implementation_t::vector_t rhs) { implementation_t::add_subtract(lhs, rhs); };
 
 /** @brief Reports whether a backend exposes an immediate-controlled dot product. */
 template <class implementation_t, int immediate>
-concept DotProduct =
-	Mapping<implementation_t> &&
-	requires(typename implementation_t::vector_t lhs, typename implementation_t::vector_t rhs) { implementation_t::template dot_product<immediate>(lhs, rhs); };
+concept DotProduct = Mapping<implementation_t> && requires(typename implementation_t::vector_t lhs, typename implementation_t::vector_t rhs) {
+	implementation_t::template dot_product<immediate>(lhs, rhs);
+};
 
 /** @brief Reports whether a backend exposes bitwise AND. */
 template <class implementation_t>
-concept BitwiseAnd =
-	Mapping<implementation_t> &&
-	requires(typename implementation_t::vector_t lhs, typename implementation_t::vector_t rhs) { implementation_t::bitwise_and(lhs, rhs); };
+concept BitwiseAnd = Mapping<implementation_t> &&
+					 requires(typename implementation_t::vector_t lhs, typename implementation_t::vector_t rhs) { implementation_t::bitwise_and(lhs, rhs); };
 
 /** @brief Reports whether a backend exposes bitwise OR. */
 template <class implementation_t>
-concept BitwiseOr =
-	Mapping<implementation_t> &&
-	requires(typename implementation_t::vector_t lhs, typename implementation_t::vector_t rhs) { implementation_t::bitwise_or(lhs, rhs); };
+concept BitwiseOr = Mapping<implementation_t> &&
+					requires(typename implementation_t::vector_t lhs, typename implementation_t::vector_t rhs) { implementation_t::bitwise_or(lhs, rhs); };
 
 /** @brief Reports whether a backend exposes bitwise XOR. */
 template <class implementation_t>
-concept BitwiseXor =
-	Mapping<implementation_t> &&
-	requires(typename implementation_t::vector_t lhs, typename implementation_t::vector_t rhs) { implementation_t::bitwise_xor(lhs, rhs); };
+concept BitwiseXor = Mapping<implementation_t> &&
+					 requires(typename implementation_t::vector_t lhs, typename implementation_t::vector_t rhs) { implementation_t::bitwise_xor(lhs, rhs); };
 
 /** @brief Reports whether a backend exposes bitwise AND-NOT. */
 template <class implementation_t>
-concept BitwiseAndNot =
-	Mapping<implementation_t> &&
-	requires(typename implementation_t::vector_t lhs, typename implementation_t::vector_t rhs) { implementation_t::bitwise_andnot(lhs, rhs); };
+concept BitwiseAndNot = Mapping<implementation_t> && requires(typename implementation_t::vector_t lhs, typename implementation_t::vector_t rhs) {
+	implementation_t::bitwise_andnot(lhs, rhs);
+};
 
 /** @brief Reports whether a backend exposes bitwise complement. */
 template <class implementation_t>
-concept BitwiseNot =
-	Mapping<implementation_t> && requires(typename implementation_t::vector_t value) { implementation_t::bitwise_not(value); };
+concept BitwiseNot = Mapping<implementation_t> && requires(typename implementation_t::vector_t value) { implementation_t::bitwise_not(value); };
 
 /** @brief Reports whether a backend exposes predicate-based selection. */
 template <class implementation_t>
 concept Select =
-	Mapping<implementation_t> &&
-	requires(typename implementation_t::vector_t condition, typename implementation_t::vector_t when_true, typename implementation_t::vector_t when_false) {
-		implementation_t::select(condition, when_true, when_false);
-	};
+	Mapping<implementation_t> && requires(typename implementation_t::vector_t condition, typename implementation_t::vector_t when_true,
+										  typename implementation_t::vector_t when_false) { implementation_t::select(condition, when_true, when_false); };
 
 /** @brief Reports whether a backend exposes its legacy expand operation. */
 template <class implementation_t>
-concept Expand =
-	Mapping<implementation_t> &&
-	requires(typename implementation_t::vector_t lhs, typename implementation_t::vector_t rhs) { implementation_t::expand(lhs, rhs); };
+concept Expand = Mapping<implementation_t> &&
+				 requires(typename implementation_t::vector_t lhs, typename implementation_t::vector_t rhs) { implementation_t::expand(lhs, rhs); };
 
 /** @brief Reports whether a backend exposes its legacy compress operation. */
 template <class implementation_t>
-concept Compress =
-	Mapping<implementation_t> &&
-	requires(typename implementation_t::vector_t lhs, typename implementation_t::vector_t rhs) { implementation_t::compress(lhs, rhs); };
+concept Compress = Mapping<implementation_t> &&
+				   requires(typename implementation_t::vector_t lhs, typename implementation_t::vector_t rhs) { implementation_t::compress(lhs, rhs); };
 
 /** @brief Reports whether a backend can widen into the requested destination mapping. */
 template <class implementation_t, class target_t>
-concept Widen =
-	Mapping<implementation_t> && requires(typename implementation_t::vector_t value) { implementation_t::template widen<target_t>(value); };
+concept Widen = Mapping<implementation_t> && requires(typename implementation_t::vector_t value) { implementation_t::template widen<target_t>(value); };
 
 /** @brief Reports whether a backend exposes compile-time lane extraction. */
 template <class implementation_t, std::size_t index>
-concept IndexedExtract =
-	Mapping<implementation_t> && requires(typename implementation_t::vector_t value) { implementation_t::template extract<index>(value); };
+concept IndexedExtract = Mapping<implementation_t> && requires(typename implementation_t::vector_t value) { implementation_t::template extract<index>(value); };
 
 /** @brief Reports whether a backend exposes runtime-selected extraction. */
 template <class implementation_t, class selector_t>
 concept DynamicExtract =
-	Mapping<implementation_t> &&
-	requires(typename implementation_t::vector_t value, selector_t selector) { implementation_t::extract(value, selector); };
+	Mapping<implementation_t> && requires(typename implementation_t::vector_t value, selector_t selector) { implementation_t::extract(value, selector); };
 
 /** @brief Reports whether a backend exposes extraction of its lower 128-bit half. */
 template <class implementation_t>
-concept LowerHalf =
-	Mapping<implementation_t> && requires(typename implementation_t::vector_t value) { implementation_t::lower_half(value); };
+concept LowerHalf = Mapping<implementation_t> && requires(typename implementation_t::vector_t value) { implementation_t::lower_half(value); };
 
 /** @brief Reports whether a backend accepts the supplied insertion arguments. */
 template <class implementation_t, class... argument_t>
-concept Insert =
-	Mapping<implementation_t> && requires(argument_t &&...values) { implementation_t::insert(std::forward<argument_t>(values)...); };
+concept Insert = Mapping<implementation_t> && requires(argument_t &&...values) { implementation_t::insert(std::forward<argument_t>(values)...); };
 
 /** @brief Reports whether a backend exposes low-lane unpacking. */
 template <class implementation_t>
-concept UnpackLow =
-	Mapping<implementation_t> &&
-	requires(typename implementation_t::vector_t lhs, typename implementation_t::vector_t rhs) { implementation_t::unpack_lo(lhs, rhs); };
+concept UnpackLow = Mapping<implementation_t> &&
+					requires(typename implementation_t::vector_t lhs, typename implementation_t::vector_t rhs) { implementation_t::unpack_lo(lhs, rhs); };
 
 /** @brief Reports whether a backend exposes high-lane unpacking. */
 template <class implementation_t>
-concept UnpackHigh =
-	Mapping<implementation_t> &&
-	requires(typename implementation_t::vector_t lhs, typename implementation_t::vector_t rhs) { implementation_t::unpack_hi(lhs, rhs); };
+concept UnpackHigh = Mapping<implementation_t> &&
+					 requires(typename implementation_t::vector_t lhs, typename implementation_t::vector_t rhs) { implementation_t::unpack_hi(lhs, rhs); };
 
 /** @brief Reports whether a backend accepts an immediate shuffle index sequence. */
 template <class implementation_t, int... indices>
-concept IndexedShuffle =
-	requires(typename implementation_t::int_vector_t value) { implementation_t::template shuffle<indices...>(value); };
+concept IndexedShuffle = requires(typename implementation_t::int_vector_t value) { implementation_t::template shuffle<indices...>(value); };
 
 /** @brief Reports whether a backend accepts the supplied shuffle arguments. */
 template <class implementation_t, class... argument_t>
-concept Shuffle =
-	Mapping<implementation_t> && requires(argument_t &&...values) { implementation_t::shuffle(std::forward<argument_t>(values)...); };
+concept Shuffle = Mapping<implementation_t> && requires(argument_t &&...values) { implementation_t::shuffle(std::forward<argument_t>(values)...); };
 
 /** @brief Reports whether a backend accepts the supplied low-half shuffle arguments. */
 template <class implementation_t, class... argument_t>
-concept ShuffleLow =
-	Mapping<implementation_t> && requires(argument_t &&...values) { implementation_t::shuffle_lo(std::forward<argument_t>(values)...); };
+concept ShuffleLow = Mapping<implementation_t> && requires(argument_t &&...values) { implementation_t::shuffle_lo(std::forward<argument_t>(values)...); };
 
 /** @brief Reports whether a backend accepts the supplied high-half shuffle arguments. */
 template <class implementation_t, class... argument_t>
-concept ShuffleHigh =
-	Mapping<implementation_t> && requires(argument_t &&...values) { implementation_t::shuffle_hi(std::forward<argument_t>(values)...); };
+concept ShuffleHigh = Mapping<implementation_t> && requires(argument_t &&...values) { implementation_t::shuffle_hi(std::forward<argument_t>(values)...); };
 
 /** @brief Reports whether a backend accepts the supplied blend arguments. */
 template <class implementation_t, class... argument_t>
-concept Blend =
-	Mapping<implementation_t> && requires(argument_t &&...values) { implementation_t::blend(std::forward<argument_t>(values)...); };
+concept Blend = Mapping<implementation_t> && requires(argument_t &&...values) { implementation_t::blend(std::forward<argument_t>(values)...); };
+
+/** @brief Reports whether a backend exposes an immediate-controlled low-half shuffle. */
+template <class implementation_t, int immediate>
+concept IndexedShuffleLow =
+	Mapping<implementation_t> && requires(typename implementation_t::vector_t value) { implementation_t::template shuffle_lo<immediate>(value); };
+
+/** @brief Reports whether a backend exposes an immediate-controlled high-half shuffle. */
+template <class implementation_t, int immediate>
+concept IndexedShuffleHigh =
+	Mapping<implementation_t> && requires(typename implementation_t::vector_t value) { implementation_t::template shuffle_hi<immediate>(value); };
+
+/** @brief Reports whether a backend exposes an immediate-controlled blend. */
+template <class implementation_t, int immediate>
+concept IndexedBlend = Mapping<implementation_t> && requires(typename implementation_t::vector_t lhs, typename implementation_t::vector_t rhs) {
+	implementation_t::template blend<immediate>(lhs, rhs);
+};
 
 } // namespace SimdLib::IImpl

@@ -160,19 +160,20 @@ SimdLib Register Implementation Plan:
       Evidence: `include/SimdLib/RegisterFwd.h`, `include/SimdLib/Register.h`, `include/SimdLib/Api.h`, and `include/SimdLib/Detail/Implementations.h` define the constrained result aliases and register-only specialized surface. `tests/RegisterSpecializedOperations.tests.cpp` checks availability and exact result types for every source type and width, then applies independent scalar oracles to lane order, signed minima, modular overflow, saturation, 128-bit grouping, immediate controls, tie ordering, highest lanes, and promoted-result signedness. `tests/codegen/RegisterSpecializedCodegenFixture.h` and the 128/256-bit `SimdLibRegisterExpressionCodegen` gates cover every supported overload in FMA-enabled and FMA-disabled profiles; GNU-like targets compile these gates with strong stack protection, and the comparison provenance records the selected profile and requires exact wrapper/API instruction parity.
 
   Phase 8 - Implement Rearrangement and Conversion Operations:
-    ☐ Implement `lower_half()` from supported 256-bit sources without exposing an ambiguous generic width reduction.
-    ☐ Implement `unpack_low()` and `unpack_high()` with documented logical lane ordering.
-    ☐ Implement logical `shuffle<indices...>()` with the exact selector count and source-lane range constrained at overload resolution.
-    ☐ Implement `shuffle_low<imm8>()`, `shuffle_high<imm8>()`, and `blend<imm8>()` with immediates constrained to `0..255` and operation-specific unused bits retaining intrinsic behavior.
-    ☐ Keep implementation-specific generic shuffle signatures and runtime extraction outside the initial Register surface.
-    ☐ Implement `bit_cast<target_t>()` as a full-width bit-preserving reinterpretation between supported Register specializations.
-    ☐ Implement `convert<target_t>()` only for numeric conversions that produce exactly one complete target Register under the existing backend contract.
-    ☐ Implement `widen_low<target_t, target_bits>()` with explicit source-lane consumption and no silent implication that all source lanes are preserved.
-    ☐ Keep generic `expand`, `compress`, narrowing/packing, and multi-register widening outside the preferred surface.
-    ☐ Add compile-failure tests for out-of-range selectors, wrong selector counts, out-of-range immediates, unsupported target types, unavailable width changes, and ambiguous compatibility-only operations.
-    ☐ Add runtime and constexpr lane-order tests with unique bit patterns, floating edge values, signed/unsigned boundaries, and highest-source-lane sentinels.
-    ☐ Add generated-code comparisons for every rearrangement and conversion shape, rejecting wrapper-only temporaries, stores, reloads, or extra lane moves.
-    ☐ End Phase 8 only when lane order, consumed lanes, conversion meaning, selector domains, and excluded operations are explicit and mechanically enforced.
+    ☒ Implement `lower_half()` from supported 256-bit sources without exposing an ambiguous generic width reduction.
+    ☒ Implement `unpack_low()` and `unpack_high()` with documented logical lane ordering.
+    ☒ Implement logical `shuffle<indices...>()` with the exact selector count and source-lane range constrained at overload resolution.
+    ☒ Implement `shuffle_low<imm8>()`, `shuffle_high<imm8>()`, and `blend<imm8>()` with immediates constrained to `0..255` and operation-specific unused bits retaining intrinsic behavior.
+    ☒ Keep implementation-specific generic shuffle signatures and runtime extraction outside the initial Register surface.
+    ☒ Implement `bit_cast<target_t>()` as a full-width bit-preserving reinterpretation between supported Register specializations.
+    ☒ Implement `convert<target_t>()` only for numeric conversions that produce exactly one complete target Register under the existing backend contract.
+    ☒ Implement `widen_low<target_t, target_bits>()` with explicit source-lane consumption and no silent implication that all source lanes are preserved.
+    ☒ Keep generic `expand`, `compress`, narrowing/packing, and multi-register widening outside the preferred surface.
+    ☒ Add compile-failure tests for out-of-range selectors, wrong selector counts, out-of-range immediates, unsupported target types, unavailable width changes, and ambiguous compatibility-only operations.
+    ☒ Add runtime and constexpr lane-order tests with unique bit patterns, floating edge values, signed/unsigned boundaries, and highest-source-lane sentinels.
+    ☒ Add generated-code comparisons for every rearrangement and conversion shape, rejecting wrapper-only temporaries, stores, reloads, or extra lane moves.
+    ☒ End Phase 8 only when lane order, consumed lanes, conversion meaning, selector domains, and excluded operations are explicit and mechanically enforced.
+      Evidence: `include/SimdLib/Register.h`, `include/SimdLib/Api.h`, and `include/SimdLib/Detail/Implementations.h` define the constrained register-only surface, constexpr semantics, and intrinsic runtime mappings. `tests/RegisterRearrangementConversion.tests.cpp`, `tests/constexpr/RegisterConstexpr.tests.cpp`, and the rearrangement compile-failure probes independently cover logical lane order, 128-bit grouping, selector and immediate domains, bit preservation, numeric conversion boundaries, low-lane widening consumption, and excluded compatibility operations. `tests/codegen/RegisterRearrangementCodegenFixture.h` enumerates every supported source, destination, element, and width shape for exact wrapper-versus-raw comparison under the register code-generation gates, including strong stack protection on GNU-like compilers.
 
   Phase 9 - Complete the Operation and Constraint Matrix:
     ☐ Implement any remaining register-local operation in the proposal ledger that was not completed in Phases 4-8.
@@ -227,7 +228,7 @@ SimdLib Register Implementation Plan:
     ☒ Phase 5 RegisterMask, comparison-intrinsic, selection, scalar-reduction, constraint, and code-generation evidence recorded.
     ☒ Phase 6 basic arithmetic, bitwise, disabled-compound-surface, shift-boundary, oracle, and generated-code evidence recorded.
     ☒ Phase 7 specialized arithmetic, reduction, result-alias, feature-profile, oracle, and generated-code evidence recorded.
-    ☐ Phase 8 rearrangement, selector, conversion, width-change, compile-failure, lane-order, and generated-code evidence recorded.
+    ☒ Phase 8 rearrangement, selector, conversion, width-change, compile-failure, lane-order, and generated-code evidence recorded.
     ☐ Phase 9 final operation matrix, Doxygen audit, public-boundary audit, and compatibility-only classifications recorded.
     ☐ Phase 10 complete correctness, constexpr, precondition, sanitizer, optimized code-generation, ABI, and exception ledger recorded.
     ☐ Phase 11 umbrella exposure, migration, documentation, full compiler/configuration matrix, and close-out evidence recorded in `docs/Validation.md`.

@@ -12,5 +12,8 @@ struct ImplementationShape
 static_assert(SimdLib::IImpl::Mapping<ImplementationShape>);
 static_assert(!SimdLib::IImpl::Add<ImplementationShape>);
 static_assert(!SimdLib::IImpl::SetZero<ImplementationShape>);
+static_assert(!SimdLib::IImpl::IndexedShuffleLow<ImplementationShape, 0>);
+static_assert(!SimdLib::IImpl::IndexedShuffleHigh<ImplementationShape, 0>);
+static_assert(!SimdLib::IImpl::IndexedBlend<ImplementationShape, 0>);
 
 } // namespace

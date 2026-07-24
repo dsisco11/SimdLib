@@ -68,11 +68,10 @@ SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY std::uint64_t magnitude_round_sqrt_u6
  */
 template <class element_t>
 	requires std::is_integral_v<element_t>
-SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m128i VECTORCALL magnitude_checked_result(
-	const std::uint64_t magnitude,
-	const bool overflow) noexcept
+SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m128i VECTORCALL magnitude_checked_result(const std::uint64_t magnitude, const bool overflow) noexcept
 {
-	constexpr std::uint64_t laneMask = []() constexpr {
+	constexpr std::uint64_t laneMask = []() constexpr
+	{
 		if constexpr (sizeof(element_t) == 8)
 			return ~std::uint64_t{0};
 		else
@@ -82,8 +81,7 @@ SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m128i VECTORCALL magnitude_checked_
 	if constexpr (sizeof(element_t) == 8)
 		return _mm_set_epi64x(overflow ? -1 : 0, static_cast<std::int64_t>(low));
 	else
-		return _mm_cvtsi64_si128(static_cast<std::int64_t>(
-			low | ((overflow ? laneMask : 0) << (sizeof(element_t) * 8))));
+		return _mm_cvtsi64_si128(static_cast<std::int64_t>(low | ((overflow ? laneMask : 0) << (sizeof(element_t) * 8))));
 }
 /**
  * @brief Squares one unsigned 64-bit value into low and high 64-bit register lanes.
@@ -103,10 +101,8 @@ SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m128i VECTORCALL magnitude_square_u
 	const std::uint64_t lowSquare = lowHalf * lowHalf;
 	const std::uint64_t cross = highHalf * lowHalf;
 	const std::uint64_t low = lowSquare + (cross << 33);
-	const std::uint64_t high =
-		highHalf * highHalf + (cross >> 31) + static_cast<std::uint64_t>(low < lowSquare);
-	return _mm_set_epi64x(
-		static_cast<std::int64_t>(high), static_cast<std::int64_t>(low));
+	const std::uint64_t high = highHalf * highHalf + (cross >> 31) + static_cast<std::uint64_t>(low < lowSquare);
+	return _mm_set_epi64x(static_cast<std::int64_t>(high), static_cast<std::int64_t>(low));
 #endif
 }
 
@@ -118,10 +114,8 @@ SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m128i VECTORCALL magnitude_square_u
  * @param maximum The greatest representable destination magnitude.
  * @return The floating estimate rounded to the nearest integer and bounded by `maximum`.
  */
-SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY std::uint64_t magnitude_round_sqrt_u128(
-	const std::uint64_t low,
-	const std::uint64_t high,
-	const std::uint64_t maximum) noexcept
+SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY std::uint64_t magnitude_round_sqrt_u128(const std::uint64_t low, const std::uint64_t high,
+																				   const std::uint64_t maximum) noexcept
 {
 	constexpr double twoTo64 = 18'446'744'073'709'551'616.0;
 	constexpr double twoTo63 = 9'223'372'036'854'775'808.0;
@@ -265,7 +259,8 @@ template <> struct SimdImpl128<int8_t>
 		return _mm_sad_epu8(lhs, rhs);
 	}
 	/** @brief Computes immediate-selected byte-window absolute-difference sums for this native register specialization. */
-	template <int imm8> SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL multi_sum_absolute_byte_differences(auto lhs, auto rhs) noexcept
+	template <int imm8>
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL multi_sum_absolute_byte_differences(auto lhs, auto rhs) noexcept
 	{
 		return _mm_mpsadbw_epu8(lhs, rhs, imm8);
 	}
@@ -544,7 +539,8 @@ template <> struct SimdImpl128<uint8_t>
 		return _mm_sad_epu8(lhs, rhs);
 	}
 	/** @brief Computes immediate-selected byte-window absolute-difference sums for this native register specialization. */
-	template <int imm8> SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL multi_sum_absolute_byte_differences(auto lhs, auto rhs) noexcept
+	template <int imm8>
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL multi_sum_absolute_byte_differences(auto lhs, auto rhs) noexcept
 	{
 		return _mm_mpsadbw_epu8(lhs, rhs, imm8);
 	}
@@ -820,7 +816,8 @@ template <> struct SimdImpl128<int16_t>
 		return _mm_sad_epu8(lhs, rhs);
 	}
 	/** @brief Computes immediate-selected byte-window absolute-difference sums for this native register specialization. */
-	template <int imm8> SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL multi_sum_absolute_byte_differences(auto lhs, auto rhs) noexcept
+	template <int imm8>
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL multi_sum_absolute_byte_differences(auto lhs, auto rhs) noexcept
 	{
 		return _mm_mpsadbw_epu8(lhs, rhs, imm8);
 	}
@@ -1002,13 +999,28 @@ template <> struct SimdImpl128<int16_t>
 	{
 		return register_shuffle_half_16(lhs, static_cast<unsigned int>(rhs), false);
 	}
+	/** @brief Shuffles the low four 16-bit lanes in each 128-bit group with an immediate control. */
+	template <int imm8> SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL shuffle_lo(auto lhs) noexcept
+	{
+		return _mm_shufflelo_epi16(lhs, imm8);
+	}
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL shuffle_hi(auto lhs, auto rhs) noexcept
 	{
 		return register_shuffle_half_16(lhs, static_cast<unsigned int>(rhs), true);
 	}
+	/** @brief Shuffles the high four 16-bit lanes in each 128-bit group with an immediate control. */
+	template <int imm8> SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL shuffle_hi(auto lhs) noexcept
+	{
+		return _mm_shufflehi_epi16(lhs, imm8);
+	}
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL blend(auto lhs, auto rhs, const int imm8) noexcept
 	{
 		return register_blend<std::int16_t>(lhs, rhs, static_cast<unsigned int>(imm8));
+	}
+	/** @brief Selects signed 16-bit lanes from two registers with an immediate control. */
+	template <int imm8> SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL blend(auto lhs, auto rhs) noexcept
+	{
+		return _mm_blend_epi16(lhs, rhs, imm8);
 	}
 };
 
@@ -1110,7 +1122,8 @@ template <> struct SimdImpl128<uint16_t>
 		return _mm_sad_epu8(lhs, rhs);
 	}
 	/** @brief Computes immediate-selected byte-window absolute-difference sums for this native register specialization. */
-	template <int imm8> SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL multi_sum_absolute_byte_differences(auto lhs, auto rhs) noexcept
+	template <int imm8>
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL multi_sum_absolute_byte_differences(auto lhs, auto rhs) noexcept
 	{
 		return _mm_mpsadbw_epu8(lhs, rhs, imm8);
 	}
@@ -1303,13 +1316,28 @@ template <> struct SimdImpl128<uint16_t>
 	{
 		return register_shuffle_half_16(lhs, static_cast<unsigned int>(rhs), false);
 	}
+	/** @brief Shuffles the low four unsigned 16-bit lanes in each 128-bit group with an immediate control. */
+	template <int imm8> SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL shuffle_lo(auto lhs) noexcept
+	{
+		return _mm_shufflelo_epi16(lhs, imm8);
+	}
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL shuffle_hi(auto lhs, auto rhs) noexcept
 	{
 		return register_shuffle_half_16(lhs, static_cast<unsigned int>(rhs), true);
 	}
+	/** @brief Shuffles the high four unsigned 16-bit lanes in each 128-bit group with an immediate control. */
+	template <int imm8> SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL shuffle_hi(auto lhs) noexcept
+	{
+		return _mm_shufflehi_epi16(lhs, imm8);
+	}
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL blend(auto lhs, auto rhs, const int imm8) noexcept
 	{
 		return register_blend<std::int16_t>(lhs, rhs, static_cast<unsigned int>(imm8));
+	}
+	/** @brief Selects unsigned 16-bit lanes from two registers with an immediate control. */
+	template <int imm8> SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL blend(auto lhs, auto rhs) noexcept
+	{
+		return _mm_blend_epi16(lhs, rhs, imm8);
 	}
 };
 
@@ -1414,7 +1442,8 @@ template <> struct SimdImpl128<int32_t>
 		return _mm_sad_epu8(lhs, rhs);
 	}
 	/** @brief Computes immediate-selected byte-window absolute-difference sums for this native register specialization. */
-	template <int imm8> SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL multi_sum_absolute_byte_differences(auto lhs, auto rhs) noexcept
+	template <int imm8>
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL multi_sum_absolute_byte_differences(auto lhs, auto rhs) noexcept
 	{
 		return _mm_mpsadbw_epu8(lhs, rhs, imm8);
 	}
@@ -1564,6 +1593,11 @@ template <> struct SimdImpl128<int32_t>
 	{
 		return register_blend<std::int32_t>(lhs, rhs, static_cast<unsigned int>(imm8));
 	}
+	/** @brief Selects signed 32-bit lanes from two registers with an immediate control. */
+	template <int imm8> SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL blend(auto lhs, auto rhs) noexcept
+	{
+		return _mm_castps_si128(_mm_blend_ps(_mm_castsi128_ps(lhs), _mm_castsi128_ps(rhs), imm8 & 0x0F));
+	}
 };
 
 template <> struct SimdImpl128<uint32_t>
@@ -1684,7 +1718,8 @@ template <> struct SimdImpl128<uint32_t>
 		return _mm_sad_epu8(lhs, rhs);
 	}
 	/** @brief Computes immediate-selected byte-window absolute-difference sums for this native register specialization. */
-	template <int imm8> SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL multi_sum_absolute_byte_differences(auto lhs, auto rhs) noexcept
+	template <int imm8>
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL multi_sum_absolute_byte_differences(auto lhs, auto rhs) noexcept
 	{
 		return _mm_mpsadbw_epu8(lhs, rhs, imm8);
 	}
@@ -1834,6 +1869,11 @@ template <> struct SimdImpl128<uint32_t>
 	{
 		return register_blend<std::int32_t>(lhs, rhs, static_cast<unsigned int>(imm8));
 	}
+	/** @brief Selects unsigned 32-bit lanes from two registers with an immediate control. */
+	template <int imm8> SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL blend(auto lhs, auto rhs) noexcept
+	{
+		return _mm_castps_si128(_mm_blend_ps(_mm_castsi128_ps(lhs), _mm_castsi128_ps(rhs), imm8 & 0x0F));
+	}
 };
 
 template <> struct SimdImpl128<int64_t>
@@ -1908,8 +1948,7 @@ template <> struct SimdImpl128<int64_t>
 		const std::uint64_t highWord1 = static_cast<std::uint64_t>(_mm_extract_epi64(highSquare, 1));
 		const std::uint64_t lowWord = lowWord0 + lowWord1;
 		const std::uint64_t highWord = highWord0 + highWord1 + static_cast<std::uint64_t>(lowWord < lowWord0);
-		const std::uint64_t result = magnitude_round_sqrt_u128(
-			lowWord, highWord, static_cast<std::uint64_t>(std::numeric_limits<std::int64_t>::max()));
+		const std::uint64_t result = magnitude_round_sqrt_u128(lowWord, highWord, static_cast<std::uint64_t>(std::numeric_limits<std::int64_t>::max()));
 		return _mm_cvtsi64_si128(static_cast<std::int64_t>(result));
 	}
 
@@ -1958,7 +1997,8 @@ template <> struct SimdImpl128<int64_t>
 		return _mm_sad_epu8(lhs, rhs);
 	}
 	/** @brief Computes immediate-selected byte-window absolute-difference sums for this native register specialization. */
-	template <int imm8> SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL multi_sum_absolute_byte_differences(auto lhs, auto rhs) noexcept
+	template <int imm8>
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL multi_sum_absolute_byte_differences(auto lhs, auto rhs) noexcept
 	{
 		return _mm_mpsadbw_epu8(lhs, rhs, imm8);
 	}
@@ -2125,8 +2165,7 @@ template <> struct SimdImpl128<uint64_t>
 		const std::uint64_t highWord1 = static_cast<std::uint64_t>(_mm_extract_epi64(highSquare, 1));
 		const std::uint64_t lowWord = lowWord0 + lowWord1;
 		const std::uint64_t highWord = highWord0 + highWord1 + static_cast<std::uint64_t>(lowWord < lowWord0);
-		const std::uint64_t result = magnitude_round_sqrt_u128(
-			lowWord, highWord, std::numeric_limits<std::uint64_t>::max());
+		const std::uint64_t result = magnitude_round_sqrt_u128(lowWord, highWord, std::numeric_limits<std::uint64_t>::max());
 		return _mm_cvtsi64_si128(static_cast<std::int64_t>(result));
 	}
 
@@ -2172,7 +2211,8 @@ template <> struct SimdImpl128<uint64_t>
 		return _mm_sad_epu8(lhs, rhs);
 	}
 	/** @brief Computes immediate-selected byte-window absolute-difference sums for this native register specialization. */
-	template <int imm8> SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL multi_sum_absolute_byte_differences(auto lhs, auto rhs) noexcept
+	template <int imm8>
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL multi_sum_absolute_byte_differences(auto lhs, auto rhs) noexcept
 	{
 		return _mm_mpsadbw_epu8(lhs, rhs, imm8);
 	}
@@ -2428,6 +2468,11 @@ template <> struct SimdImpl128<float>
 	{
 		return register_blend<float>(lhs, rhs, static_cast<unsigned int>(imm8));
 	}
+	/** @brief Selects 32-bit floating-point lanes from two registers with an immediate control. */
+	template <int imm8> SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL blend(auto lhs, auto rhs) noexcept
+	{
+		return _mm_blend_ps(lhs, rhs, imm8 & 0x0F);
+	}
 	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL movemask(auto lhs) noexcept
 	{
 		return _mm_movemask_ps(lhs);
@@ -2598,6 +2643,11 @@ template <> struct SimdImpl128<double>
 	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL blend(auto lhs, auto rhs, const int imm8) noexcept
 	{
 		return register_blend<double>(lhs, rhs, static_cast<unsigned int>(imm8));
+	}
+	/** @brief Selects 64-bit floating-point lanes from two registers with an immediate control. */
+	template <int imm8> SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL blend(auto lhs, auto rhs) noexcept
+	{
+		return _mm_blend_pd(lhs, rhs, imm8 & 0x03);
 	}
 	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL movemask(auto lhs) noexcept
 	{
@@ -3146,8 +3196,7 @@ template <> struct SimdImpl256<int8_t>
 	/** @brief Multiplies signed byte lanes and adds adjacent products into signed 16-bit lanes. */
 	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL multiply_add_adjacent(auto lhs, auto rhs) noexcept
 	{
-		const __m256i lowProducts =
-			_mm256_mullo_epi16(_mm256_cvtepi8_epi16(_mm256_castsi256_si128(lhs)), _mm256_cvtepi8_epi16(_mm256_castsi256_si128(rhs)));
+		const __m256i lowProducts = _mm256_mullo_epi16(_mm256_cvtepi8_epi16(_mm256_castsi256_si128(lhs)), _mm256_cvtepi8_epi16(_mm256_castsi256_si128(rhs)));
 		const __m256i highProducts =
 			_mm256_mullo_epi16(_mm256_cvtepi8_epi16(_mm256_extracti128_si256(lhs, 1)), _mm256_cvtepi8_epi16(_mm256_extracti128_si256(rhs, 1)));
 		const __m256i interleavedSums = _mm256_hadd_epi16(lowProducts, highProducts);
@@ -3238,7 +3287,8 @@ template <> struct SimdImpl256<int8_t>
 		return _mm256_sad_epu8(lhs, rhs);
 	}
 	/** @brief Computes immediate-selected byte-window absolute-difference sums for this native register specialization. */
-	template <int imm8> SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL multi_sum_absolute_byte_differences(auto lhs, auto rhs) noexcept
+	template <int imm8>
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL multi_sum_absolute_byte_differences(auto lhs, auto rhs) noexcept
 	{
 		return _mm256_mpsadbw_epu8(lhs, rhs, imm8);
 	}
@@ -3384,8 +3434,7 @@ template <> struct SimdImpl256<uint8_t>
 	/** @brief Multiplies unsigned byte lanes and adds adjacent products into unsigned 16-bit lanes. */
 	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL multiply_add_adjacent(auto lhs, auto rhs) noexcept
 	{
-		const __m256i lowProducts =
-			_mm256_mullo_epi16(_mm256_cvtepu8_epi16(_mm256_castsi256_si128(lhs)), _mm256_cvtepu8_epi16(_mm256_castsi256_si128(rhs)));
+		const __m256i lowProducts = _mm256_mullo_epi16(_mm256_cvtepu8_epi16(_mm256_castsi256_si128(lhs)), _mm256_cvtepu8_epi16(_mm256_castsi256_si128(rhs)));
 		const __m256i highProducts =
 			_mm256_mullo_epi16(_mm256_cvtepu8_epi16(_mm256_extracti128_si256(lhs, 1)), _mm256_cvtepu8_epi16(_mm256_extracti128_si256(rhs, 1)));
 		const __m256i interleavedSums = _mm256_hadd_epi16(lowProducts, highProducts);
@@ -3476,7 +3525,8 @@ template <> struct SimdImpl256<uint8_t>
 		return _mm256_sad_epu8(lhs, rhs);
 	}
 	/** @brief Computes immediate-selected byte-window absolute-difference sums for this native register specialization. */
-	template <int imm8> SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL multi_sum_absolute_byte_differences(auto lhs, auto rhs) noexcept
+	template <int imm8>
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL multi_sum_absolute_byte_differences(auto lhs, auto rhs) noexcept
 	{
 		return _mm256_mpsadbw_epu8(lhs, rhs, imm8);
 	}
@@ -3705,7 +3755,8 @@ template <> struct SimdImpl256<int16_t>
 		return _mm256_sad_epu8(lhs, rhs);
 	}
 	/** @brief Computes immediate-selected byte-window absolute-difference sums for this native register specialization. */
-	template <int imm8> SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL multi_sum_absolute_byte_differences(auto lhs, auto rhs) noexcept
+	template <int imm8>
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL multi_sum_absolute_byte_differences(auto lhs, auto rhs) noexcept
 	{
 		return _mm256_mpsadbw_epu8(lhs, rhs, imm8);
 	}
@@ -3865,13 +3916,28 @@ template <> struct SimdImpl256<int16_t>
 	{
 		return register_shuffle_half_16(lhs, static_cast<unsigned int>(rhs), false);
 	}
+	/** @brief Shuffles the low four signed 16-bit lanes in each 128-bit group with an immediate control. */
+	template <int imm8> SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL shuffle_lo(auto lhs) noexcept
+	{
+		return _mm256_shufflelo_epi16(lhs, imm8);
+	}
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL shuffle_hi(auto lhs, auto rhs) noexcept
 	{
 		return register_shuffle_half_16(lhs, static_cast<unsigned int>(rhs), true);
 	}
+	/** @brief Shuffles the high four signed 16-bit lanes in each 128-bit group with an immediate control. */
+	template <int imm8> SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL shuffle_hi(auto lhs) noexcept
+	{
+		return _mm256_shufflehi_epi16(lhs, imm8);
+	}
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL blend(auto lhs, auto rhs, const int imm8) noexcept
 	{
 		return register_blend<std::int16_t>(lhs, rhs, static_cast<unsigned int>(imm8));
+	}
+	/** @brief Selects signed 16-bit lanes from two 256-bit registers with a repeated immediate control. */
+	template <int imm8> SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL blend(auto lhs, auto rhs) noexcept
+	{
+		return _mm256_blend_epi16(lhs, rhs, imm8);
 	}
 };
 
@@ -3896,10 +3962,9 @@ template <> struct SimdImpl256<uint16_t>
 	/** @brief Multiplies adjacent unsigned 16-bit lanes and adds their products into unsigned 32-bit lanes. */
 	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL multiply_add_adjacent(auto lhs, auto rhs) noexcept
 	{
-		const __m256i lowProducts = _mm256_mullo_epi32(
-			_mm256_cvtepu16_epi32(_mm256_castsi256_si128(lhs)), _mm256_cvtepu16_epi32(_mm256_castsi256_si128(rhs)));
-		const __m256i highProducts = _mm256_mullo_epi32(
-			_mm256_cvtepu16_epi32(_mm256_extracti128_si256(lhs, 1)), _mm256_cvtepu16_epi32(_mm256_extracti128_si256(rhs, 1)));
+		const __m256i lowProducts = _mm256_mullo_epi32(_mm256_cvtepu16_epi32(_mm256_castsi256_si128(lhs)), _mm256_cvtepu16_epi32(_mm256_castsi256_si128(rhs)));
+		const __m256i highProducts =
+			_mm256_mullo_epi32(_mm256_cvtepu16_epi32(_mm256_extracti128_si256(lhs, 1)), _mm256_cvtepu16_epi32(_mm256_extracti128_si256(rhs, 1)));
 		const __m256i interleavedSums = _mm256_hadd_epi32(lowProducts, highProducts);
 		return _mm256_permute4x64_epi64(interleavedSums, _MM_SHUFFLE(3, 1, 2, 0));
 	}
@@ -3974,7 +4039,8 @@ template <> struct SimdImpl256<uint16_t>
 		return _mm256_sad_epu8(lhs, rhs);
 	}
 	/** @brief Computes immediate-selected byte-window absolute-difference sums for this native register specialization. */
-	template <int imm8> SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL multi_sum_absolute_byte_differences(auto lhs, auto rhs) noexcept
+	template <int imm8>
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL multi_sum_absolute_byte_differences(auto lhs, auto rhs) noexcept
 	{
 		return _mm256_mpsadbw_epu8(lhs, rhs, imm8);
 	}
@@ -4145,13 +4211,28 @@ template <> struct SimdImpl256<uint16_t>
 	{
 		return register_shuffle_half_16(lhs, static_cast<unsigned int>(rhs), false);
 	}
+	/** @brief Shuffles the low four unsigned 16-bit lanes in each 128-bit group with an immediate control. */
+	template <int imm8> SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL shuffle_lo(auto lhs) noexcept
+	{
+		return _mm256_shufflelo_epi16(lhs, imm8);
+	}
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL shuffle_hi(auto lhs, auto rhs) noexcept
 	{
 		return register_shuffle_half_16(lhs, static_cast<unsigned int>(rhs), true);
 	}
+	/** @brief Shuffles the high four unsigned 16-bit lanes in each 128-bit group with an immediate control. */
+	template <int imm8> SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL shuffle_hi(auto lhs) noexcept
+	{
+		return _mm256_shufflehi_epi16(lhs, imm8);
+	}
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL blend(auto lhs, auto rhs, const int imm8) noexcept
 	{
 		return register_blend<std::int16_t>(lhs, rhs, static_cast<unsigned int>(imm8));
+	}
+	/** @brief Selects unsigned 16-bit lanes from two 256-bit registers with a repeated immediate control. */
+	template <int imm8> SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL blend(auto lhs, auto rhs) noexcept
+	{
+		return _mm256_blend_epi16(lhs, rhs, imm8);
 	}
 };
 
@@ -4240,7 +4321,8 @@ template <> struct SimdImpl256<int32_t>
 		return _mm256_sad_epu8(lhs, rhs);
 	}
 	/** @brief Computes immediate-selected byte-window absolute-difference sums for this native register specialization. */
-	template <int imm8> SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL multi_sum_absolute_byte_differences(auto lhs, auto rhs) noexcept
+	template <int imm8>
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL multi_sum_absolute_byte_differences(auto lhs, auto rhs) noexcept
 	{
 		return _mm256_mpsadbw_epu8(lhs, rhs, imm8);
 	}
@@ -4372,6 +4454,11 @@ template <> struct SimdImpl256<int32_t>
 	{
 		return register_blend<std::int32_t>(lhs, rhs, static_cast<unsigned int>(imm8));
 	}
+	/** @brief Selects signed 32-bit lanes from two 256-bit registers with an immediate control. */
+	template <int imm8> SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL blend(auto lhs, auto rhs) noexcept
+	{
+		return _mm256_blend_epi32(lhs, rhs, imm8);
+	}
 };
 
 template <> struct SimdImpl256<uint32_t>
@@ -4474,7 +4561,8 @@ template <> struct SimdImpl256<uint32_t>
 		return _mm256_sad_epu8(lhs, rhs);
 	}
 	/** @brief Computes immediate-selected byte-window absolute-difference sums for this native register specialization. */
-	template <int imm8> SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL multi_sum_absolute_byte_differences(auto lhs, auto rhs) noexcept
+	template <int imm8>
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL multi_sum_absolute_byte_differences(auto lhs, auto rhs) noexcept
 	{
 		return _mm256_mpsadbw_epu8(lhs, rhs, imm8);
 	}
@@ -4606,6 +4694,11 @@ template <> struct SimdImpl256<uint32_t>
 	{
 		return register_blend<std::int32_t>(lhs, rhs, static_cast<unsigned int>(imm8));
 	}
+	/** @brief Selects unsigned 32-bit lanes from two 256-bit registers with an immediate control. */
+	template <int imm8> SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL blend(auto lhs, auto rhs) noexcept
+	{
+		return _mm256_blend_epi32(lhs, rhs, imm8);
+	}
 };
 
 template <> struct SimdImpl256<int64_t>
@@ -4694,7 +4787,8 @@ template <> struct SimdImpl256<int64_t>
 		return _mm256_sad_epu8(lhs, rhs);
 	}
 	/** @brief Computes immediate-selected byte-window absolute-difference sums for this native register specialization. */
-	template <int imm8> SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL multi_sum_absolute_byte_differences(auto lhs, auto rhs) noexcept
+	template <int imm8>
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL multi_sum_absolute_byte_differences(auto lhs, auto rhs) noexcept
 	{
 		return _mm256_mpsadbw_epu8(lhs, rhs, imm8);
 	}
@@ -4881,7 +4975,8 @@ template <> struct SimdImpl256<uint64_t>
 		return _mm256_sad_epu8(lhs, rhs);
 	}
 	/** @brief Computes immediate-selected byte-window absolute-difference sums for this native register specialization. */
-	template <int imm8> SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL multi_sum_absolute_byte_differences(auto lhs, auto rhs) noexcept
+	template <int imm8>
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL multi_sum_absolute_byte_differences(auto lhs, auto rhs) noexcept
 	{
 		return _mm256_mpsadbw_epu8(lhs, rhs, imm8);
 	}
@@ -5166,6 +5261,11 @@ template <> struct SimdImpl256<float>
 	{
 		return register_blend<float>(lhs, rhs, static_cast<unsigned int>(imm8));
 	}
+	/** @brief Selects 32-bit floating-point lanes from two 256-bit registers with an immediate control. */
+	template <int imm8> SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL blend(auto lhs, auto rhs) noexcept
+	{
+		return _mm256_blend_ps(lhs, rhs, imm8);
+	}
 };
 
 template <> struct SimdImpl256<double>
@@ -5359,6 +5459,11 @@ template <> struct SimdImpl256<double>
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL blend(auto lhs, auto rhs, const int imm8) noexcept
 	{
 		return register_blend<double>(lhs, rhs, static_cast<unsigned int>(imm8));
+	}
+	/** @brief Selects 64-bit floating-point lanes from two 256-bit registers with an immediate control. */
+	template <int imm8> SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL blend(auto lhs, auto rhs) noexcept
+	{
+		return _mm256_blend_pd(lhs, rhs, imm8 & 0x0F);
 	}
 };
 

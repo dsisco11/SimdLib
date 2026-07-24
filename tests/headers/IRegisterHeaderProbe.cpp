@@ -30,7 +30,18 @@ struct RegisterShape
 };
 
 static_assert(SimdLib::IRegister::Type<RegisterShape>);
+static_assert(SimdLib::IRegister::Shape<RegisterShape, int, 128>);
 static_assert(!SimdLib::IRegister::Zero<RegisterShape>);
 static_assert(!SimdLib::IRegister::Add<RegisterShape>);
+static_assert(!SimdLib::IRegister::LowerHalf<RegisterShape>);
+static_assert(!SimdLib::IRegister::UnpackLow<RegisterShape>);
+static_assert(!SimdLib::IRegister::UnpackHigh<RegisterShape>);
+static_assert(!SimdLib::IRegister::Shuffle<RegisterShape, 0>);
+static_assert(!SimdLib::IRegister::ShuffleLow<RegisterShape, 0>);
+static_assert(!SimdLib::IRegister::ShuffleHigh<RegisterShape, 0>);
+static_assert(!SimdLib::IRegister::Blend<RegisterShape, 0>);
+static_assert(!SimdLib::IRegister::BitCast<RegisterShape, float>);
+static_assert(!SimdLib::IRegister::Convert<RegisterShape, float>);
+static_assert(!SimdLib::IRegister::WidenLow<RegisterShape, long long, 256>);
 
 } // namespace

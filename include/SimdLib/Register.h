@@ -6,9 +6,9 @@
 #error "SIMDLIB_REGISTER_HEADER_REQUIRES_CXX23: <SimdLib/Register.h> requires C++23 explicit object parameter support"
 #endif
 
+#include <SimdLib/IRegister.h>
 #include <SimdLib/RegisterFwd.h>
 #include <SimdLib/RegisterMask.h>
-#include <SimdLib/IRegister.h>
 
 #include <array>
 #include <concepts>
@@ -55,8 +55,7 @@ class Register final
 	 * @param value Scalar value to broadcast.
 	 * @return Register containing `value` in every lane.
 	 */
-	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static Register broadcast(
-		element_type value) noexcept
+	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static Register broadcast(element_type value) noexcept
 	{
 		return Register{api_type::set1(value)};
 	}
@@ -69,8 +68,7 @@ class Register final
 	 */
 	template <std::convertible_to<element_type>... lane_types>
 		requires(sizeof...(lane_types) == lane_count)
-	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static Register from_lanes(
-		lane_types &&...lanes) noexcept
+	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static Register from_lanes(lane_types &&...lanes) noexcept
 	{
 		return Register{api_type::setr(static_cast<element_type>(std::forward<lane_types>(lanes))...)};
 	}
@@ -91,8 +89,7 @@ class Register final
 	 * @param source Source containing exactly one register of elements.
 	 * @return Register loaded from `source`.
 	 */
-	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static Register load(
-		std::span<const element_type, lane_count> source) noexcept
+	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static Register load(std::span<const element_type, lane_count> source) noexcept
 	{
 		return Register{api_type::load(source)};
 	}
@@ -114,8 +111,7 @@ class Register final
 	 * @param source Source containing exactly one register of bytes.
 	 * @return Register containing the source bit pattern.
 	 */
-	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static Register load_bytes(
-		std::span<const std::byte, byte_count> source) noexcept
+	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static Register load_bytes(std::span<const std::byte, byte_count> source) noexcept
 	{
 		return Register{api_type::load(source)};
 	}
@@ -125,9 +121,7 @@ class Register final
 	 * @param value Register to store.
 	 * @param destination Destination for exactly one register of elements.
 	 */
-	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE void VECTORCALL store(
-		this Register value,
-		std::span<element_type, lane_count> destination) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE void VECTORCALL store(this Register value, std::span<element_type, lane_count> destination) noexcept
 	{
 		api_type::store(value.native, destination);
 	}
@@ -138,9 +132,7 @@ class Register final
 	 * @param destination Aligned destination for one complete register.
 	 * @pre `destination.data()` is aligned to `byte_count` bytes.
 	 */
-	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE void VECTORCALL store_aligned(
-		this Register value,
-		std::span<element_type, lane_count> destination) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE void VECTORCALL store_aligned(this Register value, std::span<element_type, lane_count> destination) noexcept
 	{
 		api_type::store_aligned(value.native, destination);
 	}
@@ -150,9 +142,7 @@ class Register final
 	 * @param value Register to store.
 	 * @param destination Destination containing exactly one register of bytes.
 	 */
-	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE void VECTORCALL store_bytes(
-		this Register value,
-		std::span<std::byte, byte_count> destination) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE void VECTORCALL store_bytes(this Register value, std::span<std::byte, byte_count> destination) noexcept
 	{
 		api_type::store(value.native, destination);
 	}
@@ -162,8 +152,7 @@ class Register final
 	 * @param value Register to copy.
 	 * @return Array containing all lanes in low-to-high logical order.
 	 */
-	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr std::array<element_type, lane_count> VECTORCALL to_array(
-		this Register value) noexcept
+	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr std::array<element_type, lane_count> VECTORCALL to_array(this Register value) noexcept
 	{
 		return api_type::to_array(value.native);
 	}
@@ -176,8 +165,7 @@ class Register final
 	 */
 	template <std::size_t index>
 		requires(index < lane_count)
-	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr element_type VECTORCALL lane(
-		this Register value) noexcept
+	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr element_type VECTORCALL lane(this Register value) noexcept
 	{
 		if consteval
 		{
@@ -198,9 +186,8 @@ class Register final
 	 */
 	template <std::size_t index>
 		requires(index < lane_count)
-	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr Register VECTORCALL with_lane(
-		this Register value,
-		element_type replacement) noexcept
+	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr Register VECTORCALL with_lane(this Register value,
+																													 element_type replacement) noexcept
 	{
 		value.native = api_type::template insert<index>(value.native, replacement);
 		return value;
@@ -209,27 +196,21 @@ class Register final
 #pragma region Arithmetic Operations
 
 	/** @brief Adds corresponding lanes. */
-	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY Register VECTORCALL operator+(
-		this Register lhs,
-		Register rhs) noexcept
+	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY Register VECTORCALL operator+(this Register lhs, Register rhs) noexcept
 		requires IApi::Add<api_type>
 	{
 		return Register{api_type::add(lhs.native, rhs.native)};
 	}
 
 	/** @brief Subtracts corresponding lanes. */
-	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY Register VECTORCALL operator-(
-		this Register lhs,
-		Register rhs) noexcept
+	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY Register VECTORCALL operator-(this Register lhs, Register rhs) noexcept
 		requires IApi::Subtract<api_type>
 	{
 		return Register{api_type::subtract(lhs.native, rhs.native)};
 	}
 
 	/** @brief Multiplies corresponding lanes. */
-	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY Register VECTORCALL operator*(
-		this Register lhs,
-		Register rhs) noexcept
+	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY Register VECTORCALL operator*(this Register lhs, Register rhs) noexcept
 		requires IApi::Multiply<api_type>
 	{
 		return Register{api_type::multiply(lhs.native, rhs.native)};
@@ -239,9 +220,7 @@ class Register final
 	 * @brief Divides corresponding lanes.
 	 * @pre Every divisor lane is nonzero and signed minimum is not divided by negative one.
 	 */
-	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY Register VECTORCALL operator/(
-		this Register lhs,
-		Register rhs) noexcept
+	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY Register VECTORCALL operator/(this Register lhs, Register rhs) noexcept
 		requires IApi::Divide<api_type>
 	{
 		return Register{api_type::divide(lhs.native, rhs.native)};
@@ -251,17 +230,14 @@ class Register final
 	 * @brief Computes corresponding-lane remainders.
 	 * @pre Every divisor lane is nonzero and signed minimum is not divided by negative one.
 	 */
-	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE Register VECTORCALL operator%(
-		this Register lhs,
-		Register rhs) noexcept
+	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE Register VECTORCALL operator%(this Register lhs, Register rhs) noexcept
 		requires IApi::Modulus<api_type>
 	{
 		return Register{api_type::modulus(lhs.native, rhs.native)};
 	}
 
 	/** @brief Negates every lane with the selected backend's edge behavior. */
-	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY Register VECTORCALL operator-(
-		this Register value) noexcept
+	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY Register VECTORCALL operator-(this Register value) noexcept
 		requires IApi::Negate<api_type>
 	{
 		return Register{api_type::negate(value.native)};
@@ -415,8 +391,7 @@ class Register final
 	 * @tparam source_element_t Deferred source type used to constrain result-alias availability.
 	 */
 	template <class source_element_t = element_type>
-		requires std::same_as<source_element_t, element_type> &&
-				std::is_integral_v<source_element_t> && IApi::MultiplyAddAdjacent<api_type>
+		requires std::same_as<source_element_t, element_type> && std::is_integral_v<source_element_t> && IApi::MultiplyAddAdjacent<api_type>
 	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY multiply_add_adjacent_result_t<source_element_t, register_width> VECTORCALL
 	multiply_add_adjacent(this Register lhs, Register rhs) noexcept
 	{
@@ -428,8 +403,7 @@ class Register final
 	 * @tparam source_element_t Deferred source type used to constrain result-alias availability.
 	 */
 	template <class source_element_t = element_type>
-		requires std::same_as<source_element_t, element_type> &&
-				std::is_integral_v<source_element_t> && IApi::ByteMultiplyAdd<api_type>
+		requires std::same_as<source_element_t, element_type> && std::is_integral_v<source_element_t> && IApi::ByteMultiplyAdd<api_type>
 	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY byte_multiply_add_result_t<source_element_t, register_width> VECTORCALL
 	multiply_add_unsigned_signed_bytes(this Register lhs, Register rhs) noexcept
 	{
@@ -454,8 +428,8 @@ class Register final
 	 * @tparam source_element_t Deferred source type used to constrain result-alias availability.
 	 */
 	template <int imm8, class source_element_t = element_type>
-		requires(imm8 >= 0 && imm8 <= 255 && std::same_as<source_element_t, element_type> &&
-				std::is_integral_v<source_element_t> && IApi::MultiSad<api_type, imm8>)
+		requires(imm8 >= 0 && imm8 <= 255 && std::same_as<source_element_t, element_type> && std::is_integral_v<source_element_t> &&
+				 IApi::MultiSad<api_type, imm8>)
 	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY multi_sad_result_t<source_element_t, register_width> VECTORCALL
 	multi_sum_absolute_byte_differences(this Register lhs, Register rhs) noexcept
 	{
@@ -528,40 +502,31 @@ class Register final
 #pragma region Bitwise Operations
 
 	/** @brief Computes the bitwise intersection of two registers. */
-	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr Register VECTORCALL operator&(
-		this Register lhs,
-		Register rhs) noexcept
+	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr Register VECTORCALL operator&(this Register lhs, Register rhs) noexcept
 	{
 		return Register{api_type::bitwise_and(lhs.native, rhs.native)};
 	}
 
 	/** @brief Computes the bitwise union of two registers. */
-	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr Register VECTORCALL operator|(
-		this Register lhs,
-		Register rhs) noexcept
+	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr Register VECTORCALL operator|(this Register lhs, Register rhs) noexcept
 	{
 		return Register{api_type::bitwise_or(lhs.native, rhs.native)};
 	}
 
 	/** @brief Computes the bitwise exclusive union of two registers. */
-	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr Register VECTORCALL operator^(
-		this Register lhs,
-		Register rhs) noexcept
+	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr Register VECTORCALL operator^(this Register lhs, Register rhs) noexcept
 	{
 		return Register{api_type::bitwise_xor(lhs.native, rhs.native)};
 	}
 
 	/** @brief Complements every bit in a register. */
-	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr Register VECTORCALL operator~(
-		this Register value) noexcept
+	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr Register VECTORCALL operator~(this Register value) noexcept
 	{
 		return Register{api_type::bitwise_not(value.native)};
 	}
 
 	/** @brief Computes `(~lhs) & rhs` with the existing backend operand polarity. */
-	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr Register VECTORCALL andnot(
-		this Register lhs,
-		Register rhs) noexcept
+	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr Register VECTORCALL andnot(this Register lhs, Register rhs) noexcept
 	{
 		return Register{api_type::bitwise_andnot(lhs.native, rhs.native)};
 	}
@@ -599,15 +564,15 @@ class Register final
 	}
 	 */
 	/** @brief Returns the selected intrinsic's native-granularity sign-bit mask. */
-	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr typename api_type::mask_t
-		VECTORCALL movemask(this Register value) noexcept
+	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr typename api_type::mask_t VECTORCALL
+	movemask(this Register value) noexcept
 	{
 		return api_type::movemask(value.native);
 	}
 
 	/** @brief Returns one scalar sign bit for every logical lane. */
-	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr typename api_type::mask_t
-		VECTORCALL lane_sign_bits(this Register value) noexcept
+	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr typename api_type::mask_t VECTORCALL
+	lane_sign_bits(this Register value) noexcept
 	{
 		return api_type::movemask_slim(value.native);
 	}
@@ -620,9 +585,7 @@ class Register final
 	 * @brief Left-shifts every integral lane.
 	 * @pre `count >= 0`; counts at least the lane width produce zero lanes.
 	 */
-	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr Register VECTORCALL operator<<(
-		this Register value,
-		int count) noexcept
+	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr Register VECTORCALL operator<<(this Register value, int count) noexcept
 		requires std::is_integral_v<element_type>
 	{
 		return Register{api_type::shift_left(value.native, count)};
@@ -632,8 +595,8 @@ class Register final
 	 * @brief Right-shifts every integral lane with zero fill.
 	 * @pre `count >= 0`; counts at least the lane width produce zero lanes.
 	 */
-	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr Register VECTORCALL
-		logical_shift_right(this Register value, int count) noexcept
+	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr Register VECTORCALL logical_shift_right(this Register value,
+																															   int count) noexcept
 		requires std::is_integral_v<element_type>
 	{
 		return Register{api_type::shift_right(value.native, count)};
@@ -643,9 +606,7 @@ class Register final
 	 * @brief Right-shifts unsigned lanes logically and signed lanes arithmetically.
 	 * @pre `count >= 0`; oversized signed counts clamp and unsigned counts produce zero lanes.
 	 */
-	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr Register VECTORCALL operator>>(
-		this Register value,
-		int count) noexcept
+	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr Register VECTORCALL operator>>(this Register value, int count) noexcept
 		requires std::is_integral_v<element_type>
 	{
 		if constexpr (std::is_signed_v<element_type>)
@@ -683,36 +644,28 @@ class Register final
 	}
 	 */
 	/** @brief Byte-shifts a complete 128-bit integral register toward higher byte indices. */
-	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr Register VECTORCALL byte_shift_left(
-		this Register value,
-		int count) noexcept
+	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr Register VECTORCALL byte_shift_left(this Register value, int count) noexcept
 		requires(std::is_integral_v<element_type> && register_width == 128)
 	{
 		return Register{api_type::byte_shift_left(value.native, count)};
 	}
 
 	/** @brief Byte-shifts a complete 128-bit integral register toward lower byte indices. */
-	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr Register VECTORCALL byte_shift_right(
-		this Register value,
-		int count) noexcept
+	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr Register VECTORCALL byte_shift_right(this Register value, int count) noexcept
 		requires(std::is_integral_v<element_type> && register_width == 128)
 	{
 		return Register{api_type::byte_shift_right(value.native, count)};
 	}
 
 	/** @brief Shifts a complete 128-bit integral register left as one bit string. */
-	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr Register VECTORCALL bit_shift_left(
-		this Register value,
-		int count) noexcept
+	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr Register VECTORCALL bit_shift_left(this Register value, int count) noexcept
 		requires(std::is_integral_v<element_type> && register_width == 128)
 	{
 		return Register{api_type::bit_shift_left(value.native, count)};
 	}
 
 	/** @brief Shifts a complete 128-bit integral register right as one bit string. */
-	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr Register VECTORCALL bit_shift_right(
-		this Register value,
-		int count) noexcept
+	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr Register VECTORCALL bit_shift_right(this Register value, int count) noexcept
 		requires(std::is_integral_v<element_type> && register_width == 128)
 	{
 		return Register{api_type::bit_shift_right(value.native, count)};
@@ -721,8 +674,7 @@ class Register final
 	/** @brief Compile-time shifts a complete 128-bit integral register left as one bit string. */
 	template <int count>
 		requires(std::is_integral_v<element_type> && register_width == 128 && count >= 0)
-	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr Register VECTORCALL bit_shift_left(
-		this Register value) noexcept
+	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr Register VECTORCALL bit_shift_left(this Register value) noexcept
 	{
 		return Register{api_type::template bit_shift_left<count>(value.native)};
 	}
@@ -730,10 +682,139 @@ class Register final
 	/** @brief Compile-time shifts a complete 128-bit integral register right as one bit string. */
 	template <int count>
 		requires(std::is_integral_v<element_type> && register_width == 128 && count >= 0)
-	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr Register VECTORCALL bit_shift_right(
-		this Register value) noexcept
+	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr Register VECTORCALL bit_shift_right(this Register value) noexcept
 	{
 		return Register{api_type::template bit_shift_right<count>(value.native)};
+	}
+
+#pragma endregion
+
+#pragma region Rearrangement and Conversion Operations
+
+	/** @brief Returns the low 128-bit half of a 256-bit register.
+	 *  @param value Source register in logical low-to-high lane order.
+	 *  @return `Register<element_type, 128>` containing the lowest source lanes.
+	 */
+	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr Register<element_type, 128> VECTORCALL
+	lower_half(this Register value) noexcept
+		requires(register_width == 256 && IApi::LowerHalf<api_type>)
+	{
+		return Register<element_type, 128>{api_type::lower_half(value.native)};
+	}
+
+	/** @brief Interleaves the low half of each 128-bit lane group from two registers.
+	 *  @param lhs Supplies even-numbered result lanes in every 128-bit group.
+	 *  @param rhs Supplies odd-numbered result lanes in every 128-bit group.
+	 *  @return Register containing `lhs[0], rhs[0], lhs[1], rhs[1], ...` independently in each 128-bit group.
+	 */
+	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr Register VECTORCALL unpack_low(this Register lhs, Register rhs) noexcept
+		requires IApi::UnpackLow<api_type>
+	{
+		return Register{api_type::unpack_lo(lhs.native, rhs.native)};
+	}
+
+	/** @brief Interleaves the high half of each 128-bit lane group from two registers.
+	 *  @param lhs Supplies even-numbered result lanes in every 128-bit group.
+	 *  @param rhs Supplies odd-numbered result lanes in every 128-bit group.
+	 *  @return Register containing interleaved lanes from each source group's high half.
+	 */
+	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr Register VECTORCALL unpack_high(this Register lhs, Register rhs) noexcept
+		requires IApi::UnpackHigh<api_type>
+	{
+		return Register{api_type::unpack_hi(lhs.native, rhs.native)};
+	}
+
+	/** @brief Rearranges byte lanes with a complete compile-time logical selector list.
+	 *  @tparam indices One source-lane index for every result lane.
+	 *  @param value Source byte register.
+	 *  @return Register containing the selected bytes in logical output order.
+	 *  @note Every selector must stay in the same 128-bit group as its output lane because the selected intrinsic cannot cross groups.
+	 */
+	template <std::size_t... indices>
+		requires IApi::Shuffle<api_type, indices...>
+	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr Register VECTORCALL shuffle(this Register value) noexcept
+	{
+		return Register{api_type::template shuffle<indices...>(value.native)};
+	}
+
+	/** @brief Shuffles the low four 16-bit lanes in each 128-bit group.
+	 *  @tparam imm8 Immediate control in the inclusive range `0..255`; every two-bit field selects one source lane.
+	 *  @param value Source register.
+	 *  @return Register with low lane groups shuffled and high lane groups preserved.
+	 */
+	template <int imm8>
+		requires IApi::ShuffleLow<api_type, imm8>
+	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr Register VECTORCALL shuffle_low(this Register value) noexcept
+	{
+		return Register{api_type::template shuffle_lo<imm8>(value.native)};
+	}
+
+	/** @brief Shuffles the high four 16-bit lanes in each 128-bit group.
+	 *  @tparam imm8 Immediate control in the inclusive range `0..255`; every two-bit field selects one source lane.
+	 *  @param value Source register.
+	 *  @return Register with high lane groups shuffled and low lane groups preserved.
+	 */
+	template <int imm8>
+		requires IApi::ShuffleHigh<api_type, imm8>
+	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr Register VECTORCALL shuffle_high(this Register value) noexcept
+	{
+		return Register{api_type::template shuffle_hi<imm8>(value.native)};
+	}
+
+	/** @brief Selects corresponding lanes from two registers with an immediate control mask.
+	 *  @tparam imm8 Immediate control in the inclusive range `0..255`; set applicable bits select `rhs`.
+	 *  @param lhs Register selected by cleared applicable control bits.
+	 *  @param rhs Register selected by set applicable control bits.
+	 *  @return Register containing the intrinsic-defined immediate blend.
+	 *  @note Unused immediate bits retain intrinsic behavior. A 256-bit 16-bit blend repeats the mask in each 128-bit group.
+	 */
+	template <int imm8>
+		requires IApi::Blend<api_type, imm8>
+	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr Register VECTORCALL blend(this Register lhs, Register rhs) noexcept
+	{
+		return Register{api_type::template blend<imm8>(lhs.native, rhs.native)};
+	}
+
+	/** @brief Reinterprets every bit of this complete register as another supported lane type.
+	 *  @tparam target_t Destination lane interpretation at the same register width.
+	 *  @param value Source register whose complete bit pattern is preserved.
+	 *  @return `Register<target_t, register_width>` containing exactly the source bits.
+	 */
+	template <class target_t>
+		requires RegisterAvailable<target_t, register_width> && IApi::BitCast<api_type, target_t>
+	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr Register<target_t, register_width> VECTORCALL
+	bit_cast(this Register value) noexcept
+	{
+		return Register<target_t, register_width>{api_type::template bit_cast<target_t>(value.native)};
+	}
+
+	/** @brief Numerically converts every lane into one complete destination register.
+	 *  @tparam target_t Explicit numeric destination lane type.
+	 *  @param value Source register.
+	 *  @return `Register<target_t, register_width>` containing converted lane values.
+	 *  @note The initial surface supports signed or unsigned 32-bit integers to `float`, and `float` to signed 32-bit integers.
+	 */
+	template <class target_t>
+		requires RegisterAvailable<target_t, register_width> && IApi::Convert<api_type, target_t>
+	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr Register<target_t, register_width> VECTORCALL
+	convert(this Register value) noexcept
+	{
+		return Register<target_t, register_width>{api_type::template convert<target_t>(value.native)};
+	}
+
+	/** @brief Widens only the lowest source lanes needed to fill one complete target register.
+	 *  @tparam target_t Wider integral destination lane type with the same signedness as `element_type`.
+	 *  @tparam target_bits Destination register width, either 128 or 256 bits.
+	 *  @param value Source 128-bit integral register.
+	 *  @return Complete target register populated from the lowest `target_bits / (sizeof(target_t) * 8)` source lanes.
+	 *  @note Source lanes above the returned register's lane count are intentionally not consumed.
+	 */
+	template <class target_t, std::size_t target_bits>
+		requires RegisterAvailable<target_t, target_bits> && IApi::Widen<api_type, Api<target_bits, target_t>>
+	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr Register<target_t, target_bits> VECTORCALL
+	widen_low(this Register value) noexcept
+	{
+		return Register<target_t, target_bits>{api_type::template widen<Api<target_bits, target_t>>(value.native)};
 	}
 
 #pragma endregion
@@ -741,57 +822,48 @@ class Register final
 #pragma region Comparison Operations
 
 	/** @brief Compares corresponding lanes for ordered equality. */
-	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr mask_type VECTORCALL compare_equal(
-		this Register lhs,
-		Register rhs) noexcept
+	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr mask_type VECTORCALL compare_equal(this Register lhs,
+																														  Register rhs) noexcept
 	{
 		return mask_type{api_type::compare_equal(lhs.native, rhs.native)};
 	}
 
 	/** @brief Compares corresponding lanes for greater-than ordering. */
-	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr mask_type VECTORCALL compare_greater(
-		this Register lhs,
-		Register rhs) noexcept
+	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr mask_type VECTORCALL compare_greater(this Register lhs,
+																															Register rhs) noexcept
 	{
 		return mask_type{api_type::compare_greater(lhs.native, rhs.native)};
 	}
 
 	/** @brief Compares corresponding lanes for greater-than-or-equal ordering. */
-	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr mask_type VECTORCALL compare_greater_equal(
-		this Register lhs,
-		Register rhs) noexcept
+	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr mask_type VECTORCALL compare_greater_equal(this Register lhs,
+																																  Register rhs) noexcept
 	{
 		return mask_type{api_type::compare_greater_equal(lhs.native, rhs.native)};
 	}
 
 	/** @brief Compares corresponding lanes for less-than ordering. */
-	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr mask_type VECTORCALL compare_less(
-		this Register lhs,
-		Register rhs) noexcept
+	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr mask_type VECTORCALL compare_less(this Register lhs,
+																														 Register rhs) noexcept
 	{
 		return mask_type{api_type::compare_less(lhs.native, rhs.native)};
 	}
 
 	/** @brief Compares corresponding lanes for less-than-or-equal ordering. */
-	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr mask_type VECTORCALL compare_less_equal(
-		this Register lhs,
-		Register rhs) noexcept
+	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr mask_type VECTORCALL compare_less_equal(this Register lhs,
+																															   Register rhs) noexcept
 	{
 		return mask_type{api_type::compare_less_equal(lhs.native, rhs.native)};
 	}
 
 	/** @brief Tests whether every corresponding lane compares equal. */
-	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr bool VECTORCALL operator==(
-		this Register lhs,
-		Register rhs) noexcept
+	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr bool VECTORCALL operator==(this Register lhs, Register rhs) noexcept
 	{
 		return lhs.compare_equal(rhs).all();
 	}
 
 	/** @brief Tests whether at least one corresponding lane compares unequal. */
-	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr bool VECTORCALL operator!=(
-		this Register lhs,
-		Register rhs) noexcept
+	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr bool VECTORCALL operator!=(this Register lhs, Register rhs) noexcept
 	{
 		return !lhs.compare_equal(rhs).all();
 	}
@@ -805,22 +877,17 @@ class Register final
 	 * @param value Register containing the selected lane.
 	 * @return Copy of lane `index`.
 	 */
-	template <std::size_t index>
-	[[nodiscard]] constexpr static element_type lane_constexpr(Register value) noexcept
+	template <std::size_t index> [[nodiscard]] constexpr static element_type lane_constexpr(Register value) noexcept
 	{
 		return value.to_array()[index];
 	}
-
 };
 
 /** @brief Selects true or false register lanes according to this predicate. */
 template <class element_t, std::size_t register_bits>
 	requires RegisterAvailable<element_t, register_bits>
 [[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr Register<element_t, register_bits> VECTORCALL
-	RegisterMask<element_t, register_bits>::select(
-		this RegisterMask condition,
-		register_type when_true,
-		register_type when_false) noexcept
+RegisterMask<element_t, register_bits>::select(this RegisterMask condition, register_type when_true, register_type when_false) noexcept
 {
 	return register_type{condition.select_native(when_true.native, when_false.native)};
 }

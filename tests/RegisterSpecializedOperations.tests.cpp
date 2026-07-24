@@ -40,7 +40,6 @@ template <class element_t, std::size_t bits> consteval bool validate_specialized
 {
 	using register_t = SimdLib::Register<element_t, bits>;
 	using api_t = SimdLib::Api<bits, element_t>;
-	using native_t = typename api_t::vector_t;
 	using other_element_t = std::conditional_t<std::same_as<element_t, std::int8_t>, std::uint8_t, std::int8_t>;
 
 	static_assert(SimdLib::IRegister::Add<register_t> == SimdLib::IApi::Add<api_t>);

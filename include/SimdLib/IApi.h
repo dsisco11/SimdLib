@@ -6,6 +6,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <type_traits>
+#include <utility>
 
 namespace SimdLib
 {
@@ -111,13 +112,11 @@ concept HorizontalAdd = Type<api_t> && requires(typename api_t::vector_t lhs, ty
 
 /** @brief Reports whether an API exposes adjacent horizontal subtraction. */
 template <class api_t>
-concept HorizontalSubtract =
-	Type<api_t> && requires(typename api_t::vector_t lhs, typename api_t::vector_t rhs) { api_t::subtract_horizontal(lhs, rhs); };
+concept HorizontalSubtract = Type<api_t> && requires(typename api_t::vector_t lhs, typename api_t::vector_t rhs) { api_t::subtract_horizontal(lhs, rhs); };
 
 /** @brief Reports whether an API exposes adjacent multiply-add. */
 template <class api_t>
-concept MultiplyAddAdjacent =
-	Type<api_t> && requires(typename api_t::vector_t lhs, typename api_t::vector_t rhs) { api_t::multiply_add_adjacent(lhs, rhs); };
+concept MultiplyAddAdjacent = Type<api_t> && requires(typename api_t::vector_t lhs, typename api_t::vector_t rhs) { api_t::multiply_add_adjacent(lhs, rhs); };
 
 /** @brief Reports whether an API exposes unsigned-byte by signed-byte multiply-add. */
 template <class api_t>
@@ -126,8 +125,7 @@ concept ByteMultiplyAdd =
 
 /** @brief Reports whether an API exposes byte sum-of-absolute-differences. */
 template <class api_t>
-concept Sad =
-	Type<api_t> && requires(typename api_t::vector_t lhs, typename api_t::vector_t rhs) { api_t::sum_absolute_byte_differences(lhs, rhs); };
+concept Sad = Type<api_t> && requires(typename api_t::vector_t lhs, typename api_t::vector_t rhs) { api_t::sum_absolute_byte_differences(lhs, rhs); };
 
 /** @brief Reports whether an API exposes immediate-controlled multi-SAD. */
 template <class api_t, int immediate>
@@ -149,13 +147,11 @@ concept AddSaturated = Type<api_t> && requires(typename api_t::vector_t lhs, typ
 
 /** @brief Reports whether an API exposes saturating subtraction. */
 template <class api_t>
-concept SubtractSaturated =
-	Type<api_t> && requires(typename api_t::vector_t lhs, typename api_t::vector_t rhs) { api_t::subtract_saturated(lhs, rhs); };
+concept SubtractSaturated = Type<api_t> && requires(typename api_t::vector_t lhs, typename api_t::vector_t rhs) { api_t::subtract_saturated(lhs, rhs); };
 
 /** @brief Reports whether an API exposes saturating horizontal addition. */
 template <class api_t>
-concept HorizontalAddSaturated =
-	Type<api_t> && requires(typename api_t::vector_t lhs, typename api_t::vector_t rhs) { api_t::hadd_saturated(lhs, rhs); };
+concept HorizontalAddSaturated = Type<api_t> && requires(typename api_t::vector_t lhs, typename api_t::vector_t rhs) { api_t::hadd_saturated(lhs, rhs); };
 
 /** @brief Reports whether an API exposes saturating horizontal subtraction. */
 template <class api_t>
@@ -169,7 +165,7 @@ concept AddSubtract = Type<api_t> && requires(typename api_t::vector_t lhs, type
 /** @brief Reports whether an API exposes an immediate-controlled dot product. */
 template <class api_t, int immediate>
 concept DotProduct = immediate >= 0 && immediate <= 255 && Type<api_t> &&
-								 requires(typename api_t::vector_t lhs, typename api_t::vector_t rhs) { api_t::template dot_product<immediate>(lhs, rhs); };
+					 requires(typename api_t::vector_t lhs, typename api_t::vector_t rhs) { api_t::template dot_product<immediate>(lhs, rhs); };
 
 /** @brief Reports whether an API exposes per-lane left shift. */
 template <class api_t>
@@ -196,6 +192,46 @@ concept BitShift = Type<api_t> && requires(typename api_t::vector_t value) {
 	api_t::bit_shift_left(value, 1);
 	api_t::bit_shift_right(value, 1);
 };
+
+/** @brief Reports whether an API exposes extraction of a 256-bit register's lower 128-bit half. */
+template <class api_t>
+concept LowerHalf = Type<api_t> && requires(typename api_t::vector_t value) { api_t::lower_half(value); };
+
+/** @brief Reports whether an API exposes low-lane unpacking. */
+template <class api_t>
+concept UnpackLow = Type<api_t> && requires(typename api_t::vector_t lhs, typename api_t::vector_t rhs) { api_t::unpack_lo(lhs, rhs); };
+
+/** @brief Reports whether an API exposes high-lane unpacking. */
+template <class api_t>
+concept UnpackHigh = Type<api_t> && requires(typename api_t::vector_t lhs, typename api_t::vector_t rhs) { api_t::unpack_hi(lhs, rhs); };
+
+/** @brief Reports whether an API accepts one compile-time logical shuffle selector sequence. */
+template <class api_t, std::size_t... indices>
+concept Shuffle = Type<api_t> && requires(typename api_t::vector_t value) { api_t::template shuffle<indices...>(value); };
+
+/** @brief Reports whether an API exposes an immediate-controlled low-half shuffle. */
+template <class api_t, int immediate>
+concept ShuffleLow = Type<api_t> && requires(typename api_t::vector_t value) { api_t::template shuffle_lo<immediate>(value); };
+
+/** @brief Reports whether an API exposes an immediate-controlled high-half shuffle. */
+template <class api_t, int immediate>
+concept ShuffleHigh = Type<api_t> && requires(typename api_t::vector_t value) { api_t::template shuffle_hi<immediate>(value); };
+
+/** @brief Reports whether an API exposes an immediate-controlled two-register blend. */
+template <class api_t, int immediate>
+concept Blend = Type<api_t> && requires(typename api_t::vector_t lhs, typename api_t::vector_t rhs) { api_t::template blend<immediate>(lhs, rhs); };
+
+/** @brief Reports whether an API can reinterpret a complete register as the requested target element type. */
+template <class api_t, class target_t>
+concept BitCast = Type<api_t> && requires(typename api_t::vector_t value) { api_t::template bit_cast<target_t>(value); };
+
+/** @brief Reports whether an API can numerically convert a complete register to the requested target element type. */
+template <class api_t, class target_t>
+concept Convert = Type<api_t> && requires(typename api_t::vector_t value) { api_t::template convert<target_t>(value); };
+
+/** @brief Reports whether an API can widen its lowest source lanes into one complete target API register. */
+template <class api_t, class target_api_t>
+concept Widen = Type<api_t> && WidenTarget<target_api_t> && requires(typename api_t::vector_t value) { api_t::template widen<target_api_t>(value); };
 
 } // namespace IApi
 

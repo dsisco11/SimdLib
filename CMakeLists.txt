@@ -330,7 +330,13 @@ if(SIMDLIB_BUILD_CONFIGURATION_TESTS)
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/RegisterImplicitScalar.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/RegisterImplicitNative.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/RegisterNativeOrder.cpp
-		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/RegisterUninitialized.cpp)
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/RegisterUninitialized.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/RegisterInvalidShuffleSelector.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/RegisterWrongShuffleSelectorCount.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/RegisterInvalidRearrangementImmediate.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/RegisterUnsupportedConversionTarget.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/RegisterUnavailableWidthChange.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/RegisterCompatibilityRearrangement.cpp)
 
 	simdlib_add_language_probe(SimdLibRegisterCxx20UmbrellaProbe
 		tests/availability/RegisterCxx20UmbrellaProbe.cpp 20 SimdLib::SimdLib)
@@ -382,6 +388,24 @@ if(SIMDLIB_BUILD_CONFIGURATION_TESTS)
 		simdlib_expect_language_probe_failure(RegisterUninitializedFailure
 			tests/compile_fail/register/RegisterUninitialized.cpp 23
 			SIMDLIB_REGISTER_REJECTS_UNINITIALIZED_CONSTRUCTION)
+		simdlib_expect_language_probe_failure(RegisterInvalidShuffleSelectorFailure
+			tests/compile_fail/register/RegisterInvalidShuffleSelector.cpp 23
+			SIMDLIB_REGISTER_REJECTS_INVALID_SHUFFLE_SELECTOR)
+		simdlib_expect_language_probe_failure(RegisterWrongShuffleSelectorCountFailure
+			tests/compile_fail/register/RegisterWrongShuffleSelectorCount.cpp 23
+			SIMDLIB_REGISTER_REJECTS_WRONG_SHUFFLE_SELECTOR_COUNT)
+		simdlib_expect_language_probe_failure(RegisterInvalidRearrangementImmediateFailure
+			tests/compile_fail/register/RegisterInvalidRearrangementImmediate.cpp 23
+			SIMDLIB_REGISTER_REJECTS_INVALID_REARRANGEMENT_IMMEDIATE)
+		simdlib_expect_language_probe_failure(RegisterUnsupportedConversionTargetFailure
+			tests/compile_fail/register/RegisterUnsupportedConversionTarget.cpp 23
+			SIMDLIB_REGISTER_REJECTS_UNSUPPORTED_CONVERSION_TARGET)
+		simdlib_expect_language_probe_failure(RegisterUnavailableWidthChangeFailure
+			tests/compile_fail/register/RegisterUnavailableWidthChange.cpp 23
+			SIMDLIB_REGISTER_REJECTS_UNAVAILABLE_WIDTH_CHANGE)
+		simdlib_expect_language_probe_failure(RegisterCompatibilityRearrangementFailure
+			tests/compile_fail/register/RegisterCompatibilityRearrangement.cpp 23
+			SIMDLIB_REGISTER_REJECTS_COMPATIBILITY_REARRANGEMENT)
 		if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
 			simdlib_add_language_probe(SimdLibRegisterMsvcFallbackProbe
 				tests/availability/RegisterMsvcFallbackProbe.cpp 23 SimdLib::Register)
@@ -430,6 +454,8 @@ function(simdlib_add_register_codegen_gate register_width)
 	set(specialized_fma_enabled_raw_target SimdLibRegisterSpecializedFmaEnabledRaw${register_width})
 	set(specialized_fma_disabled_wrapper_target SimdLibRegisterSpecializedFmaDisabledWrapper${register_width})
 	set(specialized_fma_disabled_raw_target SimdLibRegisterSpecializedFmaDisabledRaw${register_width})
+	set(rearrangement_wrapper_target SimdLibRegisterRearrangementWrapper${register_width})
+	set(rearrangement_raw_target SimdLibRegisterRearrangementRaw${register_width})
 	add_library(${wrapper_target} OBJECT tests/codegen/RegisterCodegen.cpp)
 	add_library(${raw_target} OBJECT tests/codegen/RegisterCodegenRaw.cpp)
 	add_library(${default_wrapper_target} OBJECT tests/codegen/RegisterDefaultAbi.cpp)
@@ -440,10 +466,13 @@ function(simdlib_add_register_codegen_gate register_width)
 	add_library(${specialized_fma_enabled_raw_target} OBJECT tests/codegen/RegisterSpecializedCodegenRaw.cpp)
 	add_library(${specialized_fma_disabled_wrapper_target} OBJECT tests/codegen/RegisterSpecializedCodegen.cpp)
 	add_library(${specialized_fma_disabled_raw_target} OBJECT tests/codegen/RegisterSpecializedCodegenRaw.cpp)
+	add_library(${rearrangement_wrapper_target} OBJECT tests/codegen/RegisterRearrangementCodegen.cpp)
+	add_library(${rearrangement_raw_target} OBJECT tests/codegen/RegisterRearrangementCodegenRaw.cpp)
 	foreach(target IN ITEMS ${wrapper_target} ${raw_target} ${default_wrapper_target} ${default_raw_target}
 		${abi_wrapper_target} ${abi_raw_target}
 		${specialized_fma_enabled_wrapper_target} ${specialized_fma_enabled_raw_target}
-		${specialized_fma_disabled_wrapper_target} ${specialized_fma_disabled_raw_target})
+		${specialized_fma_disabled_wrapper_target} ${specialized_fma_disabled_raw_target}
+		${rearrangement_wrapper_target} ${rearrangement_raw_target})
 		target_link_libraries(${target} PRIVATE SimdLib::Register)
 		target_compile_definitions(${target} PRIVATE SIMDLIB_REGISTER_TEST_WIDTH=${register_width})
 		simdlib_enable_development_warnings(${target})
@@ -476,6 +505,7 @@ function(simdlib_add_register_codegen_gate register_width)
 	set(consumer_abi_stamp_file "${artifact_directory}/consumer-abi-comparison.stamp")
 	set(specialized_fma_enabled_stamp_file "${artifact_directory}/specialized/fma-enabled/comparison.stamp")
 	set(specialized_fma_disabled_stamp_file "${artifact_directory}/specialized/fma-disabled/comparison.stamp")
+	set(rearrangement_stamp_file "${artifact_directory}/rearrangement-conversion/comparison.stamp")
 	add_custom_command(
 		OUTPUT "${stamp_file}"
 		COMMAND ${CMAKE_COMMAND} -E make_directory "${artifact_directory}"
@@ -610,6 +640,33 @@ function(simdlib_add_register_codegen_gate register_width)
 		COMMENT "Comparing ${register_width}-bit Register and raw constant-index lane extraction"
 		VERBATIM)
 	add_custom_command(
+		OUTPUT "${rearrangement_stamp_file}"
+		COMMAND ${CMAKE_COMMAND} -E make_directory "${artifact_directory}/rearrangement-conversion"
+		COMMAND ${CMAKE_COMMAND}
+			-DWRAPPER_OBJECT=$<TARGET_OBJECTS:${rearrangement_wrapper_target}>
+			-DRAW_OBJECT=$<TARGET_OBJECTS:${rearrangement_raw_target}>
+			-DOBJDUMP=${CMAKE_OBJDUMP}
+			-DARTIFACT_DIRECTORY=${artifact_directory}/rearrangement-conversion
+			-DCOMPILER_ID=${CMAKE_CXX_COMPILER_ID}
+			-DCOMPILER_VERSION=${CMAKE_CXX_COMPILER_VERSION}
+			-DCOMPILER_PATH=${CMAKE_CXX_COMPILER}
+			-DSYSTEM_NAME=${CMAKE_SYSTEM_NAME}
+			-DSYSTEM_PROCESSOR=${CMAKE_SYSTEM_PROCESSOR}
+			-DCONFIGURATION=$<CONFIG>
+			-DREGISTER_WIDTH=${register_width}
+			-DVECTORCALL_ENABLED=${vectorcall_enabled}
+			-DSTACK_PROTECTOR_MODE=${stack_protector_mode}
+			-DCODEGEN_PROFILE=rearrangement-conversion
+			-DSYMBOL_PATTERN=simdlib_rearrangement_codegen_
+			-P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/CompareRegisterCodegen.cmake
+		COMMAND ${CMAKE_COMMAND} -E touch "${rearrangement_stamp_file}"
+		DEPENDS
+			$<TARGET_OBJECTS:${rearrangement_wrapper_target}>
+			$<TARGET_OBJECTS:${rearrangement_raw_target}>
+			cmake/CompareRegisterCodegen.cmake
+		COMMENT "Comparing ${register_width}-bit rearrangement and conversion wrapper and raw generated code"
+		VERBATIM)
+	add_custom_command(
 		OUTPUT "${reassignment_stamp_file}"
 		COMMAND ${CMAKE_COMMAND} -E make_directory "${artifact_directory}/reassignment"
 		COMMAND ${CMAKE_COMMAND}
@@ -714,7 +771,8 @@ function(simdlib_add_register_codegen_gate register_width)
 		VERBATIM)
 	set(expression_codegen_gate_outputs
 		"${register_only_stamp_file}" "${reassignment_stamp_file}" "${lane_stamp_file}"
-		"${specialized_fma_enabled_stamp_file}" "${specialized_fma_disabled_stamp_file}")
+		"${specialized_fma_enabled_stamp_file}" "${specialized_fma_disabled_stamp_file}"
+		"${rearrangement_stamp_file}")
 	if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
 		list(APPEND expression_codegen_gate_outputs "${stamp_file}")
 	endif()
@@ -723,7 +781,8 @@ function(simdlib_add_register_codegen_gate register_width)
 	add_dependencies(SimdLibRegisterExpressionCodegen${register_width}
 		${wrapper_target} ${raw_target}
 		${specialized_fma_enabled_wrapper_target} ${specialized_fma_enabled_raw_target}
-		${specialized_fma_disabled_wrapper_target} ${specialized_fma_disabled_raw_target})
+		${specialized_fma_disabled_wrapper_target} ${specialized_fma_disabled_raw_target}
+		${rearrangement_wrapper_target} ${rearrangement_raw_target})
 	add_test(NAME SimdLib.RegisterExpressionCodegen.${register_width}
 		COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --config $<CONFIG>
 			--target SimdLibRegisterExpressionCodegen${register_width})
@@ -745,7 +804,8 @@ function(simdlib_add_register_codegen_gate register_width)
 		${wrapper_target} ${raw_target} ${default_wrapper_target} ${default_raw_target}
 		${abi_wrapper_target} ${abi_raw_target}
 		${specialized_fma_enabled_wrapper_target} ${specialized_fma_enabled_raw_target}
-		${specialized_fma_disabled_wrapper_target} ${specialized_fma_disabled_raw_target})
+		${specialized_fma_disabled_wrapper_target} ${specialized_fma_disabled_raw_target}
+		${rearrangement_wrapper_target} ${rearrangement_raw_target})
 	add_test(NAME SimdLib.RegisterCodegen.${register_width}
 		COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --config $<CONFIG>
 			--target SimdLibRegisterCodegen${register_width})
@@ -834,7 +894,8 @@ if(SIMDLIB_BUILD_TESTS)
 			SimdLib.Tests.Register "REGISTER;AVX2")
 		target_sources(SimdLibTestsRegister PRIVATE
 			tests/RegisterBasicOperations.tests.cpp
-			tests/RegisterSpecializedOperations.tests.cpp)
+			tests/RegisterSpecializedOperations.tests.cpp
+			tests/RegisterRearrangementConversion.tests.cpp)
 		target_link_libraries(SimdLibTestsRegister PRIVATE SimdLib::Register)
 		if(SIMDLIB_MSVC_STYLE_DRIVER)
 			target_compile_options(SimdLibTestsRegister PRIVATE /arch:AVX2)

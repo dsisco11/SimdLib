@@ -408,4 +408,68 @@ concept NotEqual = Type<register_t> && requires(register_t lhs, register_t rhs) 
 	{ lhs != rhs } -> std::same_as<bool>;
 };
 
+/** @brief Identifies a Register-shaped result with the requested element type and width. */
+template <class register_t, class element_t, std::size_t bits>
+concept Shape = Type<register_t> && std::same_as<typename register_t::element_type, element_t> && register_t::register_width == bits;
+
+/** @brief Reports whether a Register exposes its lower 128-bit half. */
+template <class register_t>
+concept LowerHalf = Type<register_t> && requires(register_t value) {
+	{ value.lower_half() } -> Shape<typename register_t::element_type, 128>;
+};
+
+/** @brief Reports whether a Register exposes low-lane unpacking. */
+template <class register_t>
+concept UnpackLow = Type<register_t> && requires(register_t value) {
+	{ value.unpack_low(value) } -> std::same_as<register_t>;
+};
+
+/** @brief Reports whether a Register exposes high-lane unpacking. */
+template <class register_t>
+concept UnpackHigh = Type<register_t> && requires(register_t value) {
+	{ value.unpack_high(value) } -> std::same_as<register_t>;
+};
+
+/** @brief Reports whether a Register accepts one compile-time logical shuffle selector sequence. */
+template <class register_t, std::size_t... indices>
+concept Shuffle = Type<register_t> && requires(register_t value) {
+	{ value.template shuffle<indices...>() } -> std::same_as<register_t>;
+};
+
+/** @brief Reports whether a Register exposes an immediate-controlled low-half shuffle. */
+template <class register_t, int immediate>
+concept ShuffleLow = Type<register_t> && requires(register_t value) {
+	{ value.template shuffle_low<immediate>() } -> std::same_as<register_t>;
+};
+
+/** @brief Reports whether a Register exposes an immediate-controlled high-half shuffle. */
+template <class register_t, int immediate>
+concept ShuffleHigh = Type<register_t> && requires(register_t value) {
+	{ value.template shuffle_high<immediate>() } -> std::same_as<register_t>;
+};
+
+/** @brief Reports whether a Register exposes an immediate-controlled two-register blend. */
+template <class register_t, int immediate>
+concept Blend = Type<register_t> && requires(register_t lhs, register_t rhs) {
+	{ lhs.template blend<immediate>(rhs) } -> std::same_as<register_t>;
+};
+
+/** @brief Reports whether a Register can reinterpret its complete bit pattern as the requested element type. */
+template <class register_t, class target_t>
+concept BitCast = Type<register_t> && requires(register_t value) {
+	{ value.template bit_cast<target_t>() } -> Shape<target_t, register_t::register_width>;
+};
+
+/** @brief Reports whether a Register can numerically convert every lane to the requested element type. */
+template <class register_t, class target_t>
+concept Convert = Type<register_t> && requires(register_t value) {
+	{ value.template convert<target_t>() } -> Shape<target_t, register_t::register_width>;
+};
+
+/** @brief Reports whether a Register can widen its lowest lanes into the requested complete target register. */
+template <class register_t, class target_t, std::size_t target_bits>
+concept WidenLow = Type<register_t> && requires(register_t value) {
+	{ value.template widen_low<target_t, target_bits>() } -> Shape<target_t, target_bits>;
+};
+
 } // namespace SimdLib::IRegister
