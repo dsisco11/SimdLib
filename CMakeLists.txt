@@ -245,6 +245,9 @@ if(SIMDLIB_BUILD_HEADER_TESTS)
     foreach(header_probe IN ITEMS
         Config
         TemplateTools
+        IApi
+        IImpl
+        IRegister
         Api
         SimdApi
         SimdVector

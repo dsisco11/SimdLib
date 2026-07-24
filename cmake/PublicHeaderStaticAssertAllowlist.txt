@@ -9,12 +9,12 @@ Bmi.h|start <= 255 && len <= 255|template constraint: BMI bit-extract controls m
 Bmi.h|BMI bit-extract length must fit the intrinsic control field|template constraint: BMI bit-extract length must fit its control field
 SimdAlgo.h|WriteWidth == 1|template constraint: packed comparisons support one-bit output or the documented legacy shape
 SimdAlgo.h|count % write_data_size == 0|template constraint: packed output must contain whole destination elements
-Api.h|is_widen_target_v<target_simd>|template constraint: widening requires the destination SIMD shape
+Api.h|IApi::WidenTarget<target_simd>|template constraint: widening requires the destination SIMD shape
 Api.h|static_assert(using_int|template constraint: widening accepts integral source lanes only
 Api.h|std::is_integral_v<typename target_simd::element_type>|template constraint: widening accepts integral destination lanes only
 Api.h|sizeof(element_t) < sizeof(typename target_simd::element_type)|template constraint: widening must increase lane width
 Api.h|target_simd::register_width == 128|template constraint: widening supports documented register widths only
-Api.h|requires(vector_t value) { impl::template widen|unsupported-instantiation diagnostic: reports missing backend widening mappings
+Api.h|IImpl::Widen<impl, target_simd>|unsupported-instantiation diagnostic: reports missing backend widening mappings
 Api.h|shift >= 0|template constraint: immediate whole-register shift counts cannot be negative
 Api.h|element_width == 32|template constraint: public integer-float conversions require 32-bit lanes
 Api.h|std::unsigned_integral<result_t>|template constraint: packed transforms require unsigned result storage

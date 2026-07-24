@@ -1,6 +1,7 @@
 #pragma once
 #include <SimdLib/Config.h>
 #include <SimdLib/Detail/Extensions.h>
+#include <SimdLib/IImpl.h>
 #include <SimdLib/TemplateTools.h>
 #include <array>
 #include <bit>

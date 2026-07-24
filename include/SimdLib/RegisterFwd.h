@@ -47,61 +47,6 @@ using multiply_add_adjacent_element_t = std::conditional_t<
 					   std::conditional_t<sizeof(element_t) == 1, std::int16_t, std::conditional_t<sizeof(element_t) == 2, std::int32_t, std::int64_t>>,
 					   std::conditional_t<sizeof(element_t) == 1, std::uint16_t, std::conditional_t<sizeof(element_t) == 2, std::uint32_t, std::uint64_t>>>>;
 
-/**
- * @brief Reports whether adjacent multiply-add exists for a Register specialization.
- * @tparam element_t Source lane type.
- * @tparam bits Register width in bits.
- */
-template <class element_t, std::size_t bits>
-concept RegisterMultiplyAddAdjacentAvailable = RegisterAvailable<element_t, bits> && std::is_integral_v<element_t> &&
-											   requires(typename Api<bits, element_t>::vector_t lhs, typename Api<bits, element_t>::vector_t rhs) {
-												   Api<bits, element_t>::multiply_add_adjacent(lhs, rhs);
-											   };
-
-/**
- * @brief Reports whether unsigned/signed byte multiply-add exists for a Register specialization.
- * @tparam element_t Source lane type whose register bits are interpreted as bytes.
- * @tparam bits Register width in bits.
- */
-template <class element_t, std::size_t bits>
-concept RegisterByteMultiplyAddAvailable = RegisterAvailable<element_t, bits> && std::is_integral_v<element_t> &&
-										   requires(typename Api<bits, element_t>::vector_t lhs, typename Api<bits, element_t>::vector_t rhs) {
-											   Api<bits, element_t>::multiply_add_unsigned_signed_bytes(lhs, rhs);
-										   };
-
-/**
- * @brief Reports whether byte absolute-difference sums exist for a Register specialization.
- * @tparam element_t Source lane type whose register bits are interpreted as bytes.
- * @tparam bits Register width in bits.
- */
-template <class element_t, std::size_t bits>
-concept RegisterSadAvailable = RegisterAvailable<element_t, bits> && std::is_integral_v<element_t> &&
-							   requires(typename Api<bits, element_t>::vector_t lhs, typename Api<bits, element_t>::vector_t rhs) {
-								   Api<bits, element_t>::sum_absolute_byte_differences(lhs, rhs);
-							   };
-
-/**
- * @brief Reports whether an immediate-controlled dot product exists for a Register specialization.
- * @tparam element_t Source floating-point lane type.
- * @tparam bits Register width in bits.
- * @tparam imm8 Immediate control value.
- */
-template <class element_t, std::size_t bits, int imm8>
-concept RegisterDotProductAvailable = RegisterAvailable<element_t, bits> && imm8 >= 0 && imm8 <= 255 &&
-									  requires(typename Api<bits, element_t>::vector_t lhs, typename Api<bits, element_t>::vector_t rhs) {
-										  Api<bits, element_t>::template dot_product<imm8>(lhs, rhs);
-									  };
-/**
- * @brief Reports whether immediate-controlled multi-SAD exists for a Register specialization.
- * @tparam element_t Source lane type whose register bits are interpreted as bytes.
- * @tparam bits Register width in bits.
- */
-template <class element_t, std::size_t bits>
-concept RegisterMultiSadAvailable = RegisterAvailable<element_t, bits> && std::is_integral_v<element_t> &&
-									requires(typename Api<bits, element_t>::vector_t lhs, typename Api<bits, element_t>::vector_t rhs) {
-										Api<bits, element_t>::template multi_sum_absolute_byte_differences<0>(lhs, rhs);
-									};
-
 } // namespace Detail
 
 /**
@@ -110,7 +55,8 @@ concept RegisterMultiSadAvailable = RegisterAvailable<element_t, bits> && std::i
  * @tparam bits Register width in bits.
  */
 template <class element_t, std::size_t bits>
-	requires Detail::RegisterMultiplyAddAdjacentAvailable<element_t, bits>
+	requires RegisterAvailable<element_t, bits> && std::is_integral_v<element_t> &&
+			 IApi::MultiplyAddAdjacent<Api<bits, element_t>>
 using multiply_add_adjacent_result_t = Register<Detail::multiply_add_adjacent_element_t<element_t>, bits>;
 
 /**
@@ -119,7 +65,8 @@ using multiply_add_adjacent_result_t = Register<Detail::multiply_add_adjacent_el
  * @tparam bits Register width in bits.
  */
 template <class element_t, std::size_t bits>
-	requires Detail::RegisterByteMultiplyAddAvailable<element_t, bits>
+	requires RegisterAvailable<element_t, bits> && std::is_integral_v<element_t> &&
+			 IApi::ByteMultiplyAdd<Api<bits, element_t>>
 using byte_multiply_add_result_t = Register<std::int16_t, bits>;
 
 /**
@@ -128,7 +75,7 @@ using byte_multiply_add_result_t = Register<std::int16_t, bits>;
  * @tparam bits Register width in bits.
  */
 template <class element_t, std::size_t bits>
-	requires Detail::RegisterSadAvailable<element_t, bits>
+	requires RegisterAvailable<element_t, bits> && std::is_integral_v<element_t> && IApi::Sad<Api<bits, element_t>>
 using sad_result_t = Register<std::uint64_t, bits>;
 
 /**
@@ -137,6 +84,6 @@ using sad_result_t = Register<std::uint64_t, bits>;
  * @tparam bits Register width in bits.
  */
 template <class element_t, std::size_t bits>
-	requires Detail::RegisterMultiSadAvailable<element_t, bits>
+	requires RegisterAvailable<element_t, bits> && std::is_integral_v<element_t> && IApi::MultiSad<Api<bits, element_t>, 0>
 using multi_sad_result_t = Register<std::uint16_t, bits>;
 } // namespace SimdLib

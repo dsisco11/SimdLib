@@ -1,5 +1,6 @@
 #pragma once
-#include <SimdLib/Config.h>
+#include <SimdLib/IApi.h>
+#include <SimdLib/IImpl.h>
 #include <SimdLib/Detail/Implementations.h>
 #include <SimdLib/TemplateTools.h>
 #include <algorithm>
@@ -36,19 +37,6 @@ enum class comparison_operation
 };
 
 } // namespace Detail
-
-template <std::size_t register_width, class element_t>
-inline constexpr bool is_api_available_v =
-	(std::same_as<element_t, std::int8_t> || std::same_as<element_t, std::uint8_t> ||
-	 std::same_as<element_t, std::int16_t> || std::same_as<element_t, std::uint16_t> ||
-	 std::same_as<element_t, std::int32_t> || std::same_as<element_t, std::uint32_t> ||
-	 std::same_as<element_t, std::int64_t> || std::same_as<element_t, std::uint64_t> ||
-	 std::same_as<element_t, float> || std::same_as<element_t, double>) &&
-	Config::target_x86 &&
-	((register_width == 128 && Config::has_sse42) || (register_width == 256 && Config::has_sse42 && Config::has_avx2));
-
-template <std::size_t register_width, class element_t>
-concept ApiAvailable = is_api_available_v<register_width, element_t>;
 
 /**
  * @brief Primary API for SIMD operations, parameterized by register width and element type.
@@ -106,13 +94,6 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	constexpr static inline std::size_t packed_element_count =
 		(source_count * result_bit_width + std::numeric_limits<packed_element_t<result_bit_width>>::digits - 1) /
 		std::numeric_limits<packed_element_t<result_bit_width>>::digits;
-
-	template <class target_simd>
-	constexpr static inline bool is_widen_target_v = requires {
-		typename target_simd::element_type;
-		typename target_simd::vector_t;
-		{ target_simd::register_width } -> std::convertible_to<const std::size_t &>;
-	};
 
 #pragma region Data Transfer
 	/** @brief Loads element data into a SIMD register.
@@ -258,7 +239,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @return Register with every lane initialized to zero.
 	 */
 	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static vector_t VECTORCALL setzero() noexcept
-		requires requires { impl::setzero(); }
+		requires IImpl::SetZero<impl>
 	{
 		return impl::setzero();
 	}
@@ -268,7 +249,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @return Register with every lane initialized to `value`.
 	 */
 	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static vector_t VECTORCALL set1(const element_t value) noexcept
-		requires requires(element_t scalar) { impl::set1(scalar); }
+		requires IImpl::SetOne<impl, element_t>
 	{
 		return impl::set1(value);
 	}
@@ -280,7 +261,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 */
 	template <class... Args>
 	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static auto VECTORCALL set(Args &&...args) noexcept
-		requires requires(Args &&...values) { impl::set(std::forward<Args>(values)...); }
+		requires IImpl::Set<impl, Args...>
 	{
 		return impl::set(std::forward<Args>(args)...);
 	}
@@ -295,7 +276,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 		requires(sizeof...(Args) <= element_count)
 	{
 		return []<std::size_t... ZeroIndices>(std::index_sequence<ZeroIndices...>, Args &&...values) constexpr noexcept
-			requires requires(Args &&...forwardedValues) { impl::set(std::forward<Args>(forwardedValues)..., ((void)ZeroIndices, element_t{})...); }
+			requires IImpl::Set<impl, Args..., decltype(((void)ZeroIndices, element_t{}))...>
 		{ return impl::set(std::forward<Args>(values)..., ((void)ZeroIndices, element_t{})...); }(std::make_index_sequence<element_count - sizeof...(Args)>{},
 																								  std::forward<Args>(args)...);
 	}
@@ -307,7 +288,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 */
 	template <class... Args>
 	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static auto VECTORCALL setr(Args &&...args) noexcept
-		requires requires(Args &&...values) { impl::setr(std::forward<Args>(values)...); }
+		requires IImpl::SetReverse<impl, Args...>
 	{
 		return impl::setr(std::forward<Args>(args)...);
 	}
@@ -322,7 +303,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 		requires(sizeof...(Args) <= element_count)
 	{
 		return []<std::size_t... ZeroIndices>(std::index_sequence<ZeroIndices...>, Args &&...values) constexpr noexcept
-			requires requires(Args &&...forwardedValues) { impl::setr(std::forward<Args>(forwardedValues)..., ((void)ZeroIndices, element_t{})...); }
+			requires IImpl::SetReverse<impl, Args..., decltype(((void)ZeroIndices, element_t{}))...>
 		{ return impl::setr(std::forward<Args>(values)..., ((void)ZeroIndices, element_t{})...); }(std::make_index_sequence<element_count - sizeof...(Args)>{},
 																								   std::forward<Args>(args)...);
 	}
@@ -334,7 +315,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @return Register containing the multiply-add result.
 	 */
 	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL multiply_add(const vector_t lhs, const vector_t rhs, const vector_t addend) noexcept
-		requires requires(vector_t left, vector_t right, vector_t sum) { impl::multiply_add(left, right, sum); }
+		requires IImpl::MultiplyAdd<impl>
 	{
 		return impl::multiply_add(lhs, rhs, addend);
 	}
@@ -346,7 +327,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 */
 	template <class target_simd> SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static typename target_simd::vector_t VECTORCALL widen(const vector_t lhs) noexcept
 	{
-		static_assert(is_widen_target_v<target_simd>,
+		static_assert(IApi::WidenTarget<target_simd>,
 					  "Api::widen<target_simd> requires a destination SIMD type with element_type, vector_t, and register_width.");
 		static_assert(using_int, "Api::widen only supports integral source SIMD specializations.");
 		static_assert(std::is_integral_v<typename target_simd::element_type>, "Api::widen only supports integral destination SIMD specializations.");
@@ -355,13 +336,13 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 		static_assert(target_simd::register_width == 128 || target_simd::register_width == 256,
 					  "Api::widen currently supports only 128-bit or 256-bit destination SIMD widths.");
 
-		if constexpr (requires(vector_t value) { impl::template widen<target_simd>(value); })
+		if constexpr (IImpl::Widen<impl, target_simd>)
 		{
 			return impl::template widen<target_simd>(lhs);
 		}
 		else
 		{
-			static_assert(requires(vector_t value) { impl::template widen<target_simd>(value); },
+			static_assert(IImpl::Widen<impl, target_simd>,
 				"Api::widen does not yet have a backend mapping for this source/destination SIMD pair.");
 		}
 	}
@@ -372,7 +353,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @return Register containing per-lane remainder results.
 	 */
 	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE static vector_t VECTORCALL modulus(const vector_t lhs, const vector_t rhs) noexcept
-		requires requires(vector_t left, vector_t right) { impl::modulus(left, right); }
+		requires IImpl::Modulus<impl>
 	{
 		return impl::modulus(lhs, rhs);
 	}
@@ -382,7 +363,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @return Register containing the negated element values.
 	 */
 	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static vector_t VECTORCALL negate(const vector_t lhs) noexcept
-		requires requires(vector_t value) { impl::negate(value); }
+		requires IImpl::Negate<impl>
 	{
 		return impl::negate(lhs);
 	}
@@ -392,7 +373,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @return Register containing per-lane absolute values.
 	 */
 	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static vector_t VECTORCALL absolute(const vector_t lhs) noexcept
-		requires requires(vector_t value) { impl::absolute(value); }
+		requires IImpl::Absolute<impl>
 	{
 		return impl::absolute(lhs);
 	}
@@ -402,7 +383,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @return Register containing per-lane square roots.
 	 */
 	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL sqrt(const vector_t lhs) noexcept
-		requires requires(vector_t value) { impl::sqrt(value); }
+		requires IImpl::Sqrt<impl>
 	{
 		return impl::sqrt(lhs);
 	}
@@ -412,7 +393,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @return Floating magnitudes broadcast within each group, or unchecked integer magnitudes in each group-leading lane.
 	 */
 	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static vector_t VECTORCALL magnitude(const vector_t lhs) noexcept
-		requires requires(vector_t value) { impl::magnitude(value); }
+		requires IImpl::Magnitude<impl>
 	{
 		return impl::magnitude(lhs);
 	}
@@ -422,7 +403,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @return Each 128-bit group stores its magnitude in lane zero and a zero/all-ones overflow mask in lane one.
 	 */
 	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static vector_t VECTORCALL magnitude_checked(const vector_t lhs) noexcept
-		requires(using_int && requires(vector_t value) { impl::magnitude_checked(value); })
+		requires(using_int && IImpl::MagnitudeChecked<impl>)
 	{
 		return impl::magnitude_checked(lhs);
 	}
@@ -432,10 +413,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @return Register containing the normalized per-lane values.
 	 */
 	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static vector_t VECTORCALL normalize(const vector_t lhs) noexcept
-		requires(std::is_floating_point_v<element_t> && requires(vector_t left, vector_t right) {
-			magnitude(left);
-			impl::divide(left, right);
-		})
+		requires(std::is_floating_point_v<element_t> && IImpl::Normalize<impl>)
 	{
 		return divide(lhs, magnitude(lhs));
 	}
@@ -446,7 +424,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @return Register containing per-lane averages.
 	 */
 	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL avg(const vector_t lhs, const vector_t rhs) noexcept
-		requires requires(vector_t left, vector_t right) { impl::avg(left, right); }
+		requires IImpl::Average<impl>
 	{
 		return impl::avg(lhs, rhs);
 	}
@@ -457,7 +435,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @return Register containing pairwise horizontal sums.
 	 */
 	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static vector_t VECTORCALL add_horizontal(const vector_t lhs, const vector_t rhs) noexcept
-		requires requires(vector_t left, vector_t right) { impl::add_horizontal(left, right); }
+		requires IImpl::HorizontalAdd<impl>
 	{
 		return impl::add_horizontal(lhs, rhs);
 	}
@@ -468,7 +446,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @return Register containing pairwise horizontal differences.
 	 */
 	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static vector_t VECTORCALL subtract_horizontal(const vector_t lhs, const vector_t rhs) noexcept
-		requires requires(vector_t left, vector_t right) { impl::subtract_horizontal(left, right); }
+		requires IImpl::HorizontalSubtract<impl>
 	{
 		return impl::subtract_horizontal(lhs, rhs);
 	}
@@ -479,7 +457,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @return Register whose lane type follows the promoted integer mapping rather than `vector_t`.
 	 */
 	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL multiply_add_adjacent(const vector_t lhs, const vector_t rhs) noexcept
-		requires(using_int && requires(vector_t left, vector_t right) { impl::multiply_add_adjacent(left, right); })
+		requires(using_int && IImpl::MultiplyAddAdjacent<impl>)
 	{
 		return impl::multiply_add_adjacent(lhs, rhs);
 	}
@@ -490,7 +468,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @return Register containing signed 16-bit accumulation results derived from the raw register bytes.
 	 */
 	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL multiply_add_unsigned_signed_bytes(const vector_t lhs, const vector_t rhs) noexcept
-		requires(using_int && requires(vector_t left, vector_t right) { impl::multiply_add_unsigned_signed_bytes(left, right); })
+		requires(using_int && IImpl::ByteMultiplyAdd<impl>)
 	{
 		return impl::multiply_add_unsigned_signed_bytes(lhs, rhs);
 	}
@@ -501,7 +479,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @return Register containing 64-bit absolute-difference accumulations derived from the raw register bytes.
 	 */
 	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL sum_absolute_byte_differences(const vector_t lhs, const vector_t rhs) noexcept
-		requires(using_int && requires(vector_t left, vector_t right) { impl::sum_absolute_byte_differences(left, right); })
+		requires(using_int && IImpl::Sad<impl>)
 	{
 		return impl::sum_absolute_byte_differences(lhs, rhs);
 	}
@@ -514,7 +492,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 */
 	template <int imm8>
 	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL multi_sum_absolute_byte_differences(const vector_t lhs, const vector_t rhs) noexcept
-		requires(using_int && requires(vector_t left, vector_t right) { impl::template multi_sum_absolute_byte_differences<imm8>(left, right); })
+		requires(using_int && IImpl::MultiSad<impl, imm8>)
 	{
 		return impl::template multi_sum_absolute_byte_differences<imm8>(lhs, rhs);
 	}
@@ -524,10 +502,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @return Zero-based index of the first minimum element across the full SIMD register.
 	 */
 	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static std::size_t VECTORCALL min_position(const vector_t lhs) noexcept
-		requires(using_int && requires(vector_t value) {
-			impl::min_position(value);
-			impl::template extract<1>(value);
-		})
+		requires(using_int && IImpl::Position<impl>)
 	{
 		if (std::is_constant_evaluated())
 			return min_position_constexpr(lhs);
@@ -540,10 +515,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @return Zero-based index of the first maximum element across the full SIMD register.
 	 */
 	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static std::size_t VECTORCALL max_position(const vector_t lhs) noexcept
-		requires(using_int && requires(vector_t value) {
-			impl::min_position(value);
-			impl::template extract<1>(value);
-		})
+		requires(using_int && IImpl::Position<impl>)
 	{
 		if (std::is_constant_evaluated())
 			return max_position_constexpr(lhs);
@@ -565,7 +537,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @return Register containing saturated sums.
 	 */
 	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL add_saturated(const vector_t lhs, const vector_t rhs) noexcept
-		requires requires(vector_t left, vector_t right) { impl::add_saturated(left, right); }
+		requires IImpl::AddSaturated<impl>
 	{
 		return impl::add_saturated(lhs, rhs);
 	}
@@ -576,7 +548,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @return Register containing saturated differences.
 	 */
 	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL subtract_saturated(const vector_t lhs, const vector_t rhs) noexcept
-		requires requires(vector_t left, vector_t right) { impl::subtract_saturated(left, right); }
+		requires IImpl::SubtractSaturated<impl>
 	{
 		return impl::subtract_saturated(lhs, rhs);
 	}
@@ -587,7 +559,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @return Register containing saturated horizontal sums.
 	 */
 	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL hadd_saturated(const vector_t lhs, const vector_t rhs) noexcept
-		requires requires(vector_t left, vector_t right) { impl::hadd_saturated(left, right); }
+		requires IImpl::HorizontalAddSaturated<impl>
 	{
 		return impl::hadd_saturated(lhs, rhs);
 	}
@@ -598,7 +570,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @return Register containing saturated horizontal differences.
 	 */
 	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL hsubtract_saturated(const vector_t lhs, const vector_t rhs) noexcept
-		requires requires(vector_t left, vector_t right) { impl::hsubtract_saturated(left, right); }
+		requires IImpl::HorizontalSubtractSaturated<impl>
 	{
 		return impl::hsubtract_saturated(lhs, rhs);
 	}
@@ -609,7 +581,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @return Register containing alternating subtract/add results.
 	 */
 	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL add_subtract(const vector_t lhs, const vector_t rhs) noexcept
-		requires requires(vector_t left, vector_t right) { impl::add_subtract(left, right); }
+		requires IImpl::AddSubtract<impl>
 	{
 		return impl::add_subtract(lhs, rhs);
 	}
@@ -622,7 +594,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 */
 	template <int imm8>
 	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL dot_product(const vector_t lhs, const vector_t rhs) noexcept
-		requires requires(vector_t left, vector_t right) { impl::template dot_product<imm8>(left, right); }
+		requires IImpl::DotProduct<impl, imm8>
 	{
 		return impl::template dot_product<imm8>(lhs, rhs);
 	}
@@ -639,7 +611,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static vector_t VECTORCALL bitwise_and(
 		const vector_t lhs,
 		const vector_t rhs) noexcept
-		requires requires(vector_t left, vector_t right) { impl::bitwise_and(left, right); }
+		requires IImpl::BitwiseAnd<impl>
 	{
 		if (std::is_constant_evaluated())
 			return bitwise_and_constexpr(lhs, rhs);
@@ -655,7 +627,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static vector_t VECTORCALL bitwise_or(
 		const vector_t lhs,
 		const vector_t rhs) noexcept
-		requires requires(vector_t left, vector_t right) { impl::bitwise_or(left, right); }
+		requires IImpl::BitwiseOr<impl>
 	{
 		if (std::is_constant_evaluated())
 			return bitwise_or_constexpr(lhs, rhs);
@@ -671,7 +643,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static vector_t VECTORCALL bitwise_xor(
 		const vector_t lhs,
 		const vector_t rhs) noexcept
-		requires requires(vector_t left, vector_t right) { impl::bitwise_xor(left, right); }
+		requires IImpl::BitwiseXor<impl>
 	{
 		if (std::is_constant_evaluated())
 			return bitwise_xor_constexpr(lhs, rhs);
@@ -687,7 +659,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static vector_t VECTORCALL bitwise_andnot(
 		const vector_t lhs,
 		const vector_t rhs) noexcept
-		requires requires(vector_t left, vector_t right) { impl::bitwise_andnot(left, right); }
+		requires IImpl::BitwiseAndNot<impl>
 	{
 		if (std::is_constant_evaluated())
 			return bitwise_andnot_constexpr(lhs, rhs);
@@ -700,7 +672,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @return Register containing the bitwise NOT result.
 	 */
 	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static vector_t VECTORCALL bitwise_not(const vector_t lhs) noexcept
-		requires requires(vector_t value) { impl::bitwise_not(value); }
+		requires IImpl::BitwiseNot<impl>
 	{
 		if (std::is_constant_evaluated())
 			return bitwise_not_constexpr(lhs);
@@ -722,9 +694,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 		const vector_t condition,
 		const vector_t when_true,
 		const vector_t when_false) noexcept
-		requires requires(vector_t mask, vector_t true_value, vector_t false_value) {
-			impl::select(mask, true_value, false_value);
-		}
+		requires IImpl::Select<impl>
 	{
 		if (std::is_constant_evaluated())
 			return select_constexpr(condition, when_true, when_false);
@@ -1014,7 +984,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @return Expanded register value.
 	 */
 	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL expand(const vector_t lhs, const vector_t rhs) noexcept
-		requires requires(vector_t left, vector_t right) { impl::expand(left, right); }
+		requires IImpl::Expand<impl>
 	{
 		return impl::expand(lhs, rhs);
 	}
@@ -1025,7 +995,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @return Compressed register value.
 	 */
 	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL compress(const vector_t lhs, const vector_t rhs) noexcept
-		requires requires(vector_t left, vector_t right) { impl::compress(left, right); }
+		requires IImpl::Compress<impl>
 	{
 		return impl::compress(lhs, rhs);
 	}
@@ -1037,7 +1007,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 */
 	template <int index>
 	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL extract(const vector_t lhs) noexcept
-		requires requires(vector_t value) { impl::template extract<index>(value); }
+		requires IImpl::IndexedExtract<impl, index>
 	{
 		return impl::template extract<index>(lhs);
 	}
@@ -1049,7 +1019,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 */
 	template <class selector_t>
 	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE static auto VECTORCALL extract(const vector_t lhs, selector_t rhs) noexcept
-		requires requires(vector_t left, selector_t selector) { impl::extract(left, selector); }
+		requires IImpl::DynamicExtract<impl, selector_t>
 	{
 		return impl::extract(lhs, rhs);
 	}
@@ -1059,7 +1029,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @return Register containing the low 128-bit half in the corresponding 128-bit SIMD family.
 	 */
 	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static typename SimdLib::Detail::SimdMappings<128, element_t>::vector_t VECTORCALL lower_half(const vector_t lhs) noexcept
-		requires(register_width == 256 && requires(vector_t value) { impl::lower_half(value); })
+		requires(register_width == 256 && IImpl::LowerHalf<impl>)
 	{
 		return impl::lower_half(lhs);
 	}
@@ -1089,7 +1059,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 */
 	template <class... Args>
 	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(Args &&...args) noexcept
-		requires requires(Args &&...values) { impl::insert(std::forward<Args>(values)...); }
+		requires IImpl::Insert<impl, Args...>
 	{
 		return impl::insert(std::forward<Args>(args)...);
 	}
@@ -1100,7 +1070,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @return Register containing the unpacked low-lane interleave.
 	 */
 	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL unpack_lo(const vector_t lhs, const vector_t rhs) noexcept
-		requires requires(vector_t left, vector_t right) { impl::unpack_lo(left, right); }
+		requires IImpl::UnpackLow<impl>
 	{
 		return impl::unpack_lo(lhs, rhs);
 	}
@@ -1111,7 +1081,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @return Register containing the unpacked high-lane interleave.
 	 */
 	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL unpack_hi(const vector_t lhs, const vector_t rhs) noexcept
-		requires requires(vector_t left, vector_t right) { impl::unpack_hi(left, right); }
+		requires IImpl::UnpackHigh<impl>
 	{
 		return impl::unpack_hi(lhs, rhs);
 	}
@@ -1123,7 +1093,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 */
 	template <std::size_t... indices>
 	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL shuffle(const int_vector_t lhs) noexcept
-		requires requires(int_vector_t value) { impl::template shuffle<indices...>(value); }
+		requires IImpl::IndexedShuffle<impl, indices...>
 	{
 		return impl::template shuffle<indices...>(lhs);
 	}
@@ -1135,7 +1105,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 */
 	template <class... Args>
 	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL shuffle(Args &&...args) noexcept
-		requires requires(Args &&...values) { impl::shuffle(std::forward<Args>(values)...); }
+		requires IImpl::Shuffle<impl, Args...>
 	{
 		return impl::shuffle(std::forward<Args>(args)...);
 	}
@@ -1147,7 +1117,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 */
 	template <class... Args>
 	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL shuffle_lo(Args &&...args) noexcept
-		requires requires(Args &&...values) { impl::shuffle_lo(std::forward<Args>(values)...); }
+		requires IImpl::ShuffleLow<impl, Args...>
 	{
 		return impl::shuffle_lo(std::forward<Args>(args)...);
 	}
@@ -1159,7 +1129,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 */
 	template <class... Args>
 	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL shuffle_hi(Args &&...args) noexcept
-		requires requires(Args &&...values) { impl::shuffle_hi(std::forward<Args>(values)...); }
+		requires IImpl::ShuffleHigh<impl, Args...>
 	{
 		return impl::shuffle_hi(std::forward<Args>(args)...);
 	}
@@ -1171,7 +1141,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 */
 	template <class... Args>
 	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL blend(Args &&...args) noexcept
-		requires requires(Args &&...values) { impl::blend(std::forward<Args>(values)...); }
+		requires IImpl::Blend<impl, Args...>
 	{
 		return impl::blend(std::forward<Args>(args)...);
 	}

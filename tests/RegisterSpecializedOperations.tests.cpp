@@ -1,3 +1,4 @@
+#include <SimdLib/IRegister.h>
 #include <SimdLib/Register.h>
 
 #include <catch2/catch_test_macros.hpp>
@@ -15,118 +16,6 @@
 
 namespace
 {
-
-/** @brief Reports whether a Register exposes each same-type specialized operation. */
-template <class register_t>
-concept has_min = requires(register_t value) {
-	{ value.min(value) } -> std::same_as<register_t>;
-};
-template <class register_t>
-concept has_max = requires(register_t value) {
-	{ value.max(value) } -> std::same_as<register_t>;
-};
-template <class register_t>
-concept has_absolute = requires(register_t value) {
-	{ value.absolute() } -> std::same_as<register_t>;
-};
-template <class register_t>
-concept has_sqrt = requires(register_t value) {
-	{ value.sqrt() } -> std::same_as<register_t>;
-};
-template <class register_t>
-concept has_average = requires(register_t value) {
-	{ value.average(value) } -> std::same_as<register_t>;
-};
-template <class register_t>
-concept has_multiply_add = requires(register_t value) {
-	{ value.multiply_add(value, value) } -> std::same_as<register_t>;
-};
-template <class register_t>
-concept has_magnitude = requires(register_t value) {
-	{ value.magnitude() } -> std::same_as<register_t>;
-};
-template <class register_t>
-concept has_magnitude_checked = requires(register_t value) {
-	{ value.magnitude_checked() } -> std::same_as<register_t>;
-};
-template <class register_t>
-concept has_normalize = requires(register_t value) {
-	{ value.normalize() } -> std::same_as<register_t>;
-};
-template <class register_t>
-concept has_horizontal_add = requires(register_t value) {
-	{ value.horizontal_add(value) } -> std::same_as<register_t>;
-};
-template <class register_t>
-concept has_horizontal_subtract = requires(register_t value) {
-	{ value.horizontal_subtract(value) } -> std::same_as<register_t>;
-};
-template <class register_t>
-concept has_min_position = requires(register_t value) {
-	{ value.min_position() } -> std::same_as<std::size_t>;
-};
-template <class register_t>
-concept has_max_position = requires(register_t value) {
-	{ value.max_position() } -> std::same_as<std::size_t>;
-};
-template <class register_t>
-concept has_add_saturated = requires(register_t value) {
-	{ value.add_saturated(value) } -> std::same_as<register_t>;
-};
-template <class register_t>
-concept has_subtract_saturated = requires(register_t value) {
-	{ value.subtract_saturated(value) } -> std::same_as<register_t>;
-};
-template <class register_t>
-concept has_horizontal_add_saturated = requires(register_t value) {
-	{ value.horizontal_add_saturated(value) } -> std::same_as<register_t>;
-};
-template <class register_t>
-concept has_horizontal_subtract_saturated = requires(register_t value) {
-	{ value.horizontal_subtract_saturated(value) } -> std::same_as<register_t>;
-};
-template <class register_t>
-concept has_add_subtract = requires(register_t value) {
-	{ value.add_subtract(value) } -> std::same_as<register_t>;
-};
-template <class register_t>
-concept has_dot_product = requires(register_t value) { value.template dot_product<0x11>(value); };
-template <class register_t>
-concept has_zero_dot_product = requires(register_t value) {
-	{ value.template dot_product<0>(value) } -> std::same_as<register_t>;
-};
-template <class register_t>
-concept has_maximum_dot_product = requires(register_t value) {
-	{ value.template dot_product<255>(value) } -> std::same_as<register_t>;
-};
-template <class register_t>
-concept has_zero_multi_sad = requires(register_t value) { value.template multi_sum_absolute_byte_differences<0>(value); };
-template <class register_t>
-concept has_maximum_multi_sad = requires(register_t value) { value.template multi_sum_absolute_byte_differences<255>(value); };
-template <class register_t>
-concept has_invalid_low_dot_product = requires(register_t value) { value.template dot_product<-1>(value); };
-template <class register_t>
-concept has_invalid_high_dot_product = requires(register_t value) { value.template dot_product<256>(value); };
-template <class register_t>
-concept has_invalid_low_multi_sad = requires(register_t value) { value.template multi_sum_absolute_byte_differences<-1>(value); };
-template <class register_t>
-concept has_invalid_high_multi_sad = requires(register_t value) { value.template multi_sum_absolute_byte_differences<256>(value); };
-
-/** @brief Reports whether adjacent multiply-add incorrectly accepts a mismatched explicit source type. */
-template <class register_t, class other_element_t>
-concept accepts_mismatched_adjacent_source = requires(register_t value) { value.template multiply_add_adjacent<other_element_t>(value); };
-
-/** @brief Reports whether byte multiply-add incorrectly accepts a mismatched explicit source type. */
-template <class register_t, class other_element_t>
-concept accepts_mismatched_byte_multiply_add_source = requires(register_t value) { value.template multiply_add_unsigned_signed_bytes<other_element_t>(value); };
-
-/** @brief Reports whether SAD incorrectly accepts a mismatched explicit source type. */
-template <class register_t, class other_element_t>
-concept accepts_mismatched_sad_source = requires(register_t value) { value.template sum_absolute_byte_differences<other_element_t>(value); };
-
-/** @brief Reports whether multi-SAD incorrectly accepts a mismatched explicit source type. */
-template <class register_t, class other_element_t>
-concept accepts_mismatched_multi_sad_source = requires(register_t value) { value.template multi_sum_absolute_byte_differences<0, other_element_t>(value); };
 
 /** @brief Reports whether one constrained promoted-result alias is available. */
 template <class element_t, std::size_t bits>
@@ -154,42 +43,52 @@ template <class element_t, std::size_t bits> consteval bool validate_specialized
 	using native_t = typename api_t::vector_t;
 	using other_element_t = std::conditional_t<std::same_as<element_t, std::int8_t>, std::uint8_t, std::int8_t>;
 
-	static_assert(has_min<register_t> == requires(native_t value) { api_t::min(value, value); });
-	static_assert(has_max<register_t> == requires(native_t value) { api_t::max(value, value); });
-	static_assert(has_absolute<register_t> == requires(native_t value) { api_t::absolute(value); });
-	static_assert(has_sqrt<register_t> == requires(native_t value) { api_t::sqrt(value); });
-	static_assert(has_average<register_t> == requires(native_t value) { api_t::avg(value, value); });
-	static_assert(has_multiply_add<register_t> == requires(native_t value) { api_t::multiply_add(value, value, value); });
-	static_assert(has_magnitude<register_t> == requires(native_t value) { api_t::magnitude(value); });
-	static_assert(has_magnitude_checked<register_t> == requires(native_t value) { api_t::magnitude_checked(value); });
-	static_assert(has_normalize<register_t> == requires(native_t value) { api_t::normalize(value); });
-	static_assert(has_horizontal_add<register_t> == requires(native_t value) { api_t::add_horizontal(value, value); });
-	static_assert(has_horizontal_subtract<register_t> == requires(native_t value) { api_t::subtract_horizontal(value, value); });
-	static_assert(has_min_position<register_t> == requires(native_t value) { api_t::min_position(value); });
-	static_assert(has_max_position<register_t> == requires(native_t value) { api_t::max_position(value); });
-	static_assert(has_add_saturated<register_t> == requires(native_t value) { api_t::add_saturated(value, value); });
-	static_assert(has_subtract_saturated<register_t> == requires(native_t value) { api_t::subtract_saturated(value, value); });
-	static_assert(has_horizontal_add_saturated<register_t> == requires(native_t value) { api_t::hadd_saturated(value, value); });
-	static_assert(has_horizontal_subtract_saturated<register_t> == requires(native_t value) { api_t::hsubtract_saturated(value, value); });
-	static_assert(has_add_subtract<register_t> == requires(native_t value) { api_t::add_subtract(value, value); });
-	static_assert(has_dot_product<register_t> == SimdLib::Detail::RegisterDotProductAvailable<element_t, bits, 0x11>);
-	static_assert(has_zero_dot_product<register_t> == SimdLib::Detail::RegisterDotProductAvailable<element_t, bits, 0>);
-	static_assert(has_maximum_dot_product<register_t> == SimdLib::Detail::RegisterDotProductAvailable<element_t, bits, 255>);
-	static_assert(has_zero_multi_sad<register_t> == SimdLib::Detail::RegisterMultiSadAvailable<element_t, bits>);
-	static_assert(has_maximum_multi_sad<register_t> == SimdLib::Detail::RegisterMultiSadAvailable<element_t, bits>);
-	static_assert(!has_invalid_low_dot_product<register_t>);
-	static_assert(!has_invalid_high_dot_product<register_t>);
-	static_assert(!has_invalid_low_multi_sad<register_t>);
-	static_assert(!has_invalid_high_multi_sad<register_t>);
-	static_assert(!accepts_mismatched_adjacent_source<register_t, other_element_t>);
-	static_assert(!accepts_mismatched_byte_multiply_add_source<register_t, other_element_t>);
-	static_assert(!accepts_mismatched_sad_source<register_t, other_element_t>);
-	static_assert(!accepts_mismatched_multi_sad_source<register_t, other_element_t>);
+	static_assert(SimdLib::IRegister::Add<register_t> == SimdLib::IApi::Add<api_t>);
+	static_assert(SimdLib::IRegister::Subtract<register_t> == SimdLib::IApi::Subtract<api_t>);
+	static_assert(SimdLib::IRegister::Multiply<register_t> == SimdLib::IApi::Multiply<api_t>);
+	static_assert(SimdLib::IRegister::Divide<register_t> == SimdLib::IApi::Divide<api_t>);
+	static_assert(SimdLib::IRegister::Modulus<register_t> == SimdLib::IApi::Modulus<api_t>);
+	static_assert(SimdLib::IRegister::Negate<register_t> == SimdLib::IApi::Negate<api_t>);
+	static_assert(SimdLib::IRegister::Min<register_t> == SimdLib::IApi::Min<api_t>);
+	static_assert(SimdLib::IRegister::Max<register_t> == SimdLib::IApi::Max<api_t>);
+	static_assert(SimdLib::IRegister::Absolute<register_t> == SimdLib::IApi::Absolute<api_t>);
+	static_assert(SimdLib::IRegister::Sqrt<register_t> == SimdLib::IApi::Sqrt<api_t>);
+	static_assert(SimdLib::IRegister::Average<register_t> == SimdLib::IApi::Average<api_t>);
+	static_assert(SimdLib::IRegister::MultiplyAdd<register_t> == SimdLib::IApi::MultiplyAdd<api_t>);
+	static_assert(SimdLib::IRegister::Magnitude<register_t> == SimdLib::IApi::Magnitude<api_t>);
+	static_assert(SimdLib::IRegister::MagnitudeChecked<register_t> == SimdLib::IApi::MagnitudeChecked<api_t>);
+	static_assert(SimdLib::IRegister::Normalize<register_t> == SimdLib::IApi::Normalize<api_t>);
+	static_assert(SimdLib::IRegister::HorizontalAdd<register_t> == SimdLib::IApi::HorizontalAdd<api_t>);
+	static_assert(SimdLib::IRegister::HorizontalSubtract<register_t> == SimdLib::IApi::HorizontalSubtract<api_t>);
+	static_assert(SimdLib::IRegister::MinPosition<register_t> == SimdLib::IApi::MinPosition<api_t>);
+	static_assert(SimdLib::IRegister::MaxPosition<register_t> == SimdLib::IApi::MaxPosition<api_t>);
+	static_assert(SimdLib::IRegister::AddSaturated<register_t> == SimdLib::IApi::AddSaturated<api_t>);
+	static_assert(SimdLib::IRegister::SubtractSaturated<register_t> == SimdLib::IApi::SubtractSaturated<api_t>);
+	static_assert(SimdLib::IRegister::HorizontalAddSaturated<register_t> == SimdLib::IApi::HorizontalAddSaturated<api_t>);
+	static_assert(SimdLib::IRegister::HorizontalSubtractSaturated<register_t> == SimdLib::IApi::HorizontalSubtractSaturated<api_t>);
+	static_assert(SimdLib::IRegister::AddSubtract<register_t> == SimdLib::IApi::AddSubtract<api_t>);
+	static_assert(SimdLib::IRegister::DotProduct<register_t, 0x11> == SimdLib::IApi::DotProduct<api_t, 0x11>);
+	static_assert(SimdLib::IRegister::DotProduct<register_t, 0> == SimdLib::IApi::DotProduct<api_t, 0>);
+	static_assert(SimdLib::IRegister::DotProduct<register_t, 255> == SimdLib::IApi::DotProduct<api_t, 255>);
+	static_assert(SimdLib::IRegister::MultiSumAbsoluteByteDifferences<register_t, 0> == SimdLib::IApi::MultiSad<api_t, 0>);
+	static_assert(SimdLib::IRegister::MultiSumAbsoluteByteDifferences<register_t, 255> == SimdLib::IApi::MultiSad<api_t, 255>);
+	static_assert(!SimdLib::IRegister::DotProduct<register_t, -1>);
+	static_assert(!SimdLib::IRegister::DotProduct<register_t, 256>);
+	static_assert(!SimdLib::IRegister::MultiSumAbsoluteByteDifferences<register_t, -1>);
+	static_assert(!SimdLib::IRegister::MultiSumAbsoluteByteDifferences<register_t, 256>);
+	static_assert(!SimdLib::IRegister::MultiplyAddAdjacent<register_t, other_element_t>);
+	static_assert(!SimdLib::IRegister::MultiplyAddUnsignedSignedBytes<register_t, other_element_t>);
+	static_assert(!SimdLib::IRegister::SumAbsoluteByteDifferences<register_t, other_element_t>);
+	static_assert(!SimdLib::IRegister::MultiSumAbsoluteByteDifferences<register_t, 0, other_element_t>);
 
-	static_assert(has_multiply_add_adjacent_alias<element_t, bits> == SimdLib::Detail::RegisterMultiplyAddAdjacentAvailable<element_t, bits>);
-	static_assert(has_byte_multiply_add_alias<element_t, bits> == SimdLib::Detail::RegisterByteMultiplyAddAvailable<element_t, bits>);
-	static_assert(has_sad_alias<element_t, bits> == SimdLib::Detail::RegisterSadAvailable<element_t, bits>);
-	static_assert(has_multi_sad_alias<element_t, bits> == SimdLib::Detail::RegisterMultiSadAvailable<element_t, bits>);
+	static_assert(has_multiply_add_adjacent_alias<element_t, bits> == (std::is_integral_v<element_t> && SimdLib::IApi::MultiplyAddAdjacent<api_t>));
+	static_assert(has_byte_multiply_add_alias<element_t, bits> == (std::is_integral_v<element_t> && SimdLib::IApi::ByteMultiplyAdd<api_t>));
+	static_assert(has_sad_alias<element_t, bits> == (std::is_integral_v<element_t> && SimdLib::IApi::Sad<api_t>));
+	static_assert(has_multi_sad_alias<element_t, bits> == (std::is_integral_v<element_t> && SimdLib::IApi::MultiSad<api_t, 0>));
+	static_assert(SimdLib::IRegister::MultiplyAddAdjacent<register_t> == SimdLib::IApi::MultiplyAddAdjacent<api_t>);
+	static_assert(SimdLib::IRegister::MultiplyAddUnsignedSignedBytes<register_t> == SimdLib::IApi::ByteMultiplyAdd<api_t>);
+	static_assert(SimdLib::IRegister::SumAbsoluteByteDifferences<register_t> == SimdLib::IApi::Sad<api_t>);
+	static_assert(SimdLib::IRegister::MultiSumAbsoluteByteDifferences<register_t, 0> == SimdLib::IApi::MultiSad<api_t, 0>);
 
 	if constexpr (has_multiply_add_adjacent_alias<element_t, bits>)
 	{
