@@ -1,7 +1,11 @@
 BasedOnStyle: Microsoft
+Standard: Latest
 ColumnLimit: 160
 IndentWidth: 4
+TabWidth: 4
 UseTab: Always
 BreakBeforeBraces: Allman
 AllowShortFunctionsOnASingleLine: Empty
-SortIncludes: CaseSensitive
+SortIncludes:
+  Enabled: true
+  IgnoreCase: false
