@@ -142,13 +142,11 @@ template <std::size_t ReadWidth, std::size_t WriteWidth> struct SimdAlgo final
 	{
 		using simd = SimdImpl<count>;
 		constexpr bool legacy_eight_byte_comparison = ReadWidth == 8 && WriteWidth == 8 && count == 8;
-		static_assert(WriteWidth == 1 || legacy_eight_byte_comparison,
-			"SimdAlgo comparison output is a packed one-bit mask");
+		static_assert(WriteWidth == 1 || legacy_eight_byte_comparison, "SimdAlgo comparison output is a packed one-bit mask");
 		static_assert(count % write_data_size == 0, "Packed comparison output requires a whole number of destination elements");
 		const auto predicateVector = simd::set1(predicate);
-		simd::template transform_pack<1>(read, write,
-			[&predicateVector](const typename simd::vector_t value) noexcept
-			{ return simd::movemask_slim(simd::cmpeq(value, predicateVector)); });
+		simd::template transform_pack<1>(read, write, [&predicateVector](const typename simd::vector_t value) noexcept
+										 { return simd::movemask_slim(simd::cmpeq(value, predicateVector)); });
 	}
 
 #pragma region Bitwise Operations (constrained)

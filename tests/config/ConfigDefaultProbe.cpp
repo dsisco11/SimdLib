@@ -12,8 +12,7 @@ struct ConfigProbe
 		return value;
 	}
 
-	template <typename value_t>
-	static value_t VECTORCALL TemplateFunction(const value_t value) noexcept
+	template <typename value_t> static value_t VECTORCALL TemplateFunction(const value_t value) noexcept
 	{
 		return value;
 	}

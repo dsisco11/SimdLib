@@ -15,8 +15,7 @@ namespace
  * @tparam ReadWidth Source element width in bits.
  * @tparam Count Static source element count.
  */
-template <std::size_t ReadWidth, std::size_t Count>
-void require_compare_tail_contract()
+template <std::size_t ReadWidth, std::size_t Count> void require_compare_tail_contract()
 {
 	using Algo = SimdLib::SimdAlgo<ReadWidth, 1>;
 	using read_t = typename Algo::read_t;
@@ -47,8 +46,7 @@ void require_compare_tail_contract()
  * @brief Verifies every full-register and tail outcome of AnyEqual.
  * @tparam ReadWidth Source element width in bits.
  */
-template <std::size_t ReadWidth>
-void require_any_equal_outcome_contract()
+template <std::size_t ReadWidth> void require_any_equal_outcome_contract()
 {
 	using Algo = SimdLib::SimdAlgo<ReadWidth, 1>;
 	using read_t = typename Algo::read_t;
@@ -63,7 +61,7 @@ void require_any_equal_outcome_contract()
 	full.fill(other);
 	REQUIRE_FALSE(Algo::AnyEqual(std::span<const read_t, full_count>{full}, predicate));
 	REQUIRE(Algo::AnyEqual(std::span<const read_t, full_count>{full}, predicate) ==
-		std::ranges::any_of(full, [](const read_t value) { return value == predicate; }));
+			std::ranges::any_of(full, [](const read_t value) { return value == predicate; }));
 
 	full.front() = predicate;
 	REQUIRE(Algo::AnyEqual(std::span<const read_t, full_count>{full}, predicate));
@@ -80,15 +78,14 @@ void require_any_equal_outcome_contract()
 	tail.back() = predicate;
 	REQUIRE(Algo::AnyEqual(std::span<const read_t, tail_count>{tail}, predicate));
 	REQUIRE(Algo::AnyEqual(std::span<const read_t, tail_count>{tail}, predicate) ==
-		std::ranges::any_of(tail, [](const read_t value) { return value == predicate; }));
+			std::ranges::any_of(tail, [](const read_t value) { return value == predicate; }));
 }
 
 /**
  * @brief Verifies every full-register and tail outcome of AllEqual.
  * @tparam ReadWidth Source element width in bits.
  */
-template <std::size_t ReadWidth>
-void require_all_equal_outcome_contract()
+template <std::size_t ReadWidth> void require_all_equal_outcome_contract()
 {
 	using Algo = SimdLib::SimdAlgo<ReadWidth, 1>;
 	using read_t = typename Algo::read_t;
@@ -103,7 +100,7 @@ void require_all_equal_outcome_contract()
 	full.fill(predicate);
 	REQUIRE(Algo::AllEqual(std::span<const read_t, full_count>{full}, predicate));
 	REQUIRE(Algo::AllEqual(std::span<const read_t, full_count>{full}, predicate) ==
-		std::ranges::all_of(full, [](const read_t value) { return value == predicate; }));
+			std::ranges::all_of(full, [](const read_t value) { return value == predicate; }));
 
 	full.front() = other;
 	REQUIRE_FALSE(Algo::AllEqual(std::span<const read_t, full_count>{full}, predicate));
@@ -120,15 +117,14 @@ void require_all_equal_outcome_contract()
 	tail.back() = other;
 	REQUIRE_FALSE(Algo::AllEqual(std::span<const read_t, tail_count>{tail}, predicate));
 	REQUIRE(Algo::AllEqual(std::span<const read_t, tail_count>{tail}, predicate) ==
-		std::ranges::all_of(tail, [](const read_t value) { return value == predicate; }));
+			std::ranges::all_of(tail, [](const read_t value) { return value == predicate; }));
 }
 
 /**
  * @brief Verifies empty, single-element, multi-element, exact-register, and tail static extents.
  * @tparam ReadWidth Source element width in bits.
  */
-template <std::size_t ReadWidth>
-void require_search_extent_contract()
+template <std::size_t ReadWidth> void require_search_extent_contract()
 {
 	using Algo = SimdLib::SimdAlgo<ReadWidth, 1>;
 	using read_t = typename Algo::read_t;

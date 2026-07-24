@@ -23,28 +23,22 @@ static_assert(popcount(std::numeric_limits<uint128_t>::max()) == 128);
 		return false;
 	if ((lhs & rhs) != uint128_t{0x1010'2200'3210'0000ULL, 0x0101'4466'0123'8888ULL} ||
 		(lhs | rhs) != uint128_t{0xFFDD'BABA'7777'7654ULL, 0x5577'6767'FFFF'CDEFULL} ||
-		(lhs ^ rhs) != uint128_t{0xEFCD'98BA'4567'7654ULL, 0x5476'2301'FEDC'4567ULL} ||
-		~lhs != uint128_t{0x0123'4567'89AB'CDEFULL, 0xFEDC'BA98'7654'3210ULL})
+		(lhs ^ rhs) != uint128_t{0xEFCD'98BA'4567'7654ULL, 0x5476'2301'FEDC'4567ULL} || ~lhs != uint128_t{0x0123'4567'89AB'CDEFULL, 0xFEDC'BA98'7654'3210ULL})
 		return false;
-	if ((uint128_t{1} << 0) != uint128_t{1} || (uint128_t{1} << 63) != uint128_t{std::uint64_t{1} << 63} ||
-		(uint128_t{1} << 64) != uint128_t{0, 1} || (uint128_t{1} << 127) != uint128_t{0, std::uint64_t{1} << 63} ||
-		(uint128_t{1} << 128) != uint128_t{} || (uint128_t{1} << 129) != uint128_t{})
+	if ((uint128_t{1} << 0) != uint128_t{1} || (uint128_t{1} << 63) != uint128_t{std::uint64_t{1} << 63} || (uint128_t{1} << 64) != uint128_t{0, 1} ||
+		(uint128_t{1} << 127) != uint128_t{0, std::uint64_t{1} << 63} || (uint128_t{1} << 128) != uint128_t{} || (uint128_t{1} << 129) != uint128_t{})
 		return false;
 	constexpr uint128_t highBit{0, std::uint64_t{1} << 63};
-	if ((highBit >> 0) != highBit || (highBit >> 63) != uint128_t{0, 1} ||
-		(highBit >> 64) != uint128_t{std::uint64_t{1} << 63} || (highBit >> 127) != uint128_t{1} ||
-		(highBit >> 128) != uint128_t{} || (highBit >> 129) != uint128_t{})
+	if ((highBit >> 0) != highBit || (highBit >> 63) != uint128_t{0, 1} || (highBit >> 64) != uint128_t{std::uint64_t{1} << 63} ||
+		(highBit >> 127) != uint128_t{1} || (highBit >> 128) != uint128_t{} || (highBit >> 129) != uint128_t{})
 		return false;
 	if (uint128_t::create_mask(0) != uint128_t{} || uint128_t::create_mask(64) != uint128_t{~std::uint64_t{0}} ||
-		uint128_t::create_mask(65) != uint128_t{~std::uint64_t{0}, 1} ||
-		uint128_t::create_mask(128) != std::numeric_limits<uint128_t>::max())
+		uint128_t::create_mask(65) != uint128_t{~std::uint64_t{0}, 1} || uint128_t::create_mask(128) != std::numeric_limits<uint128_t>::max())
 		return false;
-	return popcount(lhs) == std::popcount(lhs.low()) + std::popcount(lhs.high()) &&
-		countr_zero(uint128_t{}) == 128 && countl_zero(uint128_t{}) == 128 &&
-		bit_width(highBit) == 128 && bit_floor(highBit) == highBit && bit_ceil(highBit) == highBit &&
-		has_single_bit(highBit) && Bmi::bextr(lhs, 17, 61) == ((lhs >> 61) & uint128_t::create_mask(17));
+	return popcount(lhs) == std::popcount(lhs.low()) + std::popcount(lhs.high()) && countr_zero(uint128_t{}) == 128 && countl_zero(uint128_t{}) == 128 &&
+		   bit_width(highBit) == 128 && bit_floor(highBit) == highBit && bit_ceil(highBit) == highBit && has_single_bit(highBit) &&
+		   Bmi::bextr(lhs, 17, 61) == ((lhs >> 61) & uint128_t::create_mask(17));
 }
 
 static_assert(uint128_contract());
 } // namespace SimdLib
-

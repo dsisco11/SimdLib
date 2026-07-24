@@ -1,11 +1,11 @@
 inline int precondition_failures = 0;
 
-#define SIMDLIB_PRECONDITION(condition, message) \
-	do \
-	{ \
-		(void)(message); \
-		if (!(condition)) \
-			++precondition_failures; \
+#define SIMDLIB_PRECONDITION(condition, message)                                                                                                               \
+	do                                                                                                                                                         \
+	{                                                                                                                                                          \
+		(void)(message);                                                                                                                                       \
+		if (!(condition))                                                                                                                                      \
+			++precondition_failures;                                                                                                                           \
 	} while (false)
 
 #include <SimdLib/Config.h>

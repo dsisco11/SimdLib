@@ -31,63 +31,50 @@ class AbiRegister final
 	native_type m_data = api_type::setzero();
 
 	/** @brief Mirrors a unary explicit-object member boundary. */
-	SIMDLIB_REGISTER_ONLY SIMDLIB_ABI_NOINLINE AbiRegister VECTORCALL
-		simdlib_abi_unary(this AbiRegister value) noexcept
+	SIMDLIB_REGISTER_ONLY SIMDLIB_ABI_NOINLINE AbiRegister VECTORCALL simdlib_abi_unary(this AbiRegister value) noexcept
 	{
 		return AbiRegister{api_type::bitwise_not(value.m_data)};
 	}
 
 	/** @brief Mirrors a binary explicit-object member boundary. */
-	SIMDLIB_REGISTER_ONLY SIMDLIB_ABI_NOINLINE AbiRegister VECTORCALL simdlib_abi_binary(
-		this AbiRegister lhs,
-		AbiRegister rhs) noexcept
+	SIMDLIB_REGISTER_ONLY SIMDLIB_ABI_NOINLINE AbiRegister VECTORCALL simdlib_abi_binary(this AbiRegister lhs, AbiRegister rhs) noexcept
 	{
 		return AbiRegister{api_type::add(lhs.m_data, rhs.m_data)};
 	}
 
 	/** @brief Mirrors a ternary explicit-object member boundary. */
-	SIMDLIB_REGISTER_ONLY SIMDLIB_ABI_NOINLINE AbiRegister VECTORCALL simdlib_abi_ternary(
-		this AbiRegister lhs,
-		AbiRegister rhs,
-		AbiRegister addend) noexcept
+	SIMDLIB_REGISTER_ONLY SIMDLIB_ABI_NOINLINE AbiRegister VECTORCALL simdlib_abi_ternary(this AbiRegister lhs, AbiRegister rhs, AbiRegister addend) noexcept
 	{
 		return AbiRegister{api_type::add(api_type::multiply(lhs.m_data, rhs.m_data), addend.m_data)};
 	}
 
 	/** @brief Mirrors a scalar-result explicit-object member boundary. */
-	SIMDLIB_REGISTER_ONLY SIMDLIB_ABI_NOINLINE std::uint32_t VECTORCALL
-		simdlib_abi_scalar(this AbiRegister value) noexcept
+	SIMDLIB_REGISTER_ONLY SIMDLIB_ABI_NOINLINE std::uint32_t VECTORCALL simdlib_abi_scalar(this AbiRegister value) noexcept
 	{
 		return api_type::movemask(value.m_data);
 	}
 
 	/** @brief Mirrors a register-shaped mask-result explicit-object member boundary. */
-	SIMDLIB_REGISTER_ONLY SIMDLIB_ABI_NOINLINE AbiMask VECTORCALL
-		simdlib_abi_mask(this AbiRegister value) noexcept
+	SIMDLIB_REGISTER_ONLY SIMDLIB_ABI_NOINLINE AbiMask VECTORCALL simdlib_abi_mask(this AbiRegister value) noexcept
 	{
 		(void)value;
 		return AbiMask{api_type::setzero()};
 	}
 
 	/** @brief Mirrors a native-result explicit-object member boundary. */
-	SIMDLIB_REGISTER_ONLY SIMDLIB_ABI_NOINLINE native_type VECTORCALL
-		simdlib_abi_native(this AbiRegister value) noexcept
+	SIMDLIB_REGISTER_ONLY SIMDLIB_ABI_NOINLINE native_type VECTORCALL simdlib_abi_native(this AbiRegister value) noexcept
 	{
 		return value.m_data;
 	}
 
 	/** @brief Mirrors a store explicit-object member boundary. */
-	SIMDLIB_ABI_NOINLINE void VECTORCALL simdlib_abi_store(
-		this AbiRegister value,
-		float *destination) noexcept
+	SIMDLIB_ABI_NOINLINE void VECTORCALL simdlib_abi_store(this AbiRegister value, float *destination) noexcept
 	{
 		api_type::store(value.m_data, std::span<float, api_type::element_count>(destination, api_type::element_count));
 	}
 
 	/** @brief Mirrors a mutating-reference explicit-object member boundary. */
-	SIMDLIB_ABI_NOINLINE AbiRegister &VECTORCALL simdlib_abi_mutate(
-		this AbiRegister &lhs,
-		AbiRegister rhs) noexcept
+	SIMDLIB_ABI_NOINLINE AbiRegister &VECTORCALL simdlib_abi_mutate(this AbiRegister &lhs, AbiRegister rhs) noexcept
 	{
 		lhs.m_data = api_type::add(lhs.m_data, rhs.m_data);
 		return lhs;
@@ -95,29 +82,25 @@ class AbiRegister final
 };
 
 /** @brief Returns a real Register across a separately compiled consumer boundary. */
-SIMDLIB_REGISTER_ONLY SIMDLIB_ABI_NOINLINE register_type VECTORCALL
-	simdlib_consumer_abi_register_return(register_type lhs, register_type rhs) noexcept
+SIMDLIB_REGISTER_ONLY SIMDLIB_ABI_NOINLINE register_type VECTORCALL simdlib_consumer_abi_register_return(register_type lhs, register_type rhs) noexcept
 {
 	return register_type{api_type::add(lhs.native, rhs.native)};
 }
 
 /** @brief Passes a real Register across a separately compiled consumer boundary. */
-SIMDLIB_REGISTER_ONLY SIMDLIB_ABI_NOINLINE native_type VECTORCALL
-	simdlib_consumer_abi_register_pass(register_type value) noexcept
+SIMDLIB_REGISTER_ONLY SIMDLIB_ABI_NOINLINE native_type VECTORCALL simdlib_consumer_abi_register_pass(register_type value) noexcept
 {
 	return value.native;
 }
 
 /** @brief Returns a real RegisterMask across a separately compiled ABI boundary. */
-SIMDLIB_REGISTER_ONLY SIMDLIB_ABI_NOINLINE mask_type VECTORCALL
-	simdlib_consumer_abi_mask_return(register_type lhs, register_type rhs) noexcept
+SIMDLIB_REGISTER_ONLY SIMDLIB_ABI_NOINLINE mask_type VECTORCALL simdlib_consumer_abi_mask_return(register_type lhs, register_type rhs) noexcept
 {
 	return lhs.compare_equal(rhs);
 }
 
 /** @brief Passes a real RegisterMask across a separately compiled ABI boundary. */
-SIMDLIB_REGISTER_ONLY SIMDLIB_ABI_NOINLINE native_type VECTORCALL
-	simdlib_consumer_abi_mask_pass(mask_type value) noexcept
+SIMDLIB_REGISTER_ONLY SIMDLIB_ABI_NOINLINE native_type VECTORCALL simdlib_consumer_abi_mask_pass(mask_type value) noexcept
 {
 	return value.native;
 }

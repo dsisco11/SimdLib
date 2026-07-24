@@ -55,8 +55,7 @@ using multiply_add_adjacent_element_t = std::conditional_t<
  * @tparam bits Register width in bits.
  */
 template <class element_t, std::size_t bits>
-	requires RegisterAvailable<element_t, bits> && std::is_integral_v<element_t> &&
-			 IApi::MultiplyAddAdjacent<Api<bits, element_t>>
+	requires RegisterAvailable<element_t, bits> && std::is_integral_v<element_t> && IApi::MultiplyAddAdjacent<Api<bits, element_t>>
 using multiply_add_adjacent_result_t = Register<Detail::multiply_add_adjacent_element_t<element_t>, bits>;
 
 /**
@@ -65,8 +64,7 @@ using multiply_add_adjacent_result_t = Register<Detail::multiply_add_adjacent_el
  * @tparam bits Register width in bits.
  */
 template <class element_t, std::size_t bits>
-	requires RegisterAvailable<element_t, bits> && std::is_integral_v<element_t> &&
-			 IApi::ByteMultiplyAdd<Api<bits, element_t>>
+	requires RegisterAvailable<element_t, bits> && std::is_integral_v<element_t> && IApi::ByteMultiplyAdd<Api<bits, element_t>>
 using byte_multiply_add_result_t = Register<std::int16_t, bits>;
 
 /**

@@ -14,9 +14,8 @@ concept accepts_invalid_shuffle_selector = requires(value_t value) { value.templ
 /** @brief Reports whether a logical shuffle accepts a selector from another 128-bit source group. */
 template <class value_t>
 concept accepts_cross_group_shuffle_selector = requires(value_t value) {
-	value.template shuffle<16, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
-		16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31>();
+	value.template shuffle<16, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31>();
 };
 
 static_assert(accepts_invalid_shuffle_selector<register_type> || accepts_cross_group_shuffle_selector<wide_register_type>,
-	"SIMDLIB_REGISTER_REJECTS_INVALID_SHUFFLE_SELECTOR");
+			  "SIMDLIB_REGISTER_REJECTS_INVALID_SHUFFLE_SELECTOR");

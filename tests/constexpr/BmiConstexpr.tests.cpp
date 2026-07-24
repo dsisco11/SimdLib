@@ -127,10 +127,10 @@ static_assert(extract_bits_higher_than<std::uint32_t>(0b10111, 0b00001) == 0b101
 /**
  * @brief Expands the BMI constexpr contract across one integral width and signedness.
  * @tparam Integer Integral type under test.
- * @return True when representative generic helpers preserve their bit contracts.
+ * @return True when
+ * representative generic helpers preserve their bit contracts.
  */
-template <std::integral Integer>
-[[nodiscard]] consteval bool bmi_width_contract() noexcept
+template <std::integral Integer> [[nodiscard]] consteval bool bmi_width_contract() noexcept
 {
 	using unsigned_type = std::make_unsigned_t<Integer>;
 	constexpr unsigned_type value = static_cast<unsigned_type>(0b10110100);
@@ -140,12 +140,12 @@ template <std::integral Integer>
 	Integer high{};
 	const Integer low = mulx<Integer>(static_cast<Integer>(3), static_cast<Integer>(7), high);
 	return static_cast<unsigned_type>(andn<Integer>(typedMask, typedValue)) == static_cast<unsigned_type>((~mask) & value) &&
-		static_cast<unsigned_type>(bzhi<Integer>(typedValue, 4)) == static_cast<unsigned_type>(value & 0x0F) &&
-		static_cast<unsigned_type>(blsi<Integer>(typedValue)) == static_cast<unsigned_type>(value & (unsigned_type{0} - value)) &&
-		static_cast<unsigned_type>(blsr<Integer>(typedValue)) == static_cast<unsigned_type>(value & (value - 1)) &&
-		static_cast<unsigned_type>(pdep_u32(static_cast<std::uint32_t>(value), static_cast<std::uint32_t>(mask))) == 0x20u &&
-		static_cast<unsigned_type>(pext_u32(static_cast<std::uint32_t>(value), static_cast<std::uint32_t>(mask))) == 0x04u &&
-		low == static_cast<Integer>(21) && high == Integer{};
+		   static_cast<unsigned_type>(bzhi<Integer>(typedValue, 4)) == static_cast<unsigned_type>(value & 0x0F) &&
+		   static_cast<unsigned_type>(blsi<Integer>(typedValue)) == static_cast<unsigned_type>(value & (unsigned_type{0} - value)) &&
+		   static_cast<unsigned_type>(blsr<Integer>(typedValue)) == static_cast<unsigned_type>(value & (value - 1)) &&
+		   static_cast<unsigned_type>(pdep_u32(static_cast<std::uint32_t>(value), static_cast<std::uint32_t>(mask))) == 0x20u &&
+		   static_cast<unsigned_type>(pext_u32(static_cast<std::uint32_t>(value), static_cast<std::uint32_t>(mask))) == 0x04u &&
+		   low == static_cast<Integer>(21) && high == Integer{};
 }
 
 static_assert(blsmsk<std::uint32_t>(0b10100) == 0b00111);
@@ -161,4 +161,3 @@ static_assert(bmi_width_contract<std::uint32_t>());
 static_assert(bmi_width_contract<std::int64_t>());
 static_assert(bmi_width_contract<std::uint64_t>());
 } // namespace SimdLib::Bmi
-

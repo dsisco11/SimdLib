@@ -21,8 +21,7 @@ namespace SimdLib::Tests::Constexpr
  * @tparam Element SIMD lane type.
  * @return Lane values in increasing logical order.
  */
-template <std::size_t Width, class Element>
-[[nodiscard]] constexpr auto lane_values() noexcept
+template <std::size_t Width, class Element> [[nodiscard]] constexpr auto lane_values() noexcept
 {
 	using simd = Api<Width, Element>;
 	std::array<Element, simd::element_count> values{};
@@ -37,8 +36,7 @@ template <std::size_t Width, class Element>
  * @tparam Element SIMD lane type.
  * @return True when the public construction contract holds.
  */
-template <std::size_t Width, class Element>
-[[nodiscard]] consteval bool construction_contract() noexcept
+template <std::size_t Width, class Element> [[nodiscard]] consteval bool construction_contract() noexcept
 {
 	using simd = Api<Width, Element>;
 	constexpr auto values = lane_values<Width, Element>();
@@ -59,13 +57,10 @@ template <std::size_t Width, class Element>
 		return false;
 
 	constexpr auto setrValue = []<std::size_t... Indices>(std::index_sequence<Indices...>) constexpr noexcept
-	{
-		return simd::setr(static_cast<Element>(Indices + 1)...);
-	}(std::make_index_sequence<simd::element_count>{});
+	{ return simd::setr(static_cast<Element>(Indices + 1)...); }(std::make_index_sequence<simd::element_count>{});
 	if (simd::to_array(setrValue) != values)
 		return false;
-	if (simd::get_element(constructed, 0) != values.front() ||
-		simd::get_element(constructed, static_cast<int>(simd::element_count - 1)) != values.back())
+	if (simd::get_element(constructed, 0) != values.front() || simd::get_element(constructed, static_cast<int>(simd::element_count - 1)) != values.back())
 		return false;
 
 	constexpr Element replacement = static_cast<Element>(42);
@@ -80,8 +75,7 @@ template <std::size_t Width, class Element>
  * @param offset Selects the left or right comparison pattern.
  * @return Comparison lanes containing equality and both order directions.
  */
-template <std::size_t Width, class Element>
-[[nodiscard]] constexpr auto comparison_values(const unsigned offset) noexcept
+template <std::size_t Width, class Element> [[nodiscard]] constexpr auto comparison_values(const unsigned offset) noexcept
 {
 	using simd = Api<Width, Element>;
 	std::array<Element, simd::element_count> values{};
@@ -104,10 +98,8 @@ template <std::size_t Width, class Element>
  * @return Byte-granular comparison mask.
  */
 template <std::size_t Width, class Element, class Predicate>
-[[nodiscard]] constexpr auto comparison_mask(
-	const std::array<Element, Api<Width, Element>::element_count>& lhs,
-	const std::array<Element, Api<Width, Element>::element_count>& rhs,
-	Predicate predicate) noexcept
+[[nodiscard]] constexpr auto comparison_mask(const std::array<Element, Api<Width, Element>::element_count> &lhs,
+											 const std::array<Element, Api<Width, Element>::element_count> &rhs, Predicate predicate) noexcept
 {
 	using simd = Api<Width, Element>;
 	typename simd::mask_t result = 0;
@@ -129,10 +121,8 @@ template <std::size_t Width, class Element, class Predicate>
  * @return Mask containing one bit per matching lane.
  */
 template <std::size_t Width, class Element, class Predicate>
-[[nodiscard]] constexpr auto comparison_slim_mask(
-	const std::array<Element, Api<Width, Element>::element_count>& lhs,
-	const std::array<Element, Api<Width, Element>::element_count>& rhs,
-	Predicate predicate) noexcept
+[[nodiscard]] constexpr auto comparison_slim_mask(const std::array<Element, Api<Width, Element>::element_count> &lhs,
+												  const std::array<Element, Api<Width, Element>::element_count> &rhs, Predicate predicate) noexcept
 {
 	using simd = Api<Width, Element>;
 	typename simd::mask_t result = 0;
@@ -148,8 +138,7 @@ template <std::size_t Width, class Element, class Predicate>
  * @tparam Element SIMD lane type.
  * @return True when equality and ordering masks match scalar predicates.
  */
-template <std::size_t Width, class Element>
-[[nodiscard]] consteval bool comparison_contract() noexcept
+template <std::size_t Width, class Element> [[nodiscard]] consteval bool comparison_contract() noexcept
 {
 	using simd = Api<Width, Element>;
 	constexpr auto lhsValues = comparison_values<Width, Element>(0);
@@ -159,9 +148,12 @@ template <std::size_t Width, class Element>
 	constexpr auto equal = comparison_mask<Width>(lhsValues, rhsValues, [](const Element lhsValue, const Element rhsValue) { return lhsValue == rhsValue; });
 	constexpr auto greater = comparison_mask<Width>(lhsValues, rhsValues, [](const Element lhsValue, const Element rhsValue) { return lhsValue > rhsValue; });
 	constexpr auto less = comparison_mask<Width>(lhsValues, rhsValues, [](const Element lhsValue, const Element rhsValue) { return lhsValue < rhsValue; });
-	constexpr auto equalSlim = comparison_slim_mask<Width>(lhsValues, rhsValues, [](const Element lhsValue, const Element rhsValue) { return lhsValue == rhsValue; });
-	constexpr auto greaterSlim = comparison_slim_mask<Width>(lhsValues, rhsValues, [](const Element lhsValue, const Element rhsValue) { return lhsValue > rhsValue; });
-	constexpr auto lessSlim = comparison_slim_mask<Width>(lhsValues, rhsValues, [](const Element lhsValue, const Element rhsValue) { return lhsValue < rhsValue; });
+	constexpr auto equalSlim =
+		comparison_slim_mask<Width>(lhsValues, rhsValues, [](const Element lhsValue, const Element rhsValue) { return lhsValue == rhsValue; });
+	constexpr auto greaterSlim =
+		comparison_slim_mask<Width>(lhsValues, rhsValues, [](const Element lhsValue, const Element rhsValue) { return lhsValue > rhsValue; });
+	constexpr auto lessSlim =
+		comparison_slim_mask<Width>(lhsValues, rhsValues, [](const Element lhsValue, const Element rhsValue) { return lhsValue < rhsValue; });
 	using unsigned_element_t = select_unsigned_integer_t<sizeof(Element) * 8>;
 	constexpr Element trueLane = std::bit_cast<Element>(std::numeric_limits<unsigned_element_t>::max());
 	std::array<Element, simd::element_count> equalLanes{};
@@ -179,21 +171,18 @@ template <std::size_t Width, class Element>
 		lessEqualLanes[index] = lhsValues[index] <= rhsValues[index] ? trueLane : Element{};
 		selectedLanes[index] = lhsValues[index] == rhsValues[index] ? lhsValues[index] : rhsValues[index];
 	}
-	const auto matchesObjectRepresentation = [](const auto native, const auto &expected) constexpr noexcept {
-		return std::bit_cast<std::array<std::uint8_t, Width / 8>>(simd::to_array(native)) ==
-			std::bit_cast<std::array<std::uint8_t, Width / 8>>(expected);
-	};
+	const auto matchesObjectRepresentation = [](const auto native, const auto &expected) constexpr noexcept
+	{ return std::bit_cast<std::array<std::uint8_t, Width / 8>>(simd::to_array(native)) == std::bit_cast<std::array<std::uint8_t, Width / 8>>(expected); };
 	return matchesObjectRepresentation(simd::compare_equal(lhs, rhs), equalLanes) &&
-		matchesObjectRepresentation(simd::compare_greater(lhs, rhs), greaterLanes) &&
-		matchesObjectRepresentation(simd::compare_greater_equal(lhs, rhs), greaterEqualLanes) &&
-		matchesObjectRepresentation(simd::compare_less(lhs, rhs), lessLanes) &&
-		matchesObjectRepresentation(simd::compare_less_equal(lhs, rhs), lessEqualLanes) &&
-		matchesObjectRepresentation(simd::select(simd::compare_equal(lhs, rhs), lhs, rhs), selectedLanes) &&
-		simd::cmp_eq_mask(lhs, rhs) == equal && simd::cmp_gt_mask(lhs, rhs) == greater &&
-		simd::cmp_ge_mask(lhs, rhs) == (equal | greater) && simd::cmp_lt_mask(lhs, rhs) == less &&
-		simd::cmp_le_mask(lhs, rhs) == (equal | less) && simd::cmp_eq_slim(lhs, rhs) == equalSlim &&
-		simd::cmp_gt_slim(lhs, rhs) == greaterSlim && simd::cmp_ge_slim(lhs, rhs) == (equalSlim | greaterSlim) &&
-		simd::cmp_lt_slim(lhs, rhs) == lessSlim && simd::cmp_le_slim(lhs, rhs) == (equalSlim | lessSlim);
+		   matchesObjectRepresentation(simd::compare_greater(lhs, rhs), greaterLanes) &&
+		   matchesObjectRepresentation(simd::compare_greater_equal(lhs, rhs), greaterEqualLanes) &&
+		   matchesObjectRepresentation(simd::compare_less(lhs, rhs), lessLanes) &&
+		   matchesObjectRepresentation(simd::compare_less_equal(lhs, rhs), lessEqualLanes) &&
+		   matchesObjectRepresentation(simd::select(simd::compare_equal(lhs, rhs), lhs, rhs), selectedLanes) && simd::cmp_eq_mask(lhs, rhs) == equal &&
+		   simd::cmp_gt_mask(lhs, rhs) == greater && simd::cmp_ge_mask(lhs, rhs) == (equal | greater) && simd::cmp_lt_mask(lhs, rhs) == less &&
+		   simd::cmp_le_mask(lhs, rhs) == (equal | less) && simd::cmp_eq_slim(lhs, rhs) == equalSlim && simd::cmp_gt_slim(lhs, rhs) == greaterSlim &&
+		   simd::cmp_ge_slim(lhs, rhs) == (equalSlim | greaterSlim) && simd::cmp_lt_slim(lhs, rhs) == lessSlim &&
+		   simd::cmp_le_slim(lhs, rhs) == (equalSlim | lessSlim);
 }
 
 /**
@@ -202,8 +191,7 @@ template <std::size_t Width, class Element>
  * @tparam Element SIMD lane type.
  * @return True when all operations preserve the expected object-representation bits.
  */
-template <std::size_t Width, class Element>
-[[nodiscard]] consteval bool bitwise_contract() noexcept
+template <std::size_t Width, class Element> [[nodiscard]] consteval bool bitwise_contract() noexcept
 {
 	using simd = Api<Width, Element>;
 	std::array<std::uint8_t, Width / 8> left_bytes{};
@@ -223,20 +211,13 @@ template <std::size_t Width, class Element>
 		expected_andnot[byte] = static_cast<std::uint8_t>(~left_bytes[byte]) & right_bytes[byte];
 		expected_not[byte] = static_cast<std::uint8_t>(~left_bytes[byte]);
 	}
-	const auto lhs = simd::construct(
-		std::bit_cast<std::array<Element, simd::element_count>>(left_bytes));
-	const auto rhs = simd::construct(
-		std::bit_cast<std::array<Element, simd::element_count>>(right_bytes));
-	return std::bit_cast<std::array<std::uint8_t, Width / 8>>(simd::to_array(simd::bitwise_and(lhs, rhs))) ==
-			expected_and &&
-		std::bit_cast<std::array<std::uint8_t, Width / 8>>(simd::to_array(simd::bitwise_or(lhs, rhs))) ==
-			expected_or &&
-		std::bit_cast<std::array<std::uint8_t, Width / 8>>(simd::to_array(simd::bitwise_xor(lhs, rhs))) ==
-			expected_xor &&
-		std::bit_cast<std::array<std::uint8_t, Width / 8>>(simd::to_array(simd::bitwise_andnot(lhs, rhs))) ==
-			expected_andnot &&
-		std::bit_cast<std::array<std::uint8_t, Width / 8>>(simd::to_array(simd::bitwise_not(lhs))) ==
-			expected_not;
+	const auto lhs = simd::construct(std::bit_cast<std::array<Element, simd::element_count>>(left_bytes));
+	const auto rhs = simd::construct(std::bit_cast<std::array<Element, simd::element_count>>(right_bytes));
+	return std::bit_cast<std::array<std::uint8_t, Width / 8>>(simd::to_array(simd::bitwise_and(lhs, rhs))) == expected_and &&
+		   std::bit_cast<std::array<std::uint8_t, Width / 8>>(simd::to_array(simd::bitwise_or(lhs, rhs))) == expected_or &&
+		   std::bit_cast<std::array<std::uint8_t, Width / 8>>(simd::to_array(simd::bitwise_xor(lhs, rhs))) == expected_xor &&
+		   std::bit_cast<std::array<std::uint8_t, Width / 8>>(simd::to_array(simd::bitwise_andnot(lhs, rhs))) == expected_andnot &&
+		   std::bit_cast<std::array<std::uint8_t, Width / 8>>(simd::to_array(simd::bitwise_not(lhs))) == expected_not;
 }
 
 /**
@@ -244,8 +225,7 @@ template <std::size_t Width, class Element>
  * @tparam Width SIMD register width in bits.
  * @return Byte sequence with varying sign bits.
  */
-template <std::size_t Width>
-[[nodiscard]] constexpr auto movemask_bytes() noexcept
+template <std::size_t Width> [[nodiscard]] constexpr auto movemask_bytes() noexcept
 {
 	std::array<std::uint8_t, Width / 8> bytes{};
 	for (std::size_t index = 0; index < bytes.size(); ++index)
@@ -259,8 +239,7 @@ template <std::size_t Width>
  * @tparam Element SIMD lane type.
  * @return Full register of lane values.
  */
-template <std::size_t Width, class Element>
-[[nodiscard]] constexpr auto movemask_values() noexcept
+template <std::size_t Width, class Element> [[nodiscard]] constexpr auto movemask_values() noexcept
 {
 	using simd = Api<Width, Element>;
 	constexpr auto bytes = movemask_bytes<Width>();
@@ -274,8 +253,7 @@ template <std::size_t Width, class Element>
  * @tparam Element SIMD lane type.
  * @return Expected byte-granular mask.
  */
-template <std::size_t Width, class Element>
-[[nodiscard]] constexpr auto expected_movemask() noexcept
+template <std::size_t Width, class Element> [[nodiscard]] constexpr auto expected_movemask() noexcept
 {
 	using simd = Api<Width, Element>;
 	constexpr auto bytes = movemask_bytes<Width>();
@@ -291,8 +269,7 @@ template <std::size_t Width, class Element>
  * @tparam Element SIMD lane type.
  * @return Expected element-granular mask.
  */
-template <std::size_t Width, class Element>
-[[nodiscard]] constexpr auto expected_movemask_slim() noexcept
+template <std::size_t Width, class Element> [[nodiscard]] constexpr auto expected_movemask_slim() noexcept
 {
 	using simd = Api<Width, Element>;
 	constexpr auto bytes = movemask_bytes<Width>();
@@ -311,13 +288,11 @@ template <std::size_t Width, class Element>
  * @tparam Element SIMD lane type.
  * @return True when both masks match scalar object-representation oracles.
  */
-template <std::size_t Width, class Element>
-[[nodiscard]] consteval bool movemask_contract() noexcept
+template <std::size_t Width, class Element> [[nodiscard]] consteval bool movemask_contract() noexcept
 {
 	using simd = Api<Width, Element>;
 	constexpr auto value = simd::construct(movemask_values<Width, Element>());
-	return simd::movemask(value) == expected_movemask<Width, Element>() &&
-		simd::movemask_slim(value) == expected_movemask_slim<Width, Element>();
+	return simd::movemask(value) == expected_movemask<Width, Element>() && simd::movemask_slim(value) == expected_movemask_slim<Width, Element>();
 }
 
 /**
@@ -326,8 +301,7 @@ template <std::size_t Width, class Element>
  * @tparam Element Integral SIMD lane type.
  * @return True when extrema positions match the prepared lane layout.
  */
-template <std::size_t Width, std::integral Element>
-[[nodiscard]] consteval bool extrema_position_contract() noexcept
+template <std::size_t Width, std::integral Element> [[nodiscard]] consteval bool extrema_position_contract() noexcept
 {
 	using simd = Api<Width, Element>;
 	std::array<Element, simd::element_count> values{};
@@ -338,8 +312,8 @@ template <std::size_t Width, std::integral Element>
 		values[1] = std::numeric_limits<Element>::lowest();
 	const auto value = simd::construct(values);
 	return simd::min_position(value) == 0 && simd::max_position(value) == simd::element_count - 1 &&
-		simd::min_position(simd::set1(std::numeric_limits<Element>::lowest())) == 0 &&
-		simd::max_position(simd::set1(std::numeric_limits<Element>::max())) == 0;
+		   simd::min_position(simd::set1(std::numeric_limits<Element>::lowest())) == 0 &&
+		   simd::max_position(simd::set1(std::numeric_limits<Element>::max())) == 0;
 }
 
 /**
@@ -348,8 +322,7 @@ template <std::size_t Width, std::integral Element>
  * @tparam Element Integral SIMD lane type.
  * @return True when zero, one, and final-valid-bit shifts match scalar values.
  */
-template <std::size_t Width, std::integral Element>
-[[nodiscard]] consteval bool lane_shift_contract() noexcept
+template <std::size_t Width, std::integral Element> [[nodiscard]] consteval bool lane_shift_contract() noexcept
 {
 	using simd = Api<Width, Element>;
 	constexpr auto positive = simd::set1(static_cast<Element>(4));
@@ -360,7 +333,7 @@ template <std::size_t Width, std::integral Element>
 	constexpr int finalShift = static_cast<int>(sizeof(Element) * 8 - 1);
 	constexpr int widthShift = static_cast<int>(sizeof(Element) * 8);
 	if (simd::get_element(simd::shift_left(simd::set1(static_cast<Element>(1)), finalShift), 0) !=
-		static_cast<Element>(std::make_unsigned_t<Element>{1} << finalShift) ||
+			static_cast<Element>(std::make_unsigned_t<Element>{1} << finalShift) ||
 		simd::to_array(simd::shift_left(positive, widthShift)) != std::array<Element, simd::element_count>{} ||
 		simd::to_array(simd::shift_left(positive, widthShift + 1)) != std::array<Element, simd::element_count>{} ||
 		simd::to_array(simd::shift_right(positive, widthShift)) != std::array<Element, simd::element_count>{} ||
@@ -368,8 +341,8 @@ template <std::size_t Width, std::integral Element>
 		return false;
 	if constexpr (std::is_signed_v<Element>)
 		return simd::get_element(simd::shift_right_arithmetic(simd::set1(static_cast<Element>(-8)), 1), 0) == static_cast<Element>(-4) &&
-			simd::get_element(simd::shift_right_arithmetic(simd::set1(static_cast<Element>(-8)), widthShift), 0) == static_cast<Element>(-1) &&
-			simd::get_element(simd::shift_right_arithmetic(simd::set1(static_cast<Element>(-8)), widthShift + 1), 0) == static_cast<Element>(-1);
+			   simd::get_element(simd::shift_right_arithmetic(simd::set1(static_cast<Element>(-8)), widthShift), 0) == static_cast<Element>(-1) &&
+			   simd::get_element(simd::shift_right_arithmetic(simd::set1(static_cast<Element>(-8)), widthShift + 1), 0) == static_cast<Element>(-1);
 	return true;
 }
 
@@ -382,15 +355,13 @@ template <std::size_t Width, std::integral Element>
 	using words = Api<128, std::uint64_t>;
 	constexpr auto value = words::setr(std::uint64_t{1}, std::uint64_t{1} << 63);
 	constexpr auto original = std::array<std::uint64_t, 2>{1, std::uint64_t{1} << 63};
-	if (words::to_array(words::bit_shift_left(value, -1)) != original ||
-		words::to_array(words::bit_shift_left(value, 0)) != original ||
+	if (words::to_array(words::bit_shift_left(value, -1)) != original || words::to_array(words::bit_shift_left(value, 0)) != original ||
 		words::to_array(words::bit_shift_left(value, 64)) != std::array<std::uint64_t, 2>{0, 1} ||
 		words::to_array(words::bit_shift_left(value, 127)) != std::array<std::uint64_t, 2>{0, std::uint64_t{1} << 63} ||
 		words::to_array(words::bit_shift_left(value, 128)) != std::array<std::uint64_t, 2>{} ||
 		words::to_array(words::bit_shift_left(value, 129)) != std::array<std::uint64_t, 2>{})
 		return false;
-	if (words::to_array(words::bit_shift_right(value, -1)) != original ||
-		words::to_array(words::bit_shift_right(value, 0)) != original ||
+	if (words::to_array(words::bit_shift_right(value, -1)) != original || words::to_array(words::bit_shift_right(value, 0)) != original ||
 		words::to_array(words::bit_shift_right(value, 64)) != std::array<std::uint64_t, 2>{std::uint64_t{1} << 63, 0} ||
 		words::to_array(words::bit_shift_right(value, 127)) != std::array<std::uint64_t, 2>{1, 0} ||
 		words::to_array(words::bit_shift_right(value, 128)) != std::array<std::uint64_t, 2>{} ||
@@ -404,21 +375,18 @@ template <std::size_t Width, std::integral Element>
 	std::array<std::uint8_t, bytes::element_count> right15{};
 	left15.back() = byteValues.front();
 	right15.front() = byteValues.back();
-	return bytes::to_array(bytes::byte_shift_left(byteValue, -1)) == byteValues &&
-		bytes::to_array(bytes::byte_shift_left(byteValue, 0)) == byteValues &&
-		bytes::to_array(bytes::byte_shift_left(byteValue, 15)) == left15 &&
-		bytes::to_array(bytes::byte_shift_left(byteValue, 16)) == std::array<std::uint8_t, bytes::element_count>{} &&
-		bytes::to_array(bytes::byte_shift_left(byteValue, 17)) == std::array<std::uint8_t, bytes::element_count>{} &&
-		bytes::to_array(bytes::byte_shift_right(byteValue, -1)) == byteValues &&
-		bytes::to_array(bytes::byte_shift_right(byteValue, 0)) == byteValues &&
-		bytes::to_array(bytes::byte_shift_right(byteValue, 15)) == right15 &&
-		bytes::to_array(bytes::byte_shift_right(byteValue, 16)) == std::array<std::uint8_t, bytes::element_count>{} &&
-		bytes::to_array(bytes::byte_shift_right(byteValue, 17)) == std::array<std::uint8_t, bytes::element_count>{};
+	return bytes::to_array(bytes::byte_shift_left(byteValue, -1)) == byteValues && bytes::to_array(bytes::byte_shift_left(byteValue, 0)) == byteValues &&
+		   bytes::to_array(bytes::byte_shift_left(byteValue, 15)) == left15 &&
+		   bytes::to_array(bytes::byte_shift_left(byteValue, 16)) == std::array<std::uint8_t, bytes::element_count>{} &&
+		   bytes::to_array(bytes::byte_shift_left(byteValue, 17)) == std::array<std::uint8_t, bytes::element_count>{} &&
+		   bytes::to_array(bytes::byte_shift_right(byteValue, -1)) == byteValues && bytes::to_array(bytes::byte_shift_right(byteValue, 0)) == byteValues &&
+		   bytes::to_array(bytes::byte_shift_right(byteValue, 15)) == right15 &&
+		   bytes::to_array(bytes::byte_shift_right(byteValue, 16)) == std::array<std::uint8_t, bytes::element_count>{} &&
+		   bytes::to_array(bytes::byte_shift_right(byteValue, 17)) == std::array<std::uint8_t, bytes::element_count>{};
 }
 
 /** @brief Result bundle shared by constexpr and forced-runtime parity checks. */
-template <std::size_t Width>
-struct ApiContractSnapshot final
+template <std::size_t Width> struct ApiContractSnapshot final
 {
 	using simd = Api<Width, std::int32_t>;
 	std::array<std::int32_t, simd::element_count> lanes{};
@@ -428,7 +396,7 @@ struct ApiContractSnapshot final
 	std::size_t maximumPosition{};
 
 	/** @brief Compares all observable snapshot fields. */
-	friend constexpr bool operator==(const ApiContractSnapshot&, const ApiContractSnapshot&) noexcept = default;
+	friend constexpr bool operator==(const ApiContractSnapshot &, const ApiContractSnapshot &) noexcept = default;
 };
 
 /**
@@ -440,18 +408,14 @@ struct ApiContractSnapshot final
  */
 template <std::size_t Width>
 [[nodiscard]] constexpr ApiContractSnapshot<Width> evaluate_api_contract(
-	const std::array<std::int32_t, Api<Width, std::int32_t>::element_count>& lhsValues,
-	const std::array<std::int32_t, Api<Width, std::int32_t>::element_count>& rhsValues) noexcept
+	const std::array<std::int32_t, Api<Width, std::int32_t>::element_count> &lhsValues,
+	const std::array<std::int32_t, Api<Width, std::int32_t>::element_count> &rhsValues) noexcept
 {
 	using simd = Api<Width, std::int32_t>;
 	const auto lhs = simd::construct(lhsValues);
 	const auto rhs = simd::construct(rhsValues);
 	return {
-		simd::to_array(simd::shift_left(lhs, 1)),
-		simd::cmp_eq_mask(lhs, rhs),
-		simd::cmp_gt_mask(lhs, rhs),
-		simd::min_position(lhs),
-		simd::max_position(lhs),
+		simd::to_array(simd::shift_left(lhs, 1)), simd::cmp_eq_mask(lhs, rhs), simd::cmp_gt_mask(lhs, rhs), simd::min_position(lhs), simd::max_position(lhs),
 	};
 }
 
@@ -460,8 +424,7 @@ template <std::size_t Width>
  * @tparam ElementCount Logical vector lane count.
  * @return True when the default, array, and broadcast constructors are constant evaluable.
  */
-template <std::size_t ElementCount>
-[[nodiscard]] consteval bool simd_vector_contract() noexcept
+template <std::size_t ElementCount> [[nodiscard]] consteval bool simd_vector_contract() noexcept
 {
 	using vector = SimdVector<std::int32_t, static_cast<int>(ElementCount)>;
 	std::array<std::int32_t, ElementCount> values{};

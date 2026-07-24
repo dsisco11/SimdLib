@@ -15,132 +15,105 @@ namespace SimdLibSpecializedCodegen
 {
 
 /** @brief Native register type for one specialized-operation source type. */
-template <class element_t>
-using native_t = typename SimdLib::Api<SIMDLIB_REGISTER_TEST_WIDTH, element_t>::vector_t;
+template <class element_t> using native_t = typename SimdLib::Api<SIMDLIB_REGISTER_TEST_WIDTH, element_t>::vector_t;
 
 } // namespace SimdLibSpecializedCodegen
 
 #if SIMDLIB_CODEGEN_USE_WRAPPER
-#define SIMDLIB_SPECIALIZED_UNARY_EXPRESSION(type, member, api, value) \
-	(SimdLib::Register<type, SIMDLIB_REGISTER_TEST_WIDTH>{value}.member().native)
-#define SIMDLIB_SPECIALIZED_BINARY_EXPRESSION(type, member, api, lhs, rhs)                                                         \
+#define SIMDLIB_SPECIALIZED_UNARY_EXPRESSION(type, member, api, value) (SimdLib::Register<type, SIMDLIB_REGISTER_TEST_WIDTH>{value}.member().native)
+#define SIMDLIB_SPECIALIZED_BINARY_EXPRESSION(type, member, api, lhs, rhs)                                                                                     \
 	(SimdLib::Register<type, SIMDLIB_REGISTER_TEST_WIDTH>{lhs}.member(SimdLib::Register<type, SIMDLIB_REGISTER_TEST_WIDTH>{rhs}).native)
-#define SIMDLIB_SPECIALIZED_TERNARY_EXPRESSION(type, member, api, lhs, rhs, addend)                                                       \
-	(SimdLib::Register<type, SIMDLIB_REGISTER_TEST_WIDTH>{lhs}                                                                             \
-		 .member(SimdLib::Register<type, SIMDLIB_REGISTER_TEST_WIDTH>{rhs}, SimdLib::Register<type, SIMDLIB_REGISTER_TEST_WIDTH>{addend})    \
+#define SIMDLIB_SPECIALIZED_TERNARY_EXPRESSION(type, member, api, lhs, rhs, addend)                                                                            \
+	(SimdLib::Register<type, SIMDLIB_REGISTER_TEST_WIDTH>{lhs}                                                                                                 \
+		 .member(SimdLib::Register<type, SIMDLIB_REGISTER_TEST_WIDTH>{rhs}, SimdLib::Register<type, SIMDLIB_REGISTER_TEST_WIDTH>{addend})                      \
 		 .native)
-#define SIMDLIB_SPECIALIZED_SCALAR_EXPRESSION(type, member, api, value) \
-	(SimdLib::Register<type, SIMDLIB_REGISTER_TEST_WIDTH>{value}.member())
-#define SIMDLIB_SPECIALIZED_PROMOTED_EXPRESSION(type, member, api, lhs, rhs)                                                       \
+#define SIMDLIB_SPECIALIZED_SCALAR_EXPRESSION(type, member, api, value) (SimdLib::Register<type, SIMDLIB_REGISTER_TEST_WIDTH>{value}.member())
+#define SIMDLIB_SPECIALIZED_PROMOTED_EXPRESSION(type, member, api, lhs, rhs)                                                                                   \
 	(SimdLib::Register<type, SIMDLIB_REGISTER_TEST_WIDTH>{lhs}.member(SimdLib::Register<type, SIMDLIB_REGISTER_TEST_WIDTH>{rhs}).native)
-#define SIMDLIB_SPECIALIZED_MULTI_SAD_EXPRESSION(type, lhs, rhs)                                                       \
-	(SimdLib::Register<type, SIMDLIB_REGISTER_TEST_WIDTH>{lhs}                                                        \
-		 .template multi_sum_absolute_byte_differences<0x1B>(SimdLib::Register<type, SIMDLIB_REGISTER_TEST_WIDTH>{rhs}) \
+#define SIMDLIB_SPECIALIZED_MULTI_SAD_EXPRESSION(type, lhs, rhs)                                                                                               \
+	(SimdLib::Register<type, SIMDLIB_REGISTER_TEST_WIDTH>{lhs}                                                                                                 \
+		 .template multi_sum_absolute_byte_differences<0x1B>(SimdLib::Register<type, SIMDLIB_REGISTER_TEST_WIDTH>{rhs})                                        \
 		 .native)
-#define SIMDLIB_SPECIALIZED_DOT_EXPRESSION(type, lhs, rhs)                                                      \
-	(SimdLib::Register<type, SIMDLIB_REGISTER_TEST_WIDTH>{lhs}                                                  \
-		 .template dot_product<0xD3>(SimdLib::Register<type, SIMDLIB_REGISTER_TEST_WIDTH>{rhs})                   \
-		 .native)
+#define SIMDLIB_SPECIALIZED_DOT_EXPRESSION(type, lhs, rhs)                                                                                                     \
+	(SimdLib::Register<type, SIMDLIB_REGISTER_TEST_WIDTH>{lhs}.template dot_product<0xD3>(SimdLib::Register<type, SIMDLIB_REGISTER_TEST_WIDTH>{rhs}).native)
 #else
-#define SIMDLIB_SPECIALIZED_UNARY_EXPRESSION(type, member, api, value) \
-	(SimdLib::Api<SIMDLIB_REGISTER_TEST_WIDTH, type>::api(value))
-#define SIMDLIB_SPECIALIZED_BINARY_EXPRESSION(type, member, api, lhs, rhs) \
-	(SimdLib::Api<SIMDLIB_REGISTER_TEST_WIDTH, type>::api(lhs, rhs))
-#define SIMDLIB_SPECIALIZED_TERNARY_EXPRESSION(type, member, api, lhs, rhs, addend) \
-	(SimdLib::Api<SIMDLIB_REGISTER_TEST_WIDTH, type>::api(lhs, rhs, addend))
-#define SIMDLIB_SPECIALIZED_SCALAR_EXPRESSION(type, member, api, value) \
-	(SimdLib::Api<SIMDLIB_REGISTER_TEST_WIDTH, type>::api(value))
-#define SIMDLIB_SPECIALIZED_PROMOTED_EXPRESSION(type, member, api, lhs, rhs) \
-	(SimdLib::Api<SIMDLIB_REGISTER_TEST_WIDTH, type>::api(lhs, rhs))
-#define SIMDLIB_SPECIALIZED_MULTI_SAD_EXPRESSION(type, lhs, rhs) \
+#define SIMDLIB_SPECIALIZED_UNARY_EXPRESSION(type, member, api, value) (SimdLib::Api<SIMDLIB_REGISTER_TEST_WIDTH, type>::api(value))
+#define SIMDLIB_SPECIALIZED_BINARY_EXPRESSION(type, member, api, lhs, rhs) (SimdLib::Api<SIMDLIB_REGISTER_TEST_WIDTH, type>::api(lhs, rhs))
+#define SIMDLIB_SPECIALIZED_TERNARY_EXPRESSION(type, member, api, lhs, rhs, addend) (SimdLib::Api<SIMDLIB_REGISTER_TEST_WIDTH, type>::api(lhs, rhs, addend))
+#define SIMDLIB_SPECIALIZED_SCALAR_EXPRESSION(type, member, api, value) (SimdLib::Api<SIMDLIB_REGISTER_TEST_WIDTH, type>::api(value))
+#define SIMDLIB_SPECIALIZED_PROMOTED_EXPRESSION(type, member, api, lhs, rhs) (SimdLib::Api<SIMDLIB_REGISTER_TEST_WIDTH, type>::api(lhs, rhs))
+#define SIMDLIB_SPECIALIZED_MULTI_SAD_EXPRESSION(type, lhs, rhs)                                                                                               \
 	(SimdLib::Api<SIMDLIB_REGISTER_TEST_WIDTH, type>::template multi_sum_absolute_byte_differences<0x1B>(lhs, rhs))
-#define SIMDLIB_SPECIALIZED_DOT_EXPRESSION(type, lhs, rhs) \
-	(SimdLib::Api<SIMDLIB_REGISTER_TEST_WIDTH, type>::template dot_product<0xD3>(lhs, rhs))
+#define SIMDLIB_SPECIALIZED_DOT_EXPRESSION(type, lhs, rhs) (SimdLib::Api<SIMDLIB_REGISTER_TEST_WIDTH, type>::template dot_product<0xD3>(lhs, rhs))
 #endif
 
-#define SIMDLIB_DEFINE_SPECIALIZED_UNARY(operation, token, type, member, api)                                       \
-	/** @brief Compares one unary Register specialized operation against its raw Api expression. */                  \
-	SIMDLIB_REGISTER_ONLY SIMDLIB_SPECIALIZED_CODEGEN_NOINLINE SimdLibSpecializedCodegen::native_t<type> VECTORCALL \
-		simdlib_specialized_codegen_##operation##_##token(SimdLibSpecializedCodegen::native_t<type> value) noexcept   \
-	{                                                                                                                 \
-		return SIMDLIB_SPECIALIZED_UNARY_EXPRESSION(type, member, api, value);                                          \
+#define SIMDLIB_DEFINE_SPECIALIZED_UNARY(operation, token, type, member, api)                                                                                  \
+	/** @brief Compares one unary Register specialized operation against its raw Api expression. */                                                            \
+	SIMDLIB_REGISTER_ONLY SIMDLIB_SPECIALIZED_CODEGEN_NOINLINE SimdLibSpecializedCodegen::native_t<type> VECTORCALL                                            \
+	simdlib_specialized_codegen_##operation##_##token(SimdLibSpecializedCodegen::native_t<type> value) noexcept                                                \
+	{                                                                                                                                                          \
+		return SIMDLIB_SPECIALIZED_UNARY_EXPRESSION(type, member, api, value);                                                                                 \
 	}
 
-#define SIMDLIB_DEFINE_SPECIALIZED_BINARY(operation, token, type, member, api)                                      \
-	/** @brief Compares one binary Register specialized operation against its raw Api expression. */                 \
-	SIMDLIB_REGISTER_ONLY SIMDLIB_SPECIALIZED_CODEGEN_NOINLINE SimdLibSpecializedCodegen::native_t<type> VECTORCALL \
-		simdlib_specialized_codegen_##operation##_##token(SimdLibSpecializedCodegen::native_t<type> lhs,              \
-													  SimdLibSpecializedCodegen::native_t<type> rhs) noexcept             \
-	{                                                                                                                 \
-		return SIMDLIB_SPECIALIZED_BINARY_EXPRESSION(type, member, api, lhs, rhs);                                      \
+#define SIMDLIB_DEFINE_SPECIALIZED_BINARY(operation, token, type, member, api)                                                                                 \
+	/** @brief Compares one binary Register specialized operation against its raw Api expression. */                                                           \
+	SIMDLIB_REGISTER_ONLY SIMDLIB_SPECIALIZED_CODEGEN_NOINLINE SimdLibSpecializedCodegen::native_t<type> VECTORCALL                                            \
+	simdlib_specialized_codegen_##operation##_##token(SimdLibSpecializedCodegen::native_t<type> lhs, SimdLibSpecializedCodegen::native_t<type> rhs) noexcept   \
+	{                                                                                                                                                          \
+		return SIMDLIB_SPECIALIZED_BINARY_EXPRESSION(type, member, api, lhs, rhs);                                                                             \
 	}
 
-#define SIMDLIB_DEFINE_SPECIALIZED_TERNARY(operation, token, type, member, api)                                     \
-	/** @brief Compares one ternary Register specialized operation against its raw Api expression. */                \
-	SIMDLIB_REGISTER_ONLY SIMDLIB_SPECIALIZED_CODEGEN_NOINLINE SimdLibSpecializedCodegen::native_t<type> VECTORCALL \
-		simdlib_specialized_codegen_##operation##_##token(SimdLibSpecializedCodegen::native_t<type> lhs,              \
-													  SimdLibSpecializedCodegen::native_t<type> rhs,                      \
-													  SimdLibSpecializedCodegen::native_t<type> addend) noexcept          \
-	{                                                                                                                 \
-		return SIMDLIB_SPECIALIZED_TERNARY_EXPRESSION(type, member, api, lhs, rhs, addend);                             \
+#define SIMDLIB_DEFINE_SPECIALIZED_TERNARY(operation, token, type, member, api)                                                                                \
+	/** @brief Compares one ternary Register specialized operation against its raw Api expression. */                                                          \
+	SIMDLIB_REGISTER_ONLY SIMDLIB_SPECIALIZED_CODEGEN_NOINLINE SimdLibSpecializedCodegen::native_t<type> VECTORCALL                                            \
+	simdlib_specialized_codegen_##operation##_##token(SimdLibSpecializedCodegen::native_t<type> lhs, SimdLibSpecializedCodegen::native_t<type> rhs,            \
+													  SimdLibSpecializedCodegen::native_t<type> addend) noexcept                                               \
+	{                                                                                                                                                          \
+		return SIMDLIB_SPECIALIZED_TERNARY_EXPRESSION(type, member, api, lhs, rhs, addend);                                                                    \
 	}
 
-#define SIMDLIB_DEFINE_SPECIALIZED_SCALAR(operation, token, type, member, api)                       \
-	/** @brief Compares one scalar-result Register specialized operation against its raw Api expression. */          \
-	SIMDLIB_REGISTER_ONLY SIMDLIB_SPECIALIZED_CODEGEN_NOINLINE std::size_t VECTORCALL                                \
-		simdlib_specialized_codegen_##operation##_##token(SimdLibSpecializedCodegen::native_t<type> value) noexcept   \
-	{                                                                                                                 \
-		return SIMDLIB_SPECIALIZED_SCALAR_EXPRESSION(type, member, api, value);                                         \
+#define SIMDLIB_DEFINE_SPECIALIZED_SCALAR(operation, token, type, member, api)                                                                                 \
+	/** @brief Compares one scalar-result Register specialized operation against its raw Api expression. */                                                    \
+	SIMDLIB_REGISTER_ONLY SIMDLIB_SPECIALIZED_CODEGEN_NOINLINE std::size_t VECTORCALL simdlib_specialized_codegen_##operation##_##token(                       \
+		SimdLibSpecializedCodegen::native_t<type> value) noexcept                                                                                              \
+	{                                                                                                                                                          \
+		return SIMDLIB_SPECIALIZED_SCALAR_EXPRESSION(type, member, api, value);                                                                                \
 	}
 
-#define SIMDLIB_DEFINE_SPECIALIZED_PROMOTED(operation, token, type, member, api)                                    \
-	/** @brief Compares one promoted-result Register specialized operation against its raw Api expression. */        \
-	SIMDLIB_REGISTER_ONLY SIMDLIB_SPECIALIZED_CODEGEN_NOINLINE SimdLibSpecializedCodegen::native_t<type> VECTORCALL \
-		simdlib_specialized_codegen_##operation##_##token(SimdLibSpecializedCodegen::native_t<type> lhs,              \
-													  SimdLibSpecializedCodegen::native_t<type> rhs) noexcept             \
-	{                                                                                                                 \
-		return SIMDLIB_SPECIALIZED_PROMOTED_EXPRESSION(type, member, api, lhs, rhs);                                    \
+#define SIMDLIB_DEFINE_SPECIALIZED_PROMOTED(operation, token, type, member, api)                                                                               \
+	/** @brief Compares one promoted-result Register specialized operation against its raw Api expression. */                                                  \
+	SIMDLIB_REGISTER_ONLY SIMDLIB_SPECIALIZED_CODEGEN_NOINLINE SimdLibSpecializedCodegen::native_t<type> VECTORCALL                                            \
+	simdlib_specialized_codegen_##operation##_##token(SimdLibSpecializedCodegen::native_t<type> lhs, SimdLibSpecializedCodegen::native_t<type> rhs) noexcept   \
+	{                                                                                                                                                          \
+		return SIMDLIB_SPECIALIZED_PROMOTED_EXPRESSION(type, member, api, lhs, rhs);                                                                           \
 	}
 
-#define SIMDLIB_DEFINE_SPECIALIZED_MULTI_SAD(token, type)                                           \
-	/** @brief Compares immediate-controlled multi-SAD Register code against its raw Api expression. */              \
-	SIMDLIB_REGISTER_ONLY SIMDLIB_SPECIALIZED_CODEGEN_NOINLINE SimdLibSpecializedCodegen::native_t<type> VECTORCALL \
-		simdlib_specialized_codegen_multi_sad_##token(SimdLibSpecializedCodegen::native_t<type> lhs,                  \
-													  SimdLibSpecializedCodegen::native_t<type> rhs) noexcept             \
-	{                                                                                                                 \
-		return SIMDLIB_SPECIALIZED_MULTI_SAD_EXPRESSION(type, lhs, rhs);                                               \
+#define SIMDLIB_DEFINE_SPECIALIZED_MULTI_SAD(token, type)                                                                                                      \
+	/** @brief Compares immediate-controlled multi-SAD Register code against its raw Api expression. */                                                        \
+	SIMDLIB_REGISTER_ONLY SIMDLIB_SPECIALIZED_CODEGEN_NOINLINE SimdLibSpecializedCodegen::native_t<type> VECTORCALL                                            \
+	simdlib_specialized_codegen_multi_sad_##token(SimdLibSpecializedCodegen::native_t<type> lhs, SimdLibSpecializedCodegen::native_t<type> rhs) noexcept       \
+	{                                                                                                                                                          \
+		return SIMDLIB_SPECIALIZED_MULTI_SAD_EXPRESSION(type, lhs, rhs);                                                                                       \
 	}
 
-#define SIMDLIB_DEFINE_SPECIALIZED_DOT(token, type)                                                 \
-	/** @brief Compares immediate-controlled dot-product Register code against its raw Api expression. */            \
-	SIMDLIB_REGISTER_ONLY SIMDLIB_SPECIALIZED_CODEGEN_NOINLINE SimdLibSpecializedCodegen::native_t<type> VECTORCALL \
-		simdlib_specialized_codegen_dot_product_##token(SimdLibSpecializedCodegen::native_t<type> lhs,                \
-														SimdLibSpecializedCodegen::native_t<type> rhs) noexcept               \
-	{                                                                                                                 \
-		return SIMDLIB_SPECIALIZED_DOT_EXPRESSION(type, lhs, rhs);                                                     \
+#define SIMDLIB_DEFINE_SPECIALIZED_DOT(token, type)                                                                                                            \
+	/** @brief Compares immediate-controlled dot-product Register code against its raw Api expression. */                                                      \
+	SIMDLIB_REGISTER_ONLY SIMDLIB_SPECIALIZED_CODEGEN_NOINLINE SimdLibSpecializedCodegen::native_t<type> VECTORCALL                                            \
+	simdlib_specialized_codegen_dot_product_##token(SimdLibSpecializedCodegen::native_t<type> lhs, SimdLibSpecializedCodegen::native_t<type> rhs) noexcept     \
+	{                                                                                                                                                          \
+		return SIMDLIB_SPECIALIZED_DOT_EXPRESSION(type, lhs, rhs);                                                                                             \
 	}
 
-#define SIMDLIB_FOR_EACH_SPECIALIZED_TYPE(macro, operation, member, api) \
-	macro(operation, i8, std::int8_t, member, api)                        \
-	macro(operation, u8, std::uint8_t, member, api)                       \
-	macro(operation, i16, std::int16_t, member, api)                      \
-	macro(operation, u16, std::uint16_t, member, api)                     \
-	macro(operation, i32, std::int32_t, member, api)                      \
-	macro(operation, u32, std::uint32_t, member, api)                     \
-	macro(operation, i64, std::int64_t, member, api)                      \
-	macro(operation, u64, std::uint64_t, member, api)                     \
-	macro(operation, f32, float, member, api)                             \
-	macro(operation, f64, double, member, api)
+#define SIMDLIB_FOR_EACH_SPECIALIZED_TYPE(macro, operation, member, api)                                                                                       \
+	macro(operation, i8, std::int8_t, member, api) macro(operation, u8, std::uint8_t, member, api) macro(operation, i16, std::int16_t, member, api)            \
+		macro(operation, u16, std::uint16_t, member, api) macro(operation, i32, std::int32_t, member, api) macro(operation, u32, std::uint32_t, member, api)   \
+			macro(operation, i64, std::int64_t, member, api) macro(operation, u64, std::uint64_t, member, api) macro(operation, f32, float, member, api)       \
+				macro(operation, f64, double, member, api)
 
-#define SIMDLIB_FOR_EACH_SPECIALIZED_INTEGER(macro, operation, member, api) \
-	macro(operation, i8, std::int8_t, member, api)                           \
-	macro(operation, u8, std::uint8_t, member, api)                          \
-	macro(operation, i16, std::int16_t, member, api)                         \
-	macro(operation, u16, std::uint16_t, member, api)                        \
-	macro(operation, i32, std::int32_t, member, api)                         \
-	macro(operation, u32, std::uint32_t, member, api)                        \
-	macro(operation, i64, std::int64_t, member, api)                         \
-	macro(operation, u64, std::uint64_t, member, api)
+#define SIMDLIB_FOR_EACH_SPECIALIZED_INTEGER(macro, operation, member, api)                                                                                    \
+	macro(operation, i8, std::int8_t, member, api) macro(operation, u8, std::uint8_t, member, api) macro(operation, i16, std::int16_t, member, api)            \
+		macro(operation, u16, std::uint16_t, member, api) macro(operation, i32, std::int32_t, member, api) macro(operation, u32, std::uint32_t, member, api)   \
+			macro(operation, i64, std::int64_t, member, api) macro(operation, u64, std::uint64_t, member, api)
 
 SIMDLIB_FOR_EACH_SPECIALIZED_TYPE(SIMDLIB_DEFINE_SPECIALIZED_BINARY, min, min, min)
 SIMDLIB_FOR_EACH_SPECIALIZED_TYPE(SIMDLIB_DEFINE_SPECIALIZED_BINARY, max, max, max)
@@ -190,10 +163,10 @@ SIMDLIB_DEFINE_SPECIALIZED_DOT(f64, double)
 SIMDLIB_FOR_EACH_SPECIALIZED_INTEGER(SIMDLIB_DEFINE_SPECIALIZED_SCALAR, min_position, min_position, min_position)
 SIMDLIB_FOR_EACH_SPECIALIZED_INTEGER(SIMDLIB_DEFINE_SPECIALIZED_SCALAR, max_position, max_position, max_position)
 SIMDLIB_FOR_EACH_SPECIALIZED_INTEGER(SIMDLIB_DEFINE_SPECIALIZED_PROMOTED, multiply_add_adjacent, multiply_add_adjacent, multiply_add_adjacent)
-SIMDLIB_FOR_EACH_SPECIALIZED_INTEGER(
-	SIMDLIB_DEFINE_SPECIALIZED_PROMOTED, byte_multiply_add, multiply_add_unsigned_signed_bytes, multiply_add_unsigned_signed_bytes)
-SIMDLIB_FOR_EACH_SPECIALIZED_INTEGER(
-	SIMDLIB_DEFINE_SPECIALIZED_PROMOTED, sum_absolute_byte_differences, sum_absolute_byte_differences, sum_absolute_byte_differences)
+SIMDLIB_FOR_EACH_SPECIALIZED_INTEGER(SIMDLIB_DEFINE_SPECIALIZED_PROMOTED, byte_multiply_add, multiply_add_unsigned_signed_bytes,
+									 multiply_add_unsigned_signed_bytes)
+SIMDLIB_FOR_EACH_SPECIALIZED_INTEGER(SIMDLIB_DEFINE_SPECIALIZED_PROMOTED, sum_absolute_byte_differences, sum_absolute_byte_differences,
+									 sum_absolute_byte_differences)
 
 SIMDLIB_DEFINE_SPECIALIZED_MULTI_SAD(i8, std::int8_t)
 SIMDLIB_DEFINE_SPECIALIZED_MULTI_SAD(u8, std::uint8_t)

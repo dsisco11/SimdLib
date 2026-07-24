@@ -19,8 +19,7 @@
 namespace SimdLib::Bmi
 {
 template <class T>
-concept integer_like = std::numeric_limits<T>::is_specialized && std::numeric_limits<T>::is_integer &&
-	!std::same_as<std::remove_cv_t<T>, bool>;
+concept integer_like = std::numeric_limits<T>::is_specialized && std::numeric_limits<T>::is_integer && !std::same_as<std::remove_cv_t<T>, bool>;
 
 #pragma region Pre-Optimized Generic Integer Operations
 // These methods are versions of common std methods that would usually optimize down into roughtly the same code as is written here, but we optimize these ahead
@@ -77,11 +76,6 @@ template <std::integral int_t> [[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLIN
 		return lhs;
 	}
 }
-
-
-
-
-
 
 #pragma endregion // Common Building Blocks
 
@@ -188,14 +182,14 @@ template <integer_like int_t> [[nodiscard]] SIMDLIB_FORCE_INLINE constexpr stati
 #if SIMDLIB_TARGET_X86 && SIMDLIB_HAS_BMI1
 		if (!std::is_constant_evaluated())
 		{
-			#if SIMDLIB_TARGET_X64
+#if SIMDLIB_TARGET_X64
 			if constexpr (sizeof(int_t) == sizeof(std::uint64_t))
 			{
 				return static_cast<int_t>(_andn_u64(static_cast<std::uint64_t>(lhs), static_cast<std::uint64_t>(rhs)));
 			}
 			else
-			#endif
-			if constexpr (sizeof(int_t) == sizeof(std::uint32_t))
+#endif
+				if constexpr (sizeof(int_t) == sizeof(std::uint32_t))
 			{
 				return static_cast<int_t>(_andn_u32(static_cast<std::uint32_t>(lhs), static_cast<std::uint32_t>(rhs)));
 			}
@@ -217,14 +211,14 @@ template <integer_like int_t> [[nodiscard]] SIMDLIB_FORCE_INLINE constexpr stati
 #if SIMDLIB_TARGET_X86 && SIMDLIB_HAS_BMI2
 		if (!std::is_constant_evaluated())
 		{
-			#if SIMDLIB_TARGET_X64
+#if SIMDLIB_TARGET_X64
 			if constexpr (sizeof(int_t) == sizeof(std::uint64_t))
 			{
 				return static_cast<int_t>(_bzhi_u64(static_cast<std::uint64_t>(source), index));
 			}
 			else
-			#endif
-			if constexpr (sizeof(int_t) == sizeof(std::uint32_t))
+#endif
+				if constexpr (sizeof(int_t) == sizeof(std::uint32_t))
 			{
 				return static_cast<int_t>(_bzhi_u32(static_cast<std::uint32_t>(source), index));
 			}
@@ -255,12 +249,12 @@ template <integer_like int_t> [[nodiscard]] SIMDLIB_FORCE_INLINE constexpr stati
 #if SIMDLIB_TARGET_X86 && SIMDLIB_HAS_BMI1
 		if (!std::is_constant_evaluated())
 		{
-			#if SIMDLIB_TARGET_X64
+#if SIMDLIB_TARGET_X64
 			if constexpr (sizeof(int_t) == sizeof(std::uint64_t))
 				return static_cast<int_t>(_blsi_u64(static_cast<std::uint64_t>(source)));
 			else
-			#endif
-			if constexpr (sizeof(int_t) == sizeof(std::uint32_t))
+#endif
+				if constexpr (sizeof(int_t) == sizeof(std::uint32_t))
 				return static_cast<int_t>(_blsi_u32(static_cast<std::uint32_t>(source)));
 		}
 #endif
@@ -278,12 +272,12 @@ template <integer_like int_t> [[nodiscard]] SIMDLIB_FORCE_INLINE constexpr stati
 #if SIMDLIB_TARGET_X86 && SIMDLIB_HAS_BMI1
 		if (!std::is_constant_evaluated())
 		{
-			#if SIMDLIB_TARGET_X64
+#if SIMDLIB_TARGET_X64
 			if constexpr (sizeof(int_t) == sizeof(std::uint64_t))
 				return static_cast<int_t>(_blsr_u64(static_cast<std::uint64_t>(source)));
 			else
-			#endif
-			if constexpr (sizeof(int_t) == sizeof(std::uint32_t))
+#endif
+				if constexpr (sizeof(int_t) == sizeof(std::uint32_t))
 				return static_cast<int_t>(_blsr_u32(static_cast<std::uint32_t>(source)));
 		}
 #endif
@@ -331,12 +325,12 @@ template <integer_like int_t> [[nodiscard]] SIMDLIB_FORCE_INLINE constexpr stati
 #if SIMDLIB_TARGET_X86 && SIMDLIB_HAS_BMI1
 		if (!std::is_constant_evaluated())
 		{
-			#if SIMDLIB_TARGET_X64
+#if SIMDLIB_TARGET_X64
 			if constexpr (sizeof(int_t) == sizeof(std::uint64_t))
 				return static_cast<int_t>(_blsmsk_u64(static_cast<std::uint64_t>(source)));
 			else
-			#endif
-			if constexpr (sizeof(int_t) == sizeof(std::uint32_t))
+#endif
+				if constexpr (sizeof(int_t) == sizeof(std::uint32_t))
 				return static_cast<int_t>(_blsmsk_u32(static_cast<std::uint32_t>(source)));
 		}
 #endif
@@ -364,7 +358,7 @@ template <std::integral int_t>
 #if SIMDLIB_TARGET_X86 && SIMDLIB_HAS_BMI2
 	if (!std::is_constant_evaluated())
 	{
-		#if SIMDLIB_TARGET_X64
+#if SIMDLIB_TARGET_X64
 		if constexpr (sizeof(int_t) == sizeof(std::uint64_t))
 		{
 			unsigned long long intrinsic_hi = 0;
@@ -373,8 +367,8 @@ template <std::integral int_t>
 			return static_cast<int_t>(low);
 		}
 		else
-		#endif
-		if constexpr (sizeof(int_t) == sizeof(std::uint32_t))
+#endif
+			if constexpr (sizeof(int_t) == sizeof(std::uint32_t))
 		{
 #if !defined(__GNUC__) || defined(__clang__) || defined(__i386__)
 			unsigned int intrinsic_hi = 0;
@@ -404,7 +398,8 @@ template <integer_like int_t> [[nodiscard]] SIMDLIB_FORCE_INLINE constexpr stati
 	return (value << 1) ^ value;
 }
 
-/// @brief Computes the parallel-prefix OR of the given value, which is the result of or'ing each bit with all bits to the left (low-bits). [eg: 10100 => 11111 ]
+/// @brief Computes the parallel-prefix OR of the given value, which is the result of or'ing each bit with all bits to the left (low-bits). [eg: 10100 => 11111
+/// ]
 template <integer_like int_t> [[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr static int_t pp_or(const int_t value) noexcept
 {
 	using Bmi::bzhi;
@@ -412,15 +407,16 @@ template <integer_like int_t> [[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE
 	return bzhi(std::numeric_limits<int_t>::max(), bit_width(value));
 }
 
-/// @brief Computes the parallel-suffix OR of the given value, which is the result of or'ing each bit with all bits to the right (high-bits). [eg: 010100 => 1...100 ]
+/// @brief Computes the parallel-suffix OR of the given value, which is the result of or'ing each bit with all bits to the right (high-bits). [eg: 010100
+/// => 1...100 ]
 template <integer_like int_t> [[nodiscard]] SIMDLIB_FORCE_INLINE constexpr static int_t ps_or(const int_t value) noexcept
 {
 	return value | (int_t{0} - value);
 	// return value | ((~value) + 1);
 }
 
-/// @brief Computes the parallel-prefix-least-significant-OR of the given value, which is the result of clearing all bits to the right (high-bits) of the lsb and
-/// then or'ing each bit with all bits to the left (low-bits). [eg: 10100 => 00111 ]
+/// @brief Computes the parallel-prefix-least-significant-OR of the given value, which is the result of clearing all bits to the right (high-bits) of the lsb
+/// and then or'ing each bit with all bits to the left (low-bits). [eg: 10100 => 00111 ]
 template <integer_like int_t> [[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr static int_t pp_lsor(const int_t value) noexcept
 {
 	using Bmi::blsi;
@@ -429,40 +425,46 @@ template <integer_like int_t> [[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE
 	return bzhi(std::numeric_limits<int_t>::max(), bit_width(blsi(value)));
 }
 
-/// @brief Computes a distance-1 parallel-prefix AND stage by ANDing each bit with its adjacent bit to the right (high-bits). [eg: pp_and(0b01101110) => 0b00100110]
+/// @brief Computes a distance-1 parallel-prefix AND stage by ANDing each bit with its adjacent bit to the right (high-bits). [eg: pp_and(0b01101110) =>
+/// 0b00100110]
 template <integer_like int_t> [[nodiscard]] SIMDLIB_FORCE_INLINE constexpr static int_t pp_and(const int_t value) noexcept
 {
 	return value & (value >> 1);
 }
 
-/// @brief Computes a distance-1 parallel-suffix AND stage by ANDing each bit with its adjacent bit to the left (low-bits). [eg: ps_and(0b01101110) => 0b01001100]
+/// @brief Computes a distance-1 parallel-suffix AND stage by ANDing each bit with its adjacent bit to the left (low-bits). [eg: ps_and(0b01101110) =>
+/// 0b01001100]
 template <integer_like int_t> [[nodiscard]] SIMDLIB_FORCE_INLINE constexpr static int_t ps_and(const int_t value) noexcept
 {
 	return value & (value << 1);
 }
 
-/// @brief Computes a distance-1 parallel-prefix AND-NOT stage, retaining set bits whose adjacent bit to the right (high-bits) is clear. [eg: pp_andn(0b01110) => 0b01000]
+/// @brief Computes a distance-1 parallel-prefix AND-NOT stage, retaining set bits whose adjacent bit to the right (high-bits) is clear. [eg: pp_andn(0b01110)
+/// => 0b01000]
 template <integer_like int_t> [[nodiscard]] SIMDLIB_FORCE_INLINE constexpr static int_t pp_andn(const int_t value) noexcept
 {
 	using Bmi::andn;
 	return andn<int_t>(value >> 1, value);
 }
 
-/// @brief Computes a distance-1 parallel-suffix AND-NOT stage, retaining set bits whose adjacent bit to the left (low-bits) is clear. [eg: ps_andn(0b01110) => 0b00010]
+/// @brief Computes a distance-1 parallel-suffix AND-NOT stage, retaining set bits whose adjacent bit to the left (low-bits) is clear. [eg: ps_andn(0b01110) =>
+/// 0b00010]
 template <integer_like int_t> [[nodiscard]] SIMDLIB_FORCE_INLINE constexpr static int_t ps_andn(const int_t value) noexcept
 {
 	using Bmi::andn;
 	return andn<int_t>(value << 1, value);
 }
 
-/// @brief Computes an inverse distance-1 parallel-prefix AND-NOT stage, marking clear bits whose adjacent bit to the right (high-bits) is set. [eg: pp_andni(0b01110) => 0b00001]
+/// @brief Computes an inverse distance-1 parallel-prefix AND-NOT stage, marking clear bits whose adjacent bit to the right (high-bits) is set. [eg:
+/// pp_andni(0b01110) => 0b00001]
 template <integer_like int_t> [[nodiscard]] SIMDLIB_FORCE_INLINE constexpr static int_t pp_andni(const int_t value) noexcept
 {
 	using Bmi::andn;
 	return andn<int_t>(value, value >> 1);
 }
 
-/// @brief Computes an inverse distance-1 parallel-suffix AND-NOT stage, marking clear bits whose adjacent bit to the left (low-bits) is set. [eg: ps_andni(0b01110) => 0b10000]
+/// @brief Computes an inverse distance-1 parallel-suffix AND-NOT stage, marking clear bits whose adjacent bit to the left (low-bits) is set. [eg:
+/// ps_andni(0b01110) => 0b10000]
 template <integer_like int_t> [[nodiscard]] SIMDLIB_FORCE_INLINE constexpr static int_t ps_andni(const int_t value) noexcept
 {
 	using Bmi::andn;
@@ -660,8 +662,8 @@ template <integer_like int_t> [[nodiscard]] SIMDLIB_FORCE_INLINE constexpr stati
 	return value & ((value | (value - int_t{1})) + int_t{1});
 }
 
-/// @brief Copy all bits from the source integer, and reset (set to 0) the leftmost (low-bits) string of contiguous set bits after copying said bits into the provided
-/// integer address. [eg: 1011 => 1000]
+/// @brief Copy all bits from the source integer, and reset (set to 0) the leftmost (low-bits) string of contiguous set bits after copying said bits into the
+/// provided integer address. [eg: 1011 => 1000]
 template <integer_like int_t> [[nodiscard]] SIMDLIB_FORCE_INLINE constexpr static int_t clear_lowest_set_bits(const int_t value, int_t &out_consumed) noexcept
 {
 	const int_t mask = ((value | (value - int_t{1})) + int_t{1});
@@ -669,7 +671,8 @@ template <integer_like int_t> [[nodiscard]] SIMDLIB_FORCE_INLINE constexpr stati
 	return value & mask;
 }
 
-/// @brief Extracts and returns the leftmost (low-bits) string of contiguous set bits, said bits are also reset (set to 0) within the source integer. [eg: 1011 => 0011]
+/// @brief Extracts and returns the leftmost (low-bits) string of contiguous set bits, said bits are also reset (set to 0) within the source integer. [eg: 1011
+/// => 0011]
 /// @return A tuple containing the source integer with the bits reset and the extracted bits.
 template <integer_like int_t>
 [[nodiscard]] SIMDLIB_FORCE_INLINE constexpr static std::tuple<int_t, int_t> consume_bit_sequence_right(const int_t value) noexcept
@@ -678,8 +681,8 @@ template <integer_like int_t>
 	return {static_cast<int_t>(value & mask), static_cast<int_t>(value & ~mask)};
 }
 
-/// @brief Extracts and returns the rightmost (high-bits) string of contiguous set bits, said bits are also reset (set to 0) within the source integer. [eg: 0110111 =>
-/// 0110000]
+/// @brief Extracts and returns the rightmost (high-bits) string of contiguous set bits, said bits are also reset (set to 0) within the source integer. [eg:
+/// 0110111 => 0110000]
 /// @return A tuple containing the source integer with the bits reset and the extracted bits.
 template <integer_like int_t> [[nodiscard]] SIMDLIB_FORCE_INLINE constexpr static std::tuple<int_t, int_t> consume_bit_sequence_left(const int_t value) noexcept
 {
@@ -689,7 +692,8 @@ template <integer_like int_t> [[nodiscard]] SIMDLIB_FORCE_INLINE constexpr stati
 	return {static_cast<int_t>(value & seq_mask), andn<int_t>(seq_mask, value)};
 }
 
-/// @brief Copy all bits from the source integer, and reset (set to 0) the trailing bits up-to but excluding the rightmost (high-bits) trailing set bit. [eg: 10111 => 10100]
+/// @brief Copy all bits from the source integer, and reset (set to 0) the trailing bits up-to but excluding the rightmost (high-bits) trailing set bit. [eg:
+/// 10111 => 10100]
 template <integer_like int_t> [[nodiscard]] SIMDLIB_FORCE_INLINE constexpr static int_t left_collapse_trailing_bits(const int_t value) noexcept
 {
 	using Bmi::andn;
@@ -761,14 +765,14 @@ template <std::integral int_t>
 #if SIMDLIB_TARGET_X86 && SIMDLIB_HAS_BMI1
 	if (!std::is_constant_evaluated())
 	{
-		#if SIMDLIB_TARGET_X64
+#if SIMDLIB_TARGET_X64
 		if constexpr (sizeof(int_t) == sizeof(std::uint64_t))
 		{
 			return static_cast<int_t>(_bextr_u64(static_cast<std::uint64_t>(source), start, len));
 		}
 		else
-		#endif
-		if constexpr (sizeof(int_t) == sizeof(std::uint32_t))
+#endif
+			if constexpr (sizeof(int_t) == sizeof(std::uint32_t))
 		{
 			return static_cast<int_t>(_bextr_u32(static_cast<std::uint32_t>(source), start, len));
 		}
@@ -875,7 +879,8 @@ namespace Detail
 /**
  * @brief Performs a portable parallel bit extraction for the width of int_t.
  * @tparam int_t The integral source, mask, and result type.
- * @param source The source bits to extract.
+ * @param source
+ * The source bits to extract.
  * @param mask The source bit positions.
  * @return The extracted bits packed into the least-significant positions.
  */

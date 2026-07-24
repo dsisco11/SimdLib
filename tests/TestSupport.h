@@ -1,7 +1,7 @@
 #pragma once
 
-#include <SimdLib/Api.h>
 #include "constexpr/ApiConstexprContracts.h"
+#include <SimdLib/Api.h>
 
 #include <catch2/catch_test_macros.hpp>
 
@@ -18,59 +18,56 @@
 
 namespace SimdLib::Tests
 {
-template <std::size_t Width, class Element>
-void require_addition_parity()
+template <std::size_t Width, class Element> void require_addition_parity()
 {
-    using simd = Api<Width, Element>;
-    std::array<Element, simd::element_count> lhs{};
-    std::array<Element, simd::element_count> rhs{};
-    std::array<Element, simd::element_count> expected{};
-    for (std::size_t index = 0; index < simd::element_count; ++index)
-    {
-        lhs[index] = static_cast<Element>(index + 1);
-        rhs[index] = static_cast<Element>(2);
-        expected[index] = static_cast<Element>(index + 3);
-    }
-    REQUIRE(simd::to_array(simd::add(simd::load(lhs), simd::load(rhs))) == expected);
+	using simd = Api<Width, Element>;
+	std::array<Element, simd::element_count> lhs{};
+	std::array<Element, simd::element_count> rhs{};
+	std::array<Element, simd::element_count> expected{};
+	for (std::size_t index = 0; index < simd::element_count; ++index)
+	{
+		lhs[index] = static_cast<Element>(index + 1);
+		rhs[index] = static_cast<Element>(2);
+		expected[index] = static_cast<Element>(index + 3);
+	}
+	REQUIRE(simd::to_array(simd::add(simd::load(lhs), simd::load(rhs))) == expected);
 }
 
-template <std::size_t Width>
-void require_supported_addition_matrix()
+template <std::size_t Width> void require_supported_addition_matrix()
 {
-    require_addition_parity<Width, std::int8_t>();
-    require_addition_parity<Width, std::uint8_t>();
-    require_addition_parity<Width, std::int16_t>();
-    require_addition_parity<Width, std::uint16_t>();
-    require_addition_parity<Width, std::int32_t>();
-    require_addition_parity<Width, std::uint32_t>();
-    require_addition_parity<Width, std::int64_t>();
-    require_addition_parity<Width, std::uint64_t>();
-    require_addition_parity<Width, float>();
-    require_addition_parity<Width, double>();
+	require_addition_parity<Width, std::int8_t>();
+	require_addition_parity<Width, std::uint8_t>();
+	require_addition_parity<Width, std::int16_t>();
+	require_addition_parity<Width, std::uint16_t>();
+	require_addition_parity<Width, std::int32_t>();
+	require_addition_parity<Width, std::uint32_t>();
+	require_addition_parity<Width, std::int64_t>();
+	require_addition_parity<Width, std::uint64_t>();
+	require_addition_parity<Width, float>();
+	require_addition_parity<Width, double>();
 }
 
-template <std::size_t Width, class Element>
-void require_transfer_contracts()
+template <std::size_t Width, class Element> void require_transfer_contracts()
 {
-    using simd = Api<Width, Element>;
-    alignas(Width / 8) std::array<Element, simd::element_count> aligned{};
-    for (std::size_t index = 0; index < aligned.size(); ++index)
-        aligned[index] = static_cast<Element>(index + 1);
+	using simd = Api<Width, Element>;
+	alignas(Width / 8) std::array<Element, simd::element_count> aligned{};
+	for (std::size_t index = 0; index < aligned.size(); ++index)
+		aligned[index] = static_cast<Element>(index + 1);
 
-    const auto aligned_register = simd::load_aligned(aligned);
-    alignas(Width / 8) std::array<Element, simd::element_count> aligned_output{};
-    simd::store_aligned(aligned_register, aligned_output);
-    REQUIRE(aligned_output == aligned);
+	const auto aligned_register = simd::load_aligned(aligned);
+	alignas(Width / 8) std::array<Element, simd::element_count> aligned_output{};
+	simd::store_aligned(aligned_register, aligned_output);
+	REQUIRE(aligned_output == aligned);
 
-    alignas(64) std::array<Element, simd::element_count + 1> offset_storage{};
-    std::copy(aligned.begin(), aligned.end(), offset_storage.begin() + 1);
-    const std::span<const Element, simd::element_count> unaligned_input{offset_storage.data() + 1, simd::element_count};
-    const auto unaligned_register = simd::load_unaligned(unaligned_input);
+	alignas(64) std::array<Element, simd::element_count + 1> offset_storage{};
+	std::copy(aligned.begin(), aligned.end(), offset_storage.begin() + 1);
+	const std::span<const Element, simd::element_count> unaligned_input{offset_storage.data() + 1, simd::element_count};
+	const auto unaligned_register = simd::load_unaligned(unaligned_input);
 
-    alignas(64) std::array<Element, simd::element_count + 1> offset_output{};
-    std::span<Element, simd::element_count> unaligned_output{offset_output.data() + 1, simd::element_count};
-    simd::store_unaligned(unaligned_register, unaligned_output);
-    REQUIRE(std::equal(aligned.begin(), aligned.end(), unaligned_output.begin()));
+	alignas(64) std::array<Element, simd::element_count + 1> offset_output{};
+	std::span<Element, simd::element_count> unaligned_output{offset_output.data() + 1, simd::element_count};
+	simd::store_unaligned(unaligned_register, unaligned_output);
+	REQUIRE(std::equal(aligned.begin(), aligned.end(), unaligned_output.begin()));
 
 	std::array<std::byte, simd::byte_count> bytes{};
 	simd::store(unaligned_register, std::span<std::byte>{bytes});
@@ -79,248 +76,234 @@ void require_transfer_contracts()
 	std::array<std::byte, simd::byte_count> exact_bytes{};
 	simd::store(byte_loaded, std::span<std::byte, simd::byte_count>{exact_bytes});
 	for (std::size_t index = 0; index < bytes.size(); ++index)
-		REQUIRE(std::to_integer<unsigned int>(exact_bytes[index]) ==
-			std::to_integer<unsigned int>(bytes[index]));
+		REQUIRE(std::to_integer<unsigned int>(exact_bytes[index]) == std::to_integer<unsigned int>(bytes[index]));
 	REQUIRE(simd::to_array(byte_loaded) == aligned);
 
-    std::array<std::byte, simd::byte_count + 8> oversized_bytes{};
-    simd::store(unaligned_register, std::span<std::byte>{oversized_bytes});
-    std::array<Element, simd::element_count> recovered{};
-    std::memcpy(recovered.data(), oversized_bytes.data(), simd::byte_count);
-    REQUIRE(recovered == aligned);
+	std::array<std::byte, simd::byte_count + 8> oversized_bytes{};
+	simd::store(unaligned_register, std::span<std::byte>{oversized_bytes});
+	std::array<Element, simd::element_count> recovered{};
+	std::memcpy(recovered.data(), oversized_bytes.data(), simd::byte_count);
+	REQUIRE(recovered == aligned);
 }
 
-template <std::size_t Width>
-void require_supported_transfer_matrix()
+template <std::size_t Width> void require_supported_transfer_matrix()
 {
-    require_transfer_contracts<Width, std::int8_t>();
-    require_transfer_contracts<Width, std::uint8_t>();
-    require_transfer_contracts<Width, std::int16_t>();
-    require_transfer_contracts<Width, std::uint16_t>();
-    require_transfer_contracts<Width, std::int32_t>();
-    require_transfer_contracts<Width, std::uint32_t>();
-    require_transfer_contracts<Width, std::int64_t>();
-    require_transfer_contracts<Width, std::uint64_t>();
-    require_transfer_contracts<Width, float>();
-    require_transfer_contracts<Width, double>();
+	require_transfer_contracts<Width, std::int8_t>();
+	require_transfer_contracts<Width, std::uint8_t>();
+	require_transfer_contracts<Width, std::int16_t>();
+	require_transfer_contracts<Width, std::uint16_t>();
+	require_transfer_contracts<Width, std::int32_t>();
+	require_transfer_contracts<Width, std::uint32_t>();
+	require_transfer_contracts<Width, std::int64_t>();
+	require_transfer_contracts<Width, std::uint64_t>();
+	require_transfer_contracts<Width, float>();
+	require_transfer_contracts<Width, double>();
 }
 
-template <std::size_t Width, class Element>
-void require_partial_transfer_contracts()
+template <std::size_t Width, class Element> void require_partial_transfer_contracts()
 {
-    using simd = Api<Width, Element>;
-    alignas(64) std::array<Element, simd::element_count + 1> storage{};
-    for (std::size_t index = 0; index < simd::element_count; ++index)
-        storage[index + 1] = static_cast<Element>(index + 1);
+	using simd = Api<Width, Element>;
+	alignas(64) std::array<Element, simd::element_count + 1> storage{};
+	for (std::size_t index = 0; index < simd::element_count; ++index)
+		storage[index + 1] = static_cast<Element>(index + 1);
 
-    const std::span<const Element> unaligned{storage.data() + 1, simd::element_count};
-    const auto none = simd::template load_partial<0>(unaligned);
-    REQUIRE(simd::to_array(none) == std::array<Element, simd::element_count>{});
+	const std::span<const Element> unaligned{storage.data() + 1, simd::element_count};
+	const auto none = simd::template load_partial<0>(unaligned);
+	REQUIRE(simd::to_array(none) == std::array<Element, simd::element_count>{});
 
-    const auto one = simd::template load_partial<1>(unaligned);
-    auto expected_one = std::array<Element, simd::element_count>{};
-    expected_one[0] = storage[1];
-    REQUIRE(simd::to_array(one) == expected_one);
+	const auto one = simd::template load_partial<1>(unaligned);
+	auto expected_one = std::array<Element, simd::element_count>{};
+	expected_one[0] = storage[1];
+	REQUIRE(simd::to_array(one) == expected_one);
 
-    const auto almost_full = simd::template load_partial<simd::element_count - 1>(unaligned);
-    auto expected_almost_full = std::array<Element, simd::element_count>{};
-    std::copy_n(storage.begin() + 1, simd::element_count - 1, expected_almost_full.begin());
-    REQUIRE(simd::to_array(almost_full) == expected_almost_full);
+	const auto almost_full = simd::template load_partial<simd::element_count - 1>(unaligned);
+	auto expected_almost_full = std::array<Element, simd::element_count>{};
+	std::copy_n(storage.begin() + 1, simd::element_count - 1, expected_almost_full.begin());
+	REQUIRE(simd::to_array(almost_full) == expected_almost_full);
 
-    const auto full = simd::template load_partial<simd::element_count>(unaligned);
-    std::array<Element, simd::element_count> expected_full{};
-    std::copy_n(storage.begin() + 1, simd::element_count, expected_full.begin());
-    REQUIRE(simd::to_array(full) == expected_full);
+	const auto full = simd::template load_partial<simd::element_count>(unaligned);
+	std::array<Element, simd::element_count> expected_full{};
+	std::copy_n(storage.begin() + 1, simd::element_count, expected_full.begin());
+	REQUIRE(simd::to_array(full) == expected_full);
 }
 
-template <std::size_t Width>
-void require_supported_partial_transfer_matrix()
+template <std::size_t Width> void require_supported_partial_transfer_matrix()
 {
-    require_partial_transfer_contracts<Width, std::int8_t>();
-    require_partial_transfer_contracts<Width, std::uint16_t>();
-    require_partial_transfer_contracts<Width, std::int32_t>();
-    require_partial_transfer_contracts<Width, std::uint64_t>();
-    require_partial_transfer_contracts<Width, float>();
+	require_partial_transfer_contracts<Width, std::int8_t>();
+	require_partial_transfer_contracts<Width, std::uint16_t>();
+	require_partial_transfer_contracts<Width, std::int32_t>();
+	require_partial_transfer_contracts<Width, std::uint64_t>();
+	require_partial_transfer_contracts<Width, float>();
 }
 
 template <std::size_t Width, class Element>
 	requires std::is_arithmetic_v<Element>
 void require_comparison_contract()
 {
-    using simd = Api<Width, Element>;
-    std::array<Element, simd::element_count> lhs{};
-    std::array<Element, simd::element_count> rhs{};
-    for (std::size_t index = 0; index < simd::element_count; ++index)
-    {
-        switch (index % 4)
-        {
-        case 0:
-            lhs[index] = Element{0};
-            rhs[index] = Element{0};
-            break;
-        case 1:
-            lhs[index] = Element{1};
-            rhs[index] = Element{2};
-            break;
-        case 2:
-            lhs[index] = Element{3};
-            rhs[index] = Element{2};
-            break;
-        default:
-            lhs[index] = std::numeric_limits<Element>::max();
-            rhs[index] = std::numeric_limits<Element>::lowest();
-            break;
-        }
-    }
+	using simd = Api<Width, Element>;
+	std::array<Element, simd::element_count> lhs{};
+	std::array<Element, simd::element_count> rhs{};
+	for (std::size_t index = 0; index < simd::element_count; ++index)
+	{
+		switch (index % 4)
+		{
+		case 0:
+			lhs[index] = Element{0};
+			rhs[index] = Element{0};
+			break;
+		case 1:
+			lhs[index] = Element{1};
+			rhs[index] = Element{2};
+			break;
+		case 2:
+			lhs[index] = Element{3};
+			rhs[index] = Element{2};
+			break;
+		default:
+			lhs[index] = std::numeric_limits<Element>::max();
+			rhs[index] = std::numeric_limits<Element>::lowest();
+			break;
+		}
+	}
 
-    typename simd::mask_t eq = 0;
-    typename simd::mask_t gt = 0;
-    typename simd::mask_t ge = 0;
-    typename simd::mask_t lt = 0;
-    typename simd::mask_t le = 0;
-    typename simd::mask_t eqSlim = 0;
-    typename simd::mask_t gtSlim = 0;
-    typename simd::mask_t geSlim = 0;
-    typename simd::mask_t ltSlim = 0;
-    typename simd::mask_t leSlim = 0;
-    std::array<Element, simd::element_count> selected{};
-    constexpr typename simd::mask_t lane_mask =
-        static_cast<typename simd::mask_t>((typename simd::mask_t{1} << sizeof(Element)) - 1);
-    for (std::size_t index = 0; index < simd::element_count; ++index)
-    {
-        const auto mask = static_cast<typename simd::mask_t>(lane_mask << (index * sizeof(Element)));
-        if (lhs[index] == rhs[index])
-        {
-            eq |= mask;
-            eqSlim |= typename simd::mask_t{1} << index;
-        }
-        if (lhs[index] > rhs[index])
-        {
-            gt |= mask;
-            gtSlim |= typename simd::mask_t{1} << index;
-        }
-        if (lhs[index] >= rhs[index])
-        {
-            ge |= mask;
-            geSlim |= typename simd::mask_t{1} << index;
-        }
-        if (lhs[index] < rhs[index])
-        {
-            lt |= mask;
-            ltSlim |= typename simd::mask_t{1} << index;
-        }
-        if (lhs[index] <= rhs[index])
-        {
-            le |= mask;
-            leSlim |= typename simd::mask_t{1} << index;
-        }
-        selected[index] = lhs[index] == rhs[index] ? lhs[index] : rhs[index];
-    }
+	typename simd::mask_t eq = 0;
+	typename simd::mask_t gt = 0;
+	typename simd::mask_t ge = 0;
+	typename simd::mask_t lt = 0;
+	typename simd::mask_t le = 0;
+	typename simd::mask_t eqSlim = 0;
+	typename simd::mask_t gtSlim = 0;
+	typename simd::mask_t geSlim = 0;
+	typename simd::mask_t ltSlim = 0;
+	typename simd::mask_t leSlim = 0;
+	std::array<Element, simd::element_count> selected{};
+	constexpr typename simd::mask_t lane_mask = static_cast<typename simd::mask_t>((typename simd::mask_t{1} << sizeof(Element)) - 1);
+	for (std::size_t index = 0; index < simd::element_count; ++index)
+	{
+		const auto mask = static_cast<typename simd::mask_t>(lane_mask << (index * sizeof(Element)));
+		if (lhs[index] == rhs[index])
+		{
+			eq |= mask;
+			eqSlim |= typename simd::mask_t{1} << index;
+		}
+		if (lhs[index] > rhs[index])
+		{
+			gt |= mask;
+			gtSlim |= typename simd::mask_t{1} << index;
+		}
+		if (lhs[index] >= rhs[index])
+		{
+			ge |= mask;
+			geSlim |= typename simd::mask_t{1} << index;
+		}
+		if (lhs[index] < rhs[index])
+		{
+			lt |= mask;
+			ltSlim |= typename simd::mask_t{1} << index;
+		}
+		if (lhs[index] <= rhs[index])
+		{
+			le |= mask;
+			leSlim |= typename simd::mask_t{1} << index;
+		}
+		selected[index] = lhs[index] == rhs[index] ? lhs[index] : rhs[index];
+	}
 
-    const auto left = simd::construct(lhs);
-    const auto right = simd::construct(rhs);
-    REQUIRE(simd::cmp_eq_mask(left, right) == eq);
-    REQUIRE(simd::cmp_gt_mask(left, right) == gt);
-    REQUIRE(simd::cmp_ge_mask(left, right) == ge);
-    REQUIRE(simd::cmp_lt_mask(left, right) == lt);
-    REQUIRE(simd::cmp_le_mask(left, right) == le);
-    REQUIRE(simd::cmp_eq_slim(left, right) == eqSlim);
-    REQUIRE(simd::cmp_gt_slim(left, right) == gtSlim);
-    REQUIRE(simd::cmp_ge_slim(left, right) == geSlim);
-    REQUIRE(simd::cmp_lt_slim(left, right) == ltSlim);
-    REQUIRE(simd::cmp_le_slim(left, right) == leSlim);
-    REQUIRE(simd::to_array(simd::select(simd::compare_equal(left, right), left, right)) == selected);
+	const auto left = simd::construct(lhs);
+	const auto right = simd::construct(rhs);
+	REQUIRE(simd::cmp_eq_mask(left, right) == eq);
+	REQUIRE(simd::cmp_gt_mask(left, right) == gt);
+	REQUIRE(simd::cmp_ge_mask(left, right) == ge);
+	REQUIRE(simd::cmp_lt_mask(left, right) == lt);
+	REQUIRE(simd::cmp_le_mask(left, right) == le);
+	REQUIRE(simd::cmp_eq_slim(left, right) == eqSlim);
+	REQUIRE(simd::cmp_gt_slim(left, right) == gtSlim);
+	REQUIRE(simd::cmp_ge_slim(left, right) == geSlim);
+	REQUIRE(simd::cmp_lt_slim(left, right) == ltSlim);
+	REQUIRE(simd::cmp_le_slim(left, right) == leSlim);
+	REQUIRE(simd::to_array(simd::select(simd::compare_equal(left, right), left, right)) == selected);
 }
 
-template <std::size_t Width>
-void require_supported_comparison_matrix()
+template <std::size_t Width> void require_supported_comparison_matrix()
 {
-    require_comparison_contract<Width, std::int8_t>();
-    require_comparison_contract<Width, std::uint8_t>();
-    require_comparison_contract<Width, std::int16_t>();
-    require_comparison_contract<Width, std::uint16_t>();
-    require_comparison_contract<Width, std::int32_t>();
-    require_comparison_contract<Width, std::uint32_t>();
-    require_comparison_contract<Width, std::int64_t>();
-    require_comparison_contract<Width, std::uint64_t>();
+	require_comparison_contract<Width, std::int8_t>();
+	require_comparison_contract<Width, std::uint8_t>();
+	require_comparison_contract<Width, std::int16_t>();
+	require_comparison_contract<Width, std::uint16_t>();
+	require_comparison_contract<Width, std::int32_t>();
+	require_comparison_contract<Width, std::uint32_t>();
+	require_comparison_contract<Width, std::int64_t>();
+	require_comparison_contract<Width, std::uint64_t>();
 }
 
-template <std::size_t Width, std::integral Element, std::size_t Count>
-void require_transform_pack_mask_contract()
+template <std::size_t Width, std::integral Element, std::size_t Count> void require_transform_pack_mask_contract()
 {
-    using simd = Api<Width, Element>;
-    using write_t = typename simd::template packed_element_t<1>;
-    constexpr std::size_t output_count = simd::template packed_element_count<1, Count>;
+	using simd = Api<Width, Element>;
+	using write_t = typename simd::template packed_element_t<1>;
+	constexpr std::size_t output_count = simd::template packed_element_count<1, Count>;
 
-    std::array<Element, Count> input{};
-    for (std::size_t index = 0; index < Count; ++index)
-        input[index] = index % 3 == 1 ? Element{0} : static_cast<Element>(index + 1);
+	std::array<Element, Count> input{};
+	for (std::size_t index = 0; index < Count; ++index)
+		input[index] = index % 3 == 1 ? Element{0} : static_cast<Element>(index + 1);
 
-    std::array<write_t, output_count + 2> guarded{};
-    guarded.fill(static_cast<write_t>(0xA5));
-    std::span<write_t, output_count> output{guarded.data() + 1, output_count};
-    const auto predicate = simd::set1(Element{0});
-    simd::template transform_pack<1>(
-        std::span<const Element, Count>{input}, output,
-        [&predicate](const typename simd::vector_t value) noexcept
-        { return simd::movemask_slim(simd::cmpeq(value, predicate)); });
+	std::array<write_t, output_count + 2> guarded{};
+	guarded.fill(static_cast<write_t>(0xA5));
+	std::span<write_t, output_count> output{guarded.data() + 1, output_count};
+	const auto predicate = simd::set1(Element{0});
+	simd::template transform_pack<1>(std::span<const Element, Count>{input}, output,
+									 [&predicate](const typename simd::vector_t value) noexcept { return simd::movemask_slim(simd::cmpeq(value, predicate)); });
 
-    std::array<write_t, output_count> expected{};
-    for (std::size_t index = 0; index < Count; ++index)
-        if (input[index] == 0)
-            expected[index / 8] |= static_cast<write_t>(write_t{1} << (index % 8));
+	std::array<write_t, output_count> expected{};
+	for (std::size_t index = 0; index < Count; ++index)
+		if (input[index] == 0)
+			expected[index / 8] |= static_cast<write_t>(write_t{1} << (index % 8));
 
-    REQUIRE(std::equal(output.begin(), output.end(), expected.begin()));
-    REQUIRE(guarded.front() == static_cast<write_t>(0xA5));
-    REQUIRE(guarded.back() == static_cast<write_t>(0xA5));
+	REQUIRE(std::equal(output.begin(), output.end(), expected.begin()));
+	REQUIRE(guarded.front() == static_cast<write_t>(0xA5));
+	REQUIRE(guarded.back() == static_cast<write_t>(0xA5));
 }
 
-template <std::size_t Width, std::unsigned_integral Element, std::size_t Count, std::size_t ResultBitWidth>
-void require_transform_pack_width_contract()
+template <std::size_t Width, std::unsigned_integral Element, std::size_t Count, std::size_t ResultBitWidth> void require_transform_pack_width_contract()
 {
-    static_assert(ResultBitWidth > 0 && ResultBitWidth <= 64);
-    using simd = Api<Width, Element>;
-    using write_t = typename simd::template packed_element_t<ResultBitWidth>;
-    constexpr std::size_t output_count = simd::template packed_element_count<ResultBitWidth, Count>;
-    constexpr std::size_t write_element_width = std::numeric_limits<write_t>::digits;
-    constexpr std::uint64_t result_mask = ResultBitWidth == 64
-        ? std::numeric_limits<std::uint64_t>::max()
-        : (std::uint64_t{1} << ResultBitWidth) - 1;
+	static_assert(ResultBitWidth > 0 && ResultBitWidth <= 64);
+	using simd = Api<Width, Element>;
+	using write_t = typename simd::template packed_element_t<ResultBitWidth>;
+	constexpr std::size_t output_count = simd::template packed_element_count<ResultBitWidth, Count>;
+	constexpr std::size_t write_element_width = std::numeric_limits<write_t>::digits;
+	constexpr std::uint64_t result_mask = ResultBitWidth == 64 ? std::numeric_limits<std::uint64_t>::max() : (std::uint64_t{1} << ResultBitWidth) - 1;
 
-    std::array<Element, Count> input{};
-    for (std::size_t index = 0; index < Count; ++index)
-        input[index] = static_cast<Element>(index * 5 + 3);
+	std::array<Element, Count> input{};
+	for (std::size_t index = 0; index < Count; ++index)
+		input[index] = static_cast<Element>(index * 5 + 3);
 
-    std::array<write_t, output_count + 2> guarded{};
-    guarded.fill(static_cast<write_t>(0xA5));
-    std::span<write_t, output_count> output{guarded.data() + 1, output_count};
-    simd::template transform_pack<ResultBitWidth>(
-        std::span<const Element, Count>{input}, output,
-        [](const typename simd::vector_t value) noexcept
-        {
-            const auto lanes = simd::to_array(value);
-            std::uint64_t packed = 0;
-            for (std::size_t lane = 0; lane < lanes.size(); ++lane)
-                packed |= (static_cast<std::uint64_t>(lanes[lane]) & result_mask) << (lane * ResultBitWidth);
-            return packed;
-        });
+	std::array<write_t, output_count + 2> guarded{};
+	guarded.fill(static_cast<write_t>(0xA5));
+	std::span<write_t, output_count> output{guarded.data() + 1, output_count};
+	simd::template transform_pack<ResultBitWidth>(std::span<const Element, Count>{input}, output,
+												  [](const typename simd::vector_t value) noexcept
+												  {
+													  const auto lanes = simd::to_array(value);
+													  std::uint64_t packed = 0;
+													  for (std::size_t lane = 0; lane < lanes.size(); ++lane)
+														  packed |= (static_cast<std::uint64_t>(lanes[lane]) & result_mask) << (lane * ResultBitWidth);
+													  return packed;
+												  });
 
-    std::array<write_t, output_count> expected{};
-    for (std::size_t index = 0; index < Count; ++index)
-    {
-        const std::uint64_t result = static_cast<std::uint64_t>(input[index]) & result_mask;
-        for (std::size_t bit = 0; bit < ResultBitWidth; ++bit)
-        {
-            const std::size_t output_bit = index * ResultBitWidth + bit;
-            if ((result & (std::uint64_t{1} << bit)) != 0)
-                expected[output_bit / write_element_width] |=
-                    static_cast<write_t>(write_t{1} << (output_bit % write_element_width));
-        }
-    }
+	std::array<write_t, output_count> expected{};
+	for (std::size_t index = 0; index < Count; ++index)
+	{
+		const std::uint64_t result = static_cast<std::uint64_t>(input[index]) & result_mask;
+		for (std::size_t bit = 0; bit < ResultBitWidth; ++bit)
+		{
+			const std::size_t output_bit = index * ResultBitWidth + bit;
+			if ((result & (std::uint64_t{1} << bit)) != 0)
+				expected[output_bit / write_element_width] |= static_cast<write_t>(write_t{1} << (output_bit % write_element_width));
+		}
+	}
 
-    REQUIRE(std::equal(output.begin(), output.end(), expected.begin()));
-    REQUIRE(guarded.front() == static_cast<write_t>(0xA5));
-    REQUIRE(guarded.back() == static_cast<write_t>(0xA5));
+	REQUIRE(std::equal(output.begin(), output.end(), expected.begin()));
+	REQUIRE(guarded.front() == static_cast<write_t>(0xA5));
+	REQUIRE(guarded.back() == static_cast<write_t>(0xA5));
 }
 
 /**
@@ -330,61 +313,56 @@ void require_transform_pack_width_contract()
  * This is intentionally separate from the general width matrix: it documents the no-shift-by-64
  * boundary and requires the accumulator flush that writes a complete native word.
  */
-template <std::size_t Width>
-void require_transform_pack_full_native_word_contract()
+template <std::size_t Width> void require_transform_pack_full_native_word_contract()
 {
-    using simd = Api<Width, std::uint64_t>;
-    constexpr std::size_t resultBitWidth = 64 / simd::element_count;
-    require_transform_pack_width_contract<Width, std::uint64_t, simd::element_count, resultBitWidth>();
+	using simd = Api<Width, std::uint64_t>;
+	constexpr std::size_t resultBitWidth = 64 / simd::element_count;
+	require_transform_pack_width_contract<Width, std::uint64_t, simd::element_count, resultBitWidth>();
 }
 
 /**
  * @brief Adds a fixed scalar amount to every lane of a 32-bit SIMD register.
  * @tparam Width SIMD register width in bits.
  */
-template <std::size_t Width>
-struct Add17Transform
+template <std::size_t Width> struct Add17Transform
 {
-    using simd = Api<Width, std::uint32_t>;
+	using simd = Api<Width, std::uint32_t>;
 
-    /** @brief Applies the transform to one register. */
-    [[nodiscard]] typename simd::vector_t operator()(const typename simd::vector_t value) const noexcept
-    {
-        return simd::add(value, simd::set1(17));
-    }
+	/** @brief Applies the transform to one register. */
+	[[nodiscard]] typename simd::vector_t operator()(const typename simd::vector_t value) const noexcept
+	{
+		return simd::add(value, simd::set1(17));
+	}
 };
 
 /**
  * @brief Subtracts a fixed scalar amount from every lane of a 32-bit SIMD register.
  * @tparam Width SIMD register width in bits.
  */
-template <std::size_t Width>
-struct Subtract13Transform
+template <std::size_t Width> struct Subtract13Transform
 {
-    using simd = Api<Width, std::uint32_t>;
+	using simd = Api<Width, std::uint32_t>;
 
-    /** @brief Applies the transform to one register. */
-    [[nodiscard]] typename simd::vector_t operator()(const typename simd::vector_t value) const noexcept
-    {
-        return simd::subtract(value, simd::set1(13));
-    }
+	/** @brief Applies the transform to one register. */
+	[[nodiscard]] typename simd::vector_t operator()(const typename simd::vector_t value) const noexcept
+	{
+		return simd::subtract(value, simd::set1(13));
+	}
 };
 
 /**
  * @brief Subtracts corresponding lanes of two 32-bit SIMD registers.
  * @tparam Width SIMD register width in bits.
  */
-template <std::size_t Width>
-struct SubtractTransform
+template <std::size_t Width> struct SubtractTransform
 {
-    using simd = Api<Width, std::uint32_t>;
+	using simd = Api<Width, std::uint32_t>;
 
-    /** @brief Applies the transform to two registers. */
-    [[nodiscard]] typename simd::vector_t operator()(
-        const typename simd::vector_t lhs, const typename simd::vector_t rhs) const noexcept
-    {
-        return simd::subtract(lhs, rhs);
-    }
+	/** @brief Applies the transform to two registers. */
+	[[nodiscard]] typename simd::vector_t operator()(const typename simd::vector_t lhs, const typename simd::vector_t rhs) const noexcept
+	{
+		return simd::subtract(lhs, rhs);
+	}
 };
 
 /**
@@ -392,143 +370,134 @@ struct SubtractTransform
  * @tparam Width SIMD register width in bits.
  * @tparam Count Number of logical elements in each source and destination span.
  */
-template <std::size_t Width, std::size_t Count>
-void require_transform_overload_case()
+template <std::size_t Width, std::size_t Count> void require_transform_overload_case()
 {
-    using simd = Api<Width, std::uint32_t>;
-    constexpr std::uint32_t guard = 0xDEADBEEFU;
-    constexpr std::size_t storageCount = Count + 2 > simd::element_count + 1 ? Count + 2 : simd::element_count + 1;
-    std::array<std::uint32_t, storageCount> unaryStorage{};
-    std::array<std::uint32_t, storageCount> leftStorage{};
-    std::array<std::uint32_t, storageCount> rightStorage{};
-    std::array<std::uint32_t, storageCount> outputStorage{};
-    unaryStorage.fill(guard);
-    leftStorage.fill(guard);
-    rightStorage.fill(guard);
-    outputStorage.fill(guard);
+	using simd = Api<Width, std::uint32_t>;
+	constexpr std::uint32_t guard = 0xDEADBEEFU;
+	constexpr std::size_t storageCount = Count + 2 > simd::element_count + 1 ? Count + 2 : simd::element_count + 1;
+	std::array<std::uint32_t, storageCount> unaryStorage{};
+	std::array<std::uint32_t, storageCount> leftStorage{};
+	std::array<std::uint32_t, storageCount> rightStorage{};
+	std::array<std::uint32_t, storageCount> outputStorage{};
+	unaryStorage.fill(guard);
+	leftStorage.fill(guard);
+	rightStorage.fill(guard);
+	outputStorage.fill(guard);
 
-    auto unary = std::span<std::uint32_t>(unaryStorage).subspan(1, Count);
-    auto left = std::span<std::uint32_t>(leftStorage).subspan(1, Count);
-    auto right = std::span<std::uint32_t>(rightStorage).subspan(1, Count);
-    auto output = std::span<std::uint32_t>(outputStorage).subspan(1, Count);
-    for (std::size_t index = 0; index < Count; ++index)
-    {
-        unary[index] = static_cast<std::uint32_t>(index * 7 + 5);
-        left[index] = static_cast<std::uint32_t>(index * 7 + 50);
-        right[index] = static_cast<std::uint32_t>(index + 3);
-    }
+	auto unary = std::span<std::uint32_t>(unaryStorage).subspan(1, Count);
+	auto left = std::span<std::uint32_t>(leftStorage).subspan(1, Count);
+	auto right = std::span<std::uint32_t>(rightStorage).subspan(1, Count);
+	auto output = std::span<std::uint32_t>(outputStorage).subspan(1, Count);
+	for (std::size_t index = 0; index < Count; ++index)
+	{
+		unary[index] = static_cast<std::uint32_t>(index * 7 + 5);
+		left[index] = static_cast<std::uint32_t>(index * 7 + 50);
+		right[index] = static_cast<std::uint32_t>(index + 3);
+	}
 
-    simd::transform(unary, Add17Transform<Width>{});
+	simd::transform(unary, Add17Transform<Width>{});
 
-    for (std::size_t index = 0; index < Count; ++index)
-        REQUIRE(unary[index] == static_cast<std::uint32_t>(index * 7 + 22));
-    REQUIRE(unaryStorage.front() == guard);
-    REQUIRE(unaryStorage[Count + 1] == guard);
+	for (std::size_t index = 0; index < Count; ++index)
+		REQUIRE(unary[index] == static_cast<std::uint32_t>(index * 7 + 22));
+	REQUIRE(unaryStorage.front() == guard);
+	REQUIRE(unaryStorage[Count + 1] == guard);
 
-    simd::transform(std::span<const std::uint32_t>(left), output, Subtract13Transform<Width>{});
+	simd::transform(std::span<const std::uint32_t>(left), output, Subtract13Transform<Width>{});
 
-    for (std::size_t index = 0; index < Count; ++index)
-        REQUIRE(output[index] == static_cast<std::uint32_t>(index * 7 + 37));
-    REQUIRE(outputStorage.front() == guard);
-    REQUIRE(outputStorage[Count + 1] == guard);
+	for (std::size_t index = 0; index < Count; ++index)
+		REQUIRE(output[index] == static_cast<std::uint32_t>(index * 7 + 37));
+	REQUIRE(outputStorage.front() == guard);
+	REQUIRE(outputStorage[Count + 1] == guard);
 
-    std::fill(output.begin(), output.end(), guard);
-    simd::transform(std::span<const std::uint32_t>(left), std::span<const std::uint32_t>(right), output, SubtractTransform<Width>{});
+	std::fill(output.begin(), output.end(), guard);
+	simd::transform(std::span<const std::uint32_t>(left), std::span<const std::uint32_t>(right), output, SubtractTransform<Width>{});
 
-    for (std::size_t index = 0; index < Count; ++index)
-        REQUIRE(output[index] == static_cast<std::uint32_t>(index * 6 + 47));
-    REQUIRE(outputStorage.front() == guard);
-    REQUIRE(outputStorage[Count + 1] == guard);
+	for (std::size_t index = 0; index < Count; ++index)
+		REQUIRE(output[index] == static_cast<std::uint32_t>(index * 6 + 47));
+	REQUIRE(outputStorage.front() == guard);
+	REQUIRE(outputStorage[Count + 1] == guard);
 }
 
 /**
  * @brief Verifies public transform overloads across empty, tail, full-register, and multi-register extents.
  * @tparam Width SIMD register width in bits.
  */
-template <std::size_t Width>
-void require_transform_overload_contract()
+template <std::size_t Width> void require_transform_overload_contract()
 {
-    constexpr std::size_t laneCount = Api<Width, std::uint32_t>::element_count;
-    require_transform_overload_case<Width, 0>();
-    require_transform_overload_case<Width, 1>();
-    require_transform_overload_case<Width, laneCount>();
-    require_transform_overload_case<Width, laneCount + 1>();
-    require_transform_overload_case<Width, laneCount * 2>();
+	constexpr std::size_t laneCount = Api<Width, std::uint32_t>::element_count;
+	require_transform_overload_case<Width, 0>();
+	require_transform_overload_case<Width, 1>();
+	require_transform_overload_case<Width, laneCount>();
+	require_transform_overload_case<Width, laneCount + 1>();
+	require_transform_overload_case<Width, laneCount * 2>();
 }
 
-template <std::size_t Width, class Element>
-constexpr auto movemask_test_bytes()
+template <std::size_t Width, class Element> constexpr auto movemask_test_bytes()
 {
-    std::array<std::uint8_t, Width / 8> bytes{};
-    for (std::size_t index = 0; index < bytes.size(); ++index)
-        bytes[index] = static_cast<std::uint8_t>((index * 19u) | (index % 3u == 1u ? 0u : 0x80u));
-    return bytes;
+	std::array<std::uint8_t, Width / 8> bytes{};
+	for (std::size_t index = 0; index < bytes.size(); ++index)
+		bytes[index] = static_cast<std::uint8_t>((index * 19u) | (index % 3u == 1u ? 0u : 0x80u));
+	return bytes;
 }
 
-template <std::size_t Width, class Element>
-constexpr auto movemask_test_values()
+template <std::size_t Width, class Element> constexpr auto movemask_test_values()
 {
-    using simd = Api<Width, Element>;
-    constexpr auto bytes = movemask_test_bytes<Width, Element>();
-    static_assert(sizeof(bytes) == sizeof(std::array<Element, simd::element_count>));
-    return std::bit_cast<std::array<Element, simd::element_count>>(bytes);
+	using simd = Api<Width, Element>;
+	constexpr auto bytes = movemask_test_bytes<Width, Element>();
+	static_assert(sizeof(bytes) == sizeof(std::array<Element, simd::element_count>));
+	return std::bit_cast<std::array<Element, simd::element_count>>(bytes);
 }
 
-template <std::size_t Width, class Element>
-constexpr auto expected_byte_movemask()
+template <std::size_t Width, class Element> constexpr auto expected_byte_movemask()
 {
-    using simd = Api<Width, Element>;
-    constexpr auto bytes = movemask_test_bytes<Width, Element>();
-    typename simd::mask_t result = 0;
-    for (std::size_t index = 0; index < bytes.size(); ++index)
-        result |= static_cast<typename simd::mask_t>((bytes[index] >> 7) & 1u) << index;
-    return result;
+	using simd = Api<Width, Element>;
+	constexpr auto bytes = movemask_test_bytes<Width, Element>();
+	typename simd::mask_t result = 0;
+	for (std::size_t index = 0; index < bytes.size(); ++index)
+		result |= static_cast<typename simd::mask_t>((bytes[index] >> 7) & 1u) << index;
+	return result;
 }
 
-template <std::size_t Width, class Element>
-constexpr auto expected_slim_movemask()
+template <std::size_t Width, class Element> constexpr auto expected_slim_movemask()
 {
-    using simd = Api<Width, Element>;
-    constexpr auto bytes = movemask_test_bytes<Width, Element>();
-    typename simd::mask_t result = 0;
-    for (std::size_t index = 0; index < simd::element_count; ++index)
-    {
-        const std::size_t sign_byte = (index + 1) * sizeof(Element) - 1;
-        result |= static_cast<typename simd::mask_t>((bytes[sign_byte] >> 7) & 1u) << index;
-    }
-    return result;
+	using simd = Api<Width, Element>;
+	constexpr auto bytes = movemask_test_bytes<Width, Element>();
+	typename simd::mask_t result = 0;
+	for (std::size_t index = 0; index < simd::element_count; ++index)
+	{
+		const std::size_t sign_byte = (index + 1) * sizeof(Element) - 1;
+		result |= static_cast<typename simd::mask_t>((bytes[sign_byte] >> 7) & 1u) << index;
+	}
+	return result;
 }
 
-template <std::size_t Width, class Element>
-void require_movemask_contract()
+template <std::size_t Width, class Element> void require_movemask_contract()
 {
-    using simd = Api<Width, Element>;
-    const auto value = simd::construct(movemask_test_values<Width, Element>());
-    REQUIRE(simd::movemask(value) == expected_byte_movemask<Width, Element>());
-    REQUIRE(simd::movemask_slim(value) == expected_slim_movemask<Width, Element>());
+	using simd = Api<Width, Element>;
+	const auto value = simd::construct(movemask_test_values<Width, Element>());
+	REQUIRE(simd::movemask(value) == expected_byte_movemask<Width, Element>());
+	REQUIRE(simd::movemask_slim(value) == expected_slim_movemask<Width, Element>());
 }
 
-template <std::size_t Width>
-void require_supported_movemask_matrix()
+template <std::size_t Width> void require_supported_movemask_matrix()
 {
-    require_movemask_contract<Width, std::int8_t>();
-    require_movemask_contract<Width, std::uint8_t>();
-    require_movemask_contract<Width, std::int16_t>();
-    require_movemask_contract<Width, std::uint16_t>();
-    require_movemask_contract<Width, std::int32_t>();
-    require_movemask_contract<Width, std::uint32_t>();
-    require_movemask_contract<Width, std::int64_t>();
-    require_movemask_contract<Width, std::uint64_t>();
-    require_movemask_contract<Width, float>();
-    require_movemask_contract<Width, double>();
+	require_movemask_contract<Width, std::int8_t>();
+	require_movemask_contract<Width, std::uint8_t>();
+	require_movemask_contract<Width, std::int16_t>();
+	require_movemask_contract<Width, std::uint16_t>();
+	require_movemask_contract<Width, std::int32_t>();
+	require_movemask_contract<Width, std::uint32_t>();
+	require_movemask_contract<Width, std::int64_t>();
+	require_movemask_contract<Width, std::uint64_t>();
+	require_movemask_contract<Width, float>();
+	require_movemask_contract<Width, double>();
 }
 
 /**
  * @brief Compares constant evaluation with optimized runtime dispatch using volatile-derived inputs.
  * @tparam Width SIMD register width in bits.
  */
-template <std::size_t Width>
-void require_constexpr_runtime_parity()
+template <std::size_t Width> void require_constexpr_runtime_parity()
 {
 	using simd = Api<Width, std::int32_t>;
 	constexpr auto lhsConstant = Constexpr::lane_values<Width, std::int32_t>();
@@ -561,8 +530,7 @@ void require_constexpr_runtime_parity()
  * @tparam Width The Api register width.
  * @tparam Element The signed or unsigned integer lane type.
  */
-template <std::size_t Width, std::integral Element>
-void require_extrema_position_contract()
+template <std::size_t Width, std::integral Element> void require_extrema_position_contract()
 {
 	using simd = Api<Width, Element>;
 	std::array<Element, simd::element_count> values{};
@@ -608,8 +576,7 @@ void require_extrema_position_contract()
  *
  * @tparam Width The Api register width.
  */
-template <std::size_t Width>
-void require_integer_extrema_position_matrix()
+template <std::size_t Width> void require_integer_extrema_position_matrix()
 {
 	require_extrema_position_contract<Width, std::int8_t>();
 	require_extrema_position_contract<Width, std::uint8_t>();
@@ -625,8 +592,7 @@ void require_integer_extrema_position_matrix()
  *
  * @tparam Width The Api register width.
  */
-template <std::size_t Width>
-void require_64bit_arithmetic_contract()
+template <std::size_t Width> void require_64bit_arithmetic_contract()
 {
 	using signed_simd = Api<Width, std::int64_t>;
 	const auto signed_value = signed_simd::set1(-9);
@@ -657,8 +623,7 @@ void require_64bit_arithmetic_contract()
  * @tparam Width The Api register width.
  * @tparam Element The signed or unsigned integer lane type.
  */
-template <std::size_t Width, std::integral Element>
-void require_integer_operation_contract()
+template <std::size_t Width, std::integral Element> void require_integer_operation_contract()
 {
 	using simd = Api<Width, Element>;
 	using unsigned_t = std::make_unsigned_t<Element>;
@@ -731,8 +696,7 @@ void require_integer_operation_contract()
  *
  * @tparam Width The Api register width.
  */
-template <std::size_t Width>
-void require_integer_operation_matrix()
+template <std::size_t Width> void require_integer_operation_matrix()
 {
 	require_integer_operation_contract<Width, std::int8_t>();
 	require_integer_operation_contract<Width, std::uint8_t>();
@@ -750,8 +714,7 @@ void require_integer_operation_matrix()
  * @tparam Width The Api register width.
  * @tparam Element The floating-point lane type.
  */
-template <std::size_t Width, std::floating_point Element>
-void require_floating_operation_contract()
+template <std::size_t Width, std::floating_point Element> void require_floating_operation_contract()
 {
 	using simd = Api<Width, Element>;
 	using bits_t = std::conditional_t<sizeof(Element) == 4, std::uint32_t, std::uint64_t>;
@@ -829,8 +792,7 @@ void require_floating_operation_contract()
  *
  * @tparam Width The Api register width.
  */
-template <std::size_t Width>
-void require_floating_operation_matrix()
+template <std::size_t Width> void require_floating_operation_matrix()
 {
 	require_floating_operation_contract<Width, float>();
 	require_floating_operation_contract<Width, double>();
@@ -843,13 +805,11 @@ void require_floating_operation_matrix()
  *
  * @tparam Width The Api register width.
  */
-template <std::size_t Width>
-void require_unsigned_32bit_contract()
+template <std::size_t Width> void require_unsigned_32bit_contract()
 {
 	using integers = Api<Width, std::uint32_t>;
 	using floats = Api<Width, float>;
-	constexpr std::array<std::uint32_t, 8> numerators{
-		0, 1, 7, 0x7FFF'FFFFU, 0x8000'0000U, 0xFFFF'FFFFU, 4'000'000'001U, 10};
+	constexpr std::array<std::uint32_t, 8> numerators{0, 1, 7, 0x7FFF'FFFFU, 0x8000'0000U, 0xFFFF'FFFFU, 4'000'000'001U, 10};
 	constexpr std::array<std::uint32_t, 8> divisors{1, 1, 3, 7, 2, 65'535, 3, 4};
 	std::array<std::uint32_t, integers::element_count> lhs{};
 	std::array<std::uint32_t, integers::element_count> rhs{};
@@ -876,8 +836,7 @@ void require_unsigned_32bit_contract()
  *
  * @tparam Width The Api register width.
  */
-template <std::size_t Width>
-void require_uint64_multiply_add_adjacent_contract()
+template <std::size_t Width> void require_uint64_multiply_add_adjacent_contract()
 {
 	using simd = Api<Width, std::uint64_t>;
 	std::array<std::uint64_t, simd::element_count> lhs{};
@@ -900,8 +859,7 @@ void require_uint64_multiply_add_adjacent_contract()
  *
  * @tparam Width The Api register width.
  */
-template <std::size_t Width>
-void require_signed_32bit_conversion_contract()
+template <std::size_t Width> void require_signed_32bit_conversion_contract()
 {
 	using integers = Api<Width, std::int32_t>;
 	using floats = Api<Width, float>;
@@ -926,8 +884,7 @@ void require_signed_32bit_conversion_contract()
  *
  * @tparam Width The Api register width.
  */
-template <std::size_t Width>
-void require_transform_pack_type_matrix()
+template <std::size_t Width> void require_transform_pack_type_matrix()
 {
 	require_transform_pack_mask_contract<Width, std::int8_t, Api<Width, std::int8_t>::element_count + 3>();
 	require_transform_pack_mask_contract<Width, std::uint8_t, Api<Width, std::uint8_t>::element_count + 3>();
@@ -947,8 +904,7 @@ void require_transform_pack_type_matrix()
  * @param value Raw register produced by the documented invocation.
  * @param expected Values shown in the documentation.
  */
-template <class Simd, class Vector, class Expected>
-void require_documented_register(const Vector value, const Expected& expected)
+template <class Simd, class Vector, class Expected> void require_documented_register(const Vector value, const Expected &expected)
 {
 	const auto actual = Simd::to_array(value);
 	STATIC_REQUIRE(std::tuple_size_v<decltype(actual)> == std::tuple_size_v<Expected>);

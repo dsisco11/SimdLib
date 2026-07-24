@@ -1,6 +1,6 @@
 #pragma once
-#include <SimdLib/Config.h>
 #include <SimdLib/Api.h>
+#include <SimdLib/Config.h>
 #include <algorithm>
 #include <array>
 #include <bit>
@@ -80,7 +80,8 @@ class SimdVector final
 	 *  @param operation Name of the operation validating the result.
 	 *  @return `value` unchanged.
 	 */
-	template <class result_t> SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr static result_t CheckResultInactiveLanesZero(const result_t value, const char *operation) noexcept
+	template <class result_t>
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr static result_t CheckResultInactiveLanesZero(const result_t value, const char *operation) noexcept
 	{
 #if SIMDLIB_ENABLE_CHECKS
 		if constexpr (element_count != simd::element_count && std::same_as<std::remove_cvref_t<result_t>, vector_t>)

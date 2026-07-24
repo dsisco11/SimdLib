@@ -18,41 +18,30 @@ concept has_scalar_arithmetic = requires(value_t value, typename value_t::elemen
 };
 
 /** @brief Verifies that the intentionally disabled compound-assignment surface remains unavailable. */
-template <class value_t>
-consteval bool has_no_compound_assignments()
+template <class value_t> consteval bool has_no_compound_assignments()
 {
-	return !requires(value_t lhs, value_t rhs) { lhs += rhs; } &&
-		!requires(value_t lhs, value_t rhs) { lhs -= rhs; } &&
-		!requires(value_t lhs, value_t rhs) { lhs *= rhs; } &&
-		!requires(value_t lhs, value_t rhs) { lhs /= rhs; } &&
-		!requires(value_t lhs, value_t rhs) { lhs %= rhs; } &&
-		!requires(value_t lhs, value_t rhs) { lhs &= rhs; } &&
-		!requires(value_t lhs, value_t rhs) { lhs |= rhs; } &&
-		!requires(value_t lhs, value_t rhs) { lhs ^= rhs; } &&
-		!requires(value_t lhs) { lhs <<= 1; } &&
-		!requires(value_t lhs) { lhs >>= 1; };
+	return !requires(value_t lhs, value_t rhs) { lhs += rhs; } && !requires(value_t lhs, value_t rhs) { lhs -= rhs; } &&
+		   !requires(value_t lhs, value_t rhs) { lhs *= rhs; } && !requires(value_t lhs, value_t rhs) { lhs /= rhs; } &&
+		   !requires(value_t lhs, value_t rhs) { lhs %= rhs; } && !requires(value_t lhs, value_t rhs) { lhs &= rhs; } &&
+		   !requires(value_t lhs, value_t rhs) { lhs |= rhs; } && !requires(value_t lhs, value_t rhs) { lhs ^= rhs; } &&
+		   !requires(value_t lhs) { lhs <<= 1; } && !requires(value_t lhs) { lhs >>= 1; };
 }
 
 /** @brief Checks the aggregate predicate construction and conversion contract. */
-template <class mask_t, class register_t>
-consteval bool has_mask_construction_contract()
+template <class mask_t, class register_t> consteval bool has_mask_construction_contract()
 {
-	return std::is_constructible_v<mask_t, typename mask_t::native_type> &&
-		!std::is_constructible_v<mask_t, typename mask_t::bits_type> &&
-		!std::is_constructible_v<mask_t, register_t> && !std::is_convertible_v<mask_t, bool>;
+	return std::is_constructible_v<mask_t, typename mask_t::native_type> && !std::is_constructible_v<mask_t, typename mask_t::bits_type> &&
+		   !std::is_constructible_v<mask_t, register_t> && !std::is_convertible_v<mask_t, bool>;
 }
 
 /** @brief Checks the required object-model traits for one register-shaped value type. */
-template <class value_t>
-consteval bool has_complete_register_value_traits()
+template <class value_t> consteval bool has_complete_register_value_traits()
 {
 	using native_type = typename value_t::native_type;
-	return sizeof(value_t) == sizeof(native_type) && alignof(value_t) == alignof(native_type) &&
-		std::is_standard_layout_v<value_t> && std::is_trivially_copy_constructible_v<value_t> &&
-		!std::is_trivially_default_constructible_v<value_t> &&
-		std::is_trivially_move_constructible_v<value_t> && std::is_trivially_copy_assignable_v<value_t> &&
-		std::is_trivially_move_assignable_v<value_t> && std::is_trivially_destructible_v<value_t> &&
-		std::is_trivially_copyable_v<value_t>;
+	return sizeof(value_t) == sizeof(native_type) && alignof(value_t) == alignof(native_type) && std::is_standard_layout_v<value_t> &&
+		   std::is_trivially_copy_constructible_v<value_t> && !std::is_trivially_default_constructible_v<value_t> &&
+		   std::is_trivially_move_constructible_v<value_t> && std::is_trivially_copy_assignable_v<value_t> && std::is_trivially_move_assignable_v<value_t> &&
+		   std::is_trivially_destructible_v<value_t> && std::is_trivially_copyable_v<value_t>;
 }
 
 /** @brief Reports whether a Register accepts one complete homogeneous logical lane list. */

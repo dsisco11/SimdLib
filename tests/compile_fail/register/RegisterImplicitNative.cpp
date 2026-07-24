@@ -6,5 +6,4 @@
 
 using register_type = SimdLib::Register<std::int32_t, 128>;
 
-static_assert(std::is_convertible_v<register_type::native_type, register_type>,
-	"SIMDLIB_REGISTER_REJECTS_IMPLICIT_NATIVE");
+static_assert(std::is_convertible_v<register_type::native_type, register_type>, "SIMDLIB_REGISTER_REJECTS_IMPLICIT_NATIVE");

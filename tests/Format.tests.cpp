@@ -124,21 +124,11 @@ TEST_CASE("uint128_t formatting supports documented integer presentation control
 TEST_CASE("uint128_t alternate octal formatting covers alignment padding and width branches", "[format][uint128][octal][parity]")
 {
 	const std::array cases{
-		octal_format_case{0, "{:#o}", "0"},
-		octal_format_case{9, "{:#o}", "011"},
-		octal_format_case{0, "{:#5o}", "    0"},
-		octal_format_case{9, "{:#5o}", "  011"},
-		octal_format_case{0, "{:>#5o}", "    0"},
-		octal_format_case{9, "{:>#5o}", "  011"},
-		octal_format_case{0, "{:<#5o}", "0    "},
-		octal_format_case{9, "{:<#5o}", "011  "},
-		octal_format_case{0, "{:#05o}", "00000"},
-		octal_format_case{9, "{:#05o}", "00011"},
-		octal_format_case{0, "{:>#05o}", "    0"},
-		octal_format_case{9, "{:>#05o}", "  011"},
-		octal_format_case{0, "{:#1o}", "0"},
-		octal_format_case{9, "{:#2o}", "011"},
-		octal_format_case{0, "{:#01o}", "0"},
+		octal_format_case{0, "{:#o}", "0"},		  octal_format_case{9, "{:#o}", "011"},		 octal_format_case{0, "{:#5o}", "    0"},
+		octal_format_case{9, "{:#5o}", "  011"},  octal_format_case{0, "{:>#5o}", "    0"},	 octal_format_case{9, "{:>#5o}", "  011"},
+		octal_format_case{0, "{:<#5o}", "0    "}, octal_format_case{9, "{:<#5o}", "011  "},	 octal_format_case{0, "{:#05o}", "00000"},
+		octal_format_case{9, "{:#05o}", "00011"}, octal_format_case{0, "{:>#05o}", "    0"}, octal_format_case{9, "{:>#05o}", "  011"},
+		octal_format_case{0, "{:#1o}", "0"},	  octal_format_case{9, "{:#2o}", "011"},	 octal_format_case{0, "{:#01o}", "0"},
 		octal_format_case{9, "{:#02o}", "011"},
 	};
 
@@ -153,14 +143,15 @@ TEST_CASE("uint128_t alternate octal formatting covers alignment padding and wid
 
 TEST_CASE("uint128_t formatting matches the standard uint64 formatter within the scalar range", "[format][uint128][parity]")
 {
-	const std::array values{
-		std::uint64_t{0}, std::uint64_t{1}, std::uint64_t{9}, std::uint64_t{42},
-		std::uint64_t{0x1234'5678'9ABC'DEF0}, std::numeric_limits<std::uint64_t>::max()};
-	const std::array<std::string_view, 24> formats{
-		"{}", "{:d}", "{:x}", "{:X}", "{:b}", "{:B}", "{:o}",
-		"{:+}", "{: }", "{:-}", "{:#d}", "{:#x}", "{:#X}", "{:#b}", "{:#B}", "{:#o}",
-		"{:024x}", "{:*>30x}", "{:>24x}", "{:*<24x}", "{:*^24x}",
-		"{:#024x}", "{:+024x}", "{:0>24x}"};
+	const std::array values{std::uint64_t{0},
+							std::uint64_t{1},
+							std::uint64_t{9},
+							std::uint64_t{42},
+							std::uint64_t{0x1234'5678'9ABC'DEF0},
+							std::numeric_limits<std::uint64_t>::max()};
+	const std::array<std::string_view, 24> formats{"{}",	  "{:d}",	  "{:x}",	 "{:X}",	 "{:b}",	 "{:B}",	 "{:o}",	 "{:+}",
+												   "{: }",	  "{:-}",	  "{:#d}",	 "{:#x}",	 "{:#X}",	 "{:#b}",	 "{:#B}",	 "{:#o}",
+												   "{:024x}", "{:*>30x}", "{:>24x}", "{:*<24x}", "{:*^24x}", "{:#024x}", "{:+024x}", "{:0>24x}"};
 
 	for (std::uint64_t scalar : values)
 	{
@@ -168,8 +159,7 @@ TEST_CASE("uint128_t formatting matches the standard uint64 formatter within the
 		for (const std::string_view format : formats)
 		{
 			CAPTURE(scalar, std::string(format));
-			CHECK(std::vformat(format, std::make_format_args(wide)) ==
-				  std::vformat(format, std::make_format_args(scalar)));
+			CHECK(std::vformat(format, std::make_format_args(wide)) == std::vformat(format, std::make_format_args(scalar)));
 		}
 	}
 }
@@ -177,12 +167,8 @@ TEST_CASE("uint128_t formatting matches the standard uint64 formatter within the
 TEST_CASE("uint128_t formatting rejects unsupported specifications", "[format][uint128]")
 {
 	const std::array cases{
-		invalid_format_case{"opening brace fill", "{<5}"},
-		invalid_format_case{"precision", ".2}"},
-		invalid_format_case{"dynamic width", "{}"},
-		invalid_format_case{"nested replacement field", ">{}"},
-		invalid_format_case{"locale", "L}"},
-		invalid_format_case{"unsupported presentation", "q}"},
+		invalid_format_case{"opening brace fill", "{<5}"},		invalid_format_case{"precision", ".2}"}, invalid_format_case{"dynamic width", "{}"},
+		invalid_format_case{"nested replacement field", ">{}"}, invalid_format_case{"locale", "L}"},	 invalid_format_case{"unsupported presentation", "q}"},
 		invalid_format_case{"trailing specification", "dx}"},
 	};
 	for (const auto &test : cases)
@@ -190,8 +176,7 @@ TEST_CASE("uint128_t formatting rejects unsupported specifications", "[format][u
 		require_parse_rejected<SimdLib::uint128_t>(test);
 	}
 
-	const invalid_format_case overflow{
-		"width overflow", "184467440737095516160}"};
+	const invalid_format_case overflow{"width overflow", "184467440737095516160}"};
 	require_parse_rejected<SimdLib::uint128_t>(overflow);
 
 	const SimdLib::uint128_t value{1};

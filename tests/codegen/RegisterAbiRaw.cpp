@@ -25,10 +25,7 @@ SIMDLIB_ABI_NOINLINE native_type VECTORCALL simdlib_abi_binary(native_type lhs, 
 }
 
 /** @brief Raw ternary ABI mirror. */
-SIMDLIB_ABI_NOINLINE native_type VECTORCALL simdlib_abi_ternary(
-	native_type lhs,
-	native_type rhs,
-	native_type addend) noexcept
+SIMDLIB_ABI_NOINLINE native_type VECTORCALL simdlib_abi_ternary(native_type lhs, native_type rhs, native_type addend) noexcept
 {
 	return api_type::add(api_type::multiply(lhs, rhs), addend);
 }
@@ -66,15 +63,13 @@ SIMDLIB_ABI_NOINLINE native_type &VECTORCALL simdlib_abi_mutate(native_type &lhs
 }
 
 /** @brief Returns a raw vector across the Register consumer-boundary mirror. */
-SIMDLIB_ABI_NOINLINE native_type VECTORCALL
-	simdlib_consumer_abi_register_return(native_type lhs, native_type rhs) noexcept
+SIMDLIB_ABI_NOINLINE native_type VECTORCALL simdlib_consumer_abi_register_return(native_type lhs, native_type rhs) noexcept
 {
 	return api_type::add(lhs, rhs);
 }
 
 /** @brief Passes a raw vector across the Register consumer-boundary mirror. */
-SIMDLIB_ABI_NOINLINE native_type VECTORCALL
-	simdlib_consumer_abi_register_pass(native_type value) noexcept
+SIMDLIB_ABI_NOINLINE native_type VECTORCALL simdlib_consumer_abi_register_pass(native_type value) noexcept
 {
 	return value;
 }

@@ -23,7 +23,7 @@ namespace
  */
 template <class Vector, class Element, std::size_t Count>
 	requires requires { typename Vector::simd; }
-void require_lanes(const Vector& value, const std::array<Element, Count>& expected)
+void require_lanes(const Vector &value, const std::array<Element, Count> &expected)
 {
 	const auto actual = value.toArray();
 	for (std::size_t index = 0; index < Count; ++index)
@@ -42,11 +42,11 @@ void require_lanes(const Vector& value, const std::array<Element, Count>& expect
  */
 template <class Register, class Element, std::size_t Count>
 	requires(!requires { typename Register::simd; })
-void require_lanes(const Register value, const std::array<Element, Count>& expected)
+void require_lanes(const Register value, const std::array<Element, Count> &expected)
 {
 	require_lanes(SimdLib::SimdVector<Element, static_cast<int>(Count)>{value}, expected);
 }
-}
+} // namespace
 
 namespace
 {
@@ -58,14 +58,14 @@ namespace
  *  @param expected Expected scalar dot product.
  */
 template <class Element, std::size_t Count>
-void require_dot_product(const std::array<Element, Count>& lhs, const std::array<Element, Count>& rhs, const Element expected)
+void require_dot_product(const std::array<Element, Count> &lhs, const std::array<Element, Count> &rhs, const Element expected)
 {
 	using Vector = SimdLib::SimdVector<Element, static_cast<int>(Count)>;
 	const Vector lhs_vector(lhs);
 	const Vector rhs_vector(rhs);
 	REQUIRE(lhs_vector.dot_product(rhs_vector.getRegister()) == expected);
 }
-}
+} // namespace
 
 TEST_CASE("SimdVector exposes the complete aliases and storage facade", "[simdlib][vector]")
 {
@@ -160,8 +160,7 @@ TEST_CASE("SimdVector bitwise saturation widening and hash match logical lanes",
 	require_lanes(wide, std::array<std::int32_t, 3>{-4, 7, 300});
 
 	const auto sameHash = std::hash<SimdLib::SimdVector<std::int32_t, 3>>{}(wide);
-	const auto otherHash = std::hash<SimdLib::SimdVector<std::int32_t, 3>>{}(
-	    SimdLib::SimdVector<std::int32_t, 3>(-4, 7, 301));
+	const auto otherHash = std::hash<SimdLib::SimdVector<std::int32_t, 3>>{}(SimdLib::SimdVector<std::int32_t, 3>(-4, 7, 301));
 	REQUIRE(sameHash != otherHash);
 }
 
@@ -225,14 +224,12 @@ TEST_CASE("SimdVector hashes respect floating equality for signed zero", "[simdl
 	const SimdLib::SimdVector<float, 3> positive_zero(0.0f, 2.0f, 0.0f);
 	const SimdLib::SimdVector<float, 3> negative_zero(-0.0f, 2.0f, -0.0f);
 	REQUIRE(positive_zero == negative_zero.getRegister());
-	REQUIRE(std::hash<SimdLib::SimdVector<float, 3>>{}(positive_zero) ==
-			std::hash<SimdLib::SimdVector<float, 3>>{}(negative_zero));
+	REQUIRE(std::hash<SimdLib::SimdVector<float, 3>>{}(positive_zero) == std::hash<SimdLib::SimdVector<float, 3>>{}(negative_zero));
 
 	const SimdLib::SimdVector<double, 1> positive_double_zero(0.0);
 	const SimdLib::SimdVector<double, 1> negative_double_zero(-0.0);
 	REQUIRE(positive_double_zero == negative_double_zero.getRegister());
-	REQUIRE(std::hash<SimdLib::SimdVector<double, 1>>{}(positive_double_zero) ==
-			std::hash<SimdLib::SimdVector<double, 1>>{}(negative_double_zero));
+	REQUIRE(std::hash<SimdLib::SimdVector<double, 1>>{}(positive_double_zero) == std::hash<SimdLib::SimdVector<double, 1>>{}(negative_double_zero));
 }
 
 TEST_CASE("SimdVector floating hashes cover nonzero infinities and NaNs", "[simdlib][vector][hash][float]")
@@ -256,11 +253,9 @@ TEST_CASE("SimdVector floating hashes cover nonzero infinities and NaNs", "[simd
 	REQUIRE(double_hash(double_value) == double_hash(double_copy));
 	REQUIRE(double_hash(double_value) != double_hash(double_distinct));
 
-	const FloatVector float_infinities(
-		std::numeric_limits<float>::infinity(), -std::numeric_limits<float>::infinity(), 1.0f, 2.0f, 3.0f);
+	const FloatVector float_infinities(std::numeric_limits<float>::infinity(), -std::numeric_limits<float>::infinity(), 1.0f, 2.0f, 3.0f);
 	REQUIRE(float_hash(float_infinities) == float_hash(FloatVector(float_infinities)));
-	const DoubleVector double_infinities(
-		std::numeric_limits<double>::infinity(), -std::numeric_limits<double>::infinity(), 1.0);
+	const DoubleVector double_infinities(std::numeric_limits<double>::infinity(), -std::numeric_limits<double>::infinity(), 1.0);
 	REQUIRE(double_hash(double_infinities) == double_hash(DoubleVector(double_infinities)));
 
 	const float alternate_float_nan = std::bit_cast<float>(std::uint32_t{0x7FC00001u});
