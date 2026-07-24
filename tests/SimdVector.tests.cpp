@@ -185,23 +185,29 @@ TEST_CASE("SimdVector integer area covers full partial odd and cross-lane extent
 	REQUIRE(SimdLib::SimdVector<std::int32_t, 2>(std::numeric_limits<std::int32_t>::max(), 2).area() == -2);
 }
 
-TEST_CASE("SimdVector integer magnitude preserves per-128-bit-lane results", "[simdlib][vector][partial][magnitude]")
+TEST_CASE("SimdVector integer magnitude preserves sparse per-128-bit-group results", "[simdlib][vector][partial][magnitude]")
 {
 	using Signed = SimdLib::SimdVector<std::int16_t, 9>;
-	const Signed signed_value(3, 4, 0, 0, 0, 0, 0, 0, 6);
-	const auto signed_magnitude = Signed::simd::to_array(signed_value.magnitude());
-	for (std::size_t index = 0; index < 8; ++index)
-		REQUIRE(signed_magnitude[index] == 5);
-	for (std::size_t index = 8; index < signed_magnitude.size(); ++index)
-		REQUIRE(signed_magnitude[index] == 6);
+	const Signed signedValue(3, 4, 0, 0, 0, 0, 0, 0, 6);
+	const auto signedMagnitude = Signed::simd::to_array(signedValue.magnitude());
+	const auto signedChecked = Signed::simd::to_array(signedValue.magnitude_checked());
+	REQUIRE(signedMagnitude[0] == 5);
+	REQUIRE(signedMagnitude[8] == 6);
+	REQUIRE(signedChecked[0] == 5);
+	REQUIRE(signedChecked[1] == 0);
+	REQUIRE(signedChecked[8] == 6);
+	REQUIRE(signedChecked[9] == 0);
 
 	using Unsigned = SimdLib::SimdVector<std::uint8_t, 17>;
-	const Unsigned unsigned_value(6, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9);
-	const auto unsigned_magnitude = Unsigned::simd::to_array(unsigned_value.magnitude());
-	for (std::size_t index = 0; index < 16; ++index)
-		REQUIRE(unsigned_magnitude[index] == 10);
-	for (std::size_t index = 16; index < unsigned_magnitude.size(); ++index)
-		REQUIRE(unsigned_magnitude[index] == 9);
+	const Unsigned unsignedValue(6, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9);
+	const auto unsignedMagnitude = Unsigned::simd::to_array(unsignedValue.magnitude());
+	const auto unsignedChecked = Unsigned::simd::to_array(unsignedValue.magnitude_checked());
+	REQUIRE(unsignedMagnitude[0] == 10);
+	REQUIRE(unsignedMagnitude[16] == 9);
+	REQUIRE(unsignedChecked[0] == 10);
+	REQUIRE(unsignedChecked[1] == 0);
+	REQUIRE(unsignedChecked[16] == 9);
+	REQUIRE(unsignedChecked[17] == 0);
 }
 TEST_CASE("SimdVector partial positions ignore inactive zero-filled lanes", "[simdlib][vector][partial][position]")
 {

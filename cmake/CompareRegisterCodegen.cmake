@@ -11,6 +11,15 @@ endforeach()
 if(NOT DEFINED SYMBOL_PATTERN OR "${SYMBOL_PATTERN}" STREQUAL "")
 	set(SYMBOL_PATTERN "simdlib_codegen_")
 endif()
+if(NOT DEFINED CODEGEN_PROFILE OR "${CODEGEN_PROFILE}" STREQUAL "")
+	set(CODEGEN_PROFILE "default")
+endif()
+if(NOT DEFINED FMA_EXPECTATION OR "${FMA_EXPECTATION}" STREQUAL "")
+	set(FMA_EXPECTATION "none")
+endif()
+if(NOT FMA_EXPECTATION MATCHES "^(none|enabled|disabled)$")
+	message(FATAL_ERROR "Unsupported FMA_EXPECTATION: ${FMA_EXPECTATION}")
+endif()
 
 # @brief Disassembles one generated-code fixture object.
 # @param object_file Compiled object containing the fixture functions.
@@ -61,12 +70,13 @@ function(simdlib_normalize_disassembly input_text output_variable)
 	set(${output_variable} "${normalized}" PARENT_SCOPE)
 endfunction()
 
-# @brief Removes allocator-selected vector-register identities while retaining all operations and memory operands.
+# @brief Removes allocator-selected vector-register identities, including names repeated in disassembler comments.
 # @param input_text Normalized fixture disassembly.
 # @param output_variable Variable that receives the allocation-independent instruction profile.
 function(simdlib_profile_disassembly input_text output_variable)
 	set(profile "${input_text}")
 	string(REGEX REPLACE "%[xyz]mm[0-9]+" "%vreg" profile "${profile}")
+	string(REGEX REPLACE "[xyz]mm[0-9]+" "vreg" profile "${profile}")
 	set(${output_variable} "${profile}" PARENT_SCOPE)
 endfunction()
 
@@ -207,6 +217,14 @@ simdlib_normalize_disassembly("${raw_disassembly}" raw_normalized)
 simdlib_profile_disassembly("${wrapper_normalized}" wrapper_profile)
 simdlib_profile_disassembly("${raw_normalized}" raw_profile)
 
+string(FIND "${wrapper_profile}" "vfmadd" wrapper_fma_index)
+string(FIND "${raw_profile}" "vfmadd" raw_fma_index)
+if(FMA_EXPECTATION STREQUAL "enabled" AND (wrapper_fma_index LESS 0 OR raw_fma_index LESS 0))
+	message(FATAL_ERROR "The FMA-enabled generated-code profile does not contain fused multiply-add instructions")
+elseif(FMA_EXPECTATION STREQUAL "disabled" AND (NOT wrapper_fma_index LESS 0 OR NOT raw_fma_index LESS 0))
+	message(FATAL_ERROR "The FMA-disabled generated-code profile unexpectedly contains fused multiply-add instructions")
+endif()
+
 set(comparable_wrapper_profile "${wrapper_profile}")
 set(comparison_result "exact-parity")
 set(accepted_exception "none")
@@ -253,6 +271,8 @@ file(WRITE "${ARTIFACT_DIRECTORY}/provenance.txt"
 	"register_width=${REGISTER_WIDTH}\n"
 	"vectorcall_enabled=${VECTORCALL_ENABLED}\n"
 	"stack_protector_mode=${STACK_PROTECTOR_MODE}\n"
+	"codegen_profile=${CODEGEN_PROFILE}\n"
+	"fma_expectation=${FMA_EXPECTATION}\n"
 	"comparison_result=${comparison_result}\n"
 	"accepted_exception=${accepted_exception}\n"
 	"wrapper_object=${WRAPPER_OBJECT}\n"

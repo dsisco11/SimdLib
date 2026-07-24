@@ -135,6 +135,7 @@ rows are verified absent from the preferred surface in Phase 9.
 | `absolute` | `value.absolute()` | Phase 7 |
 | `sqrt` | `value.sqrt()` | Phase 7 |
 | `magnitude` | `value.magnitude()` | Phase 7 |
+| `magnitude_checked` | `value.magnitude_checked()` | Phase 7 |
 | `normalize` | `value.normalize()` | Phase 7 |
 | `avg` | `lhs.average(rhs)` | Phase 7 |
 | `add_horizontal` | `lhs.horizontal_add(rhs)` | Phase 7 |

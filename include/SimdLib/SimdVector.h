@@ -876,8 +876,8 @@ class SimdVector final
 		return simd::sqrt(m_data);
 	}
 
-	/** @brief Computes the per-128-bit-lane magnitude when the underlying Simd specialization supports it.
-	 *  @return Register containing the lane-local magnitudes broadcast across each lane group.
+	/** @brief Computes broadcast floating magnitudes or sparse unchecked integer magnitudes for each 128-bit group.
+	 *  @return The underlying magnitude register; only each group-leading lane is specified for integer elements.
 	 */
 	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE auto VECTORCALL magnitude() const noexcept
 		requires requires(vector_t value) { simd::magnitude(value); }
@@ -885,6 +885,14 @@ class SimdVector final
 		return simd::magnitude(m_data);
 	}
 
+	/** @brief Computes saturated integer magnitudes followed by canonical overflow-mask lanes.
+	 *  @return Each 128-bit group stores its magnitude in lane zero and overflow mask in lane one.
+	 */
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE auto VECTORCALL magnitude_checked() const noexcept
+		requires requires(vector_t value) { simd::magnitude_checked(value); }
+	{
+		return simd::magnitude_checked(m_data);
+	}
 	/** @brief Computes the multiplicative product of the active logical lanes.
 	 *  @return Product of the declared logical lanes, widened to 32-bit for sub-32-bit integer vectors and reduced modulo the result width.
 	 */

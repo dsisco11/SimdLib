@@ -250,42 +250,6 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 		return result;
 	}
 
-	/** @brief Finishes integer magnitude by summing the SIMD-produced pairwise squares per 128-bit lane and broadcasting the root.
-	 *  @tparam partial_element_t Integer lane type produced by the first pairwise square-and-sum step.
-	 *  @param pairSums Register containing `x*x + y*y` style partial sums for each 128-bit lane group.
-	 *  @return Register containing the lane-local magnitudes broadcast to every source lane.
-	 */
-	template <class partial_element_t>
-	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE static vector_t VECTORCALL
-	FinishIntegerMagnitudeFromPairSums(typename Api<register_width, partial_element_t>::vector_t pairSums) noexcept
-	{
-		using partial_simd = Api<register_width, partial_element_t>;
-		using accumulation_t = std::conditional_t<std::is_signed_v<partial_element_t>, int64_t, uint64_t>;
-		constexpr std::size_t LaneGroupCount = register_width / 128;
-		constexpr std::size_t SourceLaneWidth = element_count / LaneGroupCount;
-		constexpr std::size_t PartialLaneWidth = partial_simd::element_count / LaneGroupCount;
-
-		const auto partialValues = partial_simd::to_array(pairSums);
-		std::array<element_t, element_count> output{};
-		for (std::size_t groupIndex = 0; groupIndex < LaneGroupCount; ++groupIndex)
-		{
-			accumulation_t total{};
-			const std::size_t partialStart = groupIndex * PartialLaneWidth;
-			for (std::size_t partialOffset = 0; partialOffset < PartialLaneWidth; ++partialOffset)
-			{
-				total += static_cast<accumulation_t>(partialValues[partialStart + partialOffset]);
-			}
-
-			const element_t laneMagnitude = static_cast<element_t>(std::round(std::sqrt(static_cast<long double>(total))));
-			const std::size_t laneStart = groupIndex * SourceLaneWidth;
-			for (std::size_t laneOffset = 0; laneOffset < SourceLaneWidth; ++laneOffset)
-			{
-				output[laneStart + laneOffset] = laneMagnitude;
-			}
-		}
-
-		return construct(output);
-	}
 #pragma endregion
 
 #pragma region Arithmetic Operations
@@ -437,65 +401,37 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param lhs Input register.
 	 *  @return Register containing per-lane square roots.
 	 */
-	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE static auto VECTORCALL sqrt(const vector_t lhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL sqrt(const vector_t lhs) noexcept
 		requires requires(vector_t value) { impl::sqrt(value); }
 	{
 		return impl::sqrt(lhs);
 	}
 
-	/** @brief Computes the vector magnitude per 128-bit lane.
-	 *  @param lhs Input register.
-	 *  @return Register containing the lane-local magnitudes broadcast within each 128-bit lane.
+	/** @brief Computes the vector magnitude independently for each 128-bit group.
+	 *  @param lhs Input register. Integer inputs require a magnitude representable by `element_t`.
+	 *  @return Floating magnitudes broadcast within each group, or unchecked integer magnitudes in each group-leading lane.
 	 */
 	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static vector_t VECTORCALL magnitude(const vector_t lhs) noexcept
-		requires((std::is_floating_point_v<element_t> && requires(vector_t left, vector_t right) {
-					 impl::sqrt(left);
-					 impl::template dot_product<0x11>(left, right);
-				 }) || (using_int && requires(vector_t value) {
-					 impl::sqrt(value);
-					 impl::multiply_add_adjacent(value, value);
-				 }))
+		requires requires(vector_t value) { impl::magnitude(value); }
 	{
-		if constexpr (std::is_floating_point_v<element_t>)
-		{
-			if constexpr (std::same_as<element_t, float>)
-			{
-				return sqrt(dot_product<0xFF>(lhs, lhs));
-			}
-			else
-			{
-				return sqrt(dot_product<0x33>(lhs, lhs));
-			}
-		}
-		else
-		{
-			if constexpr (sizeof(element_t) == 1)
-			{
-				using partial_element_t = std::conditional_t<using_unsigned, uint16_t, int16_t>;
-				return FinishIntegerMagnitudeFromPairSums<partial_element_t>(multiply_add_adjacent(lhs, lhs));
-			}
-			else if constexpr (sizeof(element_t) == 2)
-			{
-				using partial_element_t = std::conditional_t<using_unsigned, uint32_t, int32_t>;
-				return FinishIntegerMagnitudeFromPairSums<partial_element_t>(multiply_add_adjacent(lhs, lhs));
-			}
-			else if constexpr (sizeof(element_t) == 4)
-			{
-				using partial_element_t = std::conditional_t<using_unsigned, uint64_t, int64_t>;
-				return FinishIntegerMagnitudeFromPairSums<partial_element_t>(multiply_add_adjacent(lhs, lhs));
-			}
-			else
-			{
-				return FinishIntegerMagnitudeFromPairSums<element_t>(multiply_add_adjacent(lhs, lhs));
-			}
-		}
+		return impl::magnitude(lhs);
+	}
+
+	/** @brief Computes saturated integer magnitudes with canonical overflow masks.
+	 *  @param lhs Input integer register.
+	 *  @return Each 128-bit group stores its magnitude in lane zero and a zero/all-ones overflow mask in lane one.
+	 */
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static vector_t VECTORCALL magnitude_checked(const vector_t lhs) noexcept
+		requires(using_int && requires(vector_t value) { impl::magnitude_checked(value); })
+	{
+		return impl::magnitude_checked(lhs);
 	}
 
 	/** @brief Normalizes floating-point lanes using the vector length computed per 128-bit lane.
 	 *  @param lhs Input floating-point register.
 	 *  @return Register containing the normalized per-lane values.
 	 */
-	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE static vector_t VECTORCALL normalize(const vector_t lhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static vector_t VECTORCALL normalize(const vector_t lhs) noexcept
 		requires(std::is_floating_point_v<element_t> && requires(vector_t left, vector_t right) {
 			magnitude(left);
 			impl::divide(left, right);
@@ -587,7 +523,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param lhs Input register.
 	 *  @return Zero-based index of the first minimum element across the full SIMD register.
 	 */
-	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr static std::size_t VECTORCALL min_position(const vector_t lhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static std::size_t VECTORCALL min_position(const vector_t lhs) noexcept
 		requires(using_int && requires(vector_t value) {
 			impl::min_position(value);
 			impl::template extract<1>(value);
@@ -603,7 +539,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param lhs Input register.
 	 *  @return Zero-based index of the first maximum element across the full SIMD register.
 	 */
-	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr static std::size_t VECTORCALL max_position(const vector_t lhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static std::size_t VECTORCALL max_position(const vector_t lhs) noexcept
 		requires(using_int && requires(vector_t value) {
 			impl::min_position(value);
 			impl::template extract<1>(value);

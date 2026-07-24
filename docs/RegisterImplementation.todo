@@ -145,18 +145,19 @@ SimdLib Register Implementation Plan:
       Evidence: `include/SimdLib/Register.h`, `tests/RegisterBasicOperations.tests.cpp`, `tests/RegisterPreconditionFailure.tests.cpp`, `tests/constexpr/RegisterConstexpr.tests.cpp`, and `tests/register/RegisterRepresentation.tests.cpp` cover the constrained operation surface, scalar-oracle edge cases, count boundaries, invalid counts, constexpr paths, unavailable overloads, and the absence of compound assignment. `tests/codegen/RegisterCodegenFixture.h` and the 128/256-bit `SimdLibRegisterExpressionCodegen` gates compare direct Register expressions, explicit width-prefixed division for every signed and unsigned integer lane type, reassignments, broadcasts, and immediate/runtime shifts against raw `Api` expressions under MSVC, clang-cl 22, GCC 14, and GNU-like Clang 22; the GNU-like gates compile with strong stack protection. These expression gates are separate from the unresolved clang-cl no-inline wrapper ABI gate recorded under Phase 3. Pure register-only paths and reassignment expressions require exact instruction parity.
 
   Phase 7 - Implement Specialized Arithmetic and Reductions:
-    ☐ Implement named `min()`, `max()`, `absolute()`, `sqrt()`, `average()`, and `multiply_add()` operations where supported.
-    ☐ Implement `magnitude()` and `normalize()` with the existing grouping, type, and feature behavior.
-    ☐ Implement `horizontal_add()`, `horizontal_subtract()`, `add_saturated()`, `subtract_saturated()`, `horizontal_add_saturated()`, `horizontal_subtract_saturated()`, and floating `add_subtract()` under backend availability constraints.
-    ☐ Implement `dot_product<imm8>()` with the intrinsic-selected output-lane behavior and an immediate range of `0..255`.
-    ☐ Implement `min_position()` and `max_position()` with first-position tie semantics and complete-register highest-lane coverage.
-    ☐ Define constrained namespace-level `multiply_add_adjacent_result_t<T, Bits>`, `byte_multiply_add_result_t<T, Bits>`, `sad_result_t<T, Bits>`, and `multi_sad_result_t<T, Bits>` aliases with the exact proposal mappings.
-    ☐ Keep each result alias and operation absent when the corresponding backend operation is unavailable even if a result type can be formed mechanically.
-    ☐ Implement multiply-add-adjacent, unsigned/signed byte multiply-add, sum of absolute byte differences, and `multi_sum_absolute_byte_differences<imm8>()` with exact result Register types.
-    ☐ Add compile-time result-type and unavailability assertions for every source type and width.
-    ☐ Add independent lane-order, overflow, saturation, grouping, immediate, highest-lane, and result-signedness tests for every specialized family.
-    ☐ Add generated-code comparisons for every supported specialized overload, including FMA-enabled and FMA-disabled profiles where applicable.
-    ☐ End Phase 7 only when every specialized arithmetic result has an explicit public Register type and complete behavioral and machine-code parity evidence.
+    ☒ Implement named `min()`, `max()`, `absolute()`, `sqrt()`, `average()`, and `multiply_add()` operations where supported.
+    ☒ Implement floating `magnitude()`/`normalize()` with broadcast group results, sparse unchecked integer `magnitude()` with a representability precondition, and saturated integer `magnitude_checked()` with an adjacent canonical overflow mask.
+    ☒ Implement `horizontal_add()`, `horizontal_subtract()`, `add_saturated()`, `subtract_saturated()`, `horizontal_add_saturated()`, `horizontal_subtract_saturated()`, and floating `add_subtract()` under backend availability constraints.
+    ☒ Implement `dot_product<imm8>()` with the intrinsic-selected output-lane behavior and an immediate range of `0..255`.
+    ☒ Implement `min_position()` and `max_position()` with first-position tie semantics and complete-register highest-lane coverage.
+    ☒ Define constrained namespace-level `multiply_add_adjacent_result_t<T, Bits>`, `byte_multiply_add_result_t<T, Bits>`, `sad_result_t<T, Bits>`, and `multi_sad_result_t<T, Bits>` aliases with the exact proposal mappings.
+    ☒ Keep each result alias and operation absent when the corresponding backend operation is unavailable even if a result type can be formed mechanically.
+    ☒ Implement multiply-add-adjacent, unsigned/signed byte multiply-add, sum of absolute byte differences, and `multi_sum_absolute_byte_differences<imm8>()` with exact result Register types.
+    ☒ Add compile-time result-type and unavailability assertions for every source type and width.
+    ☒ Add independent lane-order, overflow, saturation, grouping, immediate, highest-lane, and result-signedness tests for every specialized family.
+    ☒ Add generated-code comparisons for every supported specialized overload, including FMA-enabled and FMA-disabled profiles where applicable.
+    ☒ End Phase 7 only when every specialized arithmetic result has an explicit public Register type and complete behavioral and machine-code parity evidence.
+      Evidence: `include/SimdLib/RegisterFwd.h`, `include/SimdLib/Register.h`, `include/SimdLib/Api.h`, and `include/SimdLib/Detail/Implementations.h` define the constrained result aliases and register-only specialized surface. `tests/RegisterSpecializedOperations.tests.cpp` checks availability and exact result types for every source type and width, then applies independent scalar oracles to lane order, signed minima, modular overflow, saturation, 128-bit grouping, immediate controls, tie ordering, highest lanes, and promoted-result signedness. `tests/codegen/RegisterSpecializedCodegenFixture.h` and the 128/256-bit `SimdLibRegisterExpressionCodegen` gates cover every supported overload in FMA-enabled and FMA-disabled profiles; GNU-like targets compile these gates with strong stack protection, and the comparison provenance records the selected profile and requires exact wrapper/API instruction parity.
 
   Phase 8 - Implement Rearrangement and Conversion Operations:
     ☐ Implement `lower_half()` from supported 256-bit sources without exposing an ambiguous generic width reduction.
@@ -225,7 +226,7 @@ SimdLib Register Implementation Plan:
     ☒ Phase 4 construction, transfer, lane, native-interoperation, sanitizer, and code-generation evidence recorded.
     ☒ Phase 5 RegisterMask, comparison-intrinsic, selection, scalar-reduction, constraint, and code-generation evidence recorded.
     ☒ Phase 6 basic arithmetic, bitwise, disabled-compound-surface, shift-boundary, oracle, and generated-code evidence recorded.
-    ☐ Phase 7 specialized arithmetic, reduction, result-alias, feature-profile, oracle, and generated-code evidence recorded.
+    ☒ Phase 7 specialized arithmetic, reduction, result-alias, feature-profile, oracle, and generated-code evidence recorded.
     ☐ Phase 8 rearrangement, selector, conversion, width-change, compile-failure, lane-order, and generated-code evidence recorded.
     ☐ Phase 9 final operation matrix, Doxygen audit, public-boundary audit, and compatibility-only classifications recorded.
     ☐ Phase 10 complete correctness, constexpr, precondition, sanitizer, optimized code-generation, ABI, and exception ledger recorded.

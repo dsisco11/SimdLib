@@ -329,6 +329,201 @@ class Register final
 	 */
 #pragma endregion
 
+#pragma region Specialized Arithmetic and Reductions
+
+	/** @brief Selects the minimum value from each corresponding lane. */
+	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY Register VECTORCALL min(this Register lhs, Register rhs) noexcept
+		requires requires(native_type left, native_type right) { api_type::min(left, right); }
+	{
+		return Register{api_type::min(lhs.native, rhs.native)};
+	}
+
+	/** @brief Selects the maximum value from each corresponding lane. */
+	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY Register VECTORCALL max(this Register lhs, Register rhs) noexcept
+		requires requires(native_type left, native_type right) { api_type::max(left, right); }
+	{
+		return Register{api_type::max(lhs.native, rhs.native)};
+	}
+
+	/** @brief Computes the absolute value of every lane with the selected backend's edge behavior. */
+	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY Register VECTORCALL absolute(this Register value) noexcept
+		requires requires(native_type operand) { api_type::absolute(operand); }
+	{
+		return Register{api_type::absolute(value.native)};
+	}
+
+	/** @brief Computes the square root of every lane where supported. */
+	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY Register VECTORCALL sqrt(this Register value) noexcept
+		requires requires(native_type operand) { api_type::sqrt(operand); }
+	{
+		return Register{api_type::sqrt(value.native)};
+	}
+
+	/** @brief Computes the backend-defined average of corresponding lanes. */
+	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY Register VECTORCALL average(this Register lhs, Register rhs) noexcept
+		requires requires(native_type left, native_type right) { api_type::avg(left, right); }
+	{
+		return Register{api_type::avg(lhs.native, rhs.native)};
+	}
+
+	/** @brief Multiplies corresponding lanes and adds a third register. */
+	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY Register VECTORCALL multiply_add(this Register lhs, Register rhs,
+																											  Register addend) noexcept
+		requires requires(native_type left, native_type right, native_type sum) { api_type::multiply_add(left, right, sum); }
+	{
+		return Register{api_type::multiply_add(lhs.native, rhs.native, addend.native)};
+	}
+
+	/** @brief Computes broadcast floating magnitudes or sparse unchecked integer magnitudes for each 128-bit group. */
+	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY Register VECTORCALL magnitude(this Register value) noexcept
+		requires requires(native_type operand) { api_type::magnitude(operand); }
+	{
+		return Register{api_type::magnitude(value.native)};
+	}
+
+	/** @brief Computes saturated integer magnitudes with each overflow mask stored in the following lane. */
+	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY Register VECTORCALL magnitude_checked(this Register value) noexcept
+		requires requires(native_type operand) { api_type::magnitude_checked(operand); }
+	{
+		return Register{api_type::magnitude_checked(value.native)};
+	}
+
+	/** @brief Normalizes each floating-point 128-bit lane group by its magnitude. */
+	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY Register VECTORCALL normalize(this Register value) noexcept
+		requires requires(native_type operand) { api_type::normalize(operand); }
+	{
+		return Register{api_type::normalize(value.native)};
+	}
+
+	/** @brief Adds adjacent lane pairs within each 128-bit lane of two registers. */
+	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY Register VECTORCALL horizontal_add(this Register lhs, Register rhs) noexcept
+		requires requires(native_type left, native_type right) { api_type::add_horizontal(left, right); }
+	{
+		return Register{api_type::add_horizontal(lhs.native, rhs.native)};
+	}
+
+	/** @brief Subtracts adjacent lane pairs within each 128-bit lane of two registers. */
+	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY Register VECTORCALL horizontal_subtract(this Register lhs, Register rhs) noexcept
+		requires requires(native_type left, native_type right) { api_type::subtract_horizontal(left, right); }
+	{
+		return Register{api_type::subtract_horizontal(lhs.native, rhs.native)};
+	}
+
+	/**
+	 * @brief Multiplies adjacent integral lane pairs and returns the explicitly promoted Register type.
+	 * @tparam source_element_t Deferred source type used to constrain result-alias availability.
+	 */
+	template <class source_element_t = element_type>
+		requires std::same_as<source_element_t, element_type> &&
+				Detail::RegisterMultiplyAddAdjacentAvailable<source_element_t, register_width>
+	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY multiply_add_adjacent_result_t<source_element_t, register_width> VECTORCALL
+	multiply_add_adjacent(this Register lhs, Register rhs) noexcept
+	{
+		return multiply_add_adjacent_result_t<source_element_t, register_width>{api_type::multiply_add_adjacent(lhs.native, rhs.native)};
+	}
+
+	/**
+	 * @brief Multiplies unsigned and signed byte pairs and returns signed 16-bit sums.
+	 * @tparam source_element_t Deferred source type used to constrain result-alias availability.
+	 */
+	template <class source_element_t = element_type>
+		requires std::same_as<source_element_t, element_type> &&
+				Detail::RegisterByteMultiplyAddAvailable<source_element_t, register_width>
+	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY byte_multiply_add_result_t<source_element_t, register_width> VECTORCALL
+	multiply_add_unsigned_signed_bytes(this Register lhs, Register rhs) noexcept
+	{
+		return byte_multiply_add_result_t<source_element_t, register_width>{api_type::multiply_add_unsigned_signed_bytes(lhs.native, rhs.native)};
+	}
+
+	/**
+	 * @brief Sums byte-wise absolute differences into unsigned 64-bit result lanes.
+	 * @tparam source_element_t Deferred source type used to constrain result-alias availability.
+	 */
+	template <class source_element_t = element_type>
+		requires std::same_as<source_element_t, element_type> && Detail::RegisterSadAvailable<source_element_t, register_width>
+	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY sad_result_t<source_element_t, register_width> VECTORCALL
+	sum_absolute_byte_differences(this Register lhs, Register rhs) noexcept
+	{
+		return sad_result_t<source_element_t, register_width>{api_type::sum_absolute_byte_differences(lhs.native, rhs.native)};
+	}
+
+	/**
+	 * @brief Computes immediate-controlled byte-window absolute-difference sums.
+	 * @tparam imm8 Immediate control value in the intrinsic range `0..255`.
+	 * @tparam source_element_t Deferred source type used to constrain result-alias availability.
+	 */
+	template <int imm8, class source_element_t = element_type>
+		requires(imm8 >= 0 && imm8 <= 255 && std::same_as<source_element_t, element_type> &&
+				Detail::RegisterMultiSadAvailable<source_element_t, register_width>)
+	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY multi_sad_result_t<source_element_t, register_width> VECTORCALL
+	multi_sum_absolute_byte_differences(this Register lhs, Register rhs) noexcept
+	{
+		return multi_sad_result_t<source_element_t, register_width>{api_type::template multi_sum_absolute_byte_differences<imm8>(lhs.native, rhs.native)};
+	}
+
+	/** @brief Returns the first logical position containing the minimum integral value. */
+	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr std::size_t VECTORCALL min_position(this Register value) noexcept
+		requires requires(native_type operand) { api_type::min_position(operand); }
+	{
+		return api_type::min_position(value.native);
+	}
+
+	/** @brief Returns the first logical position containing the maximum integral value. */
+	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr std::size_t VECTORCALL max_position(this Register value) noexcept
+		requires requires(native_type operand) { api_type::max_position(operand); }
+	{
+		return api_type::max_position(value.native);
+	}
+
+	/** @brief Adds corresponding lanes with saturation where supported. */
+	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY Register VECTORCALL add_saturated(this Register lhs, Register rhs) noexcept
+		requires requires(native_type left, native_type right) { api_type::add_saturated(left, right); }
+	{
+		return Register{api_type::add_saturated(lhs.native, rhs.native)};
+	}
+
+	/** @brief Subtracts corresponding lanes with saturation where supported. */
+	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY Register VECTORCALL subtract_saturated(this Register lhs, Register rhs) noexcept
+		requires requires(native_type left, native_type right) { api_type::subtract_saturated(left, right); }
+	{
+		return Register{api_type::subtract_saturated(lhs.native, rhs.native)};
+	}
+
+	/** @brief Adds adjacent lane pairs with saturation where supported. */
+	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY Register VECTORCALL horizontal_add_saturated(this Register lhs,
+																														  Register rhs) noexcept
+		requires requires(native_type left, native_type right) { api_type::hadd_saturated(left, right); }
+	{
+		return Register{api_type::hadd_saturated(lhs.native, rhs.native)};
+	}
+
+	/** @brief Subtracts adjacent lane pairs with saturation where supported. */
+	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY Register VECTORCALL horizontal_subtract_saturated(this Register lhs,
+																															   Register rhs) noexcept
+		requires requires(native_type left, native_type right) { api_type::hsubtract_saturated(left, right); }
+	{
+		return Register{api_type::hsubtract_saturated(lhs.native, rhs.native)};
+	}
+
+	/** @brief Alternates subtraction and addition across floating-point lanes. */
+	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY Register VECTORCALL add_subtract(this Register lhs, Register rhs) noexcept
+		requires requires(native_type left, native_type right) { api_type::add_subtract(left, right); }
+	{
+		return Register{api_type::add_subtract(lhs.native, rhs.native)};
+	}
+
+	/**
+	 * @brief Computes a masked floating-point dot product with intrinsic-selected output lanes.
+	 * @tparam imm8 Immediate control value in the intrinsic range `0..255`.
+	 */
+	template <int imm8>
+		requires Detail::RegisterDotProductAvailable<element_type, register_width, imm8>
+	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY Register VECTORCALL dot_product(this Register lhs, Register rhs) noexcept
+	{
+		return Register{api_type::template dot_product<imm8>(lhs.native, rhs.native)};
+	}
+
+#pragma endregion
 #pragma region Bitwise Operations
 
 	/** @brief Computes the bitwise intersection of two registers. */

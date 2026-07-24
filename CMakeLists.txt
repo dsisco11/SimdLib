@@ -423,14 +423,24 @@ function(simdlib_add_register_codegen_gate register_width)
 	set(default_raw_target SimdLibRegisterDefaultAbiRaw${register_width})
 	set(abi_wrapper_target SimdLibRegisterAbiWrapper${register_width})
 	set(abi_raw_target SimdLibRegisterAbiRaw${register_width})
+	set(specialized_fma_enabled_wrapper_target SimdLibRegisterSpecializedFmaEnabledWrapper${register_width})
+	set(specialized_fma_enabled_raw_target SimdLibRegisterSpecializedFmaEnabledRaw${register_width})
+	set(specialized_fma_disabled_wrapper_target SimdLibRegisterSpecializedFmaDisabledWrapper${register_width})
+	set(specialized_fma_disabled_raw_target SimdLibRegisterSpecializedFmaDisabledRaw${register_width})
 	add_library(${wrapper_target} OBJECT tests/codegen/RegisterCodegen.cpp)
 	add_library(${raw_target} OBJECT tests/codegen/RegisterCodegenRaw.cpp)
 	add_library(${default_wrapper_target} OBJECT tests/codegen/RegisterDefaultAbi.cpp)
 	add_library(${default_raw_target} OBJECT tests/codegen/RegisterDefaultAbiRaw.cpp)
 	add_library(${abi_wrapper_target} OBJECT tests/codegen/RegisterAbi.cpp)
 	add_library(${abi_raw_target} OBJECT tests/codegen/RegisterAbiRaw.cpp)
+	add_library(${specialized_fma_enabled_wrapper_target} OBJECT tests/codegen/RegisterSpecializedCodegen.cpp)
+	add_library(${specialized_fma_enabled_raw_target} OBJECT tests/codegen/RegisterSpecializedCodegenRaw.cpp)
+	add_library(${specialized_fma_disabled_wrapper_target} OBJECT tests/codegen/RegisterSpecializedCodegen.cpp)
+	add_library(${specialized_fma_disabled_raw_target} OBJECT tests/codegen/RegisterSpecializedCodegenRaw.cpp)
 	foreach(target IN ITEMS ${wrapper_target} ${raw_target} ${default_wrapper_target} ${default_raw_target}
-		${abi_wrapper_target} ${abi_raw_target})
+		${abi_wrapper_target} ${abi_raw_target}
+		${specialized_fma_enabled_wrapper_target} ${specialized_fma_enabled_raw_target}
+		${specialized_fma_disabled_wrapper_target} ${specialized_fma_disabled_raw_target})
 		target_link_libraries(${target} PRIVATE SimdLib::Register)
 		target_compile_definitions(${target} PRIVATE SIMDLIB_REGISTER_TEST_WIDTH=${register_width})
 		simdlib_enable_development_warnings(${target})
@@ -438,6 +448,18 @@ function(simdlib_add_register_codegen_gate register_width)
 			target_compile_options(${target} PRIVATE /O2 /arch:AVX2)
 		else()
 			target_compile_options(${target} PRIVATE -O2 -mavx2 -fstack-protector-strong)
+		endif()
+	endforeach()
+	foreach(target IN ITEMS ${specialized_fma_enabled_wrapper_target} ${specialized_fma_enabled_raw_target})
+		target_compile_definitions(${target} PRIVATE SIMDLIB_HAS_FMA=1)
+		if(NOT SIMDLIB_MSVC_STYLE_DRIVER)
+			target_compile_options(${target} PRIVATE -mfma)
+		endif()
+	endforeach()
+	foreach(target IN ITEMS ${specialized_fma_disabled_wrapper_target} ${specialized_fma_disabled_raw_target})
+		target_compile_definitions(${target} PRIVATE SIMDLIB_HAS_FMA=0)
+		if(NOT SIMDLIB_MSVC_STYLE_DRIVER)
+			target_compile_options(${target} PRIVATE -mno-fma)
 		endif()
 	endforeach()
 
@@ -449,6 +471,8 @@ function(simdlib_add_register_codegen_gate register_width)
 	set(default_abi_stamp_file "${artifact_directory}/default-abi.stamp")
 	set(abi_stamp_file "${artifact_directory}/abi-comparison.stamp")
 	set(consumer_abi_stamp_file "${artifact_directory}/consumer-abi-comparison.stamp")
+	set(specialized_fma_enabled_stamp_file "${artifact_directory}/specialized/fma-enabled/comparison.stamp")
+	set(specialized_fma_disabled_stamp_file "${artifact_directory}/specialized/fma-disabled/comparison.stamp")
 	add_custom_command(
 		OUTPUT "${stamp_file}"
 		COMMAND ${CMAKE_COMMAND} -E make_directory "${artifact_directory}"
@@ -499,6 +523,62 @@ function(simdlib_add_register_codegen_gate register_width)
 			$<TARGET_OBJECTS:${raw_target}>
 			cmake/CompareRegisterCodegen.cmake
 		COMMENT "Comparing ${register_width}-bit register-only wrapper and raw generated code"
+		VERBATIM)
+	add_custom_command(
+		OUTPUT "${specialized_fma_enabled_stamp_file}"
+		COMMAND ${CMAKE_COMMAND} -E make_directory "${artifact_directory}/specialized/fma-enabled"
+		COMMAND ${CMAKE_COMMAND}
+			-DWRAPPER_OBJECT=$<TARGET_OBJECTS:${specialized_fma_enabled_wrapper_target}>
+			-DRAW_OBJECT=$<TARGET_OBJECTS:${specialized_fma_enabled_raw_target}>
+			-DOBJDUMP=${CMAKE_OBJDUMP}
+			-DARTIFACT_DIRECTORY=${artifact_directory}/specialized/fma-enabled
+			-DCOMPILER_ID=${CMAKE_CXX_COMPILER_ID}
+			-DCOMPILER_VERSION=${CMAKE_CXX_COMPILER_VERSION}
+			-DCOMPILER_PATH=${CMAKE_CXX_COMPILER}
+			-DSYSTEM_NAME=${CMAKE_SYSTEM_NAME}
+			-DSYSTEM_PROCESSOR=${CMAKE_SYSTEM_PROCESSOR}
+			-DCONFIGURATION=$<CONFIG>
+			-DREGISTER_WIDTH=${register_width}
+			-DVECTORCALL_ENABLED=${vectorcall_enabled}
+			-DSTACK_PROTECTOR_MODE=${stack_protector_mode}
+			-DCODEGEN_PROFILE=specialized-fma-enabled
+			-DFMA_EXPECTATION=enabled
+			-DSYMBOL_PATTERN=simdlib_specialized_codegen_
+			-P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/CompareRegisterCodegen.cmake
+		COMMAND ${CMAKE_COMMAND} -E touch "${specialized_fma_enabled_stamp_file}"
+		DEPENDS
+			$<TARGET_OBJECTS:${specialized_fma_enabled_wrapper_target}>
+			$<TARGET_OBJECTS:${specialized_fma_enabled_raw_target}>
+			cmake/CompareRegisterCodegen.cmake
+		COMMENT "Comparing ${register_width}-bit specialized Register code with FMA enabled"
+		VERBATIM)
+	add_custom_command(
+		OUTPUT "${specialized_fma_disabled_stamp_file}"
+		COMMAND ${CMAKE_COMMAND} -E make_directory "${artifact_directory}/specialized/fma-disabled"
+		COMMAND ${CMAKE_COMMAND}
+			-DWRAPPER_OBJECT=$<TARGET_OBJECTS:${specialized_fma_disabled_wrapper_target}>
+			-DRAW_OBJECT=$<TARGET_OBJECTS:${specialized_fma_disabled_raw_target}>
+			-DOBJDUMP=${CMAKE_OBJDUMP}
+			-DARTIFACT_DIRECTORY=${artifact_directory}/specialized/fma-disabled
+			-DCOMPILER_ID=${CMAKE_CXX_COMPILER_ID}
+			-DCOMPILER_VERSION=${CMAKE_CXX_COMPILER_VERSION}
+			-DCOMPILER_PATH=${CMAKE_CXX_COMPILER}
+			-DSYSTEM_NAME=${CMAKE_SYSTEM_NAME}
+			-DSYSTEM_PROCESSOR=${CMAKE_SYSTEM_PROCESSOR}
+			-DCONFIGURATION=$<CONFIG>
+			-DREGISTER_WIDTH=${register_width}
+			-DVECTORCALL_ENABLED=${vectorcall_enabled}
+			-DSTACK_PROTECTOR_MODE=${stack_protector_mode}
+			-DCODEGEN_PROFILE=specialized-fma-disabled
+			-DFMA_EXPECTATION=disabled
+			-DSYMBOL_PATTERN=simdlib_specialized_codegen_
+			-P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/CompareRegisterCodegen.cmake
+		COMMAND ${CMAKE_COMMAND} -E touch "${specialized_fma_disabled_stamp_file}"
+		DEPENDS
+			$<TARGET_OBJECTS:${specialized_fma_disabled_wrapper_target}>
+			$<TARGET_OBJECTS:${specialized_fma_disabled_raw_target}>
+			cmake/CompareRegisterCodegen.cmake
+		COMMENT "Comparing ${register_width}-bit specialized Register code with FMA disabled"
 		VERBATIM)
 	add_custom_command(
 		OUTPUT "${lane_stamp_file}"
@@ -630,14 +710,17 @@ function(simdlib_add_register_codegen_gate register_width)
 		COMMENT "Comparing ${register_width}-bit downstream Register wrappers and raw ABI boundaries"
 		VERBATIM)
 	set(expression_codegen_gate_outputs
-		"${register_only_stamp_file}" "${reassignment_stamp_file}" "${lane_stamp_file}")
+		"${register_only_stamp_file}" "${reassignment_stamp_file}" "${lane_stamp_file}"
+		"${specialized_fma_enabled_stamp_file}" "${specialized_fma_disabled_stamp_file}")
 	if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
 		list(APPEND expression_codegen_gate_outputs "${stamp_file}")
 	endif()
 	add_custom_target(SimdLibRegisterExpressionCodegen${register_width}
 		DEPENDS ${expression_codegen_gate_outputs})
 	add_dependencies(SimdLibRegisterExpressionCodegen${register_width}
-		${wrapper_target} ${raw_target})
+		${wrapper_target} ${raw_target}
+		${specialized_fma_enabled_wrapper_target} ${specialized_fma_enabled_raw_target}
+		${specialized_fma_disabled_wrapper_target} ${specialized_fma_disabled_raw_target})
 	add_test(NAME SimdLib.RegisterExpressionCodegen.${register_width}
 		COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --config $<CONFIG>
 			--target SimdLibRegisterExpressionCodegen${register_width})
@@ -657,7 +740,9 @@ function(simdlib_add_register_codegen_gate register_width)
 	add_custom_target(SimdLibRegisterCodegen${register_width} ALL DEPENDS ${codegen_gate_outputs})
 	add_dependencies(SimdLibRegisterCodegen${register_width}
 		${wrapper_target} ${raw_target} ${default_wrapper_target} ${default_raw_target}
-		${abi_wrapper_target} ${abi_raw_target})
+		${abi_wrapper_target} ${abi_raw_target}
+		${specialized_fma_enabled_wrapper_target} ${specialized_fma_enabled_raw_target}
+		${specialized_fma_disabled_wrapper_target} ${specialized_fma_disabled_raw_target})
 	add_test(NAME SimdLib.RegisterCodegen.${register_width}
 		COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --config $<CONFIG>
 			--target SimdLibRegisterCodegen${register_width})
@@ -744,7 +829,9 @@ if(SIMDLIB_BUILD_TESTS)
 	if(SIMDLIB_REGISTER_COMPILER_SUPPORTED)
 		simdlib_add_catch_test(SimdLibTestsRegister tests/Register.tests.cpp
 			SimdLib.Tests.Register "REGISTER;AVX2")
-		target_sources(SimdLibTestsRegister PRIVATE tests/RegisterBasicOperations.tests.cpp)
+		target_sources(SimdLibTestsRegister PRIVATE
+			tests/RegisterBasicOperations.tests.cpp
+			tests/RegisterSpecializedOperations.tests.cpp)
 		target_link_libraries(SimdLibTestsRegister PRIVATE SimdLib::Register)
 		if(SIMDLIB_MSVC_STYLE_DRIVER)
 			target_compile_options(SimdLibTestsRegister PRIVATE /arch:AVX2)

@@ -890,7 +890,8 @@ the explicit-object surface by generated-code and ABI tests.
 | `widen` | `value.widen_low<target_t, target_bits>()` | Explicit target `Register`; consumed lanes documented |
 | `absolute` | `value.absolute()` | Same register type and intrinsic edge behavior |
 | `sqrt` | `value.sqrt()` | Same register type where supported |
-| `magnitude` | `value.magnitude()` | Same register type and existing 128-bit grouping |
+| `magnitude` | `value.magnitude()` | Floating groups broadcast; integer groups store an unchecked result only in their leading lane |
+| `magnitude_checked` | `value.magnitude_checked()` | Integral groups store a saturated result followed by a canonical overflow mask |
 | `normalize` | `value.normalize()` | Same floating register type |
 | `avg` | `lhs.average(rhs)` | Same register type |
 | `add_horizontal` | `lhs.horizontal_add(rhs)` | Same register type |
