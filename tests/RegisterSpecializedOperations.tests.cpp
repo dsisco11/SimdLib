@@ -339,8 +339,11 @@ template <class element_t, std::size_t bits> void require_adjacent_multiply_add_
 		{
 			const std::size_t sourceIndex = sourceBase + pair * 2;
 			const std::size_t resultIndex = group * resultGroupLanes + pair;
-			expectedBits[resultIndex] = adjacent_operand_bits<result_t>(lhs[sourceIndex]) * adjacent_operand_bits<result_t>(rhs[sourceIndex]) +
-										adjacent_operand_bits<result_t>(lhs[sourceIndex + 1]) * adjacent_operand_bits<result_t>(rhs[sourceIndex + 1]);
+			const std::uint64_t lowProduct = static_cast<std::uint64_t>(adjacent_operand_bits<result_t>(lhs[sourceIndex])) *
+											 static_cast<std::uint64_t>(adjacent_operand_bits<result_t>(rhs[sourceIndex]));
+			const std::uint64_t highProduct = static_cast<std::uint64_t>(adjacent_operand_bits<result_t>(lhs[sourceIndex + 1])) *
+											  static_cast<std::uint64_t>(adjacent_operand_bits<result_t>(rhs[sourceIndex + 1]));
+			expectedBits[resultIndex] = static_cast<unsigned_result_t>(lowProduct + highProduct);
 		}
 	}
 	const auto actual = source_register::from_array(lhs).multiply_add_adjacent(source_register::from_array(rhs)).to_array();

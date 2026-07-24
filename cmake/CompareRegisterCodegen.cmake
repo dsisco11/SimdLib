@@ -17,6 +17,9 @@ endif()
 if(NOT DEFINED FMA_EXPECTATION OR "${FMA_EXPECTATION}" STREQUAL "")
 	set(FMA_EXPECTATION "none")
 endif()
+if(NOT DEFINED RECORD_ONLY OR "${RECORD_ONLY}" STREQUAL "")
+	set(RECORD_ONLY OFF)
+endif()
 if(NOT FMA_EXPECTATION MATCHES "^(none|enabled|disabled)$")
 	message(FATAL_ERROR "Unsupported FMA_EXPECTATION: ${FMA_EXPECTATION}")
 endif()
@@ -34,6 +37,65 @@ function(simdlib_disassemble object_file output_variable)
 		message(FATAL_ERROR "Unable to disassemble ${object_file}: ${disassembly_error}")
 	endif()
 	set(${output_variable} "${disassembly}" PARENT_SCOPE)
+endfunction()
+
+# @brief Removes the exact accepted MSVC from-array security-cookie sequence.
+# @param input_text Allocation-independent wrapper instruction profile.
+# @param output_variable Variable that receives the comparable wrapper profile.
+# @param accepted_variable Variable that reports whether the exact exception was found.
+function(simdlib_accept_msvc_from_array_cookie input_text output_variable accepted_variable)
+	set(${output_variable} "${input_text}" PARENT_SCOPE)
+	set(${accepted_variable} OFF PARENT_SCOPE)
+	if(NOT COMPILER_ID STREQUAL "MSVC" OR
+		NOT SYSTEM_NAME STREQUAL "Windows" OR
+		NOT VECTORCALL_ENABLED STREQUAL "1" OR
+		NOT SYMBOL_PATTERN STREQUAL "simdlib_type_matrix_" OR
+		NOT REGISTER_WIDTH STREQUAL "128")
+		return()
+	endif()
+
+	set(cookie_profile [=[<symbol>:
+subq	$0x28, %rsp
+movq	(%rip), %rax            # 0x<target>
+xorq	%rsp, %rax
+movq	%rax, 0x10(%rsp)
+movq	(%rcx), %rax
+movq	%rax, (%rsp)
+movq	0x8(%rcx), %rax
+movq	%rax, 0x8(%rsp)
+vmovdqu	(%rsp), %vreg
+movq	0x10(%rsp), %rcx
+xorq	%rsp, %rcx
+callq	0x<target>
+addq	$0x28, %rsp
+retq]=])
+	set(raw_profile [=[<symbol>:
+subq	$0x18, %rsp
+movq	(%rcx), %rax
+movq	%rax, (%rsp)
+movq	0x8(%rcx), %rax
+movq	%rax, 0x8(%rsp)
+vmovdqu	(%rsp), %vreg
+addq	$0x18, %rsp
+retq]=])
+	string(FIND "${input_text}" "${cookie_profile}" cookie_index)
+	if(cookie_index LESS 0)
+		return()
+	endif()
+	string(LENGTH "${cookie_profile}" cookie_length)
+	math(EXPR cookie_tail_index "${cookie_index} + ${cookie_length}")
+	string(SUBSTRING "${input_text}" ${cookie_tail_index} -1 cookie_tail)
+	string(FIND "${cookie_tail}" "${cookie_profile}" second_cookie_relative_index)
+	if(second_cookie_relative_index LESS 0)
+		return()
+	endif()
+	math(EXPR second_cookie_index "${cookie_tail_index} + ${second_cookie_relative_index}")
+	math(EXPR second_cookie_tail_index "${second_cookie_index} + ${cookie_length}")
+	string(SUBSTRING "${input_text}" 0 ${second_cookie_index} comparable_prefix)
+	string(SUBSTRING "${input_text}" ${second_cookie_tail_index} -1 comparable_suffix)
+	set(comparable_profile "${comparable_prefix}${raw_profile}${comparable_suffix}")
+	set(${output_variable} "${comparable_profile}" PARENT_SCOPE)
+	set(${accepted_variable} ON PARENT_SCOPE)
 endfunction()
 
 # @brief Removes object identity, instruction addresses, and encoded bytes while retaining instructions.
@@ -219,9 +281,9 @@ simdlib_profile_disassembly("${raw_normalized}" raw_profile)
 
 string(FIND "${wrapper_profile}" "vfmadd" wrapper_fma_index)
 string(FIND "${raw_profile}" "vfmadd" raw_fma_index)
-if(FMA_EXPECTATION STREQUAL "enabled" AND (wrapper_fma_index LESS 0 OR raw_fma_index LESS 0))
+if(NOT RECORD_ONLY AND FMA_EXPECTATION STREQUAL "enabled" AND (wrapper_fma_index LESS 0 OR raw_fma_index LESS 0))
 	message(FATAL_ERROR "The FMA-enabled generated-code profile does not contain fused multiply-add instructions")
-elseif(FMA_EXPECTATION STREQUAL "disabled" AND (NOT wrapper_fma_index LESS 0 OR NOT raw_fma_index LESS 0))
+elseif(NOT RECORD_ONLY AND FMA_EXPECTATION STREQUAL "disabled" AND (NOT wrapper_fma_index LESS 0 OR NOT raw_fma_index LESS 0))
 	message(FATAL_ERROR "The FMA-disabled generated-code profile unexpectedly contains fused multiply-add instructions")
 endif()
 
@@ -235,7 +297,14 @@ if(NOT wrapper_profile STREQUAL raw_profile)
 		set(comparison_result "accepted-compiler-exception")
 		set(accepted_exception "msvc-gs-scalar-cookie")
 	else()
-		set(comparison_result "failed")
+		simdlib_accept_msvc_from_array_cookie(
+			"${wrapper_profile}" comparable_wrapper_profile accepted_msvc_from_array_cookie)
+		if(accepted_msvc_from_array_cookie AND comparable_wrapper_profile STREQUAL raw_profile)
+			set(comparison_result "accepted-compiler-exception")
+			set(accepted_exception "msvc-gs-from-array-cookie")
+		else()
+			set(comparison_result "failed")
+		endif()
 		#[[
 		The compound-assignment exception branch is disabled with the public
 		compound-assignment API. Reassignment must satisfy exact parity.
@@ -249,6 +318,11 @@ if(NOT wrapper_profile STREQUAL raw_profile)
 		endif()
 		]]
 	endif()
+endif()
+
+if(RECORD_ONLY AND comparison_result STREQUAL "failed")
+	set(comparison_result "recorded-difference")
+	set(accepted_exception "non-release-differential")
 endif()
 
 file(WRITE "${ARTIFACT_DIRECTORY}/wrapper.disassembly.txt" "${wrapper_disassembly}")
@@ -273,6 +347,7 @@ file(WRITE "${ARTIFACT_DIRECTORY}/provenance.txt"
 	"stack_protector_mode=${STACK_PROTECTOR_MODE}\n"
 	"codegen_profile=${CODEGEN_PROFILE}\n"
 	"fma_expectation=${FMA_EXPECTATION}\n"
+	"record_only=${RECORD_ONLY}\n"
 	"comparison_result=${comparison_result}\n"
 	"accepted_exception=${accepted_exception}\n"
 	"wrapper_object=${WRAPPER_OBJECT}\n"
@@ -281,6 +356,9 @@ file(WRITE "${ARTIFACT_DIRECTORY}/provenance.txt"
 if(comparison_result STREQUAL "failed")
 	message(FATAL_ERROR
 		"Register wrapper generated code differs from the raw fixture; inspect ${ARTIFACT_DIRECTORY}")
+elseif(comparison_result STREQUAL "recorded-difference")
+	message(STATUS
+		"Recorded a non-Release Register wrapper/raw difference; artifacts: ${ARTIFACT_DIRECTORY}")
 elseif(comparison_result STREQUAL "accepted-compiler-exception")
 	message(STATUS
 		"Accepted the exact MSVC /GS security-cookie exception ${accepted_exception}; artifacts: ${ARTIFACT_DIRECTORY}")

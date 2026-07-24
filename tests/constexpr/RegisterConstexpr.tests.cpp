@@ -11,6 +11,14 @@
 namespace
 {
 
+/** @brief Compile-time list of supported Register element types. */
+template <class... element_types> struct register_element_types
+{
+};
+
+using supported_register_element_types =
+	register_element_types<std::int8_t, std::uint8_t, std::int16_t, std::uint16_t, std::int32_t, std::uint32_t, std::int64_t, std::uint64_t, float, double>;
+
 /** @brief Constructs a register from an expanded compile-time lane array. */
 template <class register_t, std::size_t... indices>
 [[nodiscard]] consteval register_t from_lanes(const std::array<typename register_t::element_type, register_t::lane_count> &values,
@@ -92,7 +100,7 @@ template <class element_t, std::size_t bits> [[nodiscard]] consteval bool regist
 		return false;
 	if (rewrapped.bits() != expected)
 		return false;
-	if (!(greater | less).all() || !(greater & less).none() || (greater ^ less).bits() != (greater | less).bits())
+	if (!(greater | less).all() || !(greater & less).none() || (greater ^ less).bits() != (greater | less).bits() || !(~(greater | less)).none())
 		return false;
 	const auto selected = greater.select(register_type::broadcast(static_cast<element_t>(11)), register_type::broadcast(static_cast<element_t>(22))).to_array();
 	for (std::size_t index = 0; index < selected.size(); ++index)
@@ -100,8 +108,23 @@ template <class element_t, std::size_t bits> [[nodiscard]] consteval bool regist
 		if (selected[index] != static_cast<element_t>((index % 2) == 0 ? 11 : 22))
 			return false;
 	}
-	return lhs == lhs && lhs != rhs && lhs.compare_greater_equal(rhs).bits() == expected && lhs.compare_less_equal(rhs).bits() == less.bits();
+	return lhs == lhs && lhs != rhs && lhs.compare_equal(lhs).all() && lhs.compare_greater_equal(rhs).bits() == expected &&
+		   lhs.compare_less_equal(rhs).bits() == less.bits();
 #endif
+}
+
+/** @brief Verifies constant-evaluated first-minimum and first-maximum position reductions. */
+template <class element_t, std::size_t bits>
+	requires std::is_integral_v<element_t>
+[[nodiscard]] consteval bool register_position_constexpr_contract() noexcept
+{
+	using register_type = SimdLib::Register<element_t, bits>;
+	std::array<element_t, register_type::lane_count> values{};
+	values.fill(static_cast<element_t>(7));
+	values[0] = static_cast<element_t>(1);
+	values[register_type::lane_count - 1] = static_cast<element_t>(12);
+	const auto value = register_type::from_array(values);
+	return value.min_position() == 0 && value.max_position() == register_type::lane_count - 1;
 }
 
 /** @brief Verifies constant-evaluated bitwise expressions, assignments, and sign reductions. */
@@ -196,10 +219,68 @@ template <class element_t, std::size_t bits>
 #else
 	const auto zeros = register_type::zero().to_array();
 	return value.byte_shift_left(0).to_array() == lanes && value.byte_shift_left(16).to_array() == zeros && value.byte_shift_left(17).to_array() == zeros &&
-		   value.byte_shift_right(16).to_array() == zeros && value.template bit_shift_left<128>().to_array() == zeros &&
-		   value.template bit_shift_left<129>().to_array() == zeros && value.template bit_shift_right<128>().to_array() == zeros &&
-		   value.template bit_shift_right<129>().to_array() == zeros;
+		   value.byte_shift_right(16).to_array() == zeros && value.bit_shift_left(128).to_array() == zeros && value.bit_shift_right(128).to_array() == zeros &&
+		   value.template bit_shift_left<128>().to_array() == zeros && value.template bit_shift_left<129>().to_array() == zeros &&
+		   value.template bit_shift_right<128>().to_array() == zeros && value.template bit_shift_right<129>().to_array() == zeros;
 #endif
+}
+
+/** @brief Verifies every supported bit-cast and numeric-conversion constexpr cell for one source and target type. */
+template <class source_t, class target_t, std::size_t bits> [[nodiscard]] consteval bool register_conversion_constexpr_cell() noexcept
+{
+	using source_register = SimdLib::Register<source_t, bits>;
+	const auto source = source_register::broadcast(static_cast<source_t>(1));
+	if constexpr (SimdLib::IRegister::BitCast<source_register, target_t>)
+	{
+#if SIMDLIB_COMPILER_MSVC
+		(void)source;
+#else
+		const auto round_trip = source.template bit_cast<target_t>().template bit_cast<source_t>();
+		if (round_trip.template lane<0>() != static_cast<source_t>(1))
+			return false;
+#endif
+	}
+	if constexpr (SimdLib::IRegister::Convert<source_register, target_t>)
+	{
+		const auto converted = source.template convert<target_t>();
+		if (converted.template lane<0>() != static_cast<target_t>(1))
+			return false;
+	}
+	return true;
+}
+
+/** @brief Verifies every target type for one source type in the constexpr conversion matrix. */
+template <class source_t, std::size_t bits, class... target_types>
+[[nodiscard]] consteval bool register_conversion_constexpr_targets(register_element_types<target_types...>) noexcept
+{
+	return (register_conversion_constexpr_cell<source_t, target_types, bits>() && ...);
+}
+
+/** @brief Verifies one supported or rejected low-lane widening constexpr cell. */
+template <class source_t, class target_t, std::size_t source_bits, std::size_t target_bits>
+[[nodiscard]] consteval bool register_widen_constexpr_cell() noexcept
+{
+	using source_register = SimdLib::Register<source_t, source_bits>;
+	const auto source = source_register::broadcast(static_cast<source_t>(1));
+	if constexpr (SimdLib::IRegister::WidenLow<source_register, target_t, target_bits>)
+	{
+		const auto widened = source.template widen_low<target_t, target_bits>();
+		return widened.template lane<0>() == static_cast<target_t>(1);
+	}
+	return true;
+}
+
+/** @brief Verifies both supported destination widths for one widening source and target type. */
+template <class source_t, class target_t, std::size_t source_bits> [[nodiscard]] consteval bool register_widen_constexpr_widths() noexcept
+{
+	return register_widen_constexpr_cell<source_t, target_t, source_bits, 128>() && register_widen_constexpr_cell<source_t, target_t, source_bits, 256>();
+}
+
+/** @brief Verifies every widening target type for one source type. */
+template <class source_t, std::size_t source_bits, class... target_types>
+[[nodiscard]] consteval bool register_widen_constexpr_targets(register_element_types<target_types...>) noexcept
+{
+	return (register_widen_constexpr_widths<source_t, target_types, source_bits>() && ...);
 }
 
 /** @brief Verifies constant-evaluated rearrangement, reinterpretation, numeric conversion, and widening. */
@@ -229,6 +310,7 @@ template <std::size_t bits> [[nodiscard]] consteval bool register_rearrangement_
 	const auto word_value = words_t::from_array(words);
 	const auto int_value = ints_t::from_array(ints);
 	const auto unpacked = int_value.unpack_low(ints_t::broadcast(40));
+	const auto unpacked_high = int_value.unpack_high(ints_t::broadcast(40));
 	const auto low_shuffle = word_value.template shuffle_low<0x1B>();
 	const auto high_shuffle = word_value.template shuffle_high<0x1B>();
 	const auto blended = word_value.template blend<0xA5>(words_t::broadcast(70));
@@ -252,10 +334,11 @@ template <std::size_t bits> [[nodiscard]] consteval bool register_rearrangement_
 	}
 
 	const auto unpacked_lanes = unpacked.to_array();
+	const auto unpacked_high_lanes = unpacked_high.to_array();
 	const auto low_lanes = low_shuffle.to_array();
 	const auto high_lanes = high_shuffle.to_array();
 	const auto blend_lanes = blended.to_array();
-	if (unpacked_lanes[0] != 1 || unpacked_lanes[1] != 40 || reinterpreted.to_array() != ints)
+	if (unpacked_lanes[0] != 1 || unpacked_lanes[1] != 40 || unpacked_high_lanes[0] != 3 || unpacked_high_lanes[1] != 40 || reinterpreted.to_array() != ints)
 		return false;
 	for (std::size_t group = 0; group < words.size(); group += 8)
 	{
@@ -321,5 +404,29 @@ SIMDLIB_ASSERT_REGISTER_SHIFT_CONSTEXPR(std::uint64_t);
 
 static_assert(register_complete_shift_constexpr_contract());
 static_assert(register_rearrangement_conversion_constexpr_contract<SIMDLIB_REGISTER_TEST_WIDTH>());
+static_assert(register_position_constexpr_contract<std::int8_t, SIMDLIB_REGISTER_TEST_WIDTH>());
+static_assert(register_position_constexpr_contract<std::uint8_t, SIMDLIB_REGISTER_TEST_WIDTH>());
+static_assert(register_position_constexpr_contract<std::int16_t, SIMDLIB_REGISTER_TEST_WIDTH>());
+static_assert(register_position_constexpr_contract<std::uint16_t, SIMDLIB_REGISTER_TEST_WIDTH>());
+static_assert(register_position_constexpr_contract<std::int32_t, SIMDLIB_REGISTER_TEST_WIDTH>());
+static_assert(register_position_constexpr_contract<std::uint32_t, SIMDLIB_REGISTER_TEST_WIDTH>());
+static_assert(register_position_constexpr_contract<std::int64_t, SIMDLIB_REGISTER_TEST_WIDTH>());
+static_assert(register_position_constexpr_contract<std::uint64_t, SIMDLIB_REGISTER_TEST_WIDTH>());
+#define SIMDLIB_ASSERT_REGISTER_CONVERSION_CONSTEXPR(source_type)                                                                                              \
+	static_assert(register_conversion_constexpr_targets<source_type, SIMDLIB_REGISTER_TEST_WIDTH>(supported_register_element_types{}));                        \
+	static_assert(register_widen_constexpr_targets<source_type, SIMDLIB_REGISTER_TEST_WIDTH>(supported_register_element_types{}))
+
+SIMDLIB_ASSERT_REGISTER_CONVERSION_CONSTEXPR(std::int8_t);
+SIMDLIB_ASSERT_REGISTER_CONVERSION_CONSTEXPR(std::uint8_t);
+SIMDLIB_ASSERT_REGISTER_CONVERSION_CONSTEXPR(std::int16_t);
+SIMDLIB_ASSERT_REGISTER_CONVERSION_CONSTEXPR(std::uint16_t);
+SIMDLIB_ASSERT_REGISTER_CONVERSION_CONSTEXPR(std::int32_t);
+SIMDLIB_ASSERT_REGISTER_CONVERSION_CONSTEXPR(std::uint32_t);
+SIMDLIB_ASSERT_REGISTER_CONVERSION_CONSTEXPR(std::int64_t);
+SIMDLIB_ASSERT_REGISTER_CONVERSION_CONSTEXPR(std::uint64_t);
+SIMDLIB_ASSERT_REGISTER_CONVERSION_CONSTEXPR(float);
+SIMDLIB_ASSERT_REGISTER_CONVERSION_CONSTEXPR(double);
+
+#undef SIMDLIB_ASSERT_REGISTER_CONVERSION_CONSTEXPR
 
 } // namespace

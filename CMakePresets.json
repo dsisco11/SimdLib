@@ -75,6 +75,27 @@
             }
         },
         {
+            "name": "container-debug",
+            "inherits": "container-base",
+            "displayName": "Container Debug wrapper/raw differentials",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "SIMDLIB_BUILD_TESTS": "ON",
+                "SIMDLIB_BUILD_TESTS_OPTIONAL": "OFF",
+                "SIMDLIB_BUILD_EXAMPLES": "ON",
+                "SIMDLIB_BUILD_REGISTER_CODEGEN": "ON",
+                "SIMDLIB_REGISTER_CODEGEN_RECORD_ONLY": "ON"
+            }
+        },
+        {
+            "name": "container-benchmark",
+            "inherits": "container-focused",
+            "displayName": "Container Register benchmarks",
+            "cacheVariables": {
+                "SIMDLIB_BUILD_BENCHMARKS": "ON"
+            }
+        },
+        {
             "name": "container-full",
             "inherits": "container-base",
             "displayName": "Container full validation",
@@ -93,7 +114,9 @@
                 "CMAKE_BUILD_TYPE": "Debug",
                 "SIMDLIB_BUILD_TESTS": "ON",
                 "SIMDLIB_BUILD_TESTS_OPTIONAL": "OFF",
-                "SIMDLIB_BUILD_EXAMPLES": "ON"
+                "SIMDLIB_BUILD_EXAMPLES": "ON",
+                "SIMDLIB_BUILD_REGISTER_CODEGEN": "ON",
+                "SIMDLIB_REGISTER_CODEGEN_RECORD_ONLY": "ON"
             }
         }
     ],

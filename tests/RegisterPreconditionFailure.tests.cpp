@@ -36,7 +36,9 @@ inline constexpr int register_precondition_failure_exit_code = 74;
 
 #undef SIMDLIB_PRECONDITION
 
+#include <array>
 #include <cstdint>
+#include <span>
 
 TEST_CASE("Register left shift rejects a negative per-lane count", "[simdlib][register][preconditions]")
 {
@@ -57,4 +59,20 @@ TEST_CASE("Register arithmetic right shift rejects a negative per-lane count", "
 	using register_type = SimdLib::Register<std::int32_t, 128>;
 	(void)(register_type::broadcast(-1) >> -1);
 	FAIL("Register arithmetic right shift accepted a negative count");
+}
+
+TEST_CASE("Register aligned load rejects a misaligned source", "[simdlib][register][preconditions]")
+{
+	using register_type = SimdLib::Register<std::uint32_t, 128>;
+	alignas(register_type::byte_count) std::array<std::uint32_t, register_type::lane_count + 1> source{};
+	(void)register_type::load_aligned(std::span<const std::uint32_t, register_type::lane_count>{source.data() + 1, register_type::lane_count});
+	FAIL("Register aligned load accepted a misaligned source");
+}
+
+TEST_CASE("Register aligned store rejects a misaligned destination", "[simdlib][register][preconditions]")
+{
+	using register_type = SimdLib::Register<std::uint32_t, 128>;
+	alignas(register_type::byte_count) std::array<std::uint32_t, register_type::lane_count + 1> destination{};
+	register_type::zero().store_aligned(std::span<std::uint32_t, register_type::lane_count>{destination.data() + 1, register_type::lane_count});
+	FAIL("Register aligned store accepted a misaligned destination");
 }

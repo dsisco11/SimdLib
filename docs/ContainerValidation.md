@@ -63,6 +63,8 @@ without rebuilding images that were already built:
 tools/Run-ContainerMatrix.ps1 -Mode Feature -NoBuild
 tools/Run-ContainerMatrix.ps1 -Mode Sanitizer -NoBuild
 tools/Run-ContainerMatrix.ps1 -Mode Codegen -NoBuild
+tools/Run-ContainerMatrix.ps1 -Mode Debug -NoBuild
+tools/Run-ContainerMatrix.ps1 -Mode Benchmark -NoBuild
 ```
 
 Rebuild both images without cache and rerun focused contracts:
@@ -100,6 +102,8 @@ output and error logs for each compiler.
 | `Feature` | GCC 14, Clang 22 | AVX2, FMA, BMI, and scalar-labelled tests |
 | `Sanitizer` | Clang 22 | Debug ASan and UBSan matrix |
 | `Codegen` | GCC 14, Clang 22 | Pinned optimized environments reserved for generated-code gates |
+| `Debug` | GCC 14, Clang 22 | Debug correctness plus recorded wrapper-versus-raw differentials |
+| `Benchmark` | GCC 14, Clang 22 | Runtime-derived supplemental Register/raw performance comparisons |
 
 Direct `docker compose up` is useful for interactive inspection but is not the
 canonical result aggregator: its selected-service exit-code mode cannot express

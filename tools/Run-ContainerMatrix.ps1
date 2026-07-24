@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [ValidateSet('Focused', 'Full', 'Feature', 'Sanitizer', 'Codegen')]
+    [ValidateSet('Focused', 'Full', 'Feature', 'Sanitizer', 'Codegen', 'Debug', 'Benchmark')]
     [string]$Mode = 'Full',
 
     [ValidateSet('All', 'Gcc14', 'Clang22')]
@@ -153,12 +153,14 @@ if ($Mode -eq 'Sanitizer') {
 
 $profile = $Mode.ToLowerInvariant()
 $preset = switch ($Mode) {
-    'Focused' { 'container-focused' }
-    'Sanitizer' { 'container-sanitize' }
-    'Codegen' { 'container-codegen' }
-    default { 'container-full' }
+	'Focused' { 'container-focused' }
+	'Sanitizer' { 'container-sanitize' }
+	'Codegen' { 'container-codegen' }
+	'Debug' { 'container-debug' }
+	'Benchmark' { 'container-benchmark' }
+	default { 'container-full' }
 }
-$configuration = if ($Mode -eq 'Sanitizer') { 'Debug' } else { 'Release' }
+$configuration = if ($Mode -in @('Sanitizer', 'Debug')) { 'Debug' } else { 'Release' }
 $sanitizer = if ($Mode -eq 'Sanitizer') { 'address-undefined' } else { 'none' }
 $testLabel = if ($Mode -eq 'Feature') { 'AVX2|FMA|BMI|SCALAR' } else { $null }
 $runId = "{0}-{1}-{2}" -f (Get-Date -Format 'yyyyMMdd-HHmmssfff'), $profile, $PID
@@ -206,6 +208,9 @@ try {
         )
         if ($DoctorOnly) {
             $containerArguments += '--doctor-only'
+        }
+        if ($Mode -eq 'Benchmark') {
+            $containerArguments += '--run-benchmarks'
         }
         if ($testLabel) {
             $containerArguments += @('--test-label', $testLabel)

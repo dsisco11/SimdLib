@@ -17,6 +17,7 @@ option(SIMDLIB_FETCH_TEST_DEPENDENCIES "Fetch missing test-only dependencies" ON
 option(SIMDLIB_STRICT_WARNINGS "Treat warnings in SimdLib-owned targets as errors" OFF)
 option(SIMDLIB_ENABLE_COVERAGE "Instrument SimdLib-owned targets for source coverage" OFF)
 option(SIMDLIB_BUILD_REGISTER_CODEGEN "Build mandatory Register generated-code comparisons" OFF)
+option(SIMDLIB_REGISTER_CODEGEN_RECORD_ONLY "Record non-Release Register wrapper/raw differentials without enforcing equality" OFF)
 
 # CTest 4.4 uses this setting during its dashboard Test step to assign a
 # collision-free LLVM_PROFILE_FILE to every discovered test invocation.
@@ -461,6 +462,8 @@ function(simdlib_add_register_codegen_gate register_width)
 	set(specialized_fma_disabled_raw_target SimdLibRegisterSpecializedFmaDisabledRaw${register_width})
 	set(rearrangement_wrapper_target SimdLibRegisterRearrangementWrapper${register_width})
 	set(rearrangement_raw_target SimdLibRegisterRearrangementRaw${register_width})
+	set(type_matrix_wrapper_target SimdLibRegisterTypeMatrixWrapper${register_width})
+	set(type_matrix_raw_target SimdLibRegisterTypeMatrixRaw${register_width})
 	add_library(${wrapper_target} OBJECT tests/codegen/RegisterCodegen.cpp)
 	add_library(${raw_target} OBJECT tests/codegen/RegisterCodegenRaw.cpp)
 	add_library(${default_wrapper_target} OBJECT tests/codegen/RegisterDefaultAbi.cpp)
@@ -473,18 +476,27 @@ function(simdlib_add_register_codegen_gate register_width)
 	add_library(${specialized_fma_disabled_raw_target} OBJECT tests/codegen/RegisterSpecializedCodegenRaw.cpp)
 	add_library(${rearrangement_wrapper_target} OBJECT tests/codegen/RegisterRearrangementCodegen.cpp)
 	add_library(${rearrangement_raw_target} OBJECT tests/codegen/RegisterRearrangementCodegenRaw.cpp)
+	add_library(${type_matrix_wrapper_target} OBJECT tests/codegen/RegisterTypeMatrixCodegen.cpp)
+	add_library(${type_matrix_raw_target} OBJECT tests/codegen/RegisterTypeMatrixCodegenRaw.cpp)
 	foreach(target IN ITEMS ${wrapper_target} ${raw_target} ${default_wrapper_target} ${default_raw_target}
 		${abi_wrapper_target} ${abi_raw_target}
 		${specialized_fma_enabled_wrapper_target} ${specialized_fma_enabled_raw_target}
 		${specialized_fma_disabled_wrapper_target} ${specialized_fma_disabled_raw_target}
-		${rearrangement_wrapper_target} ${rearrangement_raw_target})
+		${rearrangement_wrapper_target} ${rearrangement_raw_target}
+		${type_matrix_wrapper_target} ${type_matrix_raw_target})
 		target_link_libraries(${target} PRIVATE SimdLib::Register)
 		target_compile_definitions(${target} PRIVATE SIMDLIB_REGISTER_TEST_WIDTH=${register_width})
 		simdlib_enable_development_warnings(${target})
 		if(SIMDLIB_MSVC_STYLE_DRIVER)
-			target_compile_options(${target} PRIVATE /O2 /arch:AVX2)
+			target_compile_options(${target} PRIVATE /arch:AVX2)
+			if(NOT SIMDLIB_REGISTER_CODEGEN_RECORD_ONLY)
+				target_compile_options(${target} PRIVATE /O2)
+			endif()
 		else()
-			target_compile_options(${target} PRIVATE -O2 -mavx2 -fstack-protector-strong)
+			target_compile_options(${target} PRIVATE -mavx2 -fstack-protector-strong)
+			if(NOT SIMDLIB_REGISTER_CODEGEN_RECORD_ONLY)
+				target_compile_options(${target} PRIVATE -O2)
+			endif()
 		endif()
 	endforeach()
 	foreach(target IN ITEMS ${specialized_fma_enabled_wrapper_target} ${specialized_fma_enabled_raw_target})
@@ -511,6 +523,7 @@ function(simdlib_add_register_codegen_gate register_width)
 	set(specialized_fma_enabled_stamp_file "${artifact_directory}/specialized/fma-enabled/comparison.stamp")
 	set(specialized_fma_disabled_stamp_file "${artifact_directory}/specialized/fma-disabled/comparison.stamp")
 	set(rearrangement_stamp_file "${artifact_directory}/rearrangement-conversion/comparison.stamp")
+	set(type_matrix_stamp_file "${artifact_directory}/type-matrix/comparison.stamp")
 	add_custom_command(
 		OUTPUT "${stamp_file}"
 		COMMAND ${CMAKE_COMMAND} -E make_directory "${artifact_directory}"
@@ -528,6 +541,7 @@ function(simdlib_add_register_codegen_gate register_width)
 			-DREGISTER_WIDTH=${register_width}
 			-DVECTORCALL_ENABLED=${vectorcall_enabled}
 			-DSTACK_PROTECTOR_MODE=${stack_protector_mode}
+			-DRECORD_ONLY=${SIMDLIB_REGISTER_CODEGEN_RECORD_ONLY}
 			-P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/CompareRegisterCodegen.cmake
 		COMMAND ${CMAKE_COMMAND} -E touch "${stamp_file}"
 		DEPENDS
@@ -553,6 +567,7 @@ function(simdlib_add_register_codegen_gate register_width)
 			-DREGISTER_WIDTH=${register_width}
 			-DVECTORCALL_ENABLED=${vectorcall_enabled}
 			-DSTACK_PROTECTOR_MODE=${stack_protector_mode}
+			-DRECORD_ONLY=${SIMDLIB_REGISTER_CODEGEN_RECORD_ONLY}
 			"-DSYMBOL_PATTERN=simdlib_codegen_(unary|binary|ternary|scalar|mask|native|zero|broadcast_reuse|from_array|lane_|with_lane_last|special_members|pressure|basic_)"
 			-P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/CompareRegisterCodegen.cmake
 		COMMAND ${CMAKE_COMMAND} -E touch "${register_only_stamp_file}"
@@ -579,6 +594,7 @@ function(simdlib_add_register_codegen_gate register_width)
 			-DREGISTER_WIDTH=${register_width}
 			-DVECTORCALL_ENABLED=${vectorcall_enabled}
 			-DSTACK_PROTECTOR_MODE=${stack_protector_mode}
+			-DRECORD_ONLY=${SIMDLIB_REGISTER_CODEGEN_RECORD_ONLY}
 			-DCODEGEN_PROFILE=specialized-fma-enabled
 			-DFMA_EXPECTATION=enabled
 			-DSYMBOL_PATTERN=simdlib_specialized_codegen_
@@ -607,6 +623,7 @@ function(simdlib_add_register_codegen_gate register_width)
 			-DREGISTER_WIDTH=${register_width}
 			-DVECTORCALL_ENABLED=${vectorcall_enabled}
 			-DSTACK_PROTECTOR_MODE=${stack_protector_mode}
+			-DRECORD_ONLY=${SIMDLIB_REGISTER_CODEGEN_RECORD_ONLY}
 			-DCODEGEN_PROFILE=specialized-fma-disabled
 			-DFMA_EXPECTATION=disabled
 			-DSYMBOL_PATTERN=simdlib_specialized_codegen_
@@ -635,6 +652,7 @@ function(simdlib_add_register_codegen_gate register_width)
 			-DREGISTER_WIDTH=${register_width}
 			-DVECTORCALL_ENABLED=${vectorcall_enabled}
 			-DSTACK_PROTECTOR_MODE=${stack_protector_mode}
+			-DRECORD_ONLY=${SIMDLIB_REGISTER_CODEGEN_RECORD_ONLY}
 			-DSYMBOL_PATTERN=simdlib_codegen_lane_
 			-P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/CompareRegisterCodegen.cmake
 		COMMAND ${CMAKE_COMMAND} -E touch "${lane_stamp_file}"
@@ -661,6 +679,7 @@ function(simdlib_add_register_codegen_gate register_width)
 			-DREGISTER_WIDTH=${register_width}
 			-DVECTORCALL_ENABLED=${vectorcall_enabled}
 			-DSTACK_PROTECTOR_MODE=${stack_protector_mode}
+			-DRECORD_ONLY=${SIMDLIB_REGISTER_CODEGEN_RECORD_ONLY}
 			-DCODEGEN_PROFILE=rearrangement-conversion
 			-DSYMBOL_PATTERN=simdlib_rearrangement_codegen_
 			-P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/CompareRegisterCodegen.cmake
@@ -670,6 +689,34 @@ function(simdlib_add_register_codegen_gate register_width)
 			$<TARGET_OBJECTS:${rearrangement_raw_target}>
 			cmake/CompareRegisterCodegen.cmake
 		COMMENT "Comparing ${register_width}-bit rearrangement and conversion wrapper and raw generated code"
+		VERBATIM)
+	add_custom_command(
+		OUTPUT "${type_matrix_stamp_file}"
+		COMMAND ${CMAKE_COMMAND} -E make_directory "${artifact_directory}/type-matrix"
+		COMMAND ${CMAKE_COMMAND}
+			-DWRAPPER_OBJECT=$<TARGET_OBJECTS:${type_matrix_wrapper_target}>
+			-DRAW_OBJECT=$<TARGET_OBJECTS:${type_matrix_raw_target}>
+			-DOBJDUMP=${CMAKE_OBJDUMP}
+			-DARTIFACT_DIRECTORY=${artifact_directory}/type-matrix
+			-DCOMPILER_ID=${CMAKE_CXX_COMPILER_ID}
+			-DCOMPILER_VERSION=${CMAKE_CXX_COMPILER_VERSION}
+			-DCOMPILER_PATH=${CMAKE_CXX_COMPILER}
+			-DSYSTEM_NAME=${CMAKE_SYSTEM_NAME}
+			-DSYSTEM_PROCESSOR=${CMAKE_SYSTEM_PROCESSOR}
+			-DCONFIGURATION=$<CONFIG>
+			-DREGISTER_WIDTH=${register_width}
+			-DVECTORCALL_ENABLED=${vectorcall_enabled}
+			-DSTACK_PROTECTOR_MODE=${stack_protector_mode}
+			-DRECORD_ONLY=${SIMDLIB_REGISTER_CODEGEN_RECORD_ONLY}
+			-DCODEGEN_PROFILE=common-type-matrix
+			-DSYMBOL_PATTERN=simdlib_type_matrix_
+			-P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/CompareRegisterCodegen.cmake
+		COMMAND ${CMAKE_COMMAND} -E touch "${type_matrix_stamp_file}"
+		DEPENDS
+			$<TARGET_OBJECTS:${type_matrix_wrapper_target}>
+			$<TARGET_OBJECTS:${type_matrix_raw_target}>
+			cmake/CompareRegisterCodegen.cmake
+		COMMENT "Comparing ${register_width}-bit common operations across every Register element type"
 		VERBATIM)
 	add_custom_command(
 		OUTPUT "${reassignment_stamp_file}"
@@ -688,6 +735,7 @@ function(simdlib_add_register_codegen_gate register_width)
 			-DREGISTER_WIDTH=${register_width}
 			-DVECTORCALL_ENABLED=${vectorcall_enabled}
 			-DSTACK_PROTECTOR_MODE=${stack_protector_mode}
+			-DRECORD_ONLY=${SIMDLIB_REGISTER_CODEGEN_RECORD_ONLY}
 			-DSYMBOL_PATTERN=simdlib_codegen_reassignment_arithmetic
 			-P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/CompareRegisterCodegen.cmake
 		COMMAND ${CMAKE_COMMAND} -E touch "${reassignment_stamp_file}"
@@ -714,6 +762,7 @@ function(simdlib_add_register_codegen_gate register_width)
 			-DREGISTER_WIDTH=${register_width}
 			-DVECTORCALL_ENABLED=${vectorcall_enabled}
 			-DSTACK_PROTECTOR_MODE=${stack_protector_mode}
+			-DRECORD_ONLY=${SIMDLIB_REGISTER_CODEGEN_RECORD_ONLY}
 			-DSYMBOL_PATTERN=simdlib_abi_
 			-P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/CompareRegisterCodegen.cmake
 		COMMAND ${CMAKE_COMMAND} -E touch "${abi_stamp_file}"
@@ -765,6 +814,7 @@ function(simdlib_add_register_codegen_gate register_width)
 			-DREGISTER_WIDTH=${register_width}
 			-DVECTORCALL_ENABLED=${vectorcall_enabled}
 			-DSTACK_PROTECTOR_MODE=${stack_protector_mode}
+			-DRECORD_ONLY=${SIMDLIB_REGISTER_CODEGEN_RECORD_ONLY}
 			-DSYMBOL_PATTERN=simdlib_consumer_abi_
 			-P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/CompareRegisterCodegen.cmake
 		COMMAND ${CMAKE_COMMAND} -E touch "${consumer_abi_stamp_file}"
@@ -777,7 +827,7 @@ function(simdlib_add_register_codegen_gate register_width)
 	set(expression_codegen_gate_outputs
 		"${register_only_stamp_file}" "${reassignment_stamp_file}" "${lane_stamp_file}"
 		"${specialized_fma_enabled_stamp_file}" "${specialized_fma_disabled_stamp_file}"
-		"${rearrangement_stamp_file}")
+		"${rearrangement_stamp_file}" "${type_matrix_stamp_file}")
 	if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
 		list(APPEND expression_codegen_gate_outputs "${stamp_file}")
 	endif()
@@ -787,7 +837,8 @@ function(simdlib_add_register_codegen_gate register_width)
 		${wrapper_target} ${raw_target}
 		${specialized_fma_enabled_wrapper_target} ${specialized_fma_enabled_raw_target}
 		${specialized_fma_disabled_wrapper_target} ${specialized_fma_disabled_raw_target}
-		${rearrangement_wrapper_target} ${rearrangement_raw_target})
+		${rearrangement_wrapper_target} ${rearrangement_raw_target}
+		${type_matrix_wrapper_target} ${type_matrix_raw_target})
 	add_test(NAME SimdLib.RegisterExpressionCodegen.${register_width}
 		COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --config $<CONFIG>
 			--target SimdLibRegisterExpressionCodegen${register_width})
@@ -810,7 +861,8 @@ function(simdlib_add_register_codegen_gate register_width)
 		${abi_wrapper_target} ${abi_raw_target}
 		${specialized_fma_enabled_wrapper_target} ${specialized_fma_enabled_raw_target}
 		${specialized_fma_disabled_wrapper_target} ${specialized_fma_disabled_raw_target}
-		${rearrangement_wrapper_target} ${rearrangement_raw_target})
+		${rearrangement_wrapper_target} ${rearrangement_raw_target}
+		${type_matrix_wrapper_target} ${type_matrix_raw_target})
 	add_test(NAME SimdLib.RegisterCodegen.${register_width}
 		COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --config $<CONFIG>
 			--target SimdLibRegisterCodegen${register_width})
@@ -1165,12 +1217,20 @@ if(SIMDLIB_BUILD_BENCHMARKS)
     endif()
     add_executable(SimdLibBenchmarks benchmarks/SimdLib.benchmarks.cpp)
     target_link_libraries(SimdLibBenchmarks PRIVATE SimdLib::SimdLib Catch2::Catch2WithMain)
+	if(SIMDLIB_REGISTER_COMPILER_SUPPORTED)
+		target_sources(SimdLibBenchmarks PRIVATE benchmarks/Register.benchmarks.cpp)
+		target_link_libraries(SimdLibBenchmarks PRIVATE SimdLib::Register)
+	endif()
     simdlib_enable_development_warnings(SimdLibBenchmarks)
     target_compile_definitions(SimdLibBenchmarks PRIVATE SIMDLIB_HAS_BMI1=1 SIMDLIB_HAS_BMI2=1)
 	if(SIMDLIB_MSVC_STYLE_DRIVER)
-        target_compile_options(SimdLibBenchmarks PRIVATE /arch:AVX2)
+		target_compile_definitions(SimdLibBenchmarks PRIVATE _SILENCE_CXX23_DENORM_DEPRECATION_WARNING)
+		target_compile_options(SimdLibBenchmarks PRIVATE /arch:AVX2)
     else()
         target_compile_options(SimdLibBenchmarks PRIVATE -mavx2 -mfma -mbmi -mbmi2)
+		if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+			target_compile_options(SimdLibBenchmarks PRIVATE -Wno-deprecated-declarations)
+		endif()
     endif()
 endif()
 

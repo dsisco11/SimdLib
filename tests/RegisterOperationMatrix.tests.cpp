@@ -68,16 +68,17 @@ template <class element_t, std::size_t bits> [[nodiscard]] consteval bool has_co
 		SimdLib::IRegister::DotProduct<register_t, 0> == SimdLib::IApi::DotProduct<api_t, 0> && !SimdLib::IRegister::DotProduct<register_t, -1> &&
 		!SimdLib::IRegister::DotProduct<register_t, 256>;
 
-	constexpr bool bitwise_comparison_and_mask =
+	constexpr bool bitwise_and_comparison =
 		SimdLib::IRegister::BitwiseAnd<register_t> && SimdLib::IRegister::BitwiseOr<register_t> && SimdLib::IRegister::BitwiseXor<register_t> &&
 		SimdLib::IRegister::BitwiseNot<register_t> && SimdLib::IRegister::BitwiseAndNot<register_t> && SimdLib::IRegister::Movemask<register_t> &&
 		SimdLib::IRegister::LaneSignBits<register_t> && SimdLib::IRegister::CompareEqual<register_t> && SimdLib::IRegister::CompareGreater<register_t> &&
 		SimdLib::IRegister::CompareGreaterEqual<register_t> && SimdLib::IRegister::CompareLess<register_t> &&
-		SimdLib::IRegister::CompareLessEqual<register_t> && SimdLib::IRegister::Equal<register_t> && SimdLib::IRegister::NotEqual<register_t> &&
-		SimdLib::IRegisterMask::Type<mask_t> && SimdLib::IRegisterMask::Any<mask_t> && SimdLib::IRegisterMask::All<mask_t> &&
-		SimdLib::IRegisterMask::None<mask_t> && SimdLib::IRegisterMask::Bits<mask_t> && SimdLib::IRegisterMask::Select<mask_t> &&
-		SimdLib::IRegisterMask::BitwiseAnd<mask_t> && SimdLib::IRegisterMask::BitwiseOr<mask_t> && SimdLib::IRegisterMask::BitwiseXor<mask_t> &&
-		SimdLib::IRegisterMask::BitwiseNot<mask_t>;
+		SimdLib::IRegister::CompareLessEqual<register_t> && SimdLib::IRegister::Equal<register_t> && SimdLib::IRegister::NotEqual<register_t>;
+
+	constexpr bool register_mask = SimdLib::IRegisterMask::Type<mask_t> && SimdLib::IRegisterMask::Any<mask_t> && SimdLib::IRegisterMask::All<mask_t> &&
+								   SimdLib::IRegisterMask::None<mask_t> && SimdLib::IRegisterMask::Bits<mask_t> && SimdLib::IRegisterMask::Select<mask_t> &&
+								   SimdLib::IRegisterMask::BitwiseAnd<mask_t> && SimdLib::IRegisterMask::BitwiseOr<mask_t> &&
+								   SimdLib::IRegisterMask::BitwiseXor<mask_t> && SimdLib::IRegisterMask::BitwiseNot<mask_t>;
 
 	constexpr bool shifts =
 		SimdLib::IRegister::ShiftLeft<register_t> == SimdLib::IApi::ShiftLeft<api_t> &&
@@ -101,7 +102,8 @@ template <class element_t, std::size_t bits> [[nodiscard]] consteval bool has_co
 	static_assert(register_core);
 	static_assert(arithmetic);
 	static_assert(specialized);
-	static_assert(bitwise_comparison_and_mask);
+	static_assert(bitwise_and_comparison);
+	static_assert(register_mask);
 	static_assert(shifts);
 	static_assert(lower_half);
 	static_assert(unpack_low);

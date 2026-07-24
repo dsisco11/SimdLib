@@ -10,6 +10,7 @@ configuration=Release
 sanitizer=none
 output_directory="/workspace/out/${SIMDLIB_COMPILER_ID:-unknown}"
 doctor_only=0
+run_benchmarks=0
 
 ## @brief Prints the supported container-runner arguments.
 print_usage()
@@ -24,6 +25,7 @@ Usage: simdlib-container [options]
   --sanitizer MODE       none or address-undefined
   --output-dir PATH      Writable compiler-specific output directory
   --doctor-only          Print provenance and validate the environment only
+  --run-benchmarks       Run the runtime-derived Register benchmark after validation
   --help                 Show this help
 EOF
 }
@@ -38,6 +40,7 @@ while [ "$#" -gt 0 ]; do
 		--sanitizer) sanitizer=$2; shift 2 ;;
 		--output-dir) output_directory=$2; shift 2 ;;
 		--doctor-only) doctor_only=1; shift ;;
+		--run-benchmarks) run_benchmarks=1; shift ;;
 		--help) print_usage; exit 0 ;;
 		*) echo "Unknown argument: $1" >&2; print_usage >&2; exit 2 ;;
 	esac
@@ -148,3 +151,7 @@ cmake "$@"
 cmake --build "$consumer_directory" --parallel
 ctest --test-dir "$consumer_directory" --output-on-failure \
 	--output-junit "$output_directory/consumer-ctest.xml"
+
+if [ "$run_benchmarks" -eq 1 ]; then
+	"$build_directory/SimdLibBenchmarks" '[simdlib][benchmark][register]' --benchmark-samples 25
+fi

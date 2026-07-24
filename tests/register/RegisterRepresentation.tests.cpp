@@ -1,4 +1,5 @@
 #include <SimdLib/IRegister.h>
+#include <SimdLib/IRegisterMask.h>
 #include <SimdLib/Register.h>
 
 #include <cstdint>
@@ -32,6 +33,15 @@ template <class mask_t, class register_t> consteval bool has_mask_construction_c
 {
 	return std::is_constructible_v<mask_t, typename mask_t::native_type> && !std::is_constructible_v<mask_t, typename mask_t::bits_type> &&
 		   !std::is_constructible_v<mask_t, register_t> && !std::is_convertible_v<mask_t, bool>;
+}
+
+/** @brief Checks the complete public RegisterMask interface for one predicate type. */
+template <class mask_t> consteval bool has_complete_register_mask_surface()
+{
+	return SimdLib::IRegisterMask::Type<mask_t> && SimdLib::IRegisterMask::Any<mask_t> && SimdLib::IRegisterMask::All<mask_t> &&
+		   SimdLib::IRegisterMask::None<mask_t> && SimdLib::IRegisterMask::Bits<mask_t> && SimdLib::IRegisterMask::Select<mask_t> &&
+		   SimdLib::IRegisterMask::BitwiseAnd<mask_t> && SimdLib::IRegisterMask::BitwiseOr<mask_t> && SimdLib::IRegisterMask::BitwiseXor<mask_t> &&
+		   SimdLib::IRegisterMask::BitwiseNot<mask_t>;
 }
 
 /** @brief Checks the required object-model traits for one register-shaped value type. */
@@ -68,11 +78,12 @@ template <class element_t, std::size_t bits> consteval bool has_complete_registe
 		   SimdLib::IRegister::Movemask<register_type> && SimdLib::IRegister::LaneSignBits<register_type> && SimdLib::IRegister::CompareEqual<register_type> &&
 		   SimdLib::IRegister::CompareGreater<register_type> && SimdLib::IRegister::CompareGreaterEqual<register_type> &&
 		   SimdLib::IRegister::CompareLess<register_type> && SimdLib::IRegister::CompareLessEqual<register_type> && SimdLib::IRegister::Equal<register_type> &&
-		   SimdLib::IRegister::NotEqual<register_type> && has_complete_register_value_traits<register_type>() &&
-		   has_complete_register_value_traits<mask_type>() && has_mask_construction_contract<mask_type, register_type>() &&
-		   !SimdLib::IRegister::Lane<register_type, register_type::lane_count> && !SimdLib::IRegister::WithLane<register_type, register_type::lane_count> &&
-		   has_no_compound_assignments<register_type>() && has_no_compound_assignments<mask_type>() && register_type::register_width == bits &&
-		   register_type::byte_count == bits / 8 && register_type::lane_count == bits / (sizeof(element_t) * 8) && mask_type::register_width == bits &&
+		   SimdLib::IRegister::NotEqual<register_type> && has_complete_register_mask_surface<mask_type>() &&
+		   has_complete_register_value_traits<register_type>() && has_complete_register_value_traits<mask_type>() &&
+		   has_mask_construction_contract<mask_type, register_type>() && !SimdLib::IRegister::Lane<register_type, register_type::lane_count> &&
+		   !SimdLib::IRegister::WithLane<register_type, register_type::lane_count> && has_no_compound_assignments<register_type>() &&
+		   has_no_compound_assignments<mask_type>() && register_type::register_width == bits && register_type::byte_count == bits / 8 &&
+		   register_type::lane_count == bits / (sizeof(element_t) * 8) && mask_type::register_width == bits &&
 		   mask_type::lane_count == register_type::lane_count && std::same_as<typename mask_type::bits_type, std::uint32_t>;
 }
 

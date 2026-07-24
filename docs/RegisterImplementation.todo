@@ -189,19 +189,23 @@ SimdLib Register Implementation Plan:
       Evidence: `docs/RegisterProposal.md` and `docs/RegisterImplementationMatrix.md` classify the complete public `Api` operation inventory and link every Register family to its runtime, constexpr, constraint, code-generation, and ABI evidence. `include/SimdLib/IRegister.h`, `include/SimdLib/IRegisterMask.h`, `include/SimdLib/Register.h`, `include/SimdLib/RegisterMask.h`, and `include/SimdLib/RegisterFwd.h` define the constrained, documented public boundary without implementation-detail dependencies. `tests/RegisterOperationMatrix.tests.cpp` exhaustively instantiates the type, width, operation, conversion, widening, and mask availability matrix, while the register compile-failure probes mechanically exclude compatibility-only, partial, unsafe, scalar, native-order, runtime-selector, and collection operations.
 
   Phase 10 - Qualify Correctness, Constexpr, Preconditions, ABI, and Performance:
-    ☐ Run runtime parity against independent scalar references and use `Api` only as an additional migration oracle so both interfaces cannot agree on the same defect unnoticed.
-    ☐ Run constexpr probes for every Register and RegisterMask operation whose `Api` counterpart supports constant evaluation.
-    ☐ Run checks-enabled negative tests for alignment and invalid runtime shift counts while verifying valid release paths add no wrapper-only validation branches.
-    ☐ Run ASan/UBSan configurations over valid boundary inputs, fixed-extent transfers, conversions, shifts, rearrangements, and mask paths.
-    ☐ Generate and inspect the complete forced-inline code corpus for every public operation family, overload shape, supported type, width, compiler, architecture, and ISA profile.
-    ☐ Generate and inspect separately compiled no-inline ABI mirrors for Register, RegisterMask, native vectors, scalar results, native results, stores, and mutating operations.
-    ☐ Require zero wrapper-only instructions, moves, spills, reloads, stack traffic, return buffers, branches, temporaries, or indirection in every supported optimized Release comparison.
-    ☐ Validate consumer-defined `VECTORCALL` boundaries on MSVC and Clang and equivalent raw/default ABI boundaries on GCC where `VECTORCALL` is empty.
-    ☐ Report default-convention consumer behavior separately on compilers where `VECTORCALL` is available and exclude failing signatures from the supported call-boundary claim.
-    ☐ Run Debug and sanitizer wrapper-versus-raw differential checks under identical flags and record any wrapper-only difference even though optimized Release assembly is the primary machine-code gate.
-    ☐ Run supplemental benchmarks only after generated-code gates pass, using runtime-derived inputs that prevent constant folding and dead-code elimination.
-    ☐ Record all accepted and excluded compiler/type/width/configuration combinations and discuss every observed performance exception explicitly.
-    ☐ End Phase 10 only when every supported configuration has complete correctness and zero-overhead evidence and every exclusion has a reviewed written justification.
+    ☒ Run runtime parity against independent scalar references and use `Api` only as an additional migration oracle so both interfaces cannot agree on the same defect unnoticed.
+    ☒ Run constexpr probes for every Register and RegisterMask operation whose `Api` counterpart supports constant evaluation.
+    ☒ Run checks-enabled negative tests for alignment and invalid runtime shift counts while verifying valid release paths add no wrapper-only validation branches.
+    ☒ Run ASan/UBSan configurations over valid boundary inputs, fixed-extent transfers, conversions, shifts, rearrangements, and mask paths.
+    ☒ Generate and inspect the complete forced-inline code corpus for every public operation family, overload shape, supported type, width, compiler, architecture, and ISA profile.
+    ☒ Generate and inspect separately compiled no-inline ABI mirrors for Register, RegisterMask, native vectors, scalar results, native results, stores, and mutating operations.
+    ☒ Require zero wrapper-only instructions, moves, spills, reloads, stack traffic, return buffers, branches, temporaries, or indirection in every supported optimized Release comparison.
+    ☒ Validate consumer-defined `VECTORCALL` boundaries on MSVC and Clang and equivalent raw/default ABI boundaries on GCC where `VECTORCALL` is empty.
+    ☒ Report default-convention consumer behavior separately on compilers where `VECTORCALL` is available and exclude failing signatures from the supported call-boundary claim.
+    ☒ Run Debug and sanitizer wrapper-versus-raw differential checks under identical flags and record any wrapper-only difference even though optimized Release assembly is the primary machine-code gate.
+    ☒ Run supplemental benchmarks only after generated-code gates pass, using runtime-derived inputs that prevent constant folding and dead-code elimination.
+    ☒ Record all accepted and excluded compiler/type/width/configuration combinations and discuss every observed performance exception explicitly.
+    ☒ End Phase 10 only when every supported configuration has complete correctness and zero-overhead evidence and every exclusion has a reviewed written justification.
+      Evidence: `docs/RegisterQualification.md` records the supported AVX2 optimized profile, the 128-bit SSE4.2 availability boundary, all compiler/configuration exclusions, Windows calling-convention limits, Debug/sanitizer policy, and the sole exact MSVC `/GS` exception. Runtime tests use independent scalar references, while `Api` comparisons remain secondary migration checks. The sanitizer run exposed signed overflow in the adjacent-multiply-add scalar oracle; widening the operands before multiplication removed the undefined behavior without changing the expected modular result.
+      Release evidence: MSVC 19.44.35222.0 completed 226 CTest cases and clang-cl 22.1.8 completed 229. Pinned Alpine/musl GCC 14.2.0 and Clang 22.1.3 each completed 223 project tests plus 2 external-consumer tests. The mandatory code-generation profiles produced 17 exact matches plus the one exact MSVC exception, and 20 exact matches each for clang-cl, GCC, and Clang, under `build*/register-codegen` and `out/container/{gcc14,clang22}/codegen`.
+      Diagnostic evidence: focused MSVC and clang-cl Debug runs each completed 29 Register tests plus the constexpr aggregate target. Pinned GCC and Clang Debug runs each completed 190 tests plus 2 consumer tests. Record-only differentials retained 2 exact and 16 differing MSVC profiles and 20 differing profiles for each Clang-family/GNU Debug or sanitizer configuration. The Clang ASan+UBSan rerun completed 190 tests plus 2 consumer tests with no sanitizer diagnostic; artifacts are under `out/container/clang22/sanitizer` and logs under `out/container/logs/20260724-143702023-sanitizer-37064`.
+      Supplemental evidence: the runtime-derived benchmark corpus executed 12 wrapper/raw entries with 25 samples each on MSVC, pinned GCC 14, and pinned Clang 22. Linux logs are under `out/container/logs/20260724-143058406-benchmark-48876` and `out/container/logs/20260724-143417893-benchmark-38132`; timings are supplemental and do not override generated-code gates.
 
   Phase 11 - Expose, Migrate, Document, and Close Out:
     ☐ Conditionally include `Register.h` from `SimdLib.h` only when `SIMDLIB_REGISTER_INTERFACE_AVAILABLE` is nonzero.
@@ -231,5 +235,5 @@ SimdLib Register Implementation Plan:
     ☒ Phase 7 specialized arithmetic, reduction, result-alias, feature-profile, oracle, and generated-code evidence recorded.
     ☒ Phase 8 rearrangement, selector, conversion, width-change, compile-failure, lane-order, and generated-code evidence recorded.
     ☒ Phase 9 final operation matrix, Doxygen audit, public-boundary audit, and compatibility-only classifications recorded.
-    ☐ Phase 10 complete correctness, constexpr, precondition, sanitizer, optimized code-generation, ABI, and exception ledger recorded.
+    ☒ Phase 10 complete correctness, constexpr, precondition, sanitizer, optimized code-generation, ABI, and exception ledger recorded.
     ☐ Phase 11 umbrella exposure, migration, documentation, full compiler/configuration matrix, and close-out evidence recorded in `docs/Validation.md`.
