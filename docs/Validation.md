@@ -99,7 +99,7 @@ overhead. The constant-input UInt128 operation is likewise precomputed. Neither
 result warrants an implementation change; future microarchitecture measurement
 should use a runtime-generated input corpus.
 
-## Register interface closeout (2026-07-24)
+## Register interface closeout (2026-07-25)
 
 The C++23 complete-register interface was qualified with strict warnings on
 native Windows and the pinned Alpine/musl containers. The C++20
@@ -112,8 +112,8 @@ target and supplies the interface-availability requirement.
 
 | Compiler | Configuration | Project tests | External consumer | Result |
 | --- | --- | ---: | ---: | --- |
-| MSVC 19.44.35222.0 | x64 Release | 237 | 2 | No failures |
-| MSVC 19.44.35222.0 | x64 Debug | 237 | 2 Release consumer probes | No failures |
+| MSVC 19.44.35222.0 | x64 Release | 246 | 2 | No failures |
+| MSVC 19.44.35222.0 | x64 Debug | 207 | 2 Release consumer probes | No failures |
 | clang-cl 22.1.8 | x64 Release | 249 | 2 | No failures |
 | clang-cl 22.1.8 | x64 Debug | 210 | 2 Release consumer probes | No failures |
 | GCC 14.2.0 | Alpine x86-64 Release | 240 | 2 | No failures |
@@ -136,16 +136,23 @@ C++20 unavailable-interface probe, C++23 constexpr and constraint probes,
 first-and-only public-header probes, the two-translation-unit Register ODR
 executable, runtime scalar-oracle tests, and the C++23 example.
 
-Windows JUnit records and copied comparison artifacts are under
-`out/register-closeout`. Container JUnit, provenance, compiler identities, and
+Windows JUnit records, direct-suite output, and the MSVC benchmark log are under
+`out/register-closeout-final`. Optimized Windows comparison artifacts are under
+`build/register-codegen/{sse42/128,avx2/128,avx2/256}` for MSVC and
+`build-register-clangcl-release/register-codegen/{sse42/128,avx2/128,avx2/256}`
+for clang-cl. Debug differential records use the corresponding
+`build-register-debug-msvc/register-codegen` and
+`build-register-clangcl-debug/register-codegen` roots.
+
+Container JUnit, provenance, compiler identities, comparison artifacts, and
 build output are under `out/container/{gcc14,clang22}/{full,debug,codegen}` and
 `out/container/clang22/sanitizer`. The final per-run console logs are:
 
-- Release: `out/container/logs/20260724-160527822-full-53304`;
-- Debug: `out/container/logs/20260724-160640863-debug-35896`;
-- sanitizer: `out/container/logs/20260724-160816616-sanitizer-47180`;
-- generated code: `out/container/logs/20260724-160934259-codegen-53916`; and
-- benchmarks: `out/container/logs/20260724-161026349-benchmark-52084`.
+- Release: `out/container/logs/20260725-060637251-full-37796`;
+- Debug: `out/container/logs/20260725-060752068-debug-57960`;
+- sanitizer: `out/container/logs/20260725-060907425-sanitizer-37192`;
+- generated code: `out/container/logs/20260725-061019095-codegen-30308`; and
+- benchmarks: `out/container/logs/20260725-061110574-benchmark-4932`.
 
 ### Generated-code and ABI results
 
@@ -202,22 +209,55 @@ code parity.
 
 ### Reproduction commands
 
-The native Windows configurations use the ordinary project options and the
-same source-provided Catch dependency:
+The native Windows configurations use separate Release-enforcement and
+Debug-recording trees. `SIMDLIB_BUILD_TESTS_OPTIONAL` is explicit so a clean
+cache reproduces the intended 246-test MSVC and 249-test clang-cl Release
+matrices instead of silently selecting the portable-only set. The commands use
+the same source-provided Catch dependency and Visual Studio's bundled Ninja:
 
 ```powershell
-cmake --preset msvc -DSIMDLIB_BUILD_TESTS=ON -DSIMDLIB_BUILD_EXAMPLES=ON -DSIMDLIB_BUILD_REGISTER_CODEGEN=ON -DSIMDLIB_STRICT_WARNINGS=ON
-cmake --build build --config Release --parallel
-ctest --test-dir build -C Release --output-on-failure
-cmake --build build --config Debug --parallel
-ctest --test-dir build -C Debug --output-on-failure
+$artifactRoot = (New-Item -ItemType Directory -Force out/register-closeout-final).FullName
+$catch2Source = (Resolve-Path build/_deps/catch2-src).Path
+$ninja = 'C:/Program Files/Microsoft Visual Studio/2022/Community/Common7/IDE/CommonExtensions/Microsoft/CMake/Ninja/ninja.exe'
 
-cmake -S . -B build-clangcl-register -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=clang-cl -DSIMDLIB_BUILD_TESTS=ON -DSIMDLIB_BUILD_EXAMPLES=ON -DSIMDLIB_BUILD_REGISTER_CODEGEN=ON -DSIMDLIB_STRICT_WARNINGS=ON
-cmake --build build-clangcl-register --parallel
-ctest --test-dir build-clangcl-register --output-on-failure
+cmake --preset msvc -DSIMDLIB_BUILD_TESTS=ON -DSIMDLIB_BUILD_TESTS_OPTIONAL=ON -DSIMDLIB_BUILD_EXAMPLES=ON -DSIMDLIB_BUILD_REGISTER_CODEGEN=ON -DSIMDLIB_REGISTER_CODEGEN_RECORD_ONLY=OFF -DSIMDLIB_STRICT_WARNINGS=ON
+cmake --build build --config Release --parallel
+ctest --test-dir build -C Release --output-on-failure --output-junit "$artifactRoot/msvc-release.xml"
+
+cmake -S . -B build-register-debug-msvc -G "Visual Studio 17 2022" -A x64 -DSIMDLIB_BUILD_TESTS=ON -DSIMDLIB_BUILD_TESTS_OPTIONAL=OFF -DSIMDLIB_BUILD_EXAMPLES=ON -DSIMDLIB_BUILD_REGISTER_CODEGEN=ON -DSIMDLIB_REGISTER_CODEGEN_RECORD_ONLY=ON -DSIMDLIB_STRICT_WARNINGS=ON -DFETCHCONTENT_SOURCE_DIR_CATCH2="$catch2Source"
+cmake --build build-register-debug-msvc --config Debug --parallel
+ctest --test-dir build-register-debug-msvc -C Debug --output-on-failure --output-junit "$artifactRoot/msvc-debug.xml"
+
+cmake -S . -B build-register-clangcl-release -G Ninja -DCMAKE_MAKE_PROGRAM="$ninja" -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=clang-cl -DSIMDLIB_BUILD_TESTS=ON -DSIMDLIB_BUILD_TESTS_OPTIONAL=ON -DSIMDLIB_BUILD_EXAMPLES=ON -DSIMDLIB_BUILD_REGISTER_CODEGEN=ON -DSIMDLIB_REGISTER_CODEGEN_RECORD_ONLY=OFF -DSIMDLIB_STRICT_WARNINGS=ON -DFETCHCONTENT_SOURCE_DIR_CATCH2="$catch2Source"
+cmake --build build-register-clangcl-release --parallel
+ctest --test-dir build-register-clangcl-release --output-on-failure --output-junit "$artifactRoot/clangcl-release.xml"
+
+cmake -S . -B build-register-clangcl-debug -G Ninja -DCMAKE_MAKE_PROGRAM="$ninja" -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=clang-cl -DSIMDLIB_BUILD_TESTS=ON -DSIMDLIB_BUILD_TESTS_OPTIONAL=OFF -DSIMDLIB_BUILD_EXAMPLES=ON -DSIMDLIB_BUILD_REGISTER_CODEGEN=ON -DSIMDLIB_REGISTER_CODEGEN_RECORD_ONLY=ON -DSIMDLIB_STRICT_WARNINGS=ON -DFETCHCONTENT_SOURCE_DIR_CATCH2="$catch2Source"
+cmake --build build-register-clangcl-debug --parallel
+ctest --test-dir build-register-clangcl-debug --output-on-failure --output-junit "$artifactRoot/clangcl-debug.xml"
+```
+
+The external source-tree consumers were reproduced separately for both Windows
+compilers:
+
+```powershell
+cmake -S tests/consumer -B build-register-consumer-msvc -G "Visual Studio 17 2022" -A x64 -DSIMDLIB_SOURCE_DIR="$PWD" -DSIMDLIB_BUILD_REGISTER_CONSUMER=ON
+cmake --build build-register-consumer-msvc --config Release --parallel
+ctest --test-dir build-register-consumer-msvc -C Release --output-on-failure --output-junit "$artifactRoot/msvc-consumer.xml"
+
+cmake -S tests/consumer -B build-register-consumer-clangcl -G Ninja -DCMAKE_MAKE_PROGRAM="$ninja" -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=clang-cl -DSIMDLIB_SOURCE_DIR="$PWD" -DSIMDLIB_BUILD_REGISTER_CONSUMER=ON
+cmake --build build-register-consumer-clangcl --parallel
+ctest --test-dir build-register-consumer-clangcl --output-on-failure --output-junit "$artifactRoot/clangcl-consumer.xml"
+```
+
+Direct Catch totals and the supplemental MSVC benchmark were recorded with:
+
+```powershell
+& { .\build\Release\SimdLibTestsRegisterSse42.exe --reporter compact; .\build\Release\SimdLibTestsRegister.exe --reporter compact } | Tee-Object "$artifactRoot/msvc-register-direct.log"
+& { .\build-register-clangcl-release\SimdLibTestsRegisterSse42.exe --reporter compact; .\build-register-clangcl-release\SimdLibTestsRegister.exe --reporter compact } | Tee-Object "$artifactRoot/clangcl-register-direct.log"
 
 cmake --build build --config Release --parallel --target SimdLibBenchmarks
-.\build\Release\SimdLibBenchmarks.exe "[simdlib][benchmark][register]" --benchmark-samples 25
+.\build\Release\SimdLibBenchmarks.exe "[simdlib][benchmark][register]" --benchmark-samples 25 | Tee-Object "$artifactRoot/msvc-benchmark.log"
 ```
 
 The pinned Linux runs were executed with:
