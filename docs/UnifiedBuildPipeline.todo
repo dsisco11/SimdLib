@@ -138,19 +138,20 @@ SimdLib Unified Build and Test Pipeline Implementation Plan:
     ☐ Do not treat a successful build as test success or benchmark timing as correctness evidence.
 
   Phase 0 - Freeze the Matrix and Measure the Baseline:
-    ☐ Inventory every current native preset, container preset, Compose profile, `Run-ContainerMatrix.ps1` mode, CI job, CTest entry, benchmark invocation, consumer build, documentation command, artifact directory, and cleanup path.
-    ☐ Produce a traceable table mapping each current scenario to its compiler, configuration, instrumentation, whole-tree flags, target-local feature variants, build directory, tests, consumer ownership, generated-code policy, benchmark ownership, and report outputs.
-    ☐ Identify exact duplicate fingerprints, beginning with Full and Feature, and distinguish repeated compilation from repeated test execution and from inexpensive no-op build-graph checks.
-    ☐ Audit every CTest entry whose command invokes `cmake --build`, including constexpr and Register codegen gates, and record how it will become a build dependency plus a build-free artifact validation.
-    ☐ Complete the rename ledger across CMake options, targets, presets, CTest names, runner parameters, entrypoint arguments, Compose profiles, artifact paths, VS Code tasks, CI jobs, and documentation; classify each item as retain, rename, or remove.
-    ☐ Use the approved rename ledger as the canonical vocabulary and verify casing, ordering, and future compiler extensibility while applying it consistently.
-    ☐ Identify every script or external workflow that consumes a name scheduled for migration and define its coordinated-update boundary.
-    ☐ Freeze the accepted required fingerprint matrix, including the approved GCC 13.2 core-only cells and exclusion of GNU-on-Windows, before documenting the unqualified `Build.ps1` command as covering the complete supported matrix.
-    ☐ Define the canonical source-input digest, including its treatment of tracked files, relevant untracked files, submodules if introduced, generated source inputs, ignored files, and excluded build/report directories, so dirty-worktree staleness checks are deterministic and do not hash their own outputs.
-    ☐ Define the canonical compilation-fingerprint serialization, short-identifier length, and collision handling; store the full digest in the manifest and fail rather than reuse a directory if its short identifier resolves to different canonical fingerprint data.
-    ☐ Record clean-build time, warm-build time, compiler invocation count, object count, test count, consumer count, generated-code comparison count, benchmark target count, and artifact size for every current scenario.
-    ☐ Record the expected union of targets and tests so later consolidation cannot hide an omitted configuration behind a faster build.
-    ☐ End Phase 0 only when every existing validation responsibility has one owner in the target matrix and the pre-refactor redundant work is measurable.
+    Evidence: `docs/UnifiedBuildPipelineBaseline.md`, `docs/UnifiedBuildPipelineExpectedTargets.txt`, and `docs/UnifiedBuildPipelineExpectedTests.txt`.
+    ✔ Inventory every current native preset, container preset, Compose profile, `Run-ContainerMatrix.ps1` mode, CI job, CTest entry, benchmark invocation, consumer build, documentation command, artifact directory, and cleanup path.
+    ✔ Produce a traceable table mapping each current scenario to its compiler, configuration, instrumentation, whole-tree flags, target-local feature variants, build directory, tests, consumer ownership, generated-code policy, benchmark ownership, and report outputs.
+    ✔ Identify exact duplicate fingerprints, beginning with Full and Feature, and distinguish repeated compilation from repeated test execution and from inexpensive no-op build-graph checks.
+    ✔ Audit every CTest entry whose command invokes `cmake --build`, including constexpr and Register codegen gates, and record how it will become a build dependency plus a build-free artifact validation.
+    ✔ Complete the rename ledger across CMake options, targets, presets, CTest names, runner parameters, entrypoint arguments, Compose profiles, artifact paths, VS Code tasks, CI jobs, and documentation; classify each item as retain, rename, or remove.
+    ✔ Use the approved rename ledger as the canonical vocabulary and verify casing, ordering, and future compiler extensibility while applying it consistently.
+    ✔ Identify every script or external workflow that consumes a name scheduled for migration and define its coordinated-update boundary.
+    ✔ Freeze the accepted required fingerprint matrix, including the approved GCC 13.2 core-only cells and exclusion of GNU-on-Windows, before documenting the unqualified `Build.ps1` command as covering the complete supported matrix.
+    ✔ Define the canonical source-input digest, including its treatment of tracked files, relevant untracked files, submodules if introduced, generated source inputs, ignored files, and excluded build/report directories, so dirty-worktree staleness checks are deterministic and do not hash their own outputs.
+    ✔ Define the canonical compilation-fingerprint serialization, short-identifier length, and collision handling; store the full digest in the manifest and fail rather than reuse a directory if its short identifier resolves to different canonical fingerprint data.
+    ✔ Record clean-build time, warm-build time, compiler invocation count, object count, test count, consumer count, generated-code comparison count, benchmark target count, and artifact size for every current scenario.
+    ✔ Record the expected union of targets and tests so later consolidation cannot hide an omitted configuration behind a faster build.
+    ✔ End Phase 0 only when every existing validation responsibility has one owner in the target matrix and the pre-refactor redundant work is measurable.
 
   Phase 1 - Create Exhaustive CMake Build Profiles:
     ☐ Split the root CMake boundary so production interface targets and future packaging metadata are always defined, while a top-level-only thin coordinator loads the scoped development modules that own every test, probe, example, benchmark, generated-code, coverage, warning, and Catch2 definition.

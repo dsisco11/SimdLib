@@ -1,0 +1,251 @@
+SimdLib.ApiExamples
+SimdLib.ConstexprProbes.Build
+SimdLib.ConsumerSmoke
+SimdLib.FormatOdr
+SimdLib.HeaderOnlySmoke
+SimdLib.PublicHeaderStaticAssertAudit
+SimdLib.RegisterCodegen.128Avx2
+SimdLib.RegisterCodegen.128Sse42
+SimdLib.RegisterCodegen.256Avx2
+SimdLib.RegisterConsumerAbi.128Avx2
+SimdLib.RegisterConsumerAbi.128Sse42
+SimdLib.RegisterConsumerAbi.256Avx2
+SimdLib.RegisterConsumerSmoke
+SimdLib.RegisterExamples
+SimdLib.RegisterExpressionCodegen.128Avx2
+SimdLib.RegisterExpressionCodegen.128Sse42
+SimdLib.RegisterExpressionCodegen.256Avx2
+SimdLib.RegisterOdr
+SimdLib.Tests.AVX2.256-bit Api documentation examples produce their documented results
+SimdLib.Tests.AVX2.256-bit Api specialization matrix
+SimdLib.Tests.AVX2.256-bit SimdVector preserves arithmetic and storage
+SimdLib.Tests.AVX2.256-bit aligned and unaligned transfer matrix
+SimdLib.Tests.AVX2.256-bit arithmetic, horizontal operations, shuffles, and blends match scalar references
+SimdLib.Tests.AVX2.256-bit byte function-pointer transforms use public Api entry points
+SimdLib.Tests.AVX2.256-bit constexpr contracts match volatile runtime dispatch
+SimdLib.Tests.AVX2.256-bit float and double dot products use public Api entry points
+SimdLib.Tests.AVX2.256-bit integer extrema and position matrix uses public Api entry points
+SimdLib.Tests.AVX2.256-bit movemask contracts are byte and element granular
+SimdLib.Tests.AVX2.256-bit partial loads accept unaligned prefixes and zero inactive lanes
+SimdLib.Tests.AVX2.256-bit public 64-bit arithmetic contract
+SimdLib.Tests.AVX2.256-bit public byte operations cover multiplication and lane shifts
+SimdLib.Tests.AVX2.256-bit public floating operation matrix
+SimdLib.Tests.AVX2.256-bit public integer operation matrix
+SimdLib.Tests.AVX2.256-bit public transform overloads preserve exact spans
+SimdLib.Tests.AVX2.256-bit signed 32-bit conversion boundaries
+SimdLib.Tests.AVX2.256-bit transform_pack preserves packed lane order and exact tails
+SimdLib.Tests.AVX2.256-bit uint64 adjacent multiply-add ordering and overflow
+SimdLib.Tests.AVX2.256-bit unsigned 32-bit conversion and division boundaries
+SimdLib.Tests.Bmi.Bmi1AndBmi2.BMI absolute value handles signed boundaries without arithmetic overflow
+SimdLib.Tests.Bmi.Bmi1AndBmi2.BMI derived unary helpers match exhaustive 8-bit scalar oracles
+SimdLib.Tests.Bmi.Bmi1AndBmi2.BMI documentation examples produce their documented results
+SimdLib.Tests.Bmi.Bmi1AndBmi2.BMI exhaustive 16-bit unary domains and boundary indices match scalar references
+SimdLib.Tests.Bmi.Bmi1AndBmi2.BMI exhaustive 8-bit domains match scalar references
+SimdLib.Tests.Bmi.Bmi1AndBmi2.BMI feature paths produce the scalar-reference result digest
+SimdLib.Tests.Bmi.Bmi1AndBmi2.BMI generic boundary supports root uint128_t without an include cycle
+SimdLib.Tests.Bmi.Bmi1AndBmi2.BMI randomized 32-bit operations match scalar references
+SimdLib.Tests.Bmi.Bmi1AndBmi2.BMI randomized 64-bit operations match scalar references
+SimdLib.Tests.Bmi.Bmi1AndBmi2.BMI selection and ordering helpers have table-driven public contracts
+SimdLib.Tests.Bmi.Bmi1AndBmi2.BMI sequence, partition, partial-sum, and left-deposit helpers retain their contracts
+SimdLib.Tests.Bmi.Bmi1AndBmi2.BMI signed helpers preserve two's-complement bit patterns
+SimdLib.Tests.Bmi.Bmi1AndBmi2.Equivalence
+SimdLib.Tests.Bmi.Bmi1Only.BMI absolute value handles signed boundaries without arithmetic overflow
+SimdLib.Tests.Bmi.Bmi1Only.BMI derived unary helpers match exhaustive 8-bit scalar oracles
+SimdLib.Tests.Bmi.Bmi1Only.BMI documentation examples produce their documented results
+SimdLib.Tests.Bmi.Bmi1Only.BMI exhaustive 16-bit unary domains and boundary indices match scalar references
+SimdLib.Tests.Bmi.Bmi1Only.BMI exhaustive 8-bit domains match scalar references
+SimdLib.Tests.Bmi.Bmi1Only.BMI feature paths produce the scalar-reference result digest
+SimdLib.Tests.Bmi.Bmi1Only.BMI generic boundary supports root uint128_t without an include cycle
+SimdLib.Tests.Bmi.Bmi1Only.BMI randomized 32-bit operations match scalar references
+SimdLib.Tests.Bmi.Bmi1Only.BMI randomized 64-bit operations match scalar references
+SimdLib.Tests.Bmi.Bmi1Only.BMI selection and ordering helpers have table-driven public contracts
+SimdLib.Tests.Bmi.Bmi1Only.BMI sequence, partition, partial-sum, and left-deposit helpers retain their contracts
+SimdLib.Tests.Bmi.Bmi1Only.BMI signed helpers preserve two's-complement bit patterns
+SimdLib.Tests.Bmi.Bmi1Only.Equivalence
+SimdLib.Tests.Bmi.Bmi2Only.BMI absolute value handles signed boundaries without arithmetic overflow
+SimdLib.Tests.Bmi.Bmi2Only.BMI derived unary helpers match exhaustive 8-bit scalar oracles
+SimdLib.Tests.Bmi.Bmi2Only.BMI documentation examples produce their documented results
+SimdLib.Tests.Bmi.Bmi2Only.BMI exhaustive 16-bit unary domains and boundary indices match scalar references
+SimdLib.Tests.Bmi.Bmi2Only.BMI exhaustive 8-bit domains match scalar references
+SimdLib.Tests.Bmi.Bmi2Only.BMI feature paths produce the scalar-reference result digest
+SimdLib.Tests.Bmi.Bmi2Only.BMI generic boundary supports root uint128_t without an include cycle
+SimdLib.Tests.Bmi.Bmi2Only.BMI randomized 32-bit operations match scalar references
+SimdLib.Tests.Bmi.Bmi2Only.BMI randomized 64-bit operations match scalar references
+SimdLib.Tests.Bmi.Bmi2Only.BMI selection and ordering helpers have table-driven public contracts
+SimdLib.Tests.Bmi.Bmi2Only.BMI sequence, partition, partial-sum, and left-deposit helpers retain their contracts
+SimdLib.Tests.Bmi.Bmi2Only.BMI signed helpers preserve two's-complement bit patterns
+SimdLib.Tests.Bmi.Bmi2Only.Equivalence
+SimdLib.Tests.BmiPortable.BMI absolute value handles signed boundaries without arithmetic overflow
+SimdLib.Tests.BmiPortable.BMI derived unary helpers match exhaustive 8-bit scalar oracles
+SimdLib.Tests.BmiPortable.BMI documentation examples produce their documented results
+SimdLib.Tests.BmiPortable.BMI exhaustive 16-bit unary domains and boundary indices match scalar references
+SimdLib.Tests.BmiPortable.BMI exhaustive 8-bit domains match scalar references
+SimdLib.Tests.BmiPortable.BMI feature paths produce the scalar-reference result digest
+SimdLib.Tests.BmiPortable.BMI generic boundary supports root uint128_t without an include cycle
+SimdLib.Tests.BmiPortable.BMI randomized 32-bit operations match scalar references
+SimdLib.Tests.BmiPortable.BMI randomized 64-bit operations match scalar references
+SimdLib.Tests.BmiPortable.BMI selection and ordering helpers have table-driven public contracts
+SimdLib.Tests.BmiPortable.BMI sequence, partition, partial-sum, and left-deposit helpers retain their contracts
+SimdLib.Tests.BmiPortable.BMI signed helpers preserve two's-complement bit patterns
+SimdLib.Tests.FMA.Disabled.FMA-specialized multiply-add matches scalar arithmetic
+SimdLib.Tests.FMA.Enabled.FMA-specialized multiply-add matches scalar arithmetic
+SimdLib.Tests.Format.SimdVector formatting delegates element presentation across scalar families
+SimdLib.Tests.Format.SimdVector formatting preserves logical element order and container presentation
+SimdLib.Tests.Format.uint128_t alternate octal formatting covers alignment padding and width branches
+SimdLib.Tests.Format.uint128_t formats full-width boundary values in every supported base
+SimdLib.Tests.Format.uint128_t formatting matches the standard uint64 formatter within the scalar range
+SimdLib.Tests.Format.uint128_t formatting rejects unsupported specifications
+SimdLib.Tests.Format.uint128_t formatting supports documented integer presentation controls
+SimdLib.Tests.Preconditions.Api byte store terminates for an undersized destination
+SimdLib.Tests.Preconditions.Api load_aligned terminates for a misaligned source
+SimdLib.Tests.Preconditions.Api load_partial terminates for an undersized source
+SimdLib.Tests.Preconditions.Api store_aligned terminates for a misaligned destination
+SimdLib.Tests.Preconditions.SimdAlgo BitwiseAnd terminates for mismatched extents
+SimdLib.Tests.Preconditions.SimdAlgo BitwiseAndNot terminates for mismatched extents
+SimdLib.Tests.Preconditions.SimdAlgo BitwiseNot terminates for mismatched extents
+SimdLib.Tests.Preconditions.SimdAlgo BitwiseOr terminates for mismatched extents
+SimdLib.Tests.Preconditions.SimdAlgo BitwiseXor terminates for mismatched extents
+SimdLib.Tests.Preconditions.SimdResample expand terminates for an invalid shape
+SimdLib.Tests.Preconditions.SimdResample reduce all terminates for an invalid shape
+SimdLib.Tests.Preconditions.SimdResample reduce any terminates for an invalid shape
+SimdLib.Tests.Preconditions.SimdResample reduce parity terminates for an invalid shape
+SimdLib.Tests.Register.Register 16-bit half shuffles preserve the unselected half in every 128-bit group
+SimdLib.Tests.Register.Register arithmetic matches Api and independent scalar edge-case oracles
+SimdLib.Tests.Register.Register bit-cast preserves floating edge-value object representations
+SimdLib.Tests.Register.Register bitwise operations and sign masks preserve exact bits
+SimdLib.Tests.Register.Register construction and exact-width transfers preserve every lane and surrounding canaries
+SimdLib.Tests.Register.Register floating specialized operations preserve immediate output behavior
+SimdLib.Tests.Register.Register immediate blend retains operation-specific mask-bit behavior
+SimdLib.Tests.Register.Register logical byte shuffle uses complete lane-local selector lists
+SimdLib.Tests.Register.Register lower-half preserves the complete low 128-bit lane sequence
+SimdLib.Tests.Register.Register numeric conversion is distinct from bit reinterpretation
+SimdLib.Tests.Register.Register positions cover first ties and the highest lane
+SimdLib.Tests.Register.Register promoted results preserve lane order and signedness
+SimdLib.Tests.Register.Register saturation preserves lane and 128-bit grouping semantics
+SimdLib.Tests.Register.Register shifts match lane and complete-register boundary contracts
+SimdLib.Tests.Register.Register specialized lane arithmetic follows scalar semantics
+SimdLib.Tests.Register.Register unpack methods preserve intrinsic 128-bit grouping and lane order
+SimdLib.Tests.Register.Register widening consumes exactly the documented low source lanes
+SimdLib.Tests.Register.RegisterMask comparisons, reductions, combinations, and selection preserve lane semantics
+SimdLib.Tests.RegisterPreconditions.Register aligned load rejects a misaligned source
+SimdLib.Tests.RegisterPreconditions.Register aligned store rejects a misaligned destination
+SimdLib.Tests.RegisterPreconditions.Register arithmetic right shift rejects a negative per-lane count
+SimdLib.Tests.RegisterPreconditions.Register left shift rejects a negative per-lane count
+SimdLib.Tests.RegisterPreconditions.Register logical right shift rejects a negative per-lane count
+SimdLib.Tests.RegisterSse42.Register arithmetic matches Api and independent scalar edge-case oracles
+SimdLib.Tests.RegisterSse42.Register bitwise operations and sign masks preserve exact bits
+SimdLib.Tests.RegisterSse42.Register construction and exact-width transfers preserve every lane and surrounding canaries
+SimdLib.Tests.RegisterSse42.Register floating specialized operations preserve immediate output behavior
+SimdLib.Tests.RegisterSse42.Register immediate blend retains operation-specific mask-bit behavior
+SimdLib.Tests.RegisterSse42.Register logical byte shuffle uses complete lane-local selector lists
+SimdLib.Tests.RegisterSse42.Register numeric conversion is distinct from bit reinterpretation
+SimdLib.Tests.RegisterSse42.Register positions cover first ties and the highest lane
+SimdLib.Tests.RegisterSse42.Register promoted results preserve lane order and signedness
+SimdLib.Tests.RegisterSse42.Register saturation preserves lane and 128-bit grouping semantics
+SimdLib.Tests.RegisterSse42.Register shifts match lane and complete-register boundary contracts
+SimdLib.Tests.RegisterSse42.Register specialized lane arithmetic follows scalar semantics
+SimdLib.Tests.RegisterSse42.Register unpack methods preserve intrinsic 128-bit grouping and lane order
+SimdLib.Tests.RegisterSse42.Register widening consumes exactly the documented low source lanes
+SimdLib.Tests.RegisterSse42.RegisterMask comparisons, reductions, combinations, and selection preserve lane semantics
+SimdLib.Tests.ResampleScalar.SimdResample documentation examples produce their documented results
+SimdLib.Tests.ResampleScalar.SimdResample expand is exhaustive for one packed byte
+SimdLib.Tests.ResampleScalar.SimdResample expansion matches scalar references for randomized unaligned spans
+SimdLib.Tests.ResampleScalar.SimdResample preserves reduce bit ordering
+SimdLib.Tests.ResampleScalar.SimdResample reductions match scalar references for randomized unaligned spans
+SimdLib.Tests.ResampleScalar.SimdResample reductions preserve zero one and mixed edge cases
+SimdLib.Tests.SSE42.128-bit Api documentation examples produce their documented results
+SimdLib.Tests.SSE42.128-bit Api specialization matrix
+SimdLib.Tests.SSE42.128-bit aligned and unaligned transfer matrix
+SimdLib.Tests.SSE42.128-bit arithmetic and int8 division match scalar results
+SimdLib.Tests.SSE42.128-bit comparisons and saturation match scalar semantics
+SimdLib.Tests.SSE42.128-bit constexpr contracts match volatile runtime dispatch
+SimdLib.Tests.SSE42.128-bit integer extrema and position matrix uses public Api entry points
+SimdLib.Tests.SSE42.128-bit lane and whole-register shifts are distinct
+SimdLib.Tests.SSE42.128-bit movemask contracts are byte and element granular
+SimdLib.Tests.SSE42.128-bit partial construction and float dot product use public Api entry points
+SimdLib.Tests.SSE42.128-bit partial loads accept unaligned prefixes and zero inactive lanes
+SimdLib.Tests.SSE42.128-bit public 64-bit arithmetic contract
+SimdLib.Tests.SSE42.128-bit public byte operations cover lane shifts and byte-shift boundaries
+SimdLib.Tests.SSE42.128-bit public floating operation matrix
+SimdLib.Tests.SSE42.128-bit public integer operation matrix
+SimdLib.Tests.SSE42.128-bit public transform overloads preserve exact spans
+SimdLib.Tests.SSE42.128-bit shuffle, blend, and position helpers match scalar references
+SimdLib.Tests.SSE42.128-bit signed integer and float conversion gates preserve lane values
+SimdLib.Tests.SSE42.128-bit transform_pack preserves packed lane order and exact tails
+SimdLib.Tests.SSE42.128-bit uint64 adjacent multiply-add ordering and overflow
+SimdLib.Tests.SSE42.128-bit unsigned 32-bit conversion and division boundaries
+SimdLib.Tests.SSE42.128-bit widening and horizontal arithmetic match scalar references
+SimdLib.Tests.UInt128Optimized.uint128 bit ceil covers identity rounding and overflow boundaries
+SimdLib.Tests.UInt128Optimized.uint128 carry and borrow propagation matches the two-word oracle
+SimdLib.Tests.UInt128Optimized.uint128 compiler paths produce the portable-oracle result digest
+SimdLib.Tests.UInt128Optimized.uint128 deprecated extraction remains compatible with Bmi bextr at boundaries
+SimdLib.Tests.UInt128Optimized.uint128 integral construction and heterogeneous comparisons are explicit
+SimdLib.Tests.UInt128Optimized.uint128 masks and bit helpers cover word boundaries
+SimdLib.Tests.UInt128Optimized.uint128 optimized operations match compiler-native unsigned 128-bit arithmetic
+SimdLib.Tests.UInt128Optimized.uint128 optimized operations match the portable two-word oracle
+SimdLib.Tests.UInt128Optimized.uint128 public integer surface remains constexpr-equivalent at runtime
+SimdLib.Tests.UInt128Optimized.uint128 register facade preserves lane order
+SimdLib.Tests.UInt128Optimized.uint128 selected carry and borrow implementation executes with volatile inputs
+SimdLib.Tests.UInt128Optimized.uint128 shifts define every boundary count
+SimdLib.Tests.UInt128Optimized.uint128_t documentation examples produce their documented results
+SimdLib.Tests.UInt128Portable.uint128 bit ceil covers identity rounding and overflow boundaries
+SimdLib.Tests.UInt128Portable.uint128 carry and borrow propagation matches the two-word oracle
+SimdLib.Tests.UInt128Portable.uint128 compiler paths produce the portable-oracle result digest
+SimdLib.Tests.UInt128Portable.uint128 deprecated extraction remains compatible with Bmi bextr at boundaries
+SimdLib.Tests.UInt128Portable.uint128 integral construction and heterogeneous comparisons are explicit
+SimdLib.Tests.UInt128Portable.uint128 masks and bit helpers cover word boundaries
+SimdLib.Tests.UInt128Portable.uint128 optimized operations match compiler-native unsigned 128-bit arithmetic
+SimdLib.Tests.UInt128Portable.uint128 optimized operations match the portable two-word oracle
+SimdLib.Tests.UInt128Portable.uint128 public integer surface remains constexpr-equivalent at runtime
+SimdLib.Tests.UInt128Portable.uint128 register facade preserves lane order
+SimdLib.Tests.UInt128Portable.uint128 selected carry and borrow implementation executes with volatile inputs
+SimdLib.Tests.UInt128Portable.uint128 shifts define every boundary count
+SimdLib.Tests.UInt128Portable.uint128_t documentation examples produce their documented results
+SimdLib.Tests.UInt128ResultSetEquivalence
+SimdLib.Tests.UInt128Scalar.uint128 bit ceil covers identity rounding and overflow boundaries
+SimdLib.Tests.UInt128Scalar.uint128 carry and borrow propagation matches the two-word oracle
+SimdLib.Tests.UInt128Scalar.uint128 compiler paths produce the portable-oracle result digest
+SimdLib.Tests.UInt128Scalar.uint128 deprecated extraction remains compatible with Bmi bextr at boundaries
+SimdLib.Tests.UInt128Scalar.uint128 integral construction and heterogeneous comparisons are explicit
+SimdLib.Tests.UInt128Scalar.uint128 masks and bit helpers cover word boundaries
+SimdLib.Tests.UInt128Scalar.uint128 optimized operations match compiler-native unsigned 128-bit arithmetic
+SimdLib.Tests.UInt128Scalar.uint128 optimized operations match the portable two-word oracle
+SimdLib.Tests.UInt128Scalar.uint128 public integer surface remains constexpr-equivalent at runtime
+SimdLib.Tests.UInt128Scalar.uint128 register facade preserves lane order
+SimdLib.Tests.UInt128Scalar.uint128 selected carry and borrow implementation executes with volatile inputs
+SimdLib.Tests.UInt128Scalar.uint128 shifts define every boundary count
+SimdLib.Tests.UInt128Scalar.uint128_t documentation examples produce their documented results
+SimdLib.Tests.UInt128ScalarResultSetEquivalence
+SimdLib.Tests.VectorAlgorithms.Api transfer preconditions accept exact valid boundaries
+SimdLib.Tests.VectorAlgorithms.SimdAlgo AllEqual covers every full-register and tail outcome
+SimdLib.Tests.VectorAlgorithms.SimdAlgo AnyEqual covers every full-register and tail outcome
+SimdLib.Tests.VectorAlgorithms.SimdAlgo documentation examples produce their documented results
+SimdLib.Tests.VectorAlgorithms.SimdAlgo dynamic span preconditions accept matching minimum extents
+SimdLib.Tests.VectorAlgorithms.SimdAlgo dynamic spans select 128 and 256 bit execution without semantic drift
+SimdLib.Tests.VectorAlgorithms.SimdAlgo fixed bitwise operations match scalar references including tails
+SimdLib.Tests.VectorAlgorithms.SimdAlgo fixed searches cover empty single exact-lane and non-lane-multiple extents
+SimdLib.Tests.VectorAlgorithms.SimdAlgo fixed spans preserve equality and packed comparison semantics
+SimdLib.Tests.VectorAlgorithms.SimdAlgo packed comparisons overwrite exact tail output without overread or overwrite
+SimdLib.Tests.VectorAlgorithms.SimdResample documentation examples produce their documented results
+SimdLib.Tests.VectorAlgorithms.SimdResample expand is exhaustive for one packed byte
+SimdLib.Tests.VectorAlgorithms.SimdResample expansion matches scalar references for randomized unaligned spans
+SimdLib.Tests.VectorAlgorithms.SimdResample preconditions accept empty and minimum valid extents
+SimdLib.Tests.VectorAlgorithms.SimdResample preserves reduce bit ordering
+SimdLib.Tests.VectorAlgorithms.SimdResample reductions match scalar references for randomized unaligned spans
+SimdLib.Tests.VectorAlgorithms.SimdResample reductions preserve zero one and mixed edge cases
+SimdLib.Tests.VectorAlgorithms.SimdVector 256-bit float dot products include every active high lane
+SimdLib.Tests.VectorAlgorithms.SimdVector arithmetic scalar and operator facade preserves inactive lanes
+SimdLib.Tests.VectorAlgorithms.SimdVector bitwise saturation widening and hash match logical lanes
+SimdLib.Tests.VectorAlgorithms.SimdVector documentation examples produce their documented results
+SimdLib.Tests.VectorAlgorithms.SimdVector double dot products cover full and partial 128-bit and 256-bit vectors
+SimdLib.Tests.VectorAlgorithms.SimdVector exposes the complete aliases and storage facade
+SimdLib.Tests.VectorAlgorithms.SimdVector floating convenience operations retain scalar semantics
+SimdLib.Tests.VectorAlgorithms.SimdVector floating hashes cover nonzero infinities and NaNs
+SimdLib.Tests.VectorAlgorithms.SimdVector hashes respect floating equality for signed zero
+SimdLib.Tests.VectorAlgorithms.SimdVector integer area covers full partial odd and cross-lane extents
+SimdLib.Tests.VectorAlgorithms.SimdVector integer magnitude preserves sparse per-128-bit-group results
+SimdLib.Tests.VectorAlgorithms.SimdVector partial clamp excludes inactive bound lanes
+SimdLib.Tests.VectorAlgorithms.SimdVector partial division and modulus neutralize inactive divisors
+SimdLib.Tests.VectorAlgorithms.SimdVector partial positions ignore inactive zero-filled lanes
+SimdLib.Tests.VectorAlgorithms.SimdVector signed partial masks preserve every active bit
+SimdLib.Tests.VectorChecks.SimdVector checks validate partial results and bypass full vectors
