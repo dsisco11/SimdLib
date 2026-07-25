@@ -18,7 +18,9 @@ Code Architecture:
 
 Build Pipeline:
     ☐ Create a formal unified build command to build all targets, including tests, benchmarks, and examples, with a single command.
+        Implementation plan: `docs/UnifiedBuildPipeline.todo`.
     ☐ Create a formal unified test command to run all tests, including unit tests, integration tests, and performance tests, with a single command.
+        Implementation plan: `docs/UnifiedBuildPipeline.todo`.
     ☐ Ensure that the codegen tests are building the actual SimdLib code without optimizations enabled, but building the comparison code WITH optimizations enabled, so we guarantee that the zero-overhead guarantee isnt relying on compiler optimization and also that debug builds are still going to produce optimal codegen.
 
 Testing:
