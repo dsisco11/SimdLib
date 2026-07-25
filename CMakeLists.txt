@@ -114,6 +114,34 @@ function(simdlib_enable_development_warnings target)
     endif()
 endfunction()
 
+# @brief Compiles one target for the supported 128-bit SSE4.2 Register profile.
+# @param target Target that must not acquire AVX-family availability.
+function(simdlib_enable_register_sse42 target)
+	target_compile_definitions(${target} PRIVATE
+		SIMDLIB_HAS_SSE=1 SIMDLIB_HAS_SSE2=1 SIMDLIB_HAS_SSE3=1
+		SIMDLIB_HAS_SSSE3=1 SIMDLIB_HAS_SSE41=1 SIMDLIB_HAS_SSE42=1
+		SIMDLIB_HAS_AVX=0 SIMDLIB_HAS_AVX2=0 SIMDLIB_HAS_FMA=0)
+	if(SIMDLIB_MSVC_STYLE_DRIVER)
+		if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+			target_compile_options(${target} PRIVATE
+				/clang:-msse4.2 /clang:-mno-avx /clang:-mno-avx2 /clang:-mno-fma)
+		endif()
+	else()
+		target_compile_options(${target} PRIVATE
+			-msse4.2 -mno-avx -mno-avx2 -mno-fma)
+	endif()
+endfunction()
+
+# @brief Compiles one target for the supported 128-bit and 256-bit AVX2 Register profile.
+# @param target Target that receives AVX2 code-generation options.
+function(simdlib_enable_register_avx2 target)
+	if(SIMDLIB_MSVC_STYLE_DRIVER)
+		target_compile_options(${target} PRIVATE /arch:AVX2)
+	else()
+		target_compile_options(${target} PRIVATE -mavx2)
+	endif()
+endfunction()
+
 # @brief Associates an instrumented executable with the prefix CTest uses for
 #        the profiles produced by that executable.
 # @param target Instrumented executable target.
@@ -275,6 +303,12 @@ if(SIMDLIB_BUILD_HEADER_TESTS)
 			tests/headers/RegisterMaskHeaderProbe.cpp)
 		target_link_libraries(SimdLibHeaderRegisterMaskProbe PRIVATE SimdLib::Register)
 		simdlib_enable_development_warnings(SimdLibHeaderRegisterMaskProbe)
+
+		add_library(SimdLibHeaderSimdLibRegisterProbe OBJECT
+			tests/headers/SimdLibRegisterHeaderProbe.cpp)
+		target_link_libraries(SimdLibHeaderSimdLibRegisterProbe PRIVATE SimdLib::Register)
+		simdlib_enable_development_warnings(SimdLibHeaderSimdLibRegisterProbe)
+		simdlib_enable_register_sse42(SimdLibHeaderSimdLibRegisterProbe)
 	endif()
 endif()
 
@@ -361,12 +395,12 @@ if(SIMDLIB_BUILD_CONFIGURATION_TESTS)
 				SIMDLIB_REGISTER_TEST_WIDTH=${register_width})
 			simdlib_enable_development_warnings(SimdLibRegisterRepresentation${register_width})
 			simdlib_enable_development_warnings(SimdLibRegisterConstexpr${register_width})
-			if(SIMDLIB_MSVC_STYLE_DRIVER)
-				target_compile_options(SimdLibRegisterRepresentation${register_width} PRIVATE /arch:AVX2)
-				target_compile_options(SimdLibRegisterConstexpr${register_width} PRIVATE /arch:AVX2)
+			if(register_width EQUAL 128)
+				simdlib_enable_register_sse42(SimdLibRegisterRepresentation${register_width})
+				simdlib_enable_register_sse42(SimdLibRegisterConstexpr${register_width})
 			else()
-				target_compile_options(SimdLibRegisterRepresentation${register_width} PRIVATE -mavx2)
-				target_compile_options(SimdLibRegisterConstexpr${register_width} PRIVATE -mavx2)
+				simdlib_enable_register_avx2(SimdLibRegisterRepresentation${register_width})
+				simdlib_enable_register_avx2(SimdLibRegisterConstexpr${register_width})
 			endif()
 		endforeach()
 
@@ -439,7 +473,23 @@ endif()
 
 # @brief Adds paired wrapper/raw object fixtures and a mandatory disassembly comparison.
 # @param register_width Width of the compared native and wrapped register values.
-function(simdlib_add_register_codegen_gate register_width)
+# @param isa_profile Instruction-set profile used to compile both sides of the comparison.
+function(simdlib_add_register_codegen_gate register_width isa_profile)
+	if(NOT isa_profile STREQUAL "SSE42" AND NOT isa_profile STREQUAL "AVX2")
+		message(FATAL_ERROR "Unsupported Register codegen ISA profile: ${isa_profile}")
+	endif()
+	if(isa_profile STREQUAL "SSE42" AND NOT register_width EQUAL 128)
+		message(FATAL_ERROR "The SSE4.2 Register codegen profile supports only 128-bit registers")
+	endif()
+	if(isa_profile STREQUAL "SSE42")
+		set(target_suffix "${register_width}Sse42")
+		set(artifact_profile "sse42")
+		set(codegen_comparison_record_only ON)
+	else()
+		set(target_suffix "${register_width}Avx2")
+		set(artifact_profile "avx2")
+		set(codegen_comparison_record_only ${SIMDLIB_REGISTER_CODEGEN_RECORD_ONLY})
+	endif()
 	set(vectorcall_enabled 0)
 	set(stack_protector_mode "compiler-default")
 	if(WIN32 AND CMAKE_SYSTEM_PROCESSOR MATCHES "^(AMD64|amd64|x86_64|i[3-6]86)$" AND
@@ -450,61 +500,74 @@ function(simdlib_add_register_codegen_gate register_width)
 		(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang"))
 		set(stack_protector_mode "strong")
 	endif()
-	set(wrapper_target SimdLibRegisterCodegenWrapper${register_width})
-	set(raw_target SimdLibRegisterCodegenRaw${register_width})
-	set(default_wrapper_target SimdLibRegisterDefaultAbiWrapper${register_width})
-	set(default_raw_target SimdLibRegisterDefaultAbiRaw${register_width})
-	set(abi_wrapper_target SimdLibRegisterAbiWrapper${register_width})
-	set(abi_raw_target SimdLibRegisterAbiRaw${register_width})
-	set(specialized_fma_enabled_wrapper_target SimdLibRegisterSpecializedFmaEnabledWrapper${register_width})
-	set(specialized_fma_enabled_raw_target SimdLibRegisterSpecializedFmaEnabledRaw${register_width})
-	set(specialized_fma_disabled_wrapper_target SimdLibRegisterSpecializedFmaDisabledWrapper${register_width})
-	set(specialized_fma_disabled_raw_target SimdLibRegisterSpecializedFmaDisabledRaw${register_width})
-	set(rearrangement_wrapper_target SimdLibRegisterRearrangementWrapper${register_width})
-	set(rearrangement_raw_target SimdLibRegisterRearrangementRaw${register_width})
-	set(type_matrix_wrapper_target SimdLibRegisterTypeMatrixWrapper${register_width})
-	set(type_matrix_raw_target SimdLibRegisterTypeMatrixRaw${register_width})
+	set(wrapper_target SimdLibRegisterCodegenWrapper${target_suffix})
+	set(raw_target SimdLibRegisterCodegenRaw${target_suffix})
+	set(default_wrapper_target SimdLibRegisterDefaultAbiWrapper${target_suffix})
+	set(default_raw_target SimdLibRegisterDefaultAbiRaw${target_suffix})
+	set(abi_wrapper_target SimdLibRegisterAbiWrapper${target_suffix})
+	set(abi_raw_target SimdLibRegisterAbiRaw${target_suffix})
+	set(specialized_fma_enabled_wrapper_target SimdLibRegisterSpecializedFmaEnabledWrapper${target_suffix})
+	set(specialized_fma_enabled_raw_target SimdLibRegisterSpecializedFmaEnabledRaw${target_suffix})
+	set(specialized_fma_disabled_wrapper_target SimdLibRegisterSpecializedFmaDisabledWrapper${target_suffix})
+	set(specialized_fma_disabled_raw_target SimdLibRegisterSpecializedFmaDisabledRaw${target_suffix})
+	set(rearrangement_wrapper_target SimdLibRegisterRearrangementWrapper${target_suffix})
+	set(rearrangement_raw_target SimdLibRegisterRearrangementRaw${target_suffix})
+	set(type_matrix_wrapper_target SimdLibRegisterTypeMatrixWrapper${target_suffix})
+	set(type_matrix_raw_target SimdLibRegisterTypeMatrixRaw${target_suffix})
 	add_library(${wrapper_target} OBJECT tests/codegen/RegisterCodegen.cpp)
 	add_library(${raw_target} OBJECT tests/codegen/RegisterCodegenRaw.cpp)
 	add_library(${default_wrapper_target} OBJECT tests/codegen/RegisterDefaultAbi.cpp)
 	add_library(${default_raw_target} OBJECT tests/codegen/RegisterDefaultAbiRaw.cpp)
 	add_library(${abi_wrapper_target} OBJECT tests/codegen/RegisterAbi.cpp)
 	add_library(${abi_raw_target} OBJECT tests/codegen/RegisterAbiRaw.cpp)
-	add_library(${specialized_fma_enabled_wrapper_target} OBJECT tests/codegen/RegisterSpecializedCodegen.cpp)
-	add_library(${specialized_fma_enabled_raw_target} OBJECT tests/codegen/RegisterSpecializedCodegenRaw.cpp)
+	if(isa_profile STREQUAL "AVX2")
+		add_library(${specialized_fma_enabled_wrapper_target} OBJECT tests/codegen/RegisterSpecializedCodegen.cpp)
+		add_library(${specialized_fma_enabled_raw_target} OBJECT tests/codegen/RegisterSpecializedCodegenRaw.cpp)
+	endif()
 	add_library(${specialized_fma_disabled_wrapper_target} OBJECT tests/codegen/RegisterSpecializedCodegen.cpp)
 	add_library(${specialized_fma_disabled_raw_target} OBJECT tests/codegen/RegisterSpecializedCodegenRaw.cpp)
 	add_library(${rearrangement_wrapper_target} OBJECT tests/codegen/RegisterRearrangementCodegen.cpp)
 	add_library(${rearrangement_raw_target} OBJECT tests/codegen/RegisterRearrangementCodegenRaw.cpp)
 	add_library(${type_matrix_wrapper_target} OBJECT tests/codegen/RegisterTypeMatrixCodegen.cpp)
 	add_library(${type_matrix_raw_target} OBJECT tests/codegen/RegisterTypeMatrixCodegenRaw.cpp)
-	foreach(target IN ITEMS ${wrapper_target} ${raw_target} ${default_wrapper_target} ${default_raw_target}
+	set(codegen_object_targets
+		${wrapper_target} ${raw_target} ${default_wrapper_target} ${default_raw_target}
 		${abi_wrapper_target} ${abi_raw_target}
-		${specialized_fma_enabled_wrapper_target} ${specialized_fma_enabled_raw_target}
 		${specialized_fma_disabled_wrapper_target} ${specialized_fma_disabled_raw_target}
 		${rearrangement_wrapper_target} ${rearrangement_raw_target}
 		${type_matrix_wrapper_target} ${type_matrix_raw_target})
+	if(isa_profile STREQUAL "AVX2")
+		list(APPEND codegen_object_targets
+			${specialized_fma_enabled_wrapper_target} ${specialized_fma_enabled_raw_target})
+	endif()
+	foreach(target IN LISTS codegen_object_targets)
 		target_link_libraries(${target} PRIVATE SimdLib::Register)
 		target_compile_definitions(${target} PRIVATE SIMDLIB_REGISTER_TEST_WIDTH=${register_width})
 		simdlib_enable_development_warnings(${target})
-		if(SIMDLIB_MSVC_STYLE_DRIVER)
-			target_compile_options(${target} PRIVATE /arch:AVX2)
-			if(NOT SIMDLIB_REGISTER_CODEGEN_RECORD_ONLY)
-				target_compile_options(${target} PRIVATE /O2)
-			endif()
+		if(isa_profile STREQUAL "SSE42")
+			simdlib_enable_register_sse42(${target})
 		else()
-			target_compile_options(${target} PRIVATE -mavx2 -fstack-protector-strong)
-			if(NOT SIMDLIB_REGISTER_CODEGEN_RECORD_ONLY)
+			simdlib_enable_register_avx2(${target})
+		endif()
+		if(NOT SIMDLIB_MSVC_STYLE_DRIVER)
+			target_compile_options(${target} PRIVATE -fstack-protector-strong)
+		endif()
+		if(NOT SIMDLIB_REGISTER_CODEGEN_RECORD_ONLY)
+			if(SIMDLIB_MSVC_STYLE_DRIVER)
+				target_compile_options(${target} PRIVATE /O2)
+			else()
 				target_compile_options(${target} PRIVATE -O2)
 			endif()
 		endif()
 	endforeach()
-	foreach(target IN ITEMS ${specialized_fma_enabled_wrapper_target} ${specialized_fma_enabled_raw_target})
-		target_compile_definitions(${target} PRIVATE SIMDLIB_HAS_FMA=1)
-		if(NOT SIMDLIB_MSVC_STYLE_DRIVER)
-			target_compile_options(${target} PRIVATE -mfma)
-		endif()
-	endforeach()
+	if(isa_profile STREQUAL "AVX2")
+		foreach(target IN ITEMS ${specialized_fma_enabled_wrapper_target} ${specialized_fma_enabled_raw_target})
+			target_compile_definitions(${target} PRIVATE SIMDLIB_HAS_FMA=1)
+			if(NOT SIMDLIB_MSVC_STYLE_DRIVER)
+				target_compile_options(${target} PRIVATE -mfma)
+			endif()
+		endforeach()
+	endif()
 	foreach(target IN ITEMS ${specialized_fma_disabled_wrapper_target} ${specialized_fma_disabled_raw_target})
 		target_compile_definitions(${target} PRIVATE SIMDLIB_HAS_FMA=0)
 		if(NOT SIMDLIB_MSVC_STYLE_DRIVER)
@@ -512,7 +575,7 @@ function(simdlib_add_register_codegen_gate register_width)
 		endif()
 	endforeach()
 
-	set(artifact_directory "${CMAKE_CURRENT_BINARY_DIR}/register-codegen/${register_width}")
+	set(artifact_directory "${CMAKE_CURRENT_BINARY_DIR}/register-codegen/${artifact_profile}/${register_width}")
 	set(stamp_file "${artifact_directory}/comparison.stamp")
 	set(register_only_stamp_file "${artifact_directory}/register-only-comparison.stamp")
 	set(reassignment_stamp_file "${artifact_directory}/reassignment-comparison.stamp")
@@ -539,9 +602,10 @@ function(simdlib_add_register_codegen_gate register_width)
 			-DSYSTEM_PROCESSOR=${CMAKE_SYSTEM_PROCESSOR}
 			-DCONFIGURATION=$<CONFIG>
 			-DREGISTER_WIDTH=${register_width}
+			-DISA_PROFILE=${isa_profile}
 			-DVECTORCALL_ENABLED=${vectorcall_enabled}
 			-DSTACK_PROTECTOR_MODE=${stack_protector_mode}
-			-DRECORD_ONLY=${SIMDLIB_REGISTER_CODEGEN_RECORD_ONLY}
+			-DRECORD_ONLY=${codegen_comparison_record_only}
 			-P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/CompareRegisterCodegen.cmake
 		COMMAND ${CMAKE_COMMAND} -E touch "${stamp_file}"
 		DEPENDS
@@ -565,9 +629,10 @@ function(simdlib_add_register_codegen_gate register_width)
 			-DSYSTEM_PROCESSOR=${CMAKE_SYSTEM_PROCESSOR}
 			-DCONFIGURATION=$<CONFIG>
 			-DREGISTER_WIDTH=${register_width}
+			-DISA_PROFILE=${isa_profile}
 			-DVECTORCALL_ENABLED=${vectorcall_enabled}
 			-DSTACK_PROTECTOR_MODE=${stack_protector_mode}
-			-DRECORD_ONLY=${SIMDLIB_REGISTER_CODEGEN_RECORD_ONLY}
+			-DRECORD_ONLY=${codegen_comparison_record_only}
 			"-DSYMBOL_PATTERN=simdlib_codegen_(unary|binary|ternary|scalar|mask|native|zero|broadcast_reuse|from_array|lane_|with_lane_last|special_members|pressure|basic_)"
 			-P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/CompareRegisterCodegen.cmake
 		COMMAND ${CMAKE_COMMAND} -E touch "${register_only_stamp_file}"
@@ -577,35 +642,38 @@ function(simdlib_add_register_codegen_gate register_width)
 			cmake/CompareRegisterCodegen.cmake
 		COMMENT "Comparing ${register_width}-bit register-only wrapper and raw generated code"
 		VERBATIM)
-	add_custom_command(
-		OUTPUT "${specialized_fma_enabled_stamp_file}"
-		COMMAND ${CMAKE_COMMAND} -E make_directory "${artifact_directory}/specialized/fma-enabled"
-		COMMAND ${CMAKE_COMMAND}
-			-DWRAPPER_OBJECT=$<TARGET_OBJECTS:${specialized_fma_enabled_wrapper_target}>
-			-DRAW_OBJECT=$<TARGET_OBJECTS:${specialized_fma_enabled_raw_target}>
-			-DOBJDUMP=${CMAKE_OBJDUMP}
-			-DARTIFACT_DIRECTORY=${artifact_directory}/specialized/fma-enabled
-			-DCOMPILER_ID=${CMAKE_CXX_COMPILER_ID}
-			-DCOMPILER_VERSION=${CMAKE_CXX_COMPILER_VERSION}
-			-DCOMPILER_PATH=${CMAKE_CXX_COMPILER}
-			-DSYSTEM_NAME=${CMAKE_SYSTEM_NAME}
-			-DSYSTEM_PROCESSOR=${CMAKE_SYSTEM_PROCESSOR}
-			-DCONFIGURATION=$<CONFIG>
-			-DREGISTER_WIDTH=${register_width}
-			-DVECTORCALL_ENABLED=${vectorcall_enabled}
-			-DSTACK_PROTECTOR_MODE=${stack_protector_mode}
-			-DRECORD_ONLY=${SIMDLIB_REGISTER_CODEGEN_RECORD_ONLY}
-			-DCODEGEN_PROFILE=specialized-fma-enabled
-			-DFMA_EXPECTATION=enabled
-			-DSYMBOL_PATTERN=simdlib_specialized_codegen_
-			-P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/CompareRegisterCodegen.cmake
-		COMMAND ${CMAKE_COMMAND} -E touch "${specialized_fma_enabled_stamp_file}"
-		DEPENDS
-			$<TARGET_OBJECTS:${specialized_fma_enabled_wrapper_target}>
-			$<TARGET_OBJECTS:${specialized_fma_enabled_raw_target}>
-			cmake/CompareRegisterCodegen.cmake
-		COMMENT "Comparing ${register_width}-bit specialized Register code with FMA enabled"
-		VERBATIM)
+	if(isa_profile STREQUAL "AVX2")
+		add_custom_command(
+			OUTPUT "${specialized_fma_enabled_stamp_file}"
+			COMMAND ${CMAKE_COMMAND} -E make_directory "${artifact_directory}/specialized/fma-enabled"
+			COMMAND ${CMAKE_COMMAND}
+				-DWRAPPER_OBJECT=$<TARGET_OBJECTS:${specialized_fma_enabled_wrapper_target}>
+				-DRAW_OBJECT=$<TARGET_OBJECTS:${specialized_fma_enabled_raw_target}>
+				-DOBJDUMP=${CMAKE_OBJDUMP}
+				-DARTIFACT_DIRECTORY=${artifact_directory}/specialized/fma-enabled
+				-DCOMPILER_ID=${CMAKE_CXX_COMPILER_ID}
+				-DCOMPILER_VERSION=${CMAKE_CXX_COMPILER_VERSION}
+				-DCOMPILER_PATH=${CMAKE_CXX_COMPILER}
+				-DSYSTEM_NAME=${CMAKE_SYSTEM_NAME}
+				-DSYSTEM_PROCESSOR=${CMAKE_SYSTEM_PROCESSOR}
+				-DCONFIGURATION=$<CONFIG>
+				-DREGISTER_WIDTH=${register_width}
+				-DISA_PROFILE=${isa_profile}
+				-DVECTORCALL_ENABLED=${vectorcall_enabled}
+				-DSTACK_PROTECTOR_MODE=${stack_protector_mode}
+				-DRECORD_ONLY=${codegen_comparison_record_only}
+				-DCODEGEN_PROFILE=specialized-fma-enabled
+				-DFMA_EXPECTATION=enabled
+				-DSYMBOL_PATTERN=simdlib_specialized_codegen_
+				-P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/CompareRegisterCodegen.cmake
+			COMMAND ${CMAKE_COMMAND} -E touch "${specialized_fma_enabled_stamp_file}"
+			DEPENDS
+				$<TARGET_OBJECTS:${specialized_fma_enabled_wrapper_target}>
+				$<TARGET_OBJECTS:${specialized_fma_enabled_raw_target}>
+				cmake/CompareRegisterCodegen.cmake
+			COMMENT "Comparing ${register_width}-bit specialized Register code with FMA enabled"
+			VERBATIM)
+	endif()
 	add_custom_command(
 		OUTPUT "${specialized_fma_disabled_stamp_file}"
 		COMMAND ${CMAKE_COMMAND} -E make_directory "${artifact_directory}/specialized/fma-disabled"
@@ -621,9 +689,10 @@ function(simdlib_add_register_codegen_gate register_width)
 			-DSYSTEM_PROCESSOR=${CMAKE_SYSTEM_PROCESSOR}
 			-DCONFIGURATION=$<CONFIG>
 			-DREGISTER_WIDTH=${register_width}
+			-DISA_PROFILE=${isa_profile}
 			-DVECTORCALL_ENABLED=${vectorcall_enabled}
 			-DSTACK_PROTECTOR_MODE=${stack_protector_mode}
-			-DRECORD_ONLY=${SIMDLIB_REGISTER_CODEGEN_RECORD_ONLY}
+			-DRECORD_ONLY=${codegen_comparison_record_only}
 			-DCODEGEN_PROFILE=specialized-fma-disabled
 			-DFMA_EXPECTATION=disabled
 			-DSYMBOL_PATTERN=simdlib_specialized_codegen_
@@ -650,9 +719,10 @@ function(simdlib_add_register_codegen_gate register_width)
 			-DSYSTEM_PROCESSOR=${CMAKE_SYSTEM_PROCESSOR}
 			-DCONFIGURATION=$<CONFIG>
 			-DREGISTER_WIDTH=${register_width}
+			-DISA_PROFILE=${isa_profile}
 			-DVECTORCALL_ENABLED=${vectorcall_enabled}
 			-DSTACK_PROTECTOR_MODE=${stack_protector_mode}
-			-DRECORD_ONLY=${SIMDLIB_REGISTER_CODEGEN_RECORD_ONLY}
+			-DRECORD_ONLY=${codegen_comparison_record_only}
 			-DSYMBOL_PATTERN=simdlib_codegen_lane_
 			-P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/CompareRegisterCodegen.cmake
 		COMMAND ${CMAKE_COMMAND} -E touch "${lane_stamp_file}"
@@ -677,9 +747,10 @@ function(simdlib_add_register_codegen_gate register_width)
 			-DSYSTEM_PROCESSOR=${CMAKE_SYSTEM_PROCESSOR}
 			-DCONFIGURATION=$<CONFIG>
 			-DREGISTER_WIDTH=${register_width}
+			-DISA_PROFILE=${isa_profile}
 			-DVECTORCALL_ENABLED=${vectorcall_enabled}
 			-DSTACK_PROTECTOR_MODE=${stack_protector_mode}
-			-DRECORD_ONLY=${SIMDLIB_REGISTER_CODEGEN_RECORD_ONLY}
+			-DRECORD_ONLY=${codegen_comparison_record_only}
 			-DCODEGEN_PROFILE=rearrangement-conversion
 			-DSYMBOL_PATTERN=simdlib_rearrangement_codegen_
 			-P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/CompareRegisterCodegen.cmake
@@ -705,9 +776,10 @@ function(simdlib_add_register_codegen_gate register_width)
 			-DSYSTEM_PROCESSOR=${CMAKE_SYSTEM_PROCESSOR}
 			-DCONFIGURATION=$<CONFIG>
 			-DREGISTER_WIDTH=${register_width}
+			-DISA_PROFILE=${isa_profile}
 			-DVECTORCALL_ENABLED=${vectorcall_enabled}
 			-DSTACK_PROTECTOR_MODE=${stack_protector_mode}
-			-DRECORD_ONLY=${SIMDLIB_REGISTER_CODEGEN_RECORD_ONLY}
+			-DRECORD_ONLY=${codegen_comparison_record_only}
 			-DCODEGEN_PROFILE=common-type-matrix
 			-DSYMBOL_PATTERN=simdlib_type_matrix_
 			-P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/CompareRegisterCodegen.cmake
@@ -733,9 +805,10 @@ function(simdlib_add_register_codegen_gate register_width)
 			-DSYSTEM_PROCESSOR=${CMAKE_SYSTEM_PROCESSOR}
 			-DCONFIGURATION=$<CONFIG>
 			-DREGISTER_WIDTH=${register_width}
+			-DISA_PROFILE=${isa_profile}
 			-DVECTORCALL_ENABLED=${vectorcall_enabled}
 			-DSTACK_PROTECTOR_MODE=${stack_protector_mode}
-			-DRECORD_ONLY=${SIMDLIB_REGISTER_CODEGEN_RECORD_ONLY}
+			-DRECORD_ONLY=${codegen_comparison_record_only}
 			-DSYMBOL_PATTERN=simdlib_codegen_reassignment_arithmetic
 			-P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/CompareRegisterCodegen.cmake
 		COMMAND ${CMAKE_COMMAND} -E touch "${reassignment_stamp_file}"
@@ -760,9 +833,10 @@ function(simdlib_add_register_codegen_gate register_width)
 			-DSYSTEM_PROCESSOR=${CMAKE_SYSTEM_PROCESSOR}
 			-DCONFIGURATION=$<CONFIG>
 			-DREGISTER_WIDTH=${register_width}
+			-DISA_PROFILE=${isa_profile}
 			-DVECTORCALL_ENABLED=${vectorcall_enabled}
 			-DSTACK_PROTECTOR_MODE=${stack_protector_mode}
-			-DRECORD_ONLY=${SIMDLIB_REGISTER_CODEGEN_RECORD_ONLY}
+			-DRECORD_ONLY=${codegen_comparison_record_only}
 			-DSYMBOL_PATTERN=simdlib_abi_
 			-P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/CompareRegisterCodegen.cmake
 		COMMAND ${CMAKE_COMMAND} -E touch "${abi_stamp_file}"
@@ -787,6 +861,7 @@ function(simdlib_add_register_codegen_gate register_width)
 			-DSYSTEM_PROCESSOR=${CMAKE_SYSTEM_PROCESSOR}
 			-DCONFIGURATION=$<CONFIG>
 			-DREGISTER_WIDTH=${register_width}
+			-DISA_PROFILE=${isa_profile}
 			-DVECTORCALL_ENABLED=${vectorcall_enabled}
 			-DSTACK_PROTECTOR_MODE=${stack_protector_mode}
 			-P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/RecordRegisterDefaultAbi.cmake
@@ -812,9 +887,10 @@ function(simdlib_add_register_codegen_gate register_width)
 			-DSYSTEM_PROCESSOR=${CMAKE_SYSTEM_PROCESSOR}
 			-DCONFIGURATION=$<CONFIG>
 			-DREGISTER_WIDTH=${register_width}
+			-DISA_PROFILE=${isa_profile}
 			-DVECTORCALL_ENABLED=${vectorcall_enabled}
 			-DSTACK_PROTECTOR_MODE=${stack_protector_mode}
-			-DRECORD_ONLY=${SIMDLIB_REGISTER_CODEGEN_RECORD_ONLY}
+			-DRECORD_ONLY=${codegen_comparison_record_only}
 			-DSYMBOL_PATTERN=simdlib_consumer_abi_
 			-P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/CompareRegisterCodegen.cmake
 		COMMAND ${CMAKE_COMMAND} -E touch "${consumer_abi_stamp_file}"
@@ -826,48 +902,40 @@ function(simdlib_add_register_codegen_gate register_width)
 		VERBATIM)
 	set(expression_codegen_gate_outputs
 		"${register_only_stamp_file}" "${reassignment_stamp_file}" "${lane_stamp_file}"
-		"${specialized_fma_enabled_stamp_file}" "${specialized_fma_disabled_stamp_file}"
+		"${specialized_fma_disabled_stamp_file}"
 		"${rearrangement_stamp_file}" "${type_matrix_stamp_file}")
+	if(isa_profile STREQUAL "AVX2")
+		list(APPEND expression_codegen_gate_outputs "${specialized_fma_enabled_stamp_file}")
+	endif()
 	if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
 		list(APPEND expression_codegen_gate_outputs "${stamp_file}")
 	endif()
-	add_custom_target(SimdLibRegisterExpressionCodegen${register_width}
+	add_custom_target(SimdLibRegisterExpressionCodegen${target_suffix}
 		DEPENDS ${expression_codegen_gate_outputs})
-	add_dependencies(SimdLibRegisterExpressionCodegen${register_width}
-		${wrapper_target} ${raw_target}
-		${specialized_fma_enabled_wrapper_target} ${specialized_fma_enabled_raw_target}
-		${specialized_fma_disabled_wrapper_target} ${specialized_fma_disabled_raw_target}
-		${rearrangement_wrapper_target} ${rearrangement_raw_target}
-		${type_matrix_wrapper_target} ${type_matrix_raw_target})
-	add_test(NAME SimdLib.RegisterExpressionCodegen.${register_width}
+	add_dependencies(SimdLibRegisterExpressionCodegen${target_suffix} ${codegen_object_targets})
+	add_test(NAME SimdLib.RegisterExpressionCodegen.${target_suffix}
 		COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --config $<CONFIG>
-			--target SimdLibRegisterExpressionCodegen${register_width})
-	set_tests_properties(SimdLib.RegisterExpressionCodegen.${register_width} PROPERTIES
-		LABELS "REGISTER;CODEGEN" RUN_SERIAL TRUE)
-	add_custom_target(SimdLibRegisterConsumerAbi${register_width}
+			--target SimdLibRegisterExpressionCodegen${target_suffix})
+	set_tests_properties(SimdLib.RegisterExpressionCodegen.${target_suffix} PROPERTIES
+		LABELS "REGISTER;CODEGEN;${isa_profile}" RUN_SERIAL TRUE)
+	add_custom_target(SimdLibRegisterConsumerAbi${target_suffix}
 		DEPENDS "${consumer_abi_stamp_file}")
-	add_dependencies(SimdLibRegisterConsumerAbi${register_width}
+	add_dependencies(SimdLibRegisterConsumerAbi${target_suffix}
 		${abi_wrapper_target} ${abi_raw_target})
-	add_test(NAME SimdLib.RegisterConsumerAbi.${register_width}
+	add_test(NAME SimdLib.RegisterConsumerAbi.${target_suffix}
 		COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --config $<CONFIG>
-			--target SimdLibRegisterConsumerAbi${register_width})
-	set_tests_properties(SimdLib.RegisterConsumerAbi.${register_width} PROPERTIES
-		LABELS "REGISTER;CODEGEN;ABI" RUN_SERIAL TRUE)
+			--target SimdLibRegisterConsumerAbi${target_suffix})
+	set_tests_properties(SimdLib.RegisterConsumerAbi.${target_suffix} PROPERTIES
+		LABELS "REGISTER;CODEGEN;ABI;${isa_profile}" RUN_SERIAL TRUE)
 	set(codegen_gate_outputs
 		${expression_codegen_gate_outputs} "${consumer_abi_stamp_file}" "${abi_stamp_file}" "${default_abi_stamp_file}")
-	add_custom_target(SimdLibRegisterCodegen${register_width} ALL DEPENDS ${codegen_gate_outputs})
-	add_dependencies(SimdLibRegisterCodegen${register_width}
-		${wrapper_target} ${raw_target} ${default_wrapper_target} ${default_raw_target}
-		${abi_wrapper_target} ${abi_raw_target}
-		${specialized_fma_enabled_wrapper_target} ${specialized_fma_enabled_raw_target}
-		${specialized_fma_disabled_wrapper_target} ${specialized_fma_disabled_raw_target}
-		${rearrangement_wrapper_target} ${rearrangement_raw_target}
-		${type_matrix_wrapper_target} ${type_matrix_raw_target})
-	add_test(NAME SimdLib.RegisterCodegen.${register_width}
+	add_custom_target(SimdLibRegisterCodegen${target_suffix} ALL DEPENDS ${codegen_gate_outputs})
+	add_dependencies(SimdLibRegisterCodegen${target_suffix} ${codegen_object_targets})
+	add_test(NAME SimdLib.RegisterCodegen.${target_suffix}
 		COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --config $<CONFIG>
-			--target SimdLibRegisterCodegen${register_width})
-	set_tests_properties(SimdLib.RegisterCodegen.${register_width} PROPERTIES
-		LABELS "REGISTER;CODEGEN;ABI" RUN_SERIAL TRUE)
+			--target SimdLibRegisterCodegen${target_suffix})
+	set_tests_properties(SimdLib.RegisterCodegen.${target_suffix} PROPERTIES
+		LABELS "REGISTER;CODEGEN;ABI;${isa_profile}" RUN_SERIAL TRUE)
 endfunction()
 
 if(SIMDLIB_BUILD_REGISTER_CODEGEN AND SIMDLIB_REGISTER_COMPILER_SUPPORTED)
@@ -877,10 +945,13 @@ if(SIMDLIB_BUILD_REGISTER_CODEGEN AND SIMDLIB_REGISTER_COMPILER_SUPPORTED)
 	if(NOT CMAKE_OBJDUMP)
 		message(FATAL_ERROR "Register generated-code gates require an objdump-compatible disassembler")
 	endif()
-	simdlib_add_register_codegen_gate(128)
-	simdlib_add_register_codegen_gate(256)
+	simdlib_add_register_codegen_gate(128 SSE42)
+	simdlib_add_register_codegen_gate(128 AVX2)
+	simdlib_add_register_codegen_gate(256 AVX2)
 	add_custom_target(SimdLibRegisterCodegen DEPENDS
-		SimdLibRegisterCodegen128 SimdLibRegisterCodegen256)
+		SimdLibRegisterCodegen128Sse42
+		SimdLibRegisterCodegen128Avx2
+		SimdLibRegisterCodegen256Avx2)
 endif()
 
 add_library(SimdLibAvailabilityDisabledProbe OBJECT tests/availability/ApiDisabledProbe.cpp)
@@ -905,6 +976,18 @@ if(SIMDLIB_BUILD_SMOKE_TESTS)
     add_test(NAME SimdLib.HeaderOnlySmoke COMMAND SimdLibHeaderOnlySmoke)
     simdlib_set_coverage_profile_prefix(SimdLibHeaderOnlySmoke
         "SimdLib.HeaderOnlySmoke")
+
+	if(SIMDLIB_REGISTER_COMPILER_SUPPORTED)
+		add_executable(SimdLibRegisterOdr
+			tests/register_odr/main.cpp
+			tests/register_odr/second_translation_unit.cpp)
+		target_link_libraries(SimdLibRegisterOdr PRIVATE SimdLib::Register)
+		simdlib_enable_development_warnings(SimdLibRegisterOdr)
+		simdlib_enable_register_sse42(SimdLibRegisterOdr)
+		add_test(NAME SimdLib.RegisterOdr COMMAND SimdLibRegisterOdr)
+		set_tests_properties(SimdLib.RegisterOdr PROPERTIES LABELS "REGISTER;ODR;SSE42")
+		simdlib_set_coverage_profile_prefix(SimdLibRegisterOdr "SimdLib.RegisterOdr")
+	endif()
 endif()
 
 if(SIMDLIB_BUILD_TESTS)
@@ -955,22 +1038,28 @@ if(SIMDLIB_BUILD_TESTS)
 			tests/RegisterRearrangementConversion.tests.cpp
 			tests/RegisterOperationMatrix.tests.cpp)
 		target_link_libraries(SimdLibTestsRegister PRIVATE SimdLib::Register)
-		if(SIMDLIB_MSVC_STYLE_DRIVER)
-			target_compile_options(SimdLibTestsRegister PRIVATE /arch:AVX2)
-		else()
-			target_compile_options(SimdLibTestsRegister PRIVATE -mavx2)
-		endif()
+		target_compile_definitions(SimdLibTestsRegister PRIVATE
+			SIMDLIB_REGISTER_TEST_ENABLE_256=1)
+		simdlib_enable_register_avx2(SimdLibTestsRegister)
+
+		simdlib_add_catch_test(SimdLibTestsRegisterSse42 tests/Register.tests.cpp
+			SimdLib.Tests.RegisterSse42 "REGISTER;SSE42")
+		target_sources(SimdLibTestsRegisterSse42 PRIVATE
+			tests/RegisterBasicOperations.tests.cpp
+			tests/RegisterSpecializedOperations.tests.cpp
+			tests/RegisterRearrangementConversion.tests.cpp
+			tests/RegisterOperationMatrix.tests.cpp)
+		target_link_libraries(SimdLibTestsRegisterSse42 PRIVATE SimdLib::Register)
+		target_compile_definitions(SimdLibTestsRegisterSse42 PRIVATE
+			SIMDLIB_REGISTER_TEST_ENABLE_256=0)
+		simdlib_enable_register_sse42(SimdLibTestsRegisterSse42)
 
 		add_executable(SimdLibRegisterPreconditionTests tests/RegisterPreconditionFailure.tests.cpp)
 		target_link_libraries(SimdLibRegisterPreconditionTests PRIVATE SimdLib::Register Catch2::Catch2WithMain)
 		simdlib_enable_development_warnings(SimdLibRegisterPreconditionTests)
 		simdlib_set_coverage_profile_prefix(SimdLibRegisterPreconditionTests
 			"SimdLib.Tests.RegisterPreconditions")
-		if(SIMDLIB_MSVC_STYLE_DRIVER)
-			target_compile_options(SimdLibRegisterPreconditionTests PRIVATE /arch:AVX2)
-		else()
-			target_compile_options(SimdLibRegisterPreconditionTests PRIVATE -mavx2)
-		endif()
+		simdlib_enable_register_sse42(SimdLibRegisterPreconditionTests)
 		catch_discover_tests(SimdLibRegisterPreconditionTests
 			TEST_PREFIX "SimdLib.Tests.RegisterPreconditions."
 			TEST_LIST SimdLibRegisterPreconditionTests_DISCOVERED_TESTS
@@ -1246,6 +1335,16 @@ if(SIMDLIB_BUILD_EXAMPLES)
     add_test(NAME SimdLib.ApiExamples COMMAND SimdLibApiExamples)
     set_tests_properties(SimdLib.ApiExamples PROPERTIES LABELS "EXAMPLES;AVX2;FMA;BMI")
     simdlib_set_coverage_profile_prefix(SimdLibApiExamples "SimdLib.ApiExamples")
+
+	if(SIMDLIB_REGISTER_COMPILER_SUPPORTED)
+		add_executable(SimdLibRegisterExamples examples/RegisterExamples.cpp)
+		target_link_libraries(SimdLibRegisterExamples PRIVATE SimdLib::Register)
+		simdlib_enable_development_warnings(SimdLibRegisterExamples)
+		simdlib_enable_register_sse42(SimdLibRegisterExamples)
+		add_test(NAME SimdLib.RegisterExamples COMMAND SimdLibRegisterExamples)
+		set_tests_properties(SimdLib.RegisterExamples PROPERTIES LABELS "EXAMPLES;REGISTER;SSE42")
+		simdlib_set_coverage_profile_prefix(SimdLibRegisterExamples "SimdLib.RegisterExamples")
+	endif()
 endif()
 
 if(SIMDLIB_ENABLE_COVERAGE)

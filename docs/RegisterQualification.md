@@ -15,18 +15,22 @@ commands below reproduce them under `build*/register-codegen` or
 | Register widths | 128 and 256 bits |
 | Availability floor | SSE4.2 exposes the 128-bit specialization; AVX2 additionally exposes the 256-bit specialization |
 | Optimized zero-overhead profile | AVX2 for the complete 128-bit and 256-bit wrapper/raw corpus |
+| Optimized diagnostic profile | SSE4.2 for the complete 128-bit wrapper/raw corpus |
 | Element types | `int8_t`, `uint8_t`, `int16_t`, `uint16_t`, `int32_t`, `uint32_t`, `int64_t`, `uint64_t`, `float`, and `double` |
 | Windows compilers | MSVC 19.44 and clang-cl 22 |
 | Linux compilers | GCC 14 and Clang 22 on the pinned Alpine/musl images |
 | Optimized configuration | Release with strict wrapper/raw generated-code comparison |
 | Diagnostic configurations | Debug on every supported compiler; ASan+UBSan on Clang 22 |
-| FMA profiles | Explicitly enabled and explicitly disabled specialized-operation corpora |
+| FMA profiles | Explicitly disabled under SSE4.2; explicitly enabled and disabled under AVX2 |
 
 Every supported compiler must compile the C++23 interface, the complete runtime
-and constexpr corpus, both register widths, and the external consumer. An
-optimized cell is supported only when its applicable wrapper/raw profiles are
-instruction-identical after allocation-independent normalization, except for an
-exact exception listed below.
+and constexpr corpus for each ISA-available width, and the external consumer.
+AVX2 participates in the strict optimized wrapper/raw gate. SSE4.2 compiles the
+same 128-bit fixtures with Release optimization and records any differential;
+it is a correctness-supported profile but is excluded from the zero-overhead
+claim. An optimized zero-overhead cell is supported only when its applicable
+wrapper/raw profiles are instruction-identical after allocation-independent
+normalization, except for an exact exception listed below.
 
 ## Correctness evidence
 
@@ -61,8 +65,8 @@ The corpus is divided so one optimization decision cannot hide another:
 - `RegisterCodegenFixture.h` covers common expression and overload shapes.
 - `RegisterTypeMatrixCodegenFixture.h` emits an isolated no-inline function for
   each common Register and RegisterMask operation across all ten element types
-  and both widths. Construction, load, store, byte transfer, and array
-  observation are separate symbols.
+  and every width available in the selected ISA profile. Construction, load,
+  store, byte transfer, and array observation are separate symbols.
 - `RegisterSpecializedCodegenFixture.h` covers specialized arithmetic and both
   FMA modes across the supported type matrix.
 - `RegisterRearrangementCodegenFixture.h` covers selectors, rearrangements,
@@ -77,23 +81,27 @@ supported boundary. Windows platform-default calling-convention artifacts are
 recorded separately by `RecordRegisterDefaultAbi.cmake`; they are diagnostic and
 do not participate in the Windows call-boundary guarantee.
 
-Debug and sanitizer builds compile the same wrapper/raw objects with identical
-flags and write disassembly, normalized profiles, provenance, and a
-`recorded-difference` result. These configurations establish visibility of
-diagnostic-only differences; optimized Release remains the zero-overhead gate.
+SSE4.2, Debug, and sanitizer builds compile the same wrapper/raw objects with
+identical flags and write disassembly, normalized profiles, provenance, and a
+`recorded-difference` result when the profiles diverge. These configurations
+establish visibility of diagnostic-only differences; optimized Release AVX2
+remains the zero-overhead gate. Every artifact records `isa_profile` in addition
+to the compiler, configuration, width, calling convention, and stack-protector
+mode. Artifacts are separated under `register-codegen/sse42/128`,
+`register-codegen/avx2/128`, and `register-codegen/avx2/256`.
 
 ## Exception and exclusion ledger
 
 | Cell | Disposition | Justification |
 | --- | --- | --- |
-| MSVC 19.44, 128-bit `Register<double>::from_array` | Exact accepted Release exception | MSVC adds one `/GS` cookie prologue/epilogue to the wrapper path. The comparator accepts only the complete known instruction sequence and requires every remaining instruction to match the raw mirror. |
+| SSE4.2 generated-code corpus | Optimized diagnostic; excluded from the zero-overhead claim | Legacy two-operand SSE can expose aggregate-sensitive instruction selection and register coalescing. The complete 128-bit corpus is retained for compiler-by-compiler inspection without treating a recorded difference as an accepted optimized exception. |
+| MSVC 19.44, 128-bit `Register<double>::from_array` under SSE4.2 and AVX2 | Exact accepted Release exception | MSVC adds one `/GS` cookie prologue/epilogue to the wrapper path. The comparator separately recognizes the exact legacy `movdqu` SSE4.2 sequence and exact `vmovdqu` AVX2 sequence, then requires every remaining instruction to match the raw mirror. |
 | MSVC memory-capable aggregate corpus | Recorded, outside the zero-overhead claim when `/GS` differs | Stores, transfers, array returns, mutating references, and other addressable paths intentionally retain `/GS`; applying `SIMDLIB_REGISTER_ONLY` would suppress protection for functions that can write memory. |
 | MSVC constexpr bit-cast value matrix | Frontend evaluation excluded | MSVC 19.44 terminates with an internal compiler error when evaluating the first Register bit-cast cell. MSVC still compiles the complete availability matrix and validates runtime bit-cast values; GCC and both Clang drivers perform the complete constexpr value matrix. |
 | clang-cl Windows platform-default aggregate ABI | Diagnostic only; failing signatures excluded | The platform-default convention may use hidden return storage for aggregate Register results. `VECTORCALL` wrapper/raw parity is the supported clang-cl boundary. |
 | MSVC Windows platform-default aggregate ABI | Diagnostic only; hidden-return signatures excluded | The platform-default convention also returns aggregate Register results through caller-provided storage. The supported non-inline boundary uses `VECTORCALL`; default-convention disassembly remains available without expanding the guarantee. |
 | Debug wrapper/raw differences | Recorded, not accepted as Release overhead | Disabled optimization preserves abstraction structure and may add wrapper-only calls, temporaries, or stack traffic. Both sides are compiled with identical Debug flags so the difference remains inspectable. |
 | ASan+UBSan wrapper/raw differences | Recorded, not accepted as Release overhead | Sanitizer instrumentation intentionally changes memory and control-flow code. Correctness and absence of sanitizer diagnostics are required; instruction identity is not. |
-| SSE4.2-only Register configuration | Excluded from this zero-overhead contract | The 128-bit type follows the existing SSE4.2 `Api` availability boundary, but no standalone complete wrapper/raw and ABI corpus is defined for that compiler profile. The AVX2 profile is the only optimized machine-code claim made here. |
 | 32-bit targets, non-x86 architectures, 512-bit registers, AVX-512, and compilers below the listed versions | Unsupported | No complete correctness, ABI, and zero-overhead matrix exists for these cells. |
 
 No other optimized Release performance exception is accepted. Adding one

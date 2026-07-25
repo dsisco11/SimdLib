@@ -19,14 +19,19 @@ example, start with the [project README](../README.md).
 
 ## Library model
 
-SimdLib is a C++20 header-only library. Its CMake target is an
-`INTERFACE_LIBRARY`; it does not produce a DLL or static library. The public
-API lives in the `SimdLib` namespace, while `SimdLib::Detail` contains
-implementation details that consumer code must not name.
+SimdLib is a header-only library with a C++20 core and an opt-in C++23
+complete-register interface. Its CMake targets are `INTERFACE_LIBRARY`
+targets; they do not produce a DLL or static library. The public API lives in
+the `SimdLib` namespace, while `SimdLib::Detail` contains implementation
+details that consumer code must not name.
 
 The main API families are:
 
-- `NativeApi<element_t>`, the recommended facade that selects the widest
+- `NativeRegister<element_t>`, the recommended C++23 complete-register value
+  that selects the widest available register;
+- `Register<element_t, register_width>` and `RegisterMask`, the explicit-width
+  complete-register value and predicate types;
+- `NativeApi<element_t>`, the C++20 backend facade that selects the widest
   available register;
 - `Api<register_width, element_t>`, a typed intrinsic facade;
 - `SimdVector<element_t, element_count>`, a fixed-size value type backed by one
@@ -48,6 +53,13 @@ the same public functions.
 ```cmake
 add_subdirectory(external/SimdLib)
 target_link_libraries(MyTarget PRIVATE SimdLib::SimdLib)
+```
+
+Targets that use `Register`, `RegisterMask`, or `NativeRegister` link the
+C++23 interface target instead:
+
+```cmake
+target_link_libraries(MyRegisterTarget PRIVATE SimdLib::Register)
 ```
 
 ### `FetchContent`
@@ -72,8 +84,9 @@ non-formatting surface. `<SimdLib/Format.h>` is intentionally separate so
 translation units pay for formatting support only when they use it.
 
 The repository's CMake project requires CMake 4.4 or newer. Consumers that
-integrate the headers without the provided CMake project need only a supported
-C++20 compiler and the appropriate target flags.
+integrate the headers without the provided CMake project need a supported C++20
+compiler for the core, a supported C++23 compiler for the Register interface,
+and the appropriate target flags.
 
 ## Supported environments
 
@@ -97,10 +110,16 @@ binary was compiled.
 
 ## SIMD availability and instruction families
 
-For ordinary SIMD work, use `SimdLib::NativeApi<element_t>`. It resolves to
-`Api<256, element_t>` when the compile target enables AVX2 and SSE4.2, and
-otherwise resolves to `Api<128, element_t>` when SSE4.2 is enabled. This is a
-compile-time choice based on compiler flags; it is not runtime CPU detection.
+For C++23 complete-register work, use `SimdLib::NativeRegister<element_t>`. It
+resolves to the widest available `Register` specialization. Use explicit
+`Register<element_t, register_width>` when storage or ABI must not vary with
+the target configuration. This is a compile-time choice based on compiler
+flags; it is not runtime CPU detection.
+
+Use `SimdLib::NativeApi<element_t>` for C++20, collection helpers, or direct
+backend access. It resolves to `Api<256, element_t>` when the compile target
+enables AVX2 and SSE4.2, and otherwise resolves to `Api<128, element_t>` when
+SSE4.2 is enabled.
 
 Use the explicit-width `Api<register_width, element_t>` form when a data
 layout, ABI, or algorithm specifically requires 128-bit or 256-bit registers.
@@ -122,6 +141,8 @@ FMA-disabled paths, and all four BMI1/BMI2 combinations.
 | --- | --- |
 | `<SimdLib/Config.h>` | Version, compiler, target, instruction, assertion, and ABI configuration |
 | `<SimdLib/Api.h>` | Auto-sized `NativeApi<element_t>`, explicit-width `Api<register_width, element_t>`, and availability query |
+| `<SimdLib/Register.h>` | C++23 `Register<element_t, register_width>` and `NativeRegister<element_t>` complete-register values |
+| `<SimdLib/RegisterMask.h>` | C++23 `RegisterMask<element_t, register_width>` predicate values |
 | `<SimdLib/SimdApi.h>` | Deprecated compatibility forwarding header; use `Api.h` |
 | `<SimdLib/SimdVector.h>` | `SimdVector<element_t, element_count>` value type |
 | `<SimdLib/SimdAlgo.h>` | Fixed-extent and dynamic-span `SimdAlgo` operations |

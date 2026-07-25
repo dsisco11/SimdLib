@@ -206,9 +206,14 @@ SIMDLIB_DEFINE_CONVERT(f32, float, i32, std::int32_t)
 	{                                                                                                                                                          \
 		return SIMDLIB_REARRANGE_WIDEN(source_type, target_type, target_bits, value);                                                                          \
 	}
+#if SIMDLIB_HAS_AVX2
 #define SIMDLIB_DEFINE_WIDEN_WIDTHS(source_token, source_type, target_token, target_type)                                                                      \
 	SIMDLIB_DEFINE_WIDEN(source_token, source_type, target_token, target_type, 128)                                                                            \
 	SIMDLIB_DEFINE_WIDEN(source_token, source_type, target_token, target_type, 256)
+#else
+#define SIMDLIB_DEFINE_WIDEN_WIDTHS(source_token, source_type, target_token, target_type)                                                                      \
+	SIMDLIB_DEFINE_WIDEN(source_token, source_type, target_token, target_type, 128)
+#endif
 SIMDLIB_DEFINE_WIDEN_WIDTHS(i8, std::int8_t, i16, std::int16_t)
 SIMDLIB_DEFINE_WIDEN_WIDTHS(i8, std::int8_t, i32, std::int32_t)
 SIMDLIB_DEFINE_WIDEN_WIDTHS(i8, std::int8_t, i64, std::int64_t)

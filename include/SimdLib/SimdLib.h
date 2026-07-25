@@ -5,6 +5,9 @@
 #include <SimdLib/Config.h>
 #include <SimdLib/IRegister.h>
 #include <SimdLib/IRegisterMask.h>
+#if SIMDLIB_REGISTER_INTERFACE_AVAILABLE
+#include <SimdLib/Register.h>
+#endif
 #include <SimdLib/SimdAlgo.h>
 #include <SimdLib/SimdApi.h>
 #include <SimdLib/SimdResample.h>

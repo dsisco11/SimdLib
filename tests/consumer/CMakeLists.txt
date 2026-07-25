@@ -63,5 +63,18 @@ option(SIMDLIB_BUILD_REGISTER_CONSUMER
 if(SIMDLIB_BUILD_REGISTER_CONSUMER)
 	add_executable(SimdLibRegisterConsumerSmoke register.cpp)
 	target_link_libraries(SimdLibRegisterConsumerSmoke PRIVATE SimdLib::Register)
+	target_compile_definitions(SimdLibRegisterConsumerSmoke PRIVATE
+		SIMDLIB_HAS_SSE=1 SIMDLIB_HAS_SSE2=1 SIMDLIB_HAS_SSE3=1
+		SIMDLIB_HAS_SSSE3=1 SIMDLIB_HAS_SSE41=1 SIMDLIB_HAS_SSE42=1
+		SIMDLIB_HAS_AVX=0 SIMDLIB_HAS_AVX2=0 SIMDLIB_HAS_FMA=0)
+	if(MSVC)
+		if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+			target_compile_options(SimdLibRegisterConsumerSmoke PRIVATE
+				/clang:-msse4.2 /clang:-mno-avx /clang:-mno-avx2 /clang:-mno-fma)
+		endif()
+	else()
+		target_compile_options(SimdLibRegisterConsumerSmoke PRIVATE
+			-msse4.2 -mno-avx -mno-avx2 -mno-fma)
+	endif()
 	add_test(NAME SimdLib.RegisterConsumerSmoke COMMAND SimdLibRegisterConsumerSmoke)
 endif()

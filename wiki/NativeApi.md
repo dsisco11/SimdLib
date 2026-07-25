@@ -1,6 +1,10 @@
 # NativeApi
 
-`NativeApi<element_t>` selects the widest `Api` specialization enabled by the compile target, so normal users do not need to choose between 128-bit and 256-bit registers.
+`NativeApi<element_t>` selects the widest `Api` specialization enabled by the
+compile target. It remains the supported facade for C++20, collection helpers,
+and direct backend operations. C++23 complete-register expressions should use
+`NativeRegister<element_t>` instead; explicit `Register<element_t, Bits>` is
+required when storage or ABI must remain stable across target configurations.
 
 ## Contents
 

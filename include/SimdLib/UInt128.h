@@ -112,6 +112,13 @@ class uint128_t final
 		return m_data[0] <=> rhs.m_data[0];
 	}
 
+	/**
+	 * @brief Compares this value with a built-in integral value.
+	 * @tparam T Integral comparison type containing at most 64 value bits.
+	 *
+	 * @param rhs Scalar value to compare.
+	 * @return `true` when both values represent the same nonnegative integer.
+	 */
 	template <std::integral T>
 		requires(std::numeric_limits<T>::digits <= 64)
 	[[nodiscard]] constexpr bool operator==(const T rhs) const noexcept
@@ -120,7 +127,10 @@ class uint128_t final
 		{
 			return rhs >= 0 && m_data[1] == 0 && m_data[0] == static_cast<std::uint64_t>(rhs);
 		}
-		return m_data[1] == 0 && m_data[0] == static_cast<std::uint64_t>(rhs);
+		else
+		{
+			return m_data[1] == 0 && m_data[0] == static_cast<std::uint64_t>(rhs);
+		}
 	}
 
 	template <std::integral T>
@@ -564,7 +574,8 @@ static_assert(std::is_trivially_copyable_v<uint128_t>);
 
 namespace std
 {
-template <> class numeric_limits<SimdLib::uint128_t>
+/** @brief Supplies standard numeric limits for SimdLib's unsigned 128-bit integer. */
+template <> class numeric_limits<SimdLib::uint128_t> : public numeric_limits<std::uint64_t>
 {
   public:
 	static constexpr bool is_specialized = true;
@@ -582,8 +593,6 @@ template <> class numeric_limits<SimdLib::uint128_t>
 	static constexpr bool has_infinity = false;
 	static constexpr bool has_quiet_NaN = false;
 	static constexpr bool has_signaling_NaN = false;
-	static constexpr float_denorm_style has_denorm = denorm_absent;
-	static constexpr bool has_denorm_loss = false;
 	static constexpr bool is_iec559 = false;
 	static constexpr bool is_bounded = true;
 	static constexpr bool is_modulo = true;

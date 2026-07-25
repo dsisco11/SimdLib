@@ -10,6 +10,10 @@
 #include <limits>
 #include <type_traits>
 
+#ifndef SIMDLIB_REGISTER_TEST_ENABLE_256
+#define SIMDLIB_REGISTER_TEST_ENABLE_256 SIMDLIB_HAS_AVX2
+#endif
+
 namespace
 {
 
@@ -539,12 +543,14 @@ template <class element_t> void require_arithmetic_type()
 	if constexpr (std::is_integral_v<element_t>)
 	{
 		require_integral_arithmetic<element_t, 128>();
-		require_integral_arithmetic<element_t, 256>();
+		if constexpr (SIMDLIB_REGISTER_TEST_ENABLE_256)
+			require_integral_arithmetic<element_t, 256>();
 	}
 	else
 	{
 		require_floating_arithmetic<element_t, 128>();
-		require_floating_arithmetic<element_t, 256>();
+		if constexpr (SIMDLIB_REGISTER_TEST_ENABLE_256)
+			require_floating_arithmetic<element_t, 256>();
 	}
 }
 
@@ -552,17 +558,19 @@ template <class element_t> void require_arithmetic_type()
 template <class element_t> void require_bitwise_type()
 {
 	require_bitwise_operations<element_t, 128>();
-	require_bitwise_operations<element_t, 256>();
+	if constexpr (SIMDLIB_REGISTER_TEST_ENABLE_256)
+		require_bitwise_operations<element_t, 256>();
 }
 
 /** @brief Runs per-lane shift coverage at both supported register widths. */
 template <class element_t> void require_shift_type()
 {
 	require_lane_shifts<element_t, 128>();
-	require_lane_shifts<element_t, 256>();
+	if constexpr (SIMDLIB_REGISTER_TEST_ENABLE_256)
+		require_lane_shifts<element_t, 256>();
 }
 
-TEST_CASE("Register arithmetic matches Api and independent scalar edge-case oracles", "[simdlib][register][arithmetic][avx2]")
+TEST_CASE("Register arithmetic matches Api and independent scalar edge-case oracles", "[simdlib][register][arithmetic]")
 {
 	require_arithmetic_type<std::int8_t>();
 	require_arithmetic_type<std::uint8_t>();
@@ -576,7 +584,7 @@ TEST_CASE("Register arithmetic matches Api and independent scalar edge-case orac
 	require_arithmetic_type<double>();
 }
 
-TEST_CASE("Register bitwise operations and sign masks preserve exact bits", "[simdlib][register][bitwise][movemask][avx2]")
+TEST_CASE("Register bitwise operations and sign masks preserve exact bits", "[simdlib][register][bitwise][movemask]")
 {
 	require_bitwise_type<std::int8_t>();
 	require_bitwise_type<std::uint8_t>();
@@ -590,7 +598,7 @@ TEST_CASE("Register bitwise operations and sign masks preserve exact bits", "[si
 	require_bitwise_type<double>();
 }
 
-TEST_CASE("Register shifts match lane and complete-register boundary contracts", "[simdlib][register][shift][avx2]")
+TEST_CASE("Register shifts match lane and complete-register boundary contracts", "[simdlib][register][shift]")
 {
 	require_shift_type<std::int8_t>();
 	require_shift_type<std::uint8_t>();

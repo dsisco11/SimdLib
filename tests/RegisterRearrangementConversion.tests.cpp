@@ -10,6 +10,10 @@
 #include <type_traits>
 #include <utility>
 
+#ifndef SIMDLIB_REGISTER_TEST_ENABLE_256
+#define SIMDLIB_REGISTER_TEST_ENABLE_256 SIMDLIB_HAS_AVX2
+#endif
+
 namespace
 {
 
@@ -103,17 +107,29 @@ template <class source_t, class target_t, std::size_t target_bits> void require_
 template <class i8_t, class i16_t, class i32_t, class i64_t> void require_widening_family()
 {
 	require_widen_low_contract<i8_t, i16_t, 128>();
+#if SIMDLIB_REGISTER_TEST_ENABLE_256
 	require_widen_low_contract<i8_t, i16_t, 256>();
+#endif
 	require_widen_low_contract<i8_t, i32_t, 128>();
+#if SIMDLIB_REGISTER_TEST_ENABLE_256
 	require_widen_low_contract<i8_t, i32_t, 256>();
+#endif
 	require_widen_low_contract<i8_t, i64_t, 128>();
+#if SIMDLIB_REGISTER_TEST_ENABLE_256
 	require_widen_low_contract<i8_t, i64_t, 256>();
+#endif
 	require_widen_low_contract<i16_t, i32_t, 128>();
+#if SIMDLIB_REGISTER_TEST_ENABLE_256
 	require_widen_low_contract<i16_t, i32_t, 256>();
+#endif
 	require_widen_low_contract<i16_t, i64_t, 128>();
+#if SIMDLIB_REGISTER_TEST_ENABLE_256
 	require_widen_low_contract<i16_t, i64_t, 256>();
+#endif
 	require_widen_low_contract<i32_t, i64_t, 128>();
+#if SIMDLIB_REGISTER_TEST_ENABLE_256
 	require_widen_low_contract<i32_t, i64_t, 256>();
+#endif
 }
 
 using I8x128 = SimdLib::Register<std::int8_t, 128>;
@@ -126,12 +142,19 @@ using I64x128 = SimdLib::Register<std::int64_t, 128>;
 using U64x128 = SimdLib::Register<std::uint64_t, 128>;
 using F32x128 = SimdLib::Register<float, 128>;
 using F64x128 = SimdLib::Register<double, 128>;
+#if SIMDLIB_REGISTER_TEST_ENABLE_256
 using U8x256 = SimdLib::Register<std::uint8_t, 256>;
+#endif
 
 static_assert(!SimdLib::IRegister::LowerHalf<I32x128>);
+#if SIMDLIB_REGISTER_TEST_ENABLE_256
 static_assert(SimdLib::IRegister::LowerHalf<SimdLib::Register<std::int32_t, 256>>);
+#endif
 static_assert(SimdLib::IRegister::UnpackLow<I8x128> && SimdLib::IRegister::UnpackHigh<F64x128>);
-static_assert(has_complete_shuffle<I8x128>() && has_complete_shuffle<U8x256>());
+static_assert(has_complete_shuffle<I8x128>());
+#if SIMDLIB_REGISTER_TEST_ENABLE_256
+static_assert(has_complete_shuffle<U8x256>());
+#endif
 static_assert(!has_complete_shuffle<I16x128>());
 static_assert(SimdLib::IRegister::ShuffleLow<I16x128, 0> && SimdLib::IRegister::ShuffleHigh<U16x128, 255>);
 static_assert(!SimdLib::IRegister::ShuffleLow<I32x128, 0>);
@@ -141,11 +164,14 @@ static_assert(!SimdLib::IRegister::Blend<I8x128, 0> && !SimdLib::IRegister::Blen
 static_assert(SimdLib::IRegister::BitCast<F32x128, std::uint8_t> && SimdLib::IRegister::BitCast<U64x128, double>);
 static_assert(SimdLib::IRegister::Convert<I32x128, float> && SimdLib::IRegister::Convert<U32x128, float> && SimdLib::IRegister::Convert<F32x128, std::int32_t>);
 static_assert(!SimdLib::IRegister::Convert<F32x128, std::uint32_t> && !SimdLib::IRegister::Convert<I64x128, double>);
-static_assert(SimdLib::IRegister::WidenLow<I8x128, std::int16_t, 128> && SimdLib::IRegister::WidenLow<I8x128, std::int64_t, 256> &&
-			  SimdLib::IRegister::WidenLow<U32x128, std::uint64_t, 256>);
-static_assert(!SimdLib::IRegister::WidenLow<I8x128, std::uint16_t, 128> &&
-			  !SimdLib::IRegister::WidenLow<SimdLib::Register<std::int8_t, 256>, std::int16_t, 256>);
+static_assert(SimdLib::IRegister::WidenLow<I8x128, std::int16_t, 128>);
+static_assert(!SimdLib::IRegister::WidenLow<I8x128, std::uint16_t, 128>);
+#if SIMDLIB_REGISTER_TEST_ENABLE_256
+static_assert(SimdLib::IRegister::WidenLow<I8x128, std::int64_t, 256> && SimdLib::IRegister::WidenLow<U32x128, std::uint64_t, 256>);
+static_assert(!SimdLib::IRegister::WidenLow<SimdLib::Register<std::int8_t, 256>, std::int16_t, 256>);
+#endif
 
+#if SIMDLIB_REGISTER_TEST_ENABLE_256
 TEST_CASE("Register lower-half preserves the complete low 128-bit lane sequence", "[simdlib][register][rearrangement]")
 {
 	using register_t = SimdLib::Register<std::uint32_t, 256>;
@@ -153,36 +179,45 @@ TEST_CASE("Register lower-half preserves the complete low 128-bit lane sequence"
 	const auto actual = register_t::from_array(lanes).lower_half().to_array();
 	REQUIRE(actual == std::array<std::uint32_t, 4>{lanes[0], lanes[1], lanes[2], lanes[3]});
 }
+#endif
 
 TEST_CASE("Register unpack methods preserve intrinsic 128-bit grouping and lane order", "[simdlib][register][rearrangement]")
 {
 	require_unpack_contract<std::int8_t, 128>();
+#if SIMDLIB_REGISTER_TEST_ENABLE_256
 	require_unpack_contract<std::uint16_t, 256>();
 	require_unpack_contract<std::int32_t, 256>();
+#endif
 	require_unpack_contract<std::uint64_t, 128>();
+#if SIMDLIB_REGISTER_TEST_ENABLE_256
 	require_unpack_contract<float, 256>();
 	require_unpack_contract<double, 256>();
+#endif
 }
 
 TEST_CASE("Register logical byte shuffle uses complete lane-local selector lists", "[simdlib][register][rearrangement]")
 {
 	using register128_t = SimdLib::Register<std::uint8_t, 128>;
-	using register256_t = SimdLib::Register<std::uint8_t, 256>;
 	const auto source128 = make_distinct_lanes<register128_t>();
-	const auto source256 = make_distinct_lanes<register256_t>();
 	const auto reversed128 = register128_t::from_array(source128).template shuffle<15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0>().to_array();
+	for (std::size_t lane = 0; lane < 16; ++lane)
+		REQUIRE(reversed128[lane] == source128[15 - lane]);
+#if SIMDLIB_REGISTER_TEST_ENABLE_256
+	using register256_t = SimdLib::Register<std::uint8_t, 256>;
+	const auto source256 = make_distinct_lanes<register256_t>();
 	const auto reversed256 =
 		register256_t::from_array(source256)
 			.template shuffle<15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16>()
 			.to_array();
 	for (std::size_t lane = 0; lane < 16; ++lane)
 	{
-		REQUIRE(reversed128[lane] == source128[15 - lane]);
 		REQUIRE(reversed256[lane] == source256[15 - lane]);
 		REQUIRE(reversed256[16 + lane] == source256[31 - lane]);
 	}
+#endif
 }
 
+#if SIMDLIB_REGISTER_TEST_ENABLE_256
 TEST_CASE("Register 16-bit half shuffles preserve the unselected half in every 128-bit group", "[simdlib][register][rearrangement]")
 {
 	using register_t = SimdLib::Register<std::int16_t, 256>;
@@ -200,19 +235,29 @@ TEST_CASE("Register 16-bit half shuffles preserve the unselected half in every 1
 		}
 	}
 }
+#endif
 
 TEST_CASE("Register immediate blend retains operation-specific mask-bit behavior", "[simdlib][register][rearrangement]")
 {
 	require_blend_contract<std::int16_t, 128, 0xA5>();
+#if SIMDLIB_REGISTER_TEST_ENABLE_256
 	require_blend_contract<std::uint16_t, 256, 0xA5>();
+#endif
 	require_blend_contract<std::int32_t, 128, 0xF5>();
+#if SIMDLIB_REGISTER_TEST_ENABLE_256
 	require_blend_contract<std::uint32_t, 256, 0xA5>();
+#endif
 	require_blend_contract<float, 128, 0xF5>();
+#if SIMDLIB_REGISTER_TEST_ENABLE_256
 	require_blend_contract<float, 256, 0xA5>();
+#endif
 	require_blend_contract<double, 128, 0xFD>();
+#if SIMDLIB_REGISTER_TEST_ENABLE_256
 	require_blend_contract<double, 256, 0xF5>();
+#endif
 }
 
+#if SIMDLIB_REGISTER_TEST_ENABLE_256
 TEST_CASE("Register bit-cast preserves floating edge-value object representations", "[simdlib][register][conversion]")
 {
 	using bits_t = SimdLib::Register<std::uint32_t, 256>;
@@ -221,6 +266,7 @@ TEST_CASE("Register bit-cast preserves floating edge-value object representation
 	REQUIRE(floating.template bit_cast<std::uint32_t>().to_array() == patterns);
 	REQUIRE(std::bit_cast<std::uint32_t>(floating.template lane<6>()) == patterns[6]);
 }
+#endif
 
 TEST_CASE("Register numeric conversion is distinct from bit reinterpretation", "[simdlib][register][conversion]")
 {

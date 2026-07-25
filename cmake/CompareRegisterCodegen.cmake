@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 4.4)
 foreach(required_variable IN ITEMS
 	WRAPPER_OBJECT RAW_OBJECT OBJDUMP ARTIFACT_DIRECTORY COMPILER_ID
 	COMPILER_VERSION COMPILER_PATH SYSTEM_NAME SYSTEM_PROCESSOR CONFIGURATION REGISTER_WIDTH
-	VECTORCALL_ENABLED STACK_PROTECTOR_MODE)
+	ISA_PROFILE VECTORCALL_ENABLED STACK_PROTECTOR_MODE)
 	if(NOT DEFINED ${required_variable} OR "${${required_variable}}" STREQUAL "")
 		message(FATAL_ERROR "CompareRegisterCodegen requires ${required_variable}")
 	endif()
@@ -78,6 +78,10 @@ movq	%rax, 0x8(%rsp)
 vmovdqu	(%rsp), %vreg
 addq	$0x18, %rsp
 retq]=])
+	if(ISA_PROFILE STREQUAL "SSE42")
+		string(REPLACE "vmovdqu" "movdqu" cookie_profile "${cookie_profile}")
+		string(REPLACE "vmovdqu" "movdqu" raw_profile "${raw_profile}")
+	endif()
 	string(FIND "${input_text}" "${cookie_profile}" cookie_index)
 	if(cookie_index LESS 0)
 		return()
@@ -343,6 +347,7 @@ file(WRITE "${ARTIFACT_DIRECTORY}/provenance.txt"
 	"system_processor=${SYSTEM_PROCESSOR}\n"
 	"configuration=${CONFIGURATION}\n"
 	"register_width=${REGISTER_WIDTH}\n"
+	"isa_profile=${ISA_PROFILE}\n"
 	"vectorcall_enabled=${VECTORCALL_ENABLED}\n"
 	"stack_protector_mode=${STACK_PROTECTOR_MODE}\n"
 	"codegen_profile=${CODEGEN_PROFILE}\n"

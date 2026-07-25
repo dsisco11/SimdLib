@@ -1,10 +1,11 @@
 # Register Class Proposal
 
-Status: proposed design; no public API or compatibility commitment has been made.
+Status: implemented and qualified public interface. Supported cells and explicit
+exceptions are controlled by `RegisterQualification.md`.
 
 ## Summary
 
-Add `SimdLib::Register<element_t, register_width>` as the recommended value-like
+`SimdLib::Register<element_t, register_width>` is the recommended value-like
 interface for operations on one complete SIMD register when the translation
 unit supports the required C++23 explicit-object feature. Unlike
 `SimdVector<element_t, element_count>`, a `Register` has no logical element
@@ -12,16 +13,16 @@ count that can be smaller than its hardware lane count. Every lane always
 participates in loads, stores, arithmetic, comparisons, rearrangements, and
 reductions.
 
-`Register` will compose the existing `Api<register_width, element_t>` facade
-instead of inheriting from it. Ordinary operations delegate to that supported
-surface. Operations that require a register-shaped result which `Api` currently
-collapses to a scalar use one narrow internal backend adapter. This preserves
-the established implementation and feature-routing behavior while presenting
-an interface that supports natural expression chaining and keeps native
-intrinsic and `Detail` types out of ordinary call sites.
+`Register` composes the existing `Api<register_width, element_t>` facade instead
+of inheriting from it. Operations delegate to that supported surface, including
+the native-predicate comparison and selection operations added for Register.
+This preserves the established implementation and feature-routing behavior
+without a redundant Register backend, while presenting an interface that
+supports natural expression chaining and keeps `Detail` types out of ordinary
+call sites.
 
 The existing `Api` remains the C++20 interface and a supported compatibility and
-backend-facing surface after `Register` reaches operation parity. Span-wide
+backend-facing surface alongside `Register`. Span-wide
 algorithms and partial-register handling remain outside `Register`.
 
 ## Decision status
@@ -29,9 +30,9 @@ algorithms and partial-register handling remain outside `Register`.
 | Status | Decisions |
 | --- | --- |
 | Controlling requirement | Template order is `<T, Bits>`; every hardware lane is active; default construction uses the native zero-register operation; comparison behavior matches the selected hardware intrinsic; the abstraction has zero runtime overhead in supported configurations. |
-| Proposed public design | Explicit register width with `NativeRegister<T>` for target-selected width; C++23 explicit-object members for register-consuming operations; explicit scalar broadcast; `RegisterMask<T, Bits>` predicates; fixed-extent element and byte transfers; operation names and results defined by the migration ledger. |
+| Implemented public design | Explicit register width with `NativeRegister<T>` for target-selected width; C++23 explicit-object members for register-consuming operations; explicit scalar broadcast; `RegisterMask<T, Bits>` predicates; fixed-extent element and byte transfers; operation names and results defined by the migration ledger. |
 | Intentionally excluded | Partial and unsafe loads, automatic lane filling, collection transforms, native-order construction, ambiguous `expand`/`compress`, implementation-specific runtime rearrangements, and multi-register widening results. |
-| Validation pending | Complete compiler/type/width behavior, generated-code equivalence, and the non-inlined calling-boundary evidence described below. |
+| Qualification contract | The supported compiler, ISA, type, width, generated-code, and non-inlined calling-boundary cells are defined in `docs/RegisterQualification.md`; execution evidence is recorded in `docs/Validation.md`. |
 
 ## Motivation
 
@@ -55,7 +56,7 @@ zero-filled inactive lanes. That behavior is valuable for fixed logical
 vectors, but it is unnecessary and sometimes actively undesirable in
 register-oriented code.
 
-The proposed interface keeps the low-level, complete-register semantics while
+The implemented interface keeps the low-level, complete-register semantics while
 making the value itself carry the contract:
 
 ```cpp
@@ -179,7 +180,7 @@ becomes visible only after a Microsoft header defines it, and is not specific to
 explicit object parameters. No Microsoft header should be required merely to
 determine whether SimdLib can expose `Register`.
 
-After the initial validation ledger has passed, the umbrella header includes
+The umbrella header includes
 `Register.h` only when `SIMDLIB_REGISTER_INTERFACE_AVAILABLE` is nonzero.
 Directly including `Register.h` without the required feature produces a focused
 preprocessing diagnostic. C++20 consumers can therefore continue using every
@@ -259,7 +260,7 @@ or `RegisterMask` values across a function boundary must use compatible ISA,
 
 ## Type shape and specialization availability
 
-The proposed primary template puts the element type first, matching
+The primary template puts the element type first, matching
 `SimdVector`, and keeps the register width explicit. This ordering is the
 canonical SimdLib order for new value types. The existing
 `Api<register_width, element_t>` order is a legacy design mistake and must not
@@ -1249,24 +1250,28 @@ or shift counts.
 
 ## Migration and compatibility
 
-`Register` should become the recommended interface only after it has direct
-tests and documented behavior for the intended register-local `Api` surface.
-Until then, `Api` remains the authoritative supported interface.
+`Register` is the recommended interface for supported C++23 complete-register
+work. `Api` remains an authoritative supported C++20, compatibility,
+backend-facing, and collection-oriented interface.
 
-Once parity is demonstrated:
-
-- Add `<SimdLib/Register.h>` to the umbrella header conditionally when
+- `<SimdLib/Register.h>` is included by the umbrella header conditionally when
   `SIMDLIB_REGISTER_INTERFACE_AVAILABLE` is nonzero and before headers that
   consume it.
-- Change README register examples from `NativeApi<T>` to
-  `NativeRegister<T>`.
-- Keep `Api` documented for compatibility, specialized low-level access, and
+- README complete-register examples use `NativeRegister<T>` or explicit
+  `Register<T, Bits>`.
+- `Api` remains documented for compatibility, specialized low-level access, and
   existing collection helpers.
-- Migrate internal SimdLib consumers where doing so improves clarity without
-  introducing circular header dependencies.
-- Do not add a deprecation attribute to `Api` merely because `Register` is now
+- C++23 examples, header probes, ODR fixtures, and external-consumer gates use
+  `Register` without introducing circular header dependencies.
+- `Api` has no deprecation attribute merely because `Register` is now
   recommended. Any removal or warning policy requires a separate compatibility
   decision and versioning plan.
+
+No production C++20 header is an appropriate Register migration candidate:
+`SimdVector` can own fewer logical lanes than its backing register, `SimdAlgo`
+and `SimdResample` own collection and tail policy, and `uint128_t` is a scalar
+abstraction. Moving those implementations to the C++23 interface would either
+raise the core language requirement or violate the ownership boundary above.
 
 Representative migration:
 
@@ -1277,7 +1282,7 @@ const auto old_result = U32Api::bitwise_or(
 	U32Api::add(lhs, rhs),
 	U32Api::set1(1));
 
-// Proposed interface.
+// Register interface.
 using U32Register = SimdLib::Register<std::uint32_t, 128>;
 const auto new_result =
 	(U32Register{lhs} + U32Register{rhs}) |
@@ -1389,8 +1394,7 @@ correctness so both surfaces cannot agree on the same defect unnoticed.
 
 ## Acceptance criteria
 
-The proposal is ready for implementation approval when the following decisions
-are accepted:
+The final public surface and its qualification contract follow these decisions:
 
 - Template order is `Register<element_t, register_width>`; the legacy
   `Api<register_width, element_t>` order is not propagated to new types.

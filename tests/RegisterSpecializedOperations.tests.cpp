@@ -14,6 +14,15 @@
 #include <type_traits>
 #include <utility>
 
+#ifndef SIMDLIB_REGISTER_TEST_ENABLE_256
+#define SIMDLIB_REGISTER_TEST_ENABLE_256 SIMDLIB_HAS_AVX2
+#endif
+#if SIMDLIB_REGISTER_TEST_ENABLE_256
+#define SIMDLIB_REGISTER_IF_256(...) __VA_ARGS__
+#else
+#define SIMDLIB_REGISTER_IF_256(...)
+#endif
+
 namespace
 {
 
@@ -120,7 +129,7 @@ template <class element_t, std::size_t bits> consteval bool validate_specialized
 
 #define SIMDLIB_VALIDATE_SPECIALIZED_TYPE(type)                                                                                                                \
 	static_assert(validate_specialized_surface<type, 128>());                                                                                                  \
-	static_assert(validate_specialized_surface<type, 256>())
+	SIMDLIB_REGISTER_IF_256(static_assert(validate_specialized_surface<type, 256>());)
 SIMDLIB_VALIDATE_SPECIALIZED_TYPE(std::int8_t);
 SIMDLIB_VALIDATE_SPECIALIZED_TYPE(std::uint8_t);
 SIMDLIB_VALIDATE_SPECIALIZED_TYPE(std::int16_t);
@@ -839,12 +848,12 @@ template <class element_t, std::size_t bits> void require_floating_specialized_o
 TEST_CASE("Register specialized lane arithmetic follows scalar semantics", "[simdlib][register][specialized][arithmetic]")
 {
 	require_lane_specialized_arithmetic<128>();
-	require_lane_specialized_arithmetic<256>();
 	require_grouped_operations<128>();
-	require_grouped_operations<256>();
+	SIMDLIB_REGISTER_IF_256(require_lane_specialized_arithmetic<256>();)
+	SIMDLIB_REGISTER_IF_256(require_grouped_operations<256>();)
 #define SIMDLIB_REQUIRE_EXTREMA_AND_ABSOLUTE(type)                                                                                                             \
 	require_extrema_and_absolute_contract<type, 128>();                                                                                                        \
-	require_extrema_and_absolute_contract<type, 256>()
+	SIMDLIB_REGISTER_IF_256(require_extrema_and_absolute_contract<type, 256>();)
 	SIMDLIB_REQUIRE_EXTREMA_AND_ABSOLUTE(std::int8_t);
 	SIMDLIB_REQUIRE_EXTREMA_AND_ABSOLUTE(std::uint8_t);
 	SIMDLIB_REQUIRE_EXTREMA_AND_ABSOLUTE(std::int16_t);
@@ -857,12 +866,12 @@ TEST_CASE("Register specialized lane arithmetic follows scalar semantics", "[sim
 	SIMDLIB_REQUIRE_EXTREMA_AND_ABSOLUTE(double);
 #undef SIMDLIB_REQUIRE_EXTREMA_AND_ABSOLUTE
 	require_average_contract<std::uint8_t, 128>();
-	require_average_contract<std::uint8_t, 256>();
 	require_average_contract<std::uint16_t, 128>();
-	require_average_contract<std::uint16_t, 256>();
+	SIMDLIB_REGISTER_IF_256(require_average_contract<std::uint8_t, 256>();)
+	SIMDLIB_REGISTER_IF_256(require_average_contract<std::uint16_t, 256>();)
 #define SIMDLIB_REQUIRE_HORIZONTAL(type)                                                                                                                       \
 	require_horizontal_contract<type, 128>();                                                                                                                  \
-	require_horizontal_contract<type, 256>()
+	SIMDLIB_REGISTER_IF_256(require_horizontal_contract<type, 256>();)
 	SIMDLIB_REQUIRE_HORIZONTAL(std::int16_t);
 	SIMDLIB_REQUIRE_HORIZONTAL(std::uint16_t);
 	SIMDLIB_REQUIRE_HORIZONTAL(std::int32_t);
@@ -872,7 +881,7 @@ TEST_CASE("Register specialized lane arithmetic follows scalar semantics", "[sim
 #undef SIMDLIB_REQUIRE_HORIZONTAL
 #define SIMDLIB_REQUIRE_INTEGER_ROOTS_AND_MAGNITUDE(type)                                                                                                      \
 	require_integer_roots_and_magnitude<type, 128>();                                                                                                          \
-	require_integer_roots_and_magnitude<type, 256>()
+	SIMDLIB_REGISTER_IF_256(require_integer_roots_and_magnitude<type, 256>();)
 	SIMDLIB_REQUIRE_INTEGER_ROOTS_AND_MAGNITUDE(std::int8_t);
 	SIMDLIB_REQUIRE_INTEGER_ROOTS_AND_MAGNITUDE(std::uint8_t);
 	SIMDLIB_REQUIRE_INTEGER_ROOTS_AND_MAGNITUDE(std::int16_t);
@@ -888,7 +897,7 @@ TEST_CASE("Register positions cover first ties and the highest lane", "[simdlib]
 {
 #define SIMDLIB_REQUIRE_POSITIONS(type)                                                                                                                        \
 	require_position_contract<type, 128>();                                                                                                                    \
-	require_position_contract<type, 256>()
+	SIMDLIB_REGISTER_IF_256(require_position_contract<type, 256>();)
 	SIMDLIB_REQUIRE_POSITIONS(std::int8_t);
 	SIMDLIB_REQUIRE_POSITIONS(std::uint8_t);
 	SIMDLIB_REQUIRE_POSITIONS(std::int16_t);
@@ -903,18 +912,18 @@ TEST_CASE("Register positions cover first ties and the highest lane", "[simdlib]
 TEST_CASE("Register saturation preserves lane and 128-bit grouping semantics", "[simdlib][register][specialized][saturation]")
 {
 	require_saturation_contract<128>();
-	require_saturation_contract<256>();
 	require_unsigned_horizontal_saturation_contract<128>();
-	require_unsigned_horizontal_saturation_contract<256>();
+	SIMDLIB_REGISTER_IF_256(require_saturation_contract<256>();)
+	SIMDLIB_REGISTER_IF_256(require_unsigned_horizontal_saturation_contract<256>();)
 }
 
 TEST_CASE("Register promoted results preserve lane order and signedness", "[simdlib][register][specialized][promoted]")
 {
 	require_promoted_results<128>();
-	require_promoted_results<256>();
+	SIMDLIB_REGISTER_IF_256(require_promoted_results<256>();)
 #define SIMDLIB_REQUIRE_ADJACENT_CONTRACT(type)                                                                                                                \
 	require_adjacent_multiply_add_contract<type, 128>();                                                                                                       \
-	require_adjacent_multiply_add_contract<type, 256>()
+	SIMDLIB_REGISTER_IF_256(require_adjacent_multiply_add_contract<type, 256>();)
 	SIMDLIB_REQUIRE_ADJACENT_CONTRACT(std::int8_t);
 	SIMDLIB_REQUIRE_ADJACENT_CONTRACT(std::uint8_t);
 	SIMDLIB_REQUIRE_ADJACENT_CONTRACT(std::int16_t);
@@ -929,9 +938,11 @@ TEST_CASE("Register promoted results preserve lane order and signedness", "[simd
 TEST_CASE("Register floating specialized operations preserve immediate output behavior", "[simdlib][register][specialized][floating]")
 {
 	require_floating_specialized_operations<float, 128>();
-	require_floating_specialized_operations<float, 256>();
 	require_floating_specialized_operations<double, 128>();
-	require_floating_specialized_operations<double, 256>();
+	SIMDLIB_REGISTER_IF_256(require_floating_specialized_operations<float, 256>();)
+	SIMDLIB_REGISTER_IF_256(require_floating_specialized_operations<double, 256>();)
 }
 
 } // namespace
+
+#undef SIMDLIB_REGISTER_IF_256

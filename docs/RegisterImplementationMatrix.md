@@ -13,10 +13,10 @@ boundaries are defined by `RegisterQualification.md`.
 
 | Field | Value |
 | --- | --- |
-| Register widths | 128-bit SSE4.2 and 256-bit AVX2 |
+| Register widths | 128-bit SSE4.2 and AVX2; 256-bit AVX2 |
 | Element types | `int8_t`, `uint8_t`, `int16_t`, `uint16_t`, `int32_t`, `uint32_t`, `int64_t`, `uint64_t`, `float`, `double` |
 | Existing language baseline | C++20 through `SimdLib::SimdLib` |
-| Register language baseline | C++23 explicit object parameters through the future `SimdLib::Register` target |
+| Register language baseline | C++23 explicit object parameters through the opt-in `SimdLib::Register` target |
 
 ### Portability requirements
 
@@ -71,7 +71,7 @@ These portability rules do not change a public declaration.
 | Zero overhead | No supported register-only wrapper expression or call boundary adds instructions, moves, spills, reloads, stack traffic, temporaries, return buffers, branches, or indirection relative to the identical raw baseline | 3, 10 | Mandatory exact-parity generated-code and ABI gates with provenance |
 | MSVC `/GS` boundary | Register-only fixture subsets and ABI mirrors retain strict wrapper-versus-raw gates. The sole accepted Release exception is the exact 128-bit `Register<double>::from_array` cookie sequence recognized by the comparator; all remaining instructions must match. Store, transfer, mutating-reference, opaque-call, and array-return fixtures that can write memory retain `/GS`, stay outside the general zero-overhead claim when they differ, and preserve their paired disassembly as review evidence | 3, 10 | Register-only, lane, type-matrix, and ABI comparison stamps; paired memory-writing profiles; comparison result; provenance; and `RegisterQualification.md` exception ledger |
 | Compatibility | `Api` remains supported; collection transforms and compatibility-only operations do not migrate | 9, 11 | Final ledger audit and unchanged C++20 matrix |
-| Public exposure | `Register.h` remains out of the umbrella until correctness and zero-overhead qualification succeeds | 1, 11 | Header and migration gates |
+| Public exposure | `SimdLib.h` conditionally includes `Register.h` when `SIMDLIB_REGISTER_INTERFACE_AVAILABLE` is nonzero; C++20 translation units retain the existing umbrella surface | 1, 11 | C++20 exclusion, C++23 umbrella, isolated-header, ODR, and external-consumer gates |
 
 ## Explicit exclusions
 
@@ -285,10 +285,10 @@ compile-time audit; no prose-only availability list can drift independently.
 | C++20 core | Clang 22.1.8 | x64; Debug and Release | Existing full public matrix remains supported |
 | C++20 core | GCC 13.2 | x64; Debug and Release | Existing full public matrix remains supported; Register unavailable |
 | C++20 core sanitizer | Clang 22.1.8 | x64 Debug, `-O1`, ASan/UBSan, frame pointers | No sanitizer diagnostics |
-| Register | MSVC 19.44 | `/std:c++latest`; supported x64 profiles | Register-only, lane-extraction, and ABI gates pass exactly; memory-writing fixtures retain `/GS` and do not support an MSVC zero-overhead claim |
-| Register | clang-cl 22.1.8 | C++23; supported x64 profiles | Standard feature macro and complete Register gates pass |
-| Register | Clang 22.1.8 | C++23; supported x64 profiles | Standard feature macro and complete Register gates pass |
-| Register | GCC 14 or newer | C++23; supported x64 profiles | Standard feature macro and complete Register gates pass |
+| Register | MSVC 19.44 | `/std:c++latest`; supported x64 profiles | SSE4.2 diagnostics and strict AVX2 gates; memory-writing fixtures retain `/GS` and the exact documented exception |
+| Register | clang-cl 22.1.8 | C++23; supported x64 profiles | SSE4.2 diagnostics and strict AVX2 correctness, ABI, and generated-code gates |
+| Register | Clang 22.1.8 | C++23; supported x64 profiles | SSE4.2 diagnostics and strict AVX2 correctness, ABI, and generated-code gates |
+| Register | GCC 14 or newer | C++23; supported x64 profiles | SSE4.2 diagnostics and strict AVX2 correctness, ABI, and generated-code gates |
 
 GCC 13.2 remains the required local unavailable-interface probe; it is not a
 Register compiler. A Register compiler floor is lowered or expanded only after

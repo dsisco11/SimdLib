@@ -109,13 +109,15 @@ class SimdVector final
 		{
 			return value;
 		}
-
-		const auto lanes = simd::to_array(value);
-		return [&]<std::size_t... ActiveIndices, std::size_t... FillIndices>(std::index_sequence<ActiveIndices...>,
-																			 std::index_sequence<FillIndices...>) constexpr noexcept -> vector_t
+		else
 		{
-			return simd::setr_partial(static_cast<element_t>(lanes[ActiveIndices])..., ((void)FillIndices, fillValue)...);
-		}(std::make_index_sequence<element_count>{}, std::make_index_sequence<simd::element_count - element_count>{});
+			const auto lanes = simd::to_array(value);
+			return [&]<std::size_t... ActiveIndices, std::size_t... FillIndices>(std::index_sequence<ActiveIndices...>,
+																				 std::index_sequence<FillIndices...>) constexpr noexcept -> vector_t
+			{
+				return simd::setr_partial(static_cast<element_t>(lanes[ActiveIndices])..., ((void)FillIndices, fillValue)...);
+			}(std::make_index_sequence<element_count>{}, std::make_index_sequence<simd::element_count - element_count>{});
+		}
 	}
 
 #pragma endregion

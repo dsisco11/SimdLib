@@ -1,19 +1,24 @@
 # SimdLib
 
-SimdLib is a small, header-only C++20 library for working with SIMD data and
-bit-heavy code without scattering compiler intrinsics throughout your project.
-It brings register operations, fixed-size vectors, bulk algorithms, bit
-manipulation helpers, and a practical 128-bit integer under one consistent API.
+SimdLib is a small, header-only library for working with SIMD data and bit-heavy
+code without scattering compiler intrinsics throughout your project. Its core
+surface remains C++20; supporting C++23 translation units can additionally use
+the complete-register value interface.
 
 There is no library binary to build or ship. Add the headers to your project,
 link the CMake interface target, and use only the pieces you need.
 
 ## What is included?
 
-- `NativeApi<T>` provides a typed SIMD facade and automatically selects the
-  widest register supported by the compile target.
-- `Api<BitWidth, T>` remains available when an algorithm needs an explicit 128-bit or
-  256-bit register width.
+- `NativeRegister<T>` is the preferred C++23 value interface for operations on
+  one complete target-selected SIMD register.
+- `Register<T, Bits>` selects an explicit 128-bit or 256-bit representation for
+  stable storage and ABI contracts.
+- `RegisterMask<T, Bits>` preserves native comparison predicates and provides
+  composition, reduction, observation, and selection operations.
+- `NativeApi<T>` and `Api<Bits, T>` remain supported for C++20, compatibility,
+  specialized low-level access, collection helpers, and operations intentionally
+  excluded from `Register`.
 - `SimdVector<T, ElementCount>` wraps a register in a fixed-size, value-like container.
 - `SimdAlgo` applies common operations to arrays and spans.
 - `SimdResample` packs and expands byte masks, with a scalar fallback when the
@@ -21,8 +26,9 @@ link the CMake interface target, and use only the pieces you need.
 - `Bmi` collects portable and hardware-assisted bit-manipulation helpers.
 - `uint128_t` provides an unsigned 128-bit value type with formatting support.
 
-SimdLib is currently aimed at x64 projects and is tested with MSVC,
-clang-cl, Clang, and GCC. It requires C++20.
+SimdLib is currently aimed at x64 projects and is tested with MSVC, clang-cl,
+Clang, and GCC. The core requires C++20. `Register` requires a supported C++23
+compiler with explicit-object member support.
 
 ## Add it to a project
 
@@ -34,7 +40,14 @@ add_subdirectory(external/SimdLib)
 target_link_libraries(MyTarget PRIVATE SimdLib::SimdLib)
 ```
 
-Then include the complete public surface:
+Link the opt-in target for a C++23 translation unit that uses `Register`:
+
+```cmake
+target_link_libraries(MyRegisterTarget PRIVATE SimdLib::Register)
+```
+
+Then include the complete public surface. The umbrella exposes `Register` only
+when `SIMDLIB_REGISTER_INTERFACE_AVAILABLE` is nonzero:
 
 ```cpp
 #include <SimdLib/SimdLib.h>
@@ -67,6 +80,72 @@ const Vector3 cameraPosition = position + cameraOffset;
 // cameraPosition is {10.0F, 5.0F, 1.5F}
 const float cameraHeight = cameraPosition.z();
 ```
+
+### Operating on one complete register
+
+Use `NativeRegister<T>` when the register width may follow the compile target:
+
+```cpp
+#include <SimdLib/SimdLib.h>
+
+using FloatRegister = SimdLib::NativeRegister<float>;
+
+const FloatRegister values = FloatRegister::broadcast(3.0F);
+const FloatRegister scale = FloatRegister::broadcast(2.0F);
+const FloatRegister offset = FloatRegister::broadcast(1.0F);
+const FloatRegister transformed = values * scale + offset;
+```
+
+`NativeRegister<T>` resolves to 128 bits in an SSE4.2-only translation unit and
+256 bits when AVX2 is enabled. Do not store it in an ABI or exchange it across
+translation units that may use incompatible ISA or SimdLib configuration
+settings. Use explicit `Register<T, Bits>` for stable storage, interfaces, and
+ABI contracts.
+
+On platforms where SimdLib enables a vector calling convention, a non-inlined
+consumer function must declare `VECTORCALL` itself. The annotations on Register
+members do not propagate to a surrounding function:
+
+```cpp
+using StableFloatRegister = SimdLib::Register<float, 128>;
+
+/**
+ * @brief Applies a consumer-defined complete-register transformation.
+ * @param value Input register.
+ * @return Transformed register.
+ */
+StableFloatRegister VECTORCALL add_one(StableFloatRegister value) noexcept
+{
+    return value + StableFloatRegister::broadcast(1.0F);
+}
+```
+
+### Working with RegisterMask
+
+Comparisons create `RegisterMask<T, Bits>` values. Masks can be combined with
+`&`, `|`, `^`, and `~`; reduced with `any()`, `all()`, or `none()`; observed as
+compact lane bits with `bits()` or as a by-value native predicate through the
+public `native` member; and applied with `select()`:
+
+```cpp
+#include <cstdint>
+
+using IntRegister = SimdLib::Register<std::int32_t, 128>;
+
+const IntRegister values = IntRegister::from_lanes(-2, 0, 4, 9);
+const auto positive = values.compare_greater(IntRegister::zero());
+const auto not_nine = ~values.compare_equal(IntRegister::broadcast(9));
+const auto selected_lanes = positive & not_nine;
+const auto compact_bits = selected_lanes.bits();
+const auto observed_native = selected_lanes.native;
+const IntRegister selected =
+    selected_lanes.select(values, IntRegister::zero());
+```
+
+Floating comparisons use the selected hardware intrinsic's ordered semantics.
+A NaN lane is false for the five named comparisons, including
+`compare_equal`; positive and negative zero compare equal. Predicate lanes
+retain their native all-zero or all-one bit patterns.
 
 ### Transforming a collection
 
@@ -112,9 +191,11 @@ FloatApi::transform(
 // Each value is now clamp(localHeight * 0.02F + 64.0F, -500.0F, 8'000.0F).
 ```
 
-The executable [API example](examples/ApiExamples.cpp) shows the register
-facade, vectors, algorithms, bit helpers, `uint128_t`, resampling, and
-formatting together in one short program.
+The executable [Register example](examples/RegisterExamples.cpp) demonstrates
+the preferred C++23 complete-register and mask workflows. The separate
+[API example](examples/ApiExamples.cpp) demonstrates the supported C++20
+facade, vectors, collection algorithms, bit helpers, `uint128_t`, resampling,
+and formatting.
 
 ## MSVC stack-cookie behavior
 
@@ -148,12 +229,14 @@ hot function and its generated code should a consumer consider applying
 `__declspec(safebuffers)` to that function; the annotation disables `/GS`
 protection for the entire annotated function.
 
-The mandatory MSVC generated-code gate compares the complete register-only
-fixture subset with its raw-intrinsic mirror without a cookie exception. The
-separate store, transfer, mutating-reference, opaque-call, and array-return
-fixtures intentionally retain `/GS`; operations that can write memory do not
-make a zero-overhead claim when MSVC adds a wrapper-only security cookie. Their
-unmodified wrapper and raw disassembly remains available for review.
+The mandatory MSVC generated-code gates compare SSE4.2 and AVX2 wrapper objects
+with raw-intrinsic mirrors. SSE4.2 is an optimized diagnostic profile; AVX2 is
+the strict zero-overhead profile. The pure register-only AVX2 subset permits no
+cookie exception. Its sole optimized exception is the exact 128-bit
+`Register<double>::from_array` `/GS` sequence. The SSE4.2 diagnostic recognizes
+the corresponding legacy-instruction cookie sequence so the remainder stays
+comparable. Store, transfer, mutating-reference, opaque-call, and array-return
+fixtures retain normal `/GS` protection and paired disassembly for review.
 
 ## Learn more
 

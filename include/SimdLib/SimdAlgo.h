@@ -38,10 +38,14 @@ template <std::size_t ReadWidth, std::size_t WriteWidth> struct SimdAlgo final
 
 	template <std::size_t count> using SimdImpl = Api<count * read_data_size >= 256 ? 256 : 128, read_t>;
 
-	/// <summary>
-	/// Returns true if any element in <paramref name="read"/> equals <paramref name="predicate"/>.
-	/// Intended for fast membership checks.
-	/// </summary>
+	/**
+	 * @brief Reports whether any input element equals a scalar predicate.
+	 * @tparam count Fixed input element count.
+	 * @param read Input
+	 * elements to inspect.
+	 * @param predicate Scalar value to find.
+	 * @return `true` when at least one element equals `predicate`.
+	 */
 	template <std::size_t count> [[nodiscard]] constexpr static inline bool AnyEqual(std::span<const read_t, count> read, const read_t predicate) noexcept
 	{
 		using simd = SimdImpl<count>;
@@ -79,14 +83,21 @@ template <std::size_t ReadWidth, std::size_t WriteWidth> struct SimdAlgo final
 				const auto mask = simd::movemask_slim(simd::cmpeq(v, predicateVector));
 				return (mask & ((typename simd::mask_t{1} << (count - i)) - 1)) != 0;
 			}
-			return false;
+			else
+			{
+				return false;
+			}
 		}
 	}
 
-	/// <summary>
-	/// Returns true if all elements in <paramref name="read"/> equal <paramref name="predicate"/>.
-	/// Intended for fast "uniform" checks.
-	/// </summary>
+	/**
+	 * @brief Reports whether every input element equals a scalar predicate.
+	 * @tparam count Fixed input element count.
+	 * @param read Input
+	 * elements to inspect.
+	 * @param predicate Scalar value required in every element.
+	 * @return `true` when every element equals `predicate`.
+	 */
 	template <std::size_t count> [[nodiscard]] constexpr static inline bool AllEqual(std::span<const read_t, count> read, const read_t predicate) noexcept
 	{
 		using simd = SimdImpl<count>;
@@ -131,8 +142,10 @@ template <std::size_t ReadWidth, std::size_t WriteWidth> struct SimdAlgo final
 				const auto needed = (typename simd::mask_t{1} << (count - i)) - 1;
 				return (mask & needed) == needed;
 			}
-
-			return true;
+			else
+			{
+				return true;
+			}
 		}
 	}
 

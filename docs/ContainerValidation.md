@@ -101,7 +101,7 @@ output and error logs for each compiler.
 | `Full` | GCC 14, Clang 22 | Complete Release test and optional-feature matrix |
 | `Feature` | GCC 14, Clang 22 | AVX2, FMA, BMI, and scalar-labelled tests |
 | `Sanitizer` | Clang 22 | Debug ASan and UBSan matrix |
-| `Codegen` | GCC 14, Clang 22 | Pinned optimized environments reserved for generated-code gates |
+| `Codegen` | GCC 14, Clang 22 | Optimized SSE4.2/128 diagnostics plus strict AVX2/128 and AVX2/256 wrapper/raw, ABI, and consumer-boundary gates |
 | `Debug` | GCC 14, Clang 22 | Debug correctness plus recorded wrapper-versus-raw differentials |
 | `Benchmark` | GCC 14, Clang 22 | Runtime-derived supplemental Register/raw performance comparisons |
 
@@ -117,6 +117,11 @@ Evidence is retained beneath `out/container`:
 - `<service>/<mode>/ctest.xml` records the main suite;
 - `<service>/<mode>/consumer-ctest.xml` records external consumers; and
 - `logs/<run-id>/` contains separate standard output and error logs.
+
+Code-generation artifacts are separated by ISA and width below
+`<service>/codegen/build/container-codegen/register-codegen/`: `sse42/128`,
+`avx2/128`, and `avx2/256`. Each provenance file records the selected ISA
+profile explicitly.
 
 ## Failure and cancellation checks
 

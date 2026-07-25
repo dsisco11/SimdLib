@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 4.4)
 foreach(required_variable IN ITEMS
 	WRAPPER_OBJECT RAW_OBJECT OBJDUMP ARTIFACT_DIRECTORY COMPILER_ID
 	COMPILER_VERSION COMPILER_PATH SYSTEM_NAME SYSTEM_PROCESSOR CONFIGURATION REGISTER_WIDTH
-	VECTORCALL_ENABLED STACK_PROTECTOR_MODE)
+	ISA_PROFILE VECTORCALL_ENABLED STACK_PROTECTOR_MODE)
 	if(NOT DEFINED ${required_variable} OR "${${required_variable}}" STREQUAL "")
 		message(FATAL_ERROR "RecordRegisterDefaultAbi requires ${required_variable}")
 	endif()
@@ -34,6 +34,7 @@ file(WRITE "${ARTIFACT_DIRECTORY}/default-abi.provenance.txt"
 	"system_processor=${SYSTEM_PROCESSOR}\n"
 	"configuration=${CONFIGURATION}\n"
 	"register_width=${REGISTER_WIDTH}\n"
+	"isa_profile=${ISA_PROFILE}\n"
 	"calling_convention=platform-default\n"
 	"vectorcall_enabled=${VECTORCALL_ENABLED}\n"
 	"stack_protector_mode=${STACK_PROTECTOR_MODE}\n"

@@ -5,6 +5,10 @@
 #include <type_traits>
 #include <utility>
 
+#ifndef SIMDLIB_REGISTER_TEST_ENABLE_256
+#define SIMDLIB_REGISTER_TEST_ENABLE_256 SIMDLIB_HAS_AVX2
+#endif
+
 namespace
 {
 
@@ -125,7 +129,9 @@ template <std::size_t bits> [[nodiscard]] consteval bool has_complete_surface_fo
 }
 
 static_assert(has_complete_surface_for_all_elements<128>());
+#if SIMDLIB_REGISTER_TEST_ENABLE_256
 static_assert(has_complete_surface_for_all_elements<256>());
+#endif
 
 /** @brief Audits full-width bit casts, numeric conversions, and widening destinations for one source cell. */
 template <class source_t, std::size_t bits> [[nodiscard]] consteval bool has_complete_conversion_surface() noexcept
@@ -135,10 +141,13 @@ template <class source_t, std::size_t bits> [[nodiscard]] consteval bool has_com
 
 	const auto target_matches = []<class target_t>() consteval noexcept
 	{
-		return SimdLib::IRegister::BitCast<register_t, target_t> &&
-			   SimdLib::IRegister::Convert<register_t, target_t> == SimdLib::IApi::Convert<api_t, target_t> &&
-			   SimdLib::IRegister::WidenLow<register_t, target_t, 128> == SimdLib::IApi::Widen<api_t, SimdLib::Api<128, target_t>> &&
-			   SimdLib::IRegister::WidenLow<register_t, target_t, 256> == SimdLib::IApi::Widen<api_t, SimdLib::Api<256, target_t>>;
+		constexpr bool common = SimdLib::IRegister::BitCast<register_t, target_t> &&
+								SimdLib::IRegister::Convert<register_t, target_t> == SimdLib::IApi::Convert<api_t, target_t> &&
+								SimdLib::IRegister::WidenLow<register_t, target_t, 128> == SimdLib::IApi::Widen<api_t, SimdLib::Api<128, target_t>>;
+		if constexpr (SimdLib::is_api_available_v<256, target_t>)
+			return common && SimdLib::IRegister::WidenLow<register_t, target_t, 256> == SimdLib::IApi::Widen<api_t, SimdLib::Api<256, target_t>>;
+		else
+			return common && !SimdLib::IRegister::WidenLow<register_t, target_t, 256>;
 	};
 
 	return target_matches.template operator()<std::int8_t>() && target_matches.template operator()<std::uint8_t>() &&
@@ -159,6 +168,8 @@ template <std::size_t bits> [[nodiscard]] consteval bool has_complete_conversion
 }
 
 static_assert(has_complete_conversion_surface_for_all_elements<128>());
+#if SIMDLIB_REGISTER_TEST_ENABLE_256
 static_assert(has_complete_conversion_surface_for_all_elements<256>());
+#endif
 
 } // namespace

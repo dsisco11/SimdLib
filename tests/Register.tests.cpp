@@ -12,6 +12,10 @@
 #include <type_traits>
 #include <utility>
 
+#ifndef SIMDLIB_REGISTER_TEST_ENABLE_256
+#define SIMDLIB_REGISTER_TEST_ENABLE_256 SIMDLIB_HAS_AVX2
+#endif
+
 namespace
 {
 
@@ -130,9 +134,12 @@ template <class element_t, std::size_t bits> void require_transfer_contracts()
 template <class element_t> void require_type_contracts()
 {
 	require_value_contracts<element_t, 128>();
-	require_value_contracts<element_t, 256>();
 	require_transfer_contracts<element_t, 128>();
-	require_transfer_contracts<element_t, 256>();
+	if constexpr (SIMDLIB_REGISTER_TEST_ENABLE_256)
+	{
+		require_value_contracts<element_t, 256>();
+		require_transfer_contracts<element_t, 256>();
+	}
 }
 
 /** @brief Returns a compact low-bit mask for one RegisterMask geometry. */
@@ -264,20 +271,25 @@ void require_floating_comparison_edges()
 template <class element_t> void require_mask_type_contracts()
 {
 	require_mask_contracts<element_t, 128>();
-	require_mask_contracts<element_t, 256>();
 	if constexpr (std::is_integral_v<element_t>)
 	{
 		require_integer_ordering<element_t, 128>();
-		require_integer_ordering<element_t, 256>();
 	}
 	else
 	{
 		require_floating_comparison_edges<element_t, 128>();
-		require_floating_comparison_edges<element_t, 256>();
+	}
+	if constexpr (SIMDLIB_REGISTER_TEST_ENABLE_256)
+	{
+		require_mask_contracts<element_t, 256>();
+		if constexpr (std::is_integral_v<element_t>)
+			require_integer_ordering<element_t, 256>();
+		else
+			require_floating_comparison_edges<element_t, 256>();
 	}
 }
 
-TEST_CASE("Register construction and exact-width transfers preserve every lane and surrounding canaries", "[simdlib][register][avx2][transfer]")
+TEST_CASE("Register construction and exact-width transfers preserve every lane and surrounding canaries", "[simdlib][register][transfer]")
 {
 	require_type_contracts<std::int8_t>();
 	require_type_contracts<std::uint8_t>();
@@ -291,7 +303,7 @@ TEST_CASE("Register construction and exact-width transfers preserve every lane a
 	require_type_contracts<double>();
 }
 
-TEST_CASE("RegisterMask comparisons, reductions, combinations, and selection preserve lane semantics", "[simdlib][register][mask][comparison][avx2]")
+TEST_CASE("RegisterMask comparisons, reductions, combinations, and selection preserve lane semantics", "[simdlib][register][mask][comparison]")
 {
 	require_mask_type_contracts<std::int8_t>();
 	require_mask_type_contracts<std::uint8_t>();
