@@ -17,9 +17,9 @@ Code Architecture:
     ☐ Implement a `SimdLib::IMask` class to represent compile-time immediate-mode masks for SIMD intrinsics, providing methods for creating and manipulating masks based on compile-time conditions. This class should be compatible with the `SimdLib::Register` and `SimdLib::Tensor` classes, allowing for efficient lane control in SIMD operations.
 
 Build Pipeline:
-    ☐ Ensure that the codegen tests are building without optimizations enabled, so we guarantee that the zero-overhead guarantee isnt relying on compiler optimization and also that debug builds are still going to produce optimal codegen.
     ☐ Create a formal unified build command to build all targets, including tests, benchmarks, and examples, with a single command.
     ☐ Create a formal unified test command to run all tests, including unit tests, integration tests, and performance tests, with a single command.
+    ☐ Ensure that the codegen tests are building without optimizations enabled, so we guarantee that the zero-overhead guarantee isnt relying on compiler optimization and also that debug builds are still going to produce optimal codegen.
 
 Testing:
     ☐ Ensure test coverage of all `SimdImplementation::negate()` methods.
