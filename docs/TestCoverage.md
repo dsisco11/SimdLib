@@ -82,7 +82,7 @@ measurements are recorded in
 
 `tests/consumer` separately imports the source tree through
 `add_subdirectory`, verifies that `SimdLib::SimdLib` is an interface target,
-and runs an external header-only consumer. `SimdLib.benchmarks.cpp` is the sole
+and runs an external header-only consumer. `Core.benchmarks.cpp` is the core
 benchmark executable and samples 128/256-bit API addition, BMI extraction,
 UInt128 addition, and resampling; each operation also has a correctness test.
 
@@ -149,7 +149,7 @@ public API example executable.
 | Float dot product | A partial 128-bit three-float case remains covered. Counts four through eight cover full 128-bit, partial 256-bit, and full 256-bit vectors; counts five through eight require the high 128-bit lane to contribute to the scalar result. |
 | Double dot product | Counts one through four cover partial/full 128-bit and partial/full 256-bit vectors. The three- and four-element cases require the high 128-bit lane to contribute. |
 | Floating hash | Nonzero float and double vectors assert nonzero hashes, copy/equal-value consistency, and selected distinct logical-lane results. Infinity and two representative NaN encodings per type are evaluated with copy consistency; no assertion requires unequal NaNs to hash differently. Existing float and double `+0`/`-0` equality and equal-hash regressions remain direct. |
-| Debug result validation | `SimdLibTestsVectorChecks` forces `SIMDLIB_ENABLE_CHECKS=1` and installs an observing precondition hook. Divide, modulus, and clamp on a partial vector invoke the inactive-lane result check three times with true conditions; the same operations on a full vector invoke it zero times. |
+| Debug result validation | `VectorChecksTests` forces `SIMDLIB_ENABLE_CHECKS=1` and installs an observing precondition hook for partial and full-vector result checks. |
 
 The cross-lane `area` case exposed a register-shape defect: recursive pair
 reduction could infer a narrower `SimdVector` even though its pair-product
@@ -328,24 +328,24 @@ The checked-in presets make CTest the authoritative runner. From the SimdLib
 repository root:
 
 ```powershell
-cmake --preset clang-coverage
-cmake --build --preset coverage
-cmake --build build-coverage --target SimdLibCoverageReset
-ctest --preset coverage --output-on-failure
-cmake --build build-coverage --target SimdLibCoverageReport
+cmake --preset clang-debug-coverage
+cmake --build --preset clang-debug-coverage
+cmake --build out/build/clang-debug-coverage --target CoverageReset
+ctest --preset clang-debug-coverage --output-on-failure
+cmake --build out/build/clang-debug-coverage --target CoverageReport
 ```
 
 The CMake Tools extension is the workspace's VS Code test and coverage
-provider. Select the `clang-coverage` configure preset and `coverage` build and
+provider. Select the `clang-debug-coverage` configure, build, and test presets,
 test presets, then use **Run with Coverage** in VS Code's Testing view. CMake
 Tools runs the configured reset target, invokes CTest, runs the report target,
-and imports `build-coverage/coverage.info` into VS Code's native Test Coverage
+and imports `out/build/clang-debug-coverage/coverage.info` into VS Code's native Test Coverage
 view. Restart VS Code after installing CMake or adding LLVM's `bin` directory
 to `PATH` so the extension sees the tools.
 
 Coverage report generation does not merge differently configured executables
 into one `llvm-profdata` database. CMake generates
-`build-coverage/coverage-targets-Debug.txt`, which records each instrumented
+`out/build/clang-debug-coverage/coverage-targets-Debug.txt`, which records each instrumented
 executable, its object path, and its CTest profile prefix. The report target
 also reads the embedded platform binary identity (COFF/PDB on this baseline)
 from every executable and profile. This identity maps CTest-created
@@ -403,10 +403,10 @@ comparison for the required headers:
 
 | Header | Executable/profile | Regions | Functions | Lines | Branches |
 | --- | --- | ---: | ---: | ---: | ---: |
-| `Bmi.h` | `SimdLibTestsBmiPortable` | 67/111 (60.36%) | 23/67 (34.33%) | 173/362 (47.79%) | 28/28 (100.00%) |
-| `Api.h` | `SimdLibTests128` | 89/127 (70.08%) | 40/41 (97.56%) | 256/349 (73.35%) | 19/39 (48.72%) |
-| `UInt128.h` | `SimdLibTestsUInt128Optimized` | 162/197 (82.23%) | 62/74 (83.78%) | 300/378 (79.37%) | 61/84 (72.62%) |
-| `Detail/Implementations.h` | `SimdLibTests128` | 100/104 (96.15%) | 69/70 (98.57%) | 234/248 (94.35%) | 7/7 (100.00%) |
+| `Bmi.h` | `BmiPortableTests` | 67/111 (60.36%) | 23/67 (34.33%) | 173/362 (47.79%) | 28/28 (100.00%) |
+| `Api.h` | `ApiSse42Tests` | 89/127 (70.08%) | 40/41 (97.56%) | 256/349 (73.35%) | 19/39 (48.72%) |
+| `UInt128.h` | `UInt128OptimizedTests` | 162/197 (82.23%) | 62/74 (83.78%) | 300/378 (79.37%) | 61/84 (72.62%) |
+| `Detail/Implementations.h` | `ApiSse42Tests` | 100/104 (96.15%) | 69/70 (98.57%) | 234/248 (94.35%) | 7/7 (100.00%) |
 
 ### Final trustworthy close-out totals
 
@@ -499,7 +499,7 @@ directly exercised. UInt128's aggregate branch percentage is similarly
 affected by merging mutually exclusive optimized and scalar profiles.
 
 The raw profiles, merged `coverage.profdata`, and exported `coverage.info` are
-generated artifacts under `build-coverage` and are intentionally not
+generated artifacts under `out/build/clang-debug-coverage` and are intentionally not
 source-controlled. The historical
 `baseline.profdata` and `final.profdata` used for the table above were likewise
 generated artifacts rather than source-controlled inputs.
@@ -518,10 +518,10 @@ cmake --build build --config Release --parallel
 ctest --test-dir build -C Release --output-on-failure
 cmake --build build-phase9-clangcl-ninja --parallel
 ctest --test-dir build-phase9-clangcl-ninja --output-on-failure
-cmake --build build-coverage --parallel
-cmake --build build-coverage --target SimdLibCoverageReset
-ctest --preset coverage --output-on-failure
-cmake --build build-coverage --target SimdLibCoverageReport
+cmake --build --preset clang-debug-coverage
+cmake --build out/build/clang-debug-coverage --target CoverageReset
+ctest --preset clang-debug-coverage --output-on-failure
+cmake --build out/build/clang-debug-coverage --target CoverageReport
 $env:PATH='C:\Program Files\LLVM\lib\clang\22\lib\windows;' + $env:PATH
 cmake --build build-phase8-sanitize --parallel
 ctest --test-dir build-phase8-sanitize --output-on-failure
@@ -531,10 +531,10 @@ ctest --test-dir build-phase8-sanitize --output-on-failure
 | --- | ---: | ---: | ---: | --- |
 | strict MSVC Release | 179/179 | 156 / 4,324,488 | 4.175 s | `build/Testing/Temporary/LastTest.log` |
 | strict clang-cl Release | 182/182 | 159 / 4,435,080 | 2.583 s | `build-phase9-clangcl-ninja/Testing/Temporary/LastTest.log` |
-| Clang Debug coverage | 182/182 | same 159 discovered Catch2 cases | 1.321 s | `build-coverage/Testing/Temporary/LastTest.log` |
+| Clang Debug coverage | 182/182 | same 159 discovered Catch2 cases | 1.321 s | archived execution evidence |
 | Clang ASan/UBSan Debug | 146/146, no diagnostics | optional profiles intentionally omitted | 6.099 s | `build-phase8-sanitize/Testing/Temporary/LastTest.log` |
 
-The Catch2 totals are the sum of every `SimdLibTests*.exe` compact summary with
+The Catch2 totals are the sum of every runtime-test executable compact summary with
 `--rng-seed 1592594996`. `SimdLibPreconditionTests.exe` is intentionally
 excluded because it terminates after its selected contract case; its 13
 independently discovered CTest entries remain part of the CTest totals. The
@@ -589,7 +589,7 @@ VS Code CMake Tools 1.23.52 is installed and recommended by
 `.vscode/extensions.json`. The workspace enables CTest Test Explorer
 integration, resets coverage before a run, generates the target-aware report
 afterward, and imports exactly
-`${workspaceFolder}/build-coverage/coverage.info`. The installed extension registers these exact settings; its LCOV handler reads
+`${workspaceFolder}/out/build/clang-debug-coverage/coverage.info`. The installed extension registers these exact settings; its LCOV handler reads
 each configured file, constructs native scode.FileCoverage records for
 lines, branches, and functions, and calls TestRun.addCoverage. Parsing the
 same imported file produces the per-header and aggregate totals recorded above.

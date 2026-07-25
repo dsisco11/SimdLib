@@ -111,17 +111,17 @@ the operation cannot satisfy the supported zero-overhead contract.
 ## Reproduction commands
 
 Native Windows Release and Debug builds use the ordinary CMake targets with
-`SIMDLIB_BUILD_REGISTER_CODEGEN=ON`. Debug additionally sets
-`SIMDLIB_REGISTER_CODEGEN_RECORD_ONLY=ON`.
+`SIMDLIB_BUILD_REGISTER_CODEGEN_GATES=ON`. Release uses
+`SIMDLIB_REGISTER_CODEGEN_MODE=ENFORCE`, while Debug uses
+`SIMDLIB_REGISTER_CODEGEN_MODE=RECORD`.
 
 The pinned Linux matrix is reproduced with:
 
 ```powershell
-.\tools\Run-ContainerMatrix.ps1 -Mode Full -Compiler All
-.\tools\Run-ContainerMatrix.ps1 -Mode Codegen -Compiler All -NoBuild
-.\tools\Run-ContainerMatrix.ps1 -Mode Debug -Compiler All -NoBuild
-.\tools\Run-ContainerMatrix.ps1 -Mode Sanitizer -Compiler Clang22 -NoBuild
-.\tools\Run-ContainerMatrix.ps1 -Mode Benchmark -Compiler All -NoBuild
+.\tools\Run-ContainerMatrix.ps1 -Mode Release -Compiler All
+.\tools\Run-ContainerMatrix.ps1 -Mode Debug -Compiler All -SkipImageBuild
+.\tools\Run-ContainerMatrix.ps1 -Mode AsanUbsan -Compiler Clang22 -SkipImageBuild
+.\tools\Run-ContainerMatrix.ps1 -Mode Benchmarks -Compiler All -SkipImageBuild
 ```
 
 Benchmarks are supplemental and run only after strict generated-code gates. The

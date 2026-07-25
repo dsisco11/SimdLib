@@ -298,9 +298,9 @@ the complete correctness, layout, ABI, and generated-code gates pass.
 
 | Evidence family | Planned source owner | Planned CMake/CTest owner |
 | --- | --- | --- |
-| Runtime Register correctness | `tests/Register.tests.cpp` | `SimdLibTestsRegister` |
-| Runtime mask/comparison correctness | `tests/Register.tests.cpp` | `SimdLibTestsRegister` |
-| Complete public-surface and availability audit | `tests/RegisterOperationMatrix.tests.cpp` | `SimdLibTestsRegister` |
+| Runtime Register correctness | `tests/Register.tests.cpp` | `RegisterSse42Tests`, `RegisterAvx2Tests` |
+| Runtime mask/comparison correctness | `tests/Register.tests.cpp` | `RegisterSse42Tests`, `RegisterAvx2Tests` |
+| Complete public-surface and availability audit | `tests/RegisterOperationMatrix.tests.cpp` | `RegisterSse42Tests`, `RegisterAvx2Tests` |
 | Shared independent scalar oracles | Focused helpers in each Register runtime test source | Included only by public Register tests |
 | Constexpr contracts | `tests/constexpr/RegisterConstexpr.tests.cpp` | `SimdLibRegisterConstexpr128`, `SimdLibRegisterConstexpr256` |
 | Availability and language modes | `tests/availability/Register*.cpp` | Compile-only Register availability targets |
@@ -316,7 +316,7 @@ the complete correctness, layout, ABI, and generated-code gates pass.
 | Code-generation comparison | `cmake/CompareRegisterCodegen.cmake` and checked-in allowlisted normalization rules | CTest mandatory performance gate |
 | Checks-enabled preconditions | `tests/RegisterPreconditionFailure.tests.cpp` | Existing precondition death-test infrastructure |
 | Sanitizers | Runtime Register and mask sources | Fresh Clang ASan/UBSan configuration |
-| Supplemental benchmarks | `benchmarks/Register.benchmarks.cpp` | `SimdLibBenchmarks`; never a correctness/codegen substitute |
+| Supplemental benchmarks | `benchmarks/Register.benchmarks.cpp` | `Benchmarks`; never a correctness/codegen substitute |
 | Final evidence | This document and `docs/Validation.md` | Updated after each completed phase |
 
 Every planned production class and method receives Doxygen documentation. Test

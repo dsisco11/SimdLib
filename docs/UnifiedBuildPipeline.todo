@@ -154,27 +154,27 @@ SimdLib Unified Build and Test Pipeline Implementation Plan:
     ✔ End Phase 0 only when every existing validation responsibility has one owner in the target matrix and the pre-refactor redundant work is measurable.
 
   Phase 1 - Create Exhaustive CMake Build Profiles:
-    ☐ Split the root CMake boundary so production interface targets and future packaging metadata are always defined, while a top-level-only thin coordinator loads the scoped development modules that own every test, probe, example, benchmark, generated-code, coverage, warning, and Catch2 definition.
-    ☐ Move all development-only options below the `PROJECT_IS_TOP_LEVEL` boundary so downstream CMake caches are not populated with SimdLib test and benchmark controls.
-    ☐ Move `include(CTest)` below the top-level development boundary so adding SimdLib cannot enable testing or modify CTest state in the parent project.
-    ☐ Remove the external consumer's forced cache overrides for individual SimdLib development options and replace them with assertions that no development target, Catch2 target, or SimdLib development option is introduced by `add_subdirectory`.
-    ☐ Implement the reviewed scoped module layout with `include_guard(GLOBAL)` in every module, make `Development.cmake` the sole supported entrypoint, assert explicit prerequisites where useful, and depend only on the coordinator's documented include sequence.
-    ☐ Contain temporary module state in functions or `block(SCOPE_FOR VARIABLES)` and prefix only the cross-module variables, properties, and commands that intentionally escape those scopes.
-    ☐ Add configure-time checks proving the coordinator can locate and compose every module and can itself be included repeatedly without duplicate target or command definitions; do not require internal modules with documented prerequisites to support arbitrary standalone inclusion.
-    ☐ Compare the root and module line counts and responsibilities after extraction; revise any module that merely relocates a monolith or fragments one cohesive target family without improving ownership.
-    ☐ Introduce hidden shared preset fragments for exhaustive Release options, Debug diagnostic options, sanitizer options, strict warnings, and common dependency configuration without making compiler selection ambiguous.
-    ☐ Define an explicit build preset and configure mapping for each native and container fingerprint, with stable non-scenario build directories and no configure tree shared between distinct fingerprints.
-    ☐ Restrict each MSVC Visual Studio configure tree to its owned Debug or Release configuration where practical so an accidental build cannot create an untracked second configuration inside the same fingerprint directory.
-    ☐ Replace the separate container-full, container-codegen, and container-benchmark Release target graphs with one exhaustive Release configuration per compiler, and remove the retired configuration names in the same coordinated migration.
-    ☐ Reconcile the current `msvc-all` preset with the final naming, option fragments, artifact layout, and cross-compiler orchestration contract.
-    ☐ Apply approved CMake option, preset, target, and CTest renames in one atomic coordinated migration without aliases; fail clearly when explicitly supplied retired CMake options are detected.
-    ☐ Add `ExhaustiveArtifacts` for every non-benchmark buildable validation artifact owned by an exhaustive tree, including tests, examples, compile-only object probes, smoke targets, codegen comparisons, and ABI comparisons; record configure-time and expected-failure contracts separately because they execute during configuration and cannot be dependencies of a build target.
-    ☐ Add `BenchmarkArtifacts` for every benchmark executable owned by the same Release tree and ensure neither aggregate depends on the other.
-    ☐ Keep external-consumer projects outside the library's target graph but list them explicitly in the owning build manifest and orchestrator dependencies.
-    ☐ Generate or validate a target inventory at configure time and fail when an option combination advertised as exhaustive does not create its required targets.
-    ☐ Prove that the Release exhaustive target builds all SSE4.2, AVX2, FMA, BMI, portable, scalar, and disabled-feature target variants without requiring separate feature configurations.
-    ☐ Prove that Debug and sanitizer presets preserve their current diagnostic and instrumentation semantics and never inherit optimized Release enforcement accidentally.
-    ☐ End Phase 1 only when every configure-time contract for each fingerprint succeeds once and its aggregate target builds every assigned buildable artifact without running tests.
+    ✔ Split the root CMake boundary so production interface targets and future packaging metadata are always defined, while a top-level-only thin coordinator loads the scoped development modules that own every test, probe, example, benchmark, generated-code, coverage, warning, and Catch2 definition.
+    ✔ Move all development-only options below the `PROJECT_IS_TOP_LEVEL` boundary so downstream CMake caches are not populated with SimdLib test and benchmark controls.
+    ✔ Move `include(CTest)` below the top-level development boundary so adding SimdLib cannot enable testing or modify CTest state in the parent project.
+    ✔ Remove the external consumer's forced cache overrides for individual SimdLib development options and replace them with assertions that no development target, Catch2 target, or SimdLib development option is introduced by `add_subdirectory`.
+    ✔ Implement the reviewed scoped module layout with `include_guard(GLOBAL)` in every module, make `Development.cmake` the sole supported entrypoint, assert explicit prerequisites where useful, and depend only on the coordinator's documented include sequence.
+    ✔ Contain temporary module state in functions or `block(SCOPE_FOR VARIABLES)` and prefix only the cross-module variables, properties, and commands that intentionally escape those scopes.
+    ✔ Add configure-time checks proving the coordinator can locate and compose every module and can itself be included repeatedly without duplicate target or command definitions; do not require internal modules with documented prerequisites to support arbitrary standalone inclusion.
+    ✔ Compare the root and module line counts and responsibilities after extraction; revise any module that merely relocates a monolith or fragments one cohesive target family without improving ownership.
+    ✔ Introduce hidden shared preset fragments for exhaustive Release options, Debug diagnostic options, sanitizer options, strict warnings, and common dependency configuration without making compiler selection ambiguous.
+    ✔ Define an explicit build preset and configure mapping for each native and container fingerprint, with stable non-scenario build directories and no configure tree shared between distinct fingerprints.
+    ✔ Restrict each MSVC Visual Studio configure tree to its owned Debug or Release configuration where practical so an accidental build cannot create an untracked second configuration inside the same fingerprint directory.
+    ✔ Replace the separate container-full, container-codegen, and container-benchmark Release target graphs with one exhaustive Release configuration per compiler, and remove the retired configuration names in the same coordinated migration.
+    ✔ Reconcile the current `msvc-all` preset with the final naming, option fragments, artifact layout, and cross-compiler orchestration contract.
+    ✔ Apply approved CMake option, preset, target, and CTest renames in one atomic coordinated migration without aliases; fail clearly when explicitly supplied retired CMake options are detected.
+    ✔ Add `ExhaustiveArtifacts` for every non-benchmark buildable validation artifact owned by an exhaustive tree, including tests, examples, compile-only object probes, smoke targets, codegen comparisons, and ABI comparisons; record configure-time and expected-failure contracts separately because they execute during configuration and cannot be dependencies of a build target.
+    ✔ Add `BenchmarkArtifacts` for every benchmark executable owned by the same Release tree and ensure neither aggregate depends on the other.
+    ✔ Keep external-consumer projects outside the library's target graph but list them explicitly in the owning build manifest and orchestrator dependencies.
+    ✔ Generate or validate a target inventory at configure time and fail when an option combination advertised as exhaustive does not create its required targets.
+    ✔ Prove that the Release exhaustive target builds all SSE4.2, AVX2, FMA, BMI, portable, scalar, and disabled-feature target variants without requiring separate feature configurations.
+    ✔ Prove that Debug and sanitizer presets preserve their current diagnostic and instrumentation semantics and never inherit optimized Release enforcement accidentally.
+    ✔ End Phase 1 only when every configure-time contract for each fingerprint succeeds once and its aggregate target builds every assigned buildable artifact without running tests.
 
   Phase 2 - Separate Build and Test Responsibilities:
     ☐ Refactor `containers/container-entrypoint.sh` to expose explicit build-only and test-only operations while retaining shared provenance, validation, and argument parsing.

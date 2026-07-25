@@ -91,4 +91,4 @@ ENV PATH="/opt/cmake/bin:${PATH}" \
 USER simdlib
 WORKDIR /workspace/source
 ENTRYPOINT ["/usr/local/bin/simdlib-container"]
-CMD ["--preset", "container-full"]
+CMD ["--preset", "clang22-release-exhaustive", "--build-target", "ExhaustiveArtifacts"]

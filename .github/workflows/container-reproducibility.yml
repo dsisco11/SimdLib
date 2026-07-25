@@ -9,17 +9,17 @@ permissions:
   contents: read
 
 jobs:
-  rebuild:
+  container-reproducibility:
     name: Rebuild pinned images without cache
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
-      - name: Rebuild and run focused contracts
+      - name: Rebuild and run contracts
         shell: pwsh
-        run: tools/Run-ContainerMatrix.ps1 -Mode Focused -NoCache
+        run: tools/Run-ContainerMatrix.ps1 -Mode Contracts -NoImageCache
       - name: Record image identities and sizes
         shell: bash
-        run: docker image inspect simdlib/gcc14:local simdlib/clang22:local > out/container/image-inspect.json
+        run: docker image inspect simdlib/gcc13:local simdlib/gcc14:local simdlib/clang22:local > out/container/image-inspect.json
       - name: Upload reproducibility evidence
         if: always()
         uses: actions/upload-artifact@v4

@@ -2,13 +2,13 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "Build: All Targets",
+            "label": "Build: MSVC Release Artifacts",
             "type": "process",
             "command": "cmake",
             "args": [
                 "--workflow",
                 "--preset",
-                "msvc-all"
+                "msvc-release-exhaustive"
             ],
             "options": {
                 "cwd": "${workspaceFolder}"
@@ -23,7 +23,7 @@
                 "kind": "build",
                 "isDefault": true
             },
-            "detail": "Configures and builds every non-coverage SimdLib target in Release mode."
+            "detail": "Configures and builds the MSVC Release validation and benchmark aggregates."
         },
         {
             "label": "Format: All C/C++ Files",

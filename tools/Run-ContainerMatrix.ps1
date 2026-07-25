@@ -1,14 +1,14 @@
 [CmdletBinding()]
 param(
-    [ValidateSet('Focused', 'Full', 'Feature', 'Sanitizer', 'Codegen', 'Debug', 'Benchmark')]
-    [string]$Mode = 'Full',
+    [ValidateSet('Contracts', 'Release', 'Debug', 'AsanUbsan', 'Benchmarks')]
+    [string]$Mode = 'Release',
 
-    [ValidateSet('All', 'Gcc14', 'Clang22')]
+    [ValidateSet('All', 'Gcc13', 'Gcc14', 'Clang22')]
     [string]$Compiler = 'All',
 
-    [switch]$NoBuild,
-    [switch]$NoCache,
-    [switch]$DoctorOnly,
+    [switch]$SkipImageBuild,
+    [switch]$NoImageCache,
+    [switch]$InspectEnvironment,
 
     [ValidateSet('None', 'Gcc14', 'Clang22', 'All')]
     [string]$InjectFailure = 'None',
@@ -106,6 +106,39 @@ function Start-MatrixService {
     }
 }
 
+<#
+.SYNOPSIS
+Resolves the compiler-specific configure preset for one matrix operation.
+.PARAMETER Service
+Compose service whose pinned compiler owns the configure tree.
+.PARAMETER Mode
+Build or inspection scope requested by the caller.
+#>
+function Resolve-ContainerPreset {
+    param(
+        [Parameter(Mandatory)][string]$Service,
+        [Parameter(Mandatory)][string]$Mode
+    )
+
+    if ($Mode -eq 'Contracts') {
+        return 'container-release-contracts'
+    }
+    if ($Mode -eq 'AsanUbsan') {
+        return 'clang22-debug-asan-ubsan'
+    }
+
+    $configurationScope = if ($Mode -eq 'Debug') {
+        'debug-diagnostics'
+    }
+    else {
+        'release-exhaustive'
+    }
+    if ($Service -eq 'gcc13') {
+        return "gcc13-core-$configurationScope"
+    }
+    return "$Service-$configurationScope"
+}
+
 if ($Clean) {
     $resolvedArtifactRoot = [System.IO.Path]::GetFullPath($artifactRoot)
     $resolvedRepositoryRoot = [System.IO.Path]::GetFullPath($repositoryRoot)
@@ -140,37 +173,34 @@ if ($Clean) {
 }
 
 $services = switch ($Compiler) {
+    'Gcc13' { @('gcc13') }
     'Gcc14' { @('gcc14') }
     'Clang22' { @('clang22') }
-    default { @('gcc14', 'clang22') }
+    default { @('gcc13', 'gcc14', 'clang22') }
 }
-if ($Mode -eq 'Sanitizer') {
-    if ($Compiler -eq 'Gcc14') {
-        throw 'The sanitizer profile is owned by Clang 22; GCC 14 cannot be selected.'
+if ($Mode -eq 'AsanUbsan') {
+    if ($Compiler -in @('Gcc13', 'Gcc14')) {
+        throw 'The ASan+UBSan profile is owned by Clang 22; GCC cannot be selected.'
     }
     $services = @('clang22')
 }
 
-$profile = $Mode.ToLowerInvariant()
-$preset = switch ($Mode) {
-	'Focused' { 'container-focused' }
-	'Sanitizer' { 'container-sanitize' }
-	'Codegen' { 'container-codegen' }
-	'Debug' { 'container-debug' }
-	'Benchmark' { 'container-benchmark' }
-	default { 'container-full' }
+$profile = switch ($Mode) {
+    'Contracts' { 'contracts' }
+    'Debug' { 'debug' }
+    'AsanUbsan' { 'asan-ubsan' }
+    default { 'release' }
 }
-$configuration = if ($Mode -in @('Sanitizer', 'Debug')) { 'Debug' } else { 'Release' }
-$sanitizer = if ($Mode -eq 'Sanitizer') { 'address-undefined' } else { 'none' }
-$testLabel = if ($Mode -eq 'Feature') { 'AVX2|FMA|BMI|SCALAR' } else { $null }
+$buildProfile = if ($Mode -in @('AsanUbsan', 'Debug')) { 'Debug' } else { 'Release' }
+$sanitizer = if ($Mode -eq 'AsanUbsan') { 'asan-ubsan' } else { 'none' }
 $runId = "{0}-{1}-{2}" -f (Get-Date -Format 'yyyyMMdd-HHmmssfff'), $profile, $PID
 $projectName = "simdlib-register-$runId".ToLowerInvariant()
 
-Write-Host "Container matrix: mode=$Mode services=$($services -join ',') preset=$preset"
+Write-Host "Container matrix: mode=$Mode services=$($services -join ',')"
 
-if (-not $NoBuild) {
+if (-not $SkipImageBuild) {
     $buildArguments = @('compose', '--file', $composeFile, '--project-name', $projectName, '--profile', $profile, 'build')
-    if ($NoCache) {
+    if ($NoImageCache) {
         $buildArguments += '--no-cache'
     }
     $buildArguments += $services
@@ -199,21 +229,26 @@ try {
     Invoke-DockerChecked $createArguments
 
     foreach ($service in $services) {
-        $containerOutput = "/workspace/out/$service/$profile"
+        $preset = Resolve-ContainerPreset -Service $service -Mode $Mode
+        $containerOutput = "/workspace/out/$service"
+        $buildTarget = if ($Mode -eq 'Benchmarks') {
+            'BenchmarkArtifacts'
+        }
+        else {
+            'ExhaustiveArtifacts'
+        }
         $containerArguments = @(
             '--preset', $preset,
-            '--configuration', $configuration,
+            '--build-target', $buildTarget,
+            '--build-profile', $buildProfile,
             '--sanitizer', $sanitizer,
-            '--output-dir', $containerOutput
+            '--artifact-root', $containerOutput
         )
-        if ($DoctorOnly) {
-            $containerArguments += '--doctor-only'
+        if ($InspectEnvironment) {
+            $containerArguments += '--inspect-environment'
         }
-        if ($Mode -eq 'Benchmark') {
+        if ($Mode -eq 'Benchmarks' -and $service -ne 'gcc13') {
             $containerArguments += '--run-benchmarks'
-        }
-        if ($testLabel) {
-            $containerArguments += @('--test-label', $testLabel)
         }
         $failIntentionally = $InjectFailure -eq 'All' -or $InjectFailure.ToLowerInvariant() -eq $service
         $runs += Start-MatrixService -Service $service -Profile $profile -ProjectName $projectName -ContainerArguments $containerArguments -LogDirectory $logDirectory -FailIntentionally $failIntentionally

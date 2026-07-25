@@ -9,10 +9,10 @@
     "cmake.ctest.allowParallelJobs": true,
     "cmake.ctest.testSuiteDelimiter": "\\.",
     "cmake.ctest.testSuiteDelimiterMaxOccurrence": 0,
-    "cmake.preRunCoverageTarget": "SimdLibCoverageReset",
-    "cmake.postRunCoverageTarget": "SimdLibCoverageReport",
+    "cmake.preRunCoverageTarget": "CoverageReset",
+    "cmake.postRunCoverageTarget": "CoverageReport",
     "cmake.coverageInfoFiles": [
-        "${workspaceFolder}/build-coverage/coverage.info"
+        "${workspaceFolder}/out/build/clang-debug-coverage/coverage.info"
     ],
     "C_Cpp.formatting": "clangFormat",
     "C_Cpp.clang_format_style": "file",

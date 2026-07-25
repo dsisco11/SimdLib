@@ -34,9 +34,10 @@ only when `SIMDLIB_HAS_FMA` is enabled and otherwise retain multiply-plus-add
 behavior. `SimdLib::is_api_available_v<width, element>` exposes this
 compile-time availability without instantiating an unavailable backend.
 
-Standalone tests are split and labelled `SSE42`, `AVX2`, `FMA`, and
-`OPTIONAL`. Their matching `SIMDLIB_BUILD_TESTS_*` switches let CI omit runtime
-families that the host CPU cannot execute.
+Standalone tests are split and labelled `SSE42`, `AVX2`, `FMA`, `BMI`, and
+`SCALAR`. The matching `SIMDLIB_BUILD_API_SSE42_TESTS`,
+`SIMDLIB_BUILD_API_AVX2_TESTS`, `SIMDLIB_BUILD_FMA_TESTS`, and
+`SIMDLIB_BUILD_BMI_TESTS` controls describe the owned artifact families.
 
 `SIMDLIB_STRICT_WARNINGS=ON` selects `/W4 /WX /permissive-` for MSVC and
 clang-cl, and `-Wall -Wextra -Wpedantic -Werror` for native Clang/GCC. The policy intentionally
@@ -62,7 +63,7 @@ and [Clang vectorcall reference](https://clang.llvm.org/docs/AttributeReference.
 The compile-only constexpr matrix builds BMI under all four feature-macro
 profiles, UInt128 under compiler-carry, portable-carry, and scalar profiles,
 and the API/vector contracts under SSE4.2, AVX2, and fully disabled profiles.
-`SimdLibConstexprProbes` aggregates these targets. The production-header
+`ConstexprProbes` aggregates these targets. The production-header
 assertion audit is a build dependency and a CTest entry; any unallowlisted
 assertion or stale justification fails with its header and assertion text.
 See [`docs/ConstexprCompilerEvidence.md`](../docs/ConstexprCompilerEvidence.md)

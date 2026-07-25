@@ -27,7 +27,7 @@ configuration proof.
 
 ## Phase 1 validation record
 
-On 2026-07-18, the `clang-coverage` build ran 125 CTest entries successfully.
+The `clang-debug-coverage` profile owns source-instrumented BMI coverage.
 The BMI subset ran 47 entries: eleven public-contract tests in each of the
 portable, BMI1-only, BMI2-only, and combined configurations, followed by the
 three enabled-versus-portable deterministic-digest equivalence tests. All 47

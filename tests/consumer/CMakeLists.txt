@@ -6,14 +6,53 @@ if(NOT DEFINED SIMDLIB_SOURCE_DIR)
     get_filename_component(SIMDLIB_SOURCE_DIR "${CMAKE_CURRENT_LIST_DIR}/../.." ABSOLUTE)
 endif()
 
-set(SIMDLIB_BUILD_SMOKE_TESTS OFF CACHE BOOL "" FORCE)
-set(SIMDLIB_BUILD_TESTS OFF CACHE BOOL "" FORCE)
-set(SIMDLIB_BUILD_BENCHMARKS OFF CACHE BOOL "" FORCE)
-set(SIMDLIB_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
-set(SIMDLIB_BUILD_CONFIGURATION_TESTS OFF CACHE BOOL "" FORCE)
-set(SIMDLIB_BUILD_HEADER_TESTS OFF CACHE BOOL "" FORCE)
-
 add_subdirectory("${SIMDLIB_SOURCE_DIR}" "${CMAKE_CURRENT_BINARY_DIR}/simdlib" EXCLUDE_FROM_ALL)
+
+if(DEFINED CACHE{BUILD_TESTING})
+	message(FATAL_ERROR
+		"add_subdirectory introduced CTest's BUILD_TESTING cache option")
+endif()
+get_property(simdlib_nested_tests
+	DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/simdlib" PROPERTY TESTS)
+if(simdlib_nested_tests)
+	message(FATAL_ERROR
+		"add_subdirectory registered development tests: ${simdlib_nested_tests}")
+endif()
+
+set(simdlib_forbidden_development_options
+	SIMDLIB_BUILD_SMOKE_TESTS
+	SIMDLIB_BUILD_RUNTIME_TESTS
+	SIMDLIB_BUILD_API_SSE42_TESTS
+	SIMDLIB_BUILD_API_AVX2_TESTS
+	SIMDLIB_BUILD_FMA_TESTS
+	SIMDLIB_BUILD_BMI_TESTS
+	SIMDLIB_BUILD_VECTOR_ALGORITHM_TESTS
+	SIMDLIB_BUILD_BENCHMARKS
+	SIMDLIB_BUILD_EXAMPLES
+	SIMDLIB_BUILD_CONFIGURATION_PROBES
+	SIMDLIB_BUILD_HEADER_PROBES
+	SIMDLIB_FETCH_TEST_DEPENDENCIES
+	SIMDLIB_STRICT_WARNINGS
+	SIMDLIB_ENABLE_COVERAGE
+	SIMDLIB_BUILD_REGISTER_CODEGEN_GATES
+	SIMDLIB_REGISTER_CODEGEN_MODE
+	SIMDLIB_VALIDATE_EXHAUSTIVE_TARGETS)
+foreach(simdlib_forbidden_development_option IN LISTS simdlib_forbidden_development_options)
+	if(DEFINED CACHE{${simdlib_forbidden_development_option}})
+		message(FATAL_ERROR
+			"add_subdirectory introduced development option ${simdlib_forbidden_development_option}")
+	endif()
+endforeach()
+
+set(simdlib_forbidden_development_targets
+	ExhaustiveArtifacts BenchmarkArtifacts Benchmarks DevelopmentWarnings
+	ApiExamples RegisterExamples CoverageReset CoverageReport Catch2 Catch2WithMain)
+foreach(simdlib_forbidden_development_target IN LISTS simdlib_forbidden_development_targets)
+	if(TARGET ${simdlib_forbidden_development_target})
+		message(FATAL_ERROR
+			"add_subdirectory introduced development target ${simdlib_forbidden_development_target}")
+	endif()
+endforeach()
 
 get_target_property(simdlib_target_type SimdLib TYPE)
 if(NOT simdlib_target_type STREQUAL "INTERFACE_LIBRARY")
@@ -38,22 +77,22 @@ if(NOT "SimdLib::SimdLib" IN_LIST simdlib_register_links)
 	message(FATAL_ERROR "SimdLib::Register must link the core SimdLib target")
 endif()
 
-add_executable(SimdLibConsumerSmoke main.cpp)
-target_link_libraries(SimdLibConsumerSmoke PRIVATE SimdLib::SimdLib)
-set_target_properties(SimdLibConsumerSmoke PROPERTIES
+add_executable(CoreConsumerSmoke main.cpp)
+target_link_libraries(CoreConsumerSmoke PRIVATE SimdLib::SimdLib)
+set_target_properties(CoreConsumerSmoke PROPERTIES
 	CXX_STANDARD 20
 	CXX_STANDARD_REQUIRED ON
 	CXX_EXTENSIONS OFF)
 if(MSVC)
-	target_compile_definitions(SimdLibConsumerSmoke PRIVATE
+	target_compile_definitions(CoreConsumerSmoke PRIVATE
 		SIMDLIB_HAS_SSE3=1 SIMDLIB_HAS_SSSE3=1 SIMDLIB_HAS_SSE41=1 SIMDLIB_HAS_SSE42=1)
-	target_compile_options(SimdLibConsumerSmoke PRIVATE /arch:AVX2)
+	target_compile_options(CoreConsumerSmoke PRIVATE /arch:AVX2)
 else()
-	target_compile_options(SimdLibConsumerSmoke PRIVATE -msse4.2)
+	target_compile_options(CoreConsumerSmoke PRIVATE -msse4.2)
 endif()
 
 enable_testing()
-add_test(NAME SimdLib.ConsumerSmoke COMMAND SimdLibConsumerSmoke)
+add_test(NAME CoreConsumerSmoke COMMAND CoreConsumerSmoke)
 
 get_target_property(simdlib_register_compiler_supported SimdLibRegister
 	SIMDLIB_REGISTER_COMPILER_SUPPORTED)
@@ -61,20 +100,20 @@ option(SIMDLIB_BUILD_REGISTER_CONSUMER
 	"Build the opt-in C++23 Register consumer smoke test"
 	${simdlib_register_compiler_supported})
 if(SIMDLIB_BUILD_REGISTER_CONSUMER)
-	add_executable(SimdLibRegisterConsumerSmoke register.cpp)
-	target_link_libraries(SimdLibRegisterConsumerSmoke PRIVATE SimdLib::Register)
-	target_compile_definitions(SimdLibRegisterConsumerSmoke PRIVATE
+	add_executable(RegisterConsumerSmoke register.cpp)
+	target_link_libraries(RegisterConsumerSmoke PRIVATE SimdLib::Register)
+	target_compile_definitions(RegisterConsumerSmoke PRIVATE
 		SIMDLIB_HAS_SSE=1 SIMDLIB_HAS_SSE2=1 SIMDLIB_HAS_SSE3=1
 		SIMDLIB_HAS_SSSE3=1 SIMDLIB_HAS_SSE41=1 SIMDLIB_HAS_SSE42=1
 		SIMDLIB_HAS_AVX=0 SIMDLIB_HAS_AVX2=0 SIMDLIB_HAS_FMA=0)
 	if(MSVC)
 		if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-			target_compile_options(SimdLibRegisterConsumerSmoke PRIVATE
+			target_compile_options(RegisterConsumerSmoke PRIVATE
 				/clang:-msse4.2 /clang:-mno-avx /clang:-mno-avx2 /clang:-mno-fma)
 		endif()
 	else()
-		target_compile_options(SimdLibRegisterConsumerSmoke PRIVATE
+		target_compile_options(RegisterConsumerSmoke PRIVATE
 			-msse4.2 -mno-avx -mno-avx2 -mno-fma)
 	endif()
-	add_test(NAME SimdLib.RegisterConsumerSmoke COMMAND SimdLibRegisterConsumerSmoke)
+	add_test(NAME RegisterConsumerSmoke COMMAND RegisterConsumerSmoke)
 endif()

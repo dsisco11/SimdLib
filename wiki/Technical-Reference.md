@@ -253,46 +253,44 @@ other presentation types throw `std::format_error`.
 
 ## Development workflow
 
-The unified MSVC workflow configures and builds every non-coverage project
-target, including the complete required and optional test matrix, benchmarks,
-examples, configuration and header probes, smoke tests, and Register
-generated-code checks:
+The MSVC Release workflow configures and builds the exhaustive validation
+artifacts and the separately owned benchmark artifacts:
 
 ```powershell
-cmake --workflow --preset msvc-all
+cmake --workflow --preset msvc-release-exhaustive
 ```
 
-The workflow owns the isolated `build-all` tree and builds Release targets with
-strict warnings. It builds the test executables but does not run them; use
-`ctest --test-dir build-all -C Release --output-on-failure` when test execution
-is also required. Coverage remains a separate workflow because it requires an
-instrumented Clang configuration.
+The workflow owns `out/build/msvc-release-exhaustive`, uses strict warnings,
+and builds `ExhaustiveArtifacts` followed by `BenchmarkArtifacts`. It builds
+test executables without running them. Use the matching CTest preset when test
+execution is required. Coverage remains separate because it is a distinct
+instrumented Clang compilation fingerprint.
 
-The narrower checked-in presets provide the standard MSVC test build and the
-Clang/LLVM coverage build:
+The checked-in presets also provide MSVC Debug diagnostics and Clang/LLVM
+coverage builds:
 
 ```powershell
-cmake --preset msvc
-cmake --build --preset msvc-release
-ctest --preset msvc-release
+cmake --preset msvc-debug-diagnostics
+cmake --build --preset msvc-debug-diagnostics
+ctest --preset msvc-debug-diagnostics
 
-cmake --preset clang-coverage
-cmake --build --preset coverage
-ctest --preset coverage
+cmake --preset clang-debug-coverage
+cmake --build --preset clang-debug-coverage
+ctest --preset clang-debug-coverage
 ```
 
 The main CMake options are:
 
 - `SIMDLIB_BUILD_SMOKE_TESTS=ON` builds the two-translation-unit ODR smoke
   executable. It is enabled by default.
-- `SIMDLIB_BUILD_HEADER_TESTS=ON` compiles every public header as the first and
+- `SIMDLIB_BUILD_HEADER_PROBES=ON` compiles every public header as the first and
   only SimdLib header in its translation unit. It is enabled by default.
-- `SIMDLIB_BUILD_TESTS=ON` builds the Catch2 test suite. Catch2 v3 is fetched
+- `SIMDLIB_BUILD_RUNTIME_TESTS=ON` builds the Catch2 test suite. Catch2 v3 is fetched
   when it is not installed and `SIMDLIB_FETCH_TEST_DEPENDENCIES=ON`.
-- `SIMDLIB_BUILD_TESTS_128`, `SIMDLIB_BUILD_TESTS_256`, and
-  `SIMDLIB_BUILD_TESTS_FMA` independently control the SSE4.2, AVX2, and FMA
+- `SIMDLIB_BUILD_API_SSE42_TESTS`, `SIMDLIB_BUILD_API_AVX2_TESTS`, and
+  `SIMDLIB_BUILD_FMA_TESTS` independently control the SSE4.2, AVX2, and FMA
   executables. Disable instruction families the test host cannot execute.
-- `SIMDLIB_BUILD_TESTS_OPTIONAL=ON` enables BMI1/BMI2 intrinsic-path testing
+- `SIMDLIB_BUILD_BMI_TESTS=ON` enables BMI1/BMI2 intrinsic-path testing
   and deterministic comparison with the always-built portable path. It is off
   by default so unsupported hosts do not execute BMI instructions.
 - `SIMDLIB_BUILD_VECTOR_ALGORITHM_TESTS=ON` builds the `SimdVector`,
@@ -300,7 +298,7 @@ The main CMake options are:
 - `SIMDLIB_BUILD_BENCHMARKS=ON` builds the Catch2 benchmarks and requires a
   discoverable Catch2 v3 package.
 - `SIMDLIB_BUILD_EXAMPLES=ON` builds and registers the complete API example.
-- `SIMDLIB_BUILD_CONFIGURATION_TESTS=ON` builds compile-only configuration
+- `SIMDLIB_BUILD_CONFIGURATION_PROBES=ON` builds compile-only configuration
   probes. It is enabled by default.
 - `SIMDLIB_STRICT_WARNINGS=ON` enables the compiler-specific strict warning
   policy and treats warnings as errors for SimdLib-owned targets.
@@ -308,9 +306,9 @@ The main CMake options are:
   configures LLVM source coverage.
 
 CTest labels identify instruction families and test groups so automation can
-include or exclude them explicitly. The `SimdLibCoverageReset` and
-`SimdLibCoverageReport` targets produce
-`build-coverage/coverage.info` for command-line use and VS Code CMake Tools.
+include or exclude them explicitly. The `CoverageReset` and `CoverageReport`
+targets produce `out/build/clang-debug-coverage/coverage.info` for command-line
+use and VS Code CMake Tools.
 
 ## Continuous validation
 

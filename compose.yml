@@ -28,13 +28,23 @@ x-simdlib-service: &simdlib-service
     TF_BUILD: "${TF_BUILD:-}"
   command:
     - --preset
-    - "${SIMDLIB_CONTAINER_PRESET:-container-full}"
-    - --configuration
-    - "${SIMDLIB_CONTAINER_CONFIGURATION:-Release}"
+    - "${SIMDLIB_CONTAINER_PRESET:-container-release-contracts}"
+    - --build-profile
+    - "${SIMDLIB_CONTAINER_BUILD_PROFILE:-Release}"
     - --sanitizer
     - "${SIMDLIB_CONTAINER_SANITIZER:-none}"
 
 services:
+  gcc13:
+    <<: *simdlib-service
+    image: simdlib/gcc13:local
+    build:
+      context: .
+      dockerfile: containers/Dockerfile.gcc13
+      args:
+        BUILD_REVISION: "${SIMDLIB_BUILD_REVISION:-unknown}"
+    profiles: [contracts, release, debug]
+
   gcc14:
     <<: *simdlib-service
     image: simdlib/gcc14:local
@@ -43,7 +53,7 @@ services:
       dockerfile: containers/Dockerfile.gcc14
       args:
         BUILD_REVISION: "${SIMDLIB_BUILD_REVISION:-unknown}"
-    profiles: [focused, full, feature, codegen, debug, benchmark]
+    profiles: [contracts, release, debug]
 
   clang22:
     <<: *simdlib-service
@@ -53,4 +63,4 @@ services:
       dockerfile: containers/Dockerfile.clang22
       args:
         BUILD_REVISION: "${SIMDLIB_BUILD_REVISION:-unknown}"
-    profiles: [focused, full, feature, sanitizer, codegen, debug, benchmark]
+    profiles: [contracts, release, debug, asan-ubsan]

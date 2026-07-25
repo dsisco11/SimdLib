@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.7@sha256:a57df69d0ea827fb7266491f2813635de6f17269be881f696fbfdf2d83dda33e
 
-ARG ALPINE_IMAGE=alpine:3.22.5@sha256:14358309a308569c32bdc37e2e0e9694be33a9d99e68afb0f5ff33cc1f695dce
+ARG ALPINE_IMAGE=alpine:3.20.8@sha256:765942a4039992336de8dd5db680586e1a206607dd06170ff0a37267a9e01958
 
 FROM ${ALPINE_IMAGE} AS tools
 
@@ -10,14 +10,14 @@ ARG CATCH2_COMMIT=2b60af89e23d28eefc081bc930831ee9d45ea58b
 
 RUN apk add --no-cache \
         ca-certificates \
-        cmake=3.31.7-r1 \
-        g++=14.2.0-r6 \
-        gcc=14.2.0-r6 \
-        git=2.49.1-r0 \
-        linux-headers=6.14.2-r0 \
-        make=4.4.1-r3 \
-        ninja-is-really-ninja=1.12.1-r1 \
-        openssl-dev=3.5.7-r0 \
+        cmake=3.29.3-r0 \
+        g++=13.2.1_git20240309-r1 \
+        gcc=13.2.1_git20240309-r1 \
+        git=2.45.4-r0 \
+        linux-headers=6.6-r0 \
+        make=4.4.1-r2 \
+        ninja-is-really-ninja=1.12.1-r0 \
+        openssl-dev=3.3.7-r0 \
     && wget -q "https://cmake.org/files/v4.4/cmake-${CMAKE_VERSION}.tar.gz" -O /tmp/cmake.tar.gz \
     && echo "${CMAKE_SHA256}  /tmp/cmake.tar.gz" | sha256sum -c - \
     && mkdir /tmp/cmake-source \
@@ -47,22 +47,22 @@ RUN git init /opt/catch2 \
 FROM ${ALPINE_IMAGE}
 
 ARG BUILD_REVISION=unknown
-LABEL org.opencontainers.image.title="SimdLib GCC 14 validation" \
-      org.opencontainers.image.description="Pinned Alpine/musl GCC 14 environment for SimdLib" \
+LABEL org.opencontainers.image.title="SimdLib GCC 13.2 validation" \
+      org.opencontainers.image.description="Pinned Alpine/musl GCC 13.2 environment for SimdLib" \
       org.opencontainers.image.source="https://github.com/dsisco11/SimdLib" \
       org.opencontainers.image.revision="${BUILD_REVISION}" \
-      org.opencontainers.image.version="gcc-14.2.0-cmake-4.4.0" \
-      org.simdlib.base.digest="sha256:14358309a308569c32bdc37e2e0e9694be33a9d99e68afb0f5ff33cc1f695dce" \
+      org.opencontainers.image.version="gcc-13.2.1-cmake-4.4.0" \
+      org.simdlib.base.digest="sha256:765942a4039992336de8dd5db680586e1a206607dd06170ff0a37267a9e01958" \
       org.simdlib.cmake.sha256="65757f442fdd242e27f1728fc26dc0cba4164f7a0791a5c788631c00080369bc" \
       org.simdlib.catch2.commit="2b60af89e23d28eefc081bc930831ee9d45ea58b"
 
 RUN apk add --no-cache \
         ca-certificates \
-        g++=14.2.0-r6 \
-        gcc=14.2.0-r6 \
-        musl-dev=1.2.5-r12 \
-        ninja-is-really-ninja=1.12.1-r1 \
-        openssl=3.5.7-r0 \
+        g++=13.2.1_git20240309-r1 \
+        gcc=13.2.1_git20240309-r1 \
+        musl-dev=1.2.5-r3 \
+        ninja-is-really-ninja=1.12.1-r0 \
+        openssl=3.3.7-r0 \
     && addgroup -g 1000 simdlib \
     && adduser -D -u 1000 -G simdlib simdlib \
     && mkdir -p /workspace/out \
@@ -75,9 +75,9 @@ COPY --chmod=755 containers/container-entrypoint.sh /usr/local/bin/simdlib-conta
 ENV PATH="/opt/cmake/bin:${PATH}" \
     CC=gcc \
     CXX=g++ \
-    SIMDLIB_COMPILER_ID=gcc14 \
+    SIMDLIB_COMPILER_ID=gcc13 \
     SIMDLIB_CATCH2_SOURCE=/opt/catch2 \
-    SIMDLIB_BASE_IMAGE="alpine:3.22.5@sha256:14358309a308569c32bdc37e2e0e9694be33a9d99e68afb0f5ff33cc1f695dce" \
+    SIMDLIB_BASE_IMAGE="alpine:3.20.8@sha256:765942a4039992336de8dd5db680586e1a206607dd06170ff0a37267a9e01958" \
     LANG=C.UTF-8 \
     LC_ALL=C.UTF-8 \
     TZ=UTC
@@ -85,4 +85,4 @@ ENV PATH="/opt/cmake/bin:${PATH}" \
 USER simdlib
 WORKDIR /workspace/source
 ENTRYPOINT ["/usr/local/bin/simdlib-container"]
-CMD ["--preset", "gcc14-release-exhaustive", "--build-target", "ExhaustiveArtifacts"]
+CMD ["--preset", "gcc13-core-release-exhaustive", "--build-target", "ExhaustiveArtifacts"]

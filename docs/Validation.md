@@ -209,63 +209,48 @@ code parity.
 
 ### Reproduction commands
 
-The native Windows configurations use separate Release-enforcement and
-Debug-recording trees. `SIMDLIB_BUILD_TESTS_OPTIONAL` is explicit so a clean
-cache reproduces the intended 246-test MSVC and 249-test clang-cl Release
-matrices instead of silently selecting the portable-only set. The commands use
-the same source-provided Catch dependency and Visual Studio's bundled Ninja:
+The checked-in presets encode the complete native compilation fingerprints. Release
+profiles enforce generated-code comparisons; Debug profiles record diagnostics without
+inheriting Release optimization policy.
 
 ```powershell
-$artifactRoot = (New-Item -ItemType Directory -Force out/register-closeout-final).FullName
-$catch2Source = (Resolve-Path build/_deps/catch2-src).Path
-$ninja = 'C:/Program Files/Microsoft Visual Studio/2022/Community/Common7/IDE/CommonExtensions/Microsoft/CMake/Ninja/ninja.exe'
+cmake --preset msvc-release-exhaustive
+cmake --build --preset msvc-release-exhaustive
+ctest --preset msvc-release-exhaustive
 
-cmake --preset msvc -DSIMDLIB_BUILD_TESTS=ON -DSIMDLIB_BUILD_TESTS_OPTIONAL=ON -DSIMDLIB_BUILD_EXAMPLES=ON -DSIMDLIB_BUILD_REGISTER_CODEGEN=ON -DSIMDLIB_REGISTER_CODEGEN_RECORD_ONLY=OFF -DSIMDLIB_STRICT_WARNINGS=ON
-cmake --build build --config Release --parallel
-ctest --test-dir build -C Release --output-on-failure --output-junit "$artifactRoot/msvc-release.xml"
+cmake --preset msvc-debug-diagnostics
+cmake --build --preset msvc-debug-diagnostics
+ctest --preset msvc-debug-diagnostics
 
-cmake -S . -B build-register-debug-msvc -G "Visual Studio 17 2022" -A x64 -DSIMDLIB_BUILD_TESTS=ON -DSIMDLIB_BUILD_TESTS_OPTIONAL=OFF -DSIMDLIB_BUILD_EXAMPLES=ON -DSIMDLIB_BUILD_REGISTER_CODEGEN=ON -DSIMDLIB_REGISTER_CODEGEN_RECORD_ONLY=ON -DSIMDLIB_STRICT_WARNINGS=ON -DFETCHCONTENT_SOURCE_DIR_CATCH2="$catch2Source"
-cmake --build build-register-debug-msvc --config Debug --parallel
-ctest --test-dir build-register-debug-msvc -C Debug --output-on-failure --output-junit "$artifactRoot/msvc-debug.xml"
+cmake --preset clangcl-release-exhaustive
+cmake --build --preset clangcl-release-exhaustive
+ctest --preset clangcl-release-exhaustive
 
-cmake -S . -B build-register-clangcl-release -G Ninja -DCMAKE_MAKE_PROGRAM="$ninja" -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=clang-cl -DSIMDLIB_BUILD_TESTS=ON -DSIMDLIB_BUILD_TESTS_OPTIONAL=ON -DSIMDLIB_BUILD_EXAMPLES=ON -DSIMDLIB_BUILD_REGISTER_CODEGEN=ON -DSIMDLIB_REGISTER_CODEGEN_RECORD_ONLY=OFF -DSIMDLIB_STRICT_WARNINGS=ON -DFETCHCONTENT_SOURCE_DIR_CATCH2="$catch2Source"
-cmake --build build-register-clangcl-release --parallel
-ctest --test-dir build-register-clangcl-release --output-on-failure --output-junit "$artifactRoot/clangcl-release.xml"
-
-cmake -S . -B build-register-clangcl-debug -G Ninja -DCMAKE_MAKE_PROGRAM="$ninja" -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=clang-cl -DSIMDLIB_BUILD_TESTS=ON -DSIMDLIB_BUILD_TESTS_OPTIONAL=OFF -DSIMDLIB_BUILD_EXAMPLES=ON -DSIMDLIB_BUILD_REGISTER_CODEGEN=ON -DSIMDLIB_REGISTER_CODEGEN_RECORD_ONLY=ON -DSIMDLIB_STRICT_WARNINGS=ON -DFETCHCONTENT_SOURCE_DIR_CATCH2="$catch2Source"
-cmake --build build-register-clangcl-debug --parallel
-ctest --test-dir build-register-clangcl-debug --output-on-failure --output-junit "$artifactRoot/clangcl-debug.xml"
+cmake --preset clangcl-debug-diagnostics
+cmake --build --preset clangcl-debug-diagnostics
+ctest --preset clangcl-debug-diagnostics
 ```
 
-The external source-tree consumers were reproduced separately for both Windows
-compilers:
+Build benchmark artifacts independently from the exhaustive validation aggregate:
 
 ```powershell
-cmake -S tests/consumer -B build-register-consumer-msvc -G "Visual Studio 17 2022" -A x64 -DSIMDLIB_SOURCE_DIR="$PWD" -DSIMDLIB_BUILD_REGISTER_CONSUMER=ON
-cmake --build build-register-consumer-msvc --config Release --parallel
-ctest --test-dir build-register-consumer-msvc -C Release --output-on-failure --output-junit "$artifactRoot/msvc-consumer.xml"
-
-cmake -S tests/consumer -B build-register-consumer-clangcl -G Ninja -DCMAKE_MAKE_PROGRAM="$ninja" -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=clang-cl -DSIMDLIB_SOURCE_DIR="$PWD" -DSIMDLIB_BUILD_REGISTER_CONSUMER=ON
-cmake --build build-register-consumer-clangcl --parallel
-ctest --test-dir build-register-consumer-clangcl --output-on-failure --output-junit "$artifactRoot/clangcl-consumer.xml"
+cmake --build --preset msvc-release-benchmarks
+cmake --build --preset clangcl-release-benchmarks
 ```
 
-Direct Catch totals and the supplemental MSVC benchmark were recorded with:
+External source-tree consumers remain separate projects:
 
 ```powershell
-& { .\build\Release\SimdLibTestsRegisterSse42.exe --reporter compact; .\build\Release\SimdLibTestsRegister.exe --reporter compact } | Tee-Object "$artifactRoot/msvc-register-direct.log"
-& { .\build-register-clangcl-release\SimdLibTestsRegisterSse42.exe --reporter compact; .\build-register-clangcl-release\SimdLibTestsRegister.exe --reporter compact } | Tee-Object "$artifactRoot/clangcl-register-direct.log"
-
-cmake --build build --config Release --parallel --target SimdLibBenchmarks
-.\build\Release\SimdLibBenchmarks.exe "[simdlib][benchmark][register]" --benchmark-samples 25 | Tee-Object "$artifactRoot/msvc-benchmark.log"
+cmake -S tests/consumer -B out/consumer/msvc -G "Visual Studio 17 2022" -A x64 -DSIMDLIB_SOURCE_DIR="$PWD"
+cmake --build out/consumer/msvc --config Release --parallel
+ctest --test-dir out/consumer/msvc -C Release --output-on-failure
 ```
 
-The pinned Linux runs were executed with:
+The pinned Linux compiler matrix is reproduced with:
 
 ```powershell
-.\tools\Run-ContainerMatrix.ps1 -Mode Full -Compiler All -NoBuild
-.\tools\Run-ContainerMatrix.ps1 -Mode Debug -Compiler All -NoBuild
-.\tools\Run-ContainerMatrix.ps1 -Mode Sanitizer -Compiler Clang22 -NoBuild
-.\tools\Run-ContainerMatrix.ps1 -Mode Codegen -Compiler All -NoBuild
-.\tools\Run-ContainerMatrix.ps1 -Mode Benchmark -Compiler All -NoBuild
+.\tools\Run-ContainerMatrix.ps1 -Mode Release -Compiler All
+.\tools\Run-ContainerMatrix.ps1 -Mode Debug -Compiler All -SkipImageBuild
+.\tools\Run-ContainerMatrix.ps1 -Mode AsanUbsan -Compiler Clang22 -SkipImageBuild
+.\tools\Run-ContainerMatrix.ps1 -Mode Benchmarks -Compiler All -SkipImageBuild
 ```
