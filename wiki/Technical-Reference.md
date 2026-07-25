@@ -253,8 +253,23 @@ other presentation types throw `std::format_error`.
 
 ## Development workflow
 
-The checked-in presets provide the standard MSVC test build and a Clang/LLVM
-coverage build:
+The unified MSVC workflow configures and builds every non-coverage project
+target, including the complete required and optional test matrix, benchmarks,
+examples, configuration and header probes, smoke tests, and Register
+generated-code checks:
+
+```powershell
+cmake --workflow --preset msvc-all
+```
+
+The workflow owns the isolated `build-all` tree and builds Release targets with
+strict warnings. It builds the test executables but does not run them; use
+`ctest --test-dir build-all -C Release --output-on-failure` when test execution
+is also required. Coverage remains a separate workflow because it requires an
+instrumented Clang configuration.
+
+The narrower checked-in presets provide the standard MSVC test build and the
+Clang/LLVM coverage build:
 
 ```powershell
 cmake --preset msvc

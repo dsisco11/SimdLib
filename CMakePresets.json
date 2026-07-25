@@ -22,6 +22,32 @@
             }
         },
         {
+            "name": "msvc-all",
+            "inherits": "msvc",
+            "displayName": "MSVC all targets",
+            "description": "Release MSVC build of every non-coverage project target",
+            "binaryDir": "${sourceDir}/build-all",
+            "cacheVariables": {
+                "BUILD_TESTING": "ON",
+                "SIMDLIB_BUILD_SMOKE_TESTS": "ON",
+                "SIMDLIB_BUILD_TESTS": "ON",
+                "SIMDLIB_BUILD_TESTS_128": "ON",
+                "SIMDLIB_BUILD_TESTS_256": "ON",
+                "SIMDLIB_BUILD_TESTS_FMA": "ON",
+                "SIMDLIB_BUILD_TESTS_OPTIONAL": "ON",
+                "SIMDLIB_BUILD_VECTOR_ALGORITHM_TESTS": "ON",
+                "SIMDLIB_BUILD_BENCHMARKS": "ON",
+                "SIMDLIB_BUILD_EXAMPLES": "ON",
+                "SIMDLIB_BUILD_CONFIGURATION_TESTS": "ON",
+                "SIMDLIB_BUILD_HEADER_TESTS": "ON",
+                "SIMDLIB_FETCH_TEST_DEPENDENCIES": "ON",
+                "SIMDLIB_STRICT_WARNINGS": "ON",
+                "SIMDLIB_ENABLE_COVERAGE": "OFF",
+                "SIMDLIB_BUILD_REGISTER_CODEGEN": "ON",
+                "SIMDLIB_REGISTER_CODEGEN_RECORD_ONLY": "OFF"
+            }
+        },
+        {
             "name": "clang-coverage",
             "displayName": "Clang LLVM coverage",
             "description": "Debug Clang build instrumented for CTest LLVM coverage",
@@ -129,6 +155,13 @@
             "jobs": 0
         },
         {
+            "name": "msvc-all",
+            "displayName": "MSVC all targets",
+            "configurePreset": "msvc-all",
+            "configuration": "Release",
+            "jobs": 0
+        },
+        {
             "name": "coverage",
             "displayName": "Clang LLVM coverage",
             "configurePreset": "clang-coverage",
@@ -162,6 +195,23 @@
             "execution": {
                 "jobs": 0
             }
+        }
+    ],
+    "workflowPresets": [
+        {
+            "name": "msvc-all",
+            "displayName": "Configure and build all MSVC targets",
+            "description": "Configures and builds every non-coverage project target in Release mode",
+            "steps": [
+                {
+                    "type": "configure",
+                    "name": "msvc-all"
+                },
+                {
+                    "type": "build",
+                    "name": "msvc-all"
+                }
+            ]
         }
     ]
 }

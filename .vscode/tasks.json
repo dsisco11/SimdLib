@@ -2,6 +2,30 @@
     "version": "2.0.0",
     "tasks": [
         {
+            "label": "Build: All Targets",
+            "type": "process",
+            "command": "cmake",
+            "args": [
+                "--workflow",
+                "--preset",
+                "msvc-all"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": "$msCompile",
+            "presentation": {
+                "clear": true,
+                "reveal": "always",
+                "panel": "dedicated"
+            },
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "detail": "Configures and builds every non-coverage SimdLib target in Release mode."
+        },
+        {
             "label": "Format: All C/C++ Files",
             "type": "process",
             "command": "pwsh",
