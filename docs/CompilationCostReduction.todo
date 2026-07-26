@@ -3,7 +3,7 @@ SimdLib Compilation Cost Reduction Task List:
   Purpose:
     ☒ Remove benchmark compilation from the default build while preserving a dedicated benchmark build and execution workflow.
     ☒ Evaluate whether SimdLib's constexpr implementation and validation strategy imposes avoidable compilation work.
-    ☐ Analyze and reduce avoidable compilation cost attributable to the `uint128_t` surface.
+    ☒ Analyze and reduce avoidable compilation cost attributable to the `uint128_t` surface.
     ☐ Analyze and reduce avoidable compilation cost attributable to `Bmi.h`.
 
   Constraints:
@@ -73,18 +73,29 @@ SimdLib Compilation Cost Reduction Task List:
       - Preset-inheritance, downstream option-leak, JSON, CMake-preset, artifact-record, whitespace, and container-cleanup checks completed successfully. The complete compiler and runtime matrix remains assigned to the final validation phase.
 
   Phase 3 - Analyze the `uint128_t` Compilation Burden:
-    ☐ Measure the direct and transitive include cost of the primary `uint128_t` header, its formatting support, BMI integration, concepts, and test support.
-    ☐ Inventory every target and translation unit that instantiates `uint128_t` arithmetic, formatting, comparison, bit-operation, and compatibility matrices.
-    ☐ Distinguish intentionally different portable, compiler-carry, scalar-only, optimized, constexpr, formatter, and external-consumer profiles from redundant repetition.
-    ☐ Use compiler timing or trace facilities to identify expensive templates, overload sets, concepts, constant-evaluation paths, and formatter instantiations.
-    ☐ Evaluate whether optional formatting, stream, BMI, or other heavyweight integration can remain in focused opt-in headers rather than the core `uint128_t` include path.
-    ☐ Evaluate whether non-dependent implementation can be simplified or moved out of repeatedly instantiated templates without weakening the header-only distribution model.
-    ☐ Evaluate whether test type products and scalar-reference machinery can be consolidated without hiding width, signedness, boundary, or compiler-path failures.
-    ☐ Evaluate target-scoped precompiled headers or shared test support only for compatible behavioral-test targets; exclude header-isolation, constexpr, generated-code, ABI, and external-consumer probes.
-    ☐ Document each candidate with its expected benefit, API and ABI consequences, implementation complexity, and affected validation contracts.
-    ☐ Implement only evidence-supported reductions and rerun the complete `uint128_t`, formatter, BMI-integration, constexpr, header-isolation, and external-consumer coverage.
-    ☐ Compare clean, warm, and public-header invalidation timings with the Phase 0 baseline.
-    ☐ End Phase 3 only when the dominant `uint128_t` compilation costs are explained and every accepted reduction has measured benefit and complete validation.
+    ☒ Measure the direct and transitive include cost of the primary `uint128_t` header, its formatting support, BMI integration, concepts, and test support.
+    ☒ Inventory every target and translation unit that instantiates `uint128_t` arithmetic, formatting, comparison, bit-operation, and compatibility matrices.
+    ☒ Distinguish intentionally different portable, compiler-carry, scalar-only, optimized, constexpr, formatter, and external-consumer profiles from redundant repetition.
+    ☒ Use compiler timing or trace facilities to identify expensive templates, overload sets, concepts, constant-evaluation paths, and formatter instantiations.
+    ☒ Evaluate whether optional formatting, stream, BMI, or other heavyweight integration can remain in focused opt-in headers rather than the core `uint128_t` include path.
+    ☒ Evaluate whether non-dependent implementation can be simplified or moved out of repeatedly instantiated templates without weakening the header-only distribution model.
+    ☒ Evaluate whether test type products and scalar-reference machinery can be consolidated without hiding width, signedness, boundary, or compiler-path failures.
+    ☒ Evaluate target-scoped precompiled headers or shared test support only for compatible behavioral-test targets; exclude header-isolation, constexpr, generated-code, ABI, and external-consumer probes.
+    ☒ Document each candidate with its expected benefit, API and ABI consequences, implementation complexity, and affected validation contracts.
+    ☒ Implement only evidence-supported reductions and rerun the complete `uint128_t`, formatter, BMI-integration, constexpr, header-isolation, and external-consumer coverage.
+    ☒ Compare clean, warm, and public-header invalidation timings with the Phase 0 baseline.
+    ☒ End Phase 3 only when the dominant `uint128_t` compilation costs are explained and every accepted reduction has measured benefit and complete validation.
+
+    Execution evidence:
+      - Temporary include probes and Clang traces are summarized in `out/pipeline/phase3-analysis/README.md`; raw preprocessed files, dependency records, trace JSON, objects, and the isolated MSVC timing tree remain below that directory until final cleanup.
+      - Native Clang first-and-only probes measured `Config.h` at 34.50 ms and 12,641 preprocessed bytes, `Bmi.h` at 230.40 ms and 2,672,155 bytes, `Api.h` at 391.89 ms and 4,072,115 bytes, `UInt128.h` at 398.43 ms and 4,113,429 bytes, and opt-in `Format.h` at 614.19 ms and 5,404,152 bytes.
+      - The dedicated Release matrix remains seven translation units per compiler: three runtime implementation profiles, the same three compile-definition profiles for the constexpr contract, and one first-and-only header probe. Formatter, BMI integration, configuration, umbrella-header, example, benchmark, and external-consumer translation units retain separate contract owners.
+      - The optimized runtime trace recorded 1,019.34 ms frontend and 521.42 ms backend work. Function instantiation used 220.09 ms, constraint checks 107.49 ms, and constant-expression evaluation only 3.81 ms; the hottest individual instantiations were Catch2 and standard-library support rather than a `uint128_t` overload or constexpr path.
+      - Removing the `Bmi.h` include was measured and reverted: it reduced preprocessed output by only 22,572 bytes (0.55%) and the seven-run median to 394.56 ms while breaking the existing transitive BMI source contract. SIMD-surface separation, formatter subdivision, out-of-header implementation, profile merging, PCH reuse, and test/reference splitting were also rejected because their API, validation, or complexity costs outweighed the measured benefit.
+      - No source or build reduction was accepted. The dominant costs are the required `Api.h` integration, Catch2 and standard-library parsing, and three incompatible runtime feature profiles; preserving the existing design is the evidence-supported result rather than adding uncompensated complexity.
+      - The Phase 0 seven-TU compiler-job totals remain MSVC 7.475 s, clang-cl 15.916 s, GCC 14 41.497 s, and Clang 22 55.908 s. A current isolated MSVC tree with Catch2 prebuilt and two root workers measured 14.261 s first build, 3.746 s warm, and 13.676 s after `UInt128.h` invalidation; all seven owned translation units rebuilt.
+      - Focused target builds passed with MSVC 19.44, clang-cl 22.1.8, GCC 13.2.1, GCC 14.2.0, Clang 22.1.3, and native clang++ 22.1.8 coverage instrumentation. The `UINT128`, `FORMAT`, and `BMI` label selection passed 98 tests on MSVC and 101 tests in every other cell; downstream consumer smoke tests passed on every compiler.
+      - The complete repository build and test matrix was intentionally not rerun and remains assigned to the final validation section.
 
   Phase 4 - Analyze the `Bmi.h` Compilation Burden:
     ☐ Measure the direct and transitive cost of `Bmi.h`, including intrinsic headers, portable helpers, concepts, constexpr implementations, and template instantiations.
