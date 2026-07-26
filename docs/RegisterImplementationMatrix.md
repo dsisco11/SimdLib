@@ -105,96 +105,96 @@ These portability rules do not change a public declaration.
 
 ## Public operation migration matrix
 
-The phase column is the implementation owner. “Compatibility” and “internal”
-rows are verified absent from the preferred surface in Phase 9.
+The disposition column records whether the preferred Register surface implements
+the operation or intentionally leaves it in a compatibility or collection layer.
 
-| Current public `Api` operation | Register result | Owner |
+| Current public `Api` operation | Register result | Disposition |
 | --- | --- | --- |
-| `load` | `Register::load(fixed_span)` | Phase 4 |
-| `load_aligned` | `Register::load_aligned(fixed_span)` | Phase 4 |
-| `load_unaligned` | Canonicalized to `Register::load(fixed_span)` | Phase 4 |
+| `load` | `Register::load(fixed_span)` | Implemented |
+| `load_aligned` | `Register::load_aligned(fixed_span)` | Implemented |
+| `load_unaligned` | Canonicalized to `Register::load(fixed_span)` | Implemented |
 | `load_partial` | No Register operation | Compatibility |
 | `load_unsafe` | No Register operation | Compatibility |
-| Element `store` | `value.store(fixed_span)` | Phase 4 |
-| `store_aligned` | `value.store_aligned(fixed_span)` | Phase 4 |
-| `store_unaligned` | Canonicalized to `value.store(fixed_span)` | Phase 4 |
-| Fixed-byte `store` | `value.store_bytes(fixed_byte_span)` | Phase 4 |
+| Element `store` | `value.store(fixed_span)` | Implemented |
+| `store_aligned` | `value.store_aligned(fixed_span)` | Implemented |
+| `store_unaligned` | Canonicalized to `value.store(fixed_span)` | Implemented |
+| Fixed-byte `store` | `value.store_bytes(fixed_byte_span)` | Implemented |
 | Dynamic-byte `store` | No Register operation | Compatibility |
-| Fixed-byte `load` | `Register::load_bytes(fixed_byte_span)` | Phase 4 |
-| `construct(array)` | `Register::from_array(array)` | Phase 4 |
-| `to_array` | `value.to_array()` | Phase 4 |
-| `setzero` | Default construction and `Register::zero()` | Phase 4 |
-| `set1` | `Register::broadcast(value)` | Phase 4 |
-| `setr` | `Register::from_lanes(...)` | Phase 4 |
+| Fixed-byte `load` | `Register::load_bytes(fixed_byte_span)` | Implemented |
+| `construct(array)` | `Register::from_array(array)` | Implemented |
+| `to_array` | `value.to_array()` | Implemented |
+| `setzero` | Default construction and `Register::zero()` | Implemented |
+| `set1` | `Register::broadcast(value)` | Implemented |
+| `setr` | `Register::from_lanes(...)` | Implemented |
 | `set`, `set_partial`, `setr_partial` | No Register operation | Compatibility |
-| `add` | `lhs + rhs` | Phase 6 |
-| `subtract` | `lhs - rhs` | Phase 6 |
-| `multiply` | `lhs * rhs` | Phase 6 |
-| `divide` | `lhs / rhs` | Phase 6 |
-| `modulus` | `lhs % rhs` | Phase 6 |
-| `negate` | `-value` | Phase 6 |
-| `min` | `lhs.min(rhs)` | Phase 7 |
-| `max` | `lhs.max(rhs)` | Phase 7 |
-| `multiply_add` | `lhs.multiply_add(rhs, addend)` | Phase 7 |
-| `widen` | `value.widen_low<target_t, target_bits>()` | Phase 8 |
-| `absolute` | `value.absolute()` | Phase 7 |
-| `sqrt` | `value.sqrt()` | Phase 7 |
-| `magnitude` | `value.magnitude()` | Phase 7 |
-| `magnitude_checked` | `value.magnitude_checked()` | Phase 7 |
-| `normalize` | `value.normalize()` | Phase 7 |
-| `avg` | `lhs.average(rhs)` | Phase 7 |
-| `add_horizontal` | `lhs.horizontal_add(rhs)` | Phase 7 |
-| `subtract_horizontal` | `lhs.horizontal_subtract(rhs)` | Phase 7 |
-| `multiply_add_adjacent` | `lhs.multiply_add_adjacent(rhs)` with named result alias | Phase 7 |
-| `multiply_add_unsigned_signed_bytes` | Same named member with byte-multiply-add result alias | Phase 7 |
-| `sum_absolute_byte_differences` | Same named member with SAD result alias | Phase 7 |
-| `multi_sum_absolute_byte_differences` | Same named immediate member with multi-SAD result alias | Phase 7 |
-| `min_position` | `value.min_position()` | Phase 7 |
-| `max_position` | `value.max_position()` | Phase 7 |
-| `add_saturated` | `lhs.add_saturated(rhs)` | Phase 7 |
-| `subtract_saturated` | `lhs.subtract_saturated(rhs)` | Phase 7 |
-| `hadd_saturated` | `lhs.horizontal_add_saturated(rhs)` | Phase 7 |
-| `hsubtract_saturated` | `lhs.horizontal_subtract_saturated(rhs)` | Phase 7 |
-| `add_subtract` | `lhs.add_subtract(rhs)` | Phase 7 |
-| `dot_product` | `lhs.dot_product<imm8>(rhs)` | Phase 7 |
-| `bitwise_and` | `lhs & rhs` | Phase 6 |
-| `bitwise_or` | `lhs \| rhs` | Phase 6 |
-| `bitwise_xor` | `lhs ^ rhs` | Phase 6 |
-| `bitwise_not` | `~value` | Phase 6 |
-| `bitwise_andnot` | `lhs.andnot(rhs)` with preserved polarity | Phase 6 |
-| `select` | `mask.select(when_true, when_false)` | Phase 5 |
-| `movemask` | `value.movemask()` with intrinsic-native granularity | Phase 6 |
-| `movemask_slim` | `value.lane_sign_bits()` with one bit per lane | Phase 6 |
-| `compare_equal`, `compare_greater`, `compare_greater_equal`, `compare_less`, `compare_less_equal` | Corresponding named comparison | Phase 5 |
+| `add` | `lhs + rhs` | Implemented |
+| `subtract` | `lhs - rhs` | Implemented |
+| `multiply` | `lhs * rhs` | Implemented |
+| `divide` | `lhs / rhs` | Implemented |
+| `modulus` | `lhs % rhs` | Implemented |
+| `negate` | `-value` | Implemented |
+| `min` | `lhs.min(rhs)` | Implemented |
+| `max` | `lhs.max(rhs)` | Implemented |
+| `multiply_add` | `lhs.multiply_add(rhs, addend)` | Implemented |
+| `widen` | `value.widen_low<target_t, target_bits>()` | Implemented |
+| `absolute` | `value.absolute()` | Implemented |
+| `sqrt` | `value.sqrt()` | Implemented |
+| `magnitude` | `value.magnitude()` | Implemented |
+| `magnitude_checked` | `value.magnitude_checked()` | Implemented |
+| `normalize` | `value.normalize()` | Implemented |
+| `avg` | `lhs.average(rhs)` | Implemented |
+| `add_horizontal` | `lhs.horizontal_add(rhs)` | Implemented |
+| `subtract_horizontal` | `lhs.horizontal_subtract(rhs)` | Implemented |
+| `multiply_add_adjacent` | `lhs.multiply_add_adjacent(rhs)` with named result alias | Implemented |
+| `multiply_add_unsigned_signed_bytes` | Same named member with byte-multiply-add result alias | Implemented |
+| `sum_absolute_byte_differences` | Same named member with SAD result alias | Implemented |
+| `multi_sum_absolute_byte_differences` | Same named immediate member with multi-SAD result alias | Implemented |
+| `min_position` | `value.min_position()` | Implemented |
+| `max_position` | `value.max_position()` | Implemented |
+| `add_saturated` | `lhs.add_saturated(rhs)` | Implemented |
+| `subtract_saturated` | `lhs.subtract_saturated(rhs)` | Implemented |
+| `hadd_saturated` | `lhs.horizontal_add_saturated(rhs)` | Implemented |
+| `hsubtract_saturated` | `lhs.horizontal_subtract_saturated(rhs)` | Implemented |
+| `add_subtract` | `lhs.add_subtract(rhs)` | Implemented |
+| `dot_product` | `lhs.dot_product<imm8>(rhs)` | Implemented |
+| `bitwise_and` | `lhs & rhs` | Implemented |
+| `bitwise_or` | `lhs \| rhs` | Implemented |
+| `bitwise_xor` | `lhs ^ rhs` | Implemented |
+| `bitwise_not` | `~value` | Implemented |
+| `bitwise_andnot` | `lhs.andnot(rhs)` with preserved polarity | Implemented |
+| `select` | `mask.select(when_true, when_false)` | Implemented |
+| `movemask` | `value.movemask()` with intrinsic-native granularity | Implemented |
+| `movemask_slim` | `value.lane_sign_bits()` with one bit per lane | Implemented |
+| `compare_equal`, `compare_greater`, `compare_greater_equal`, `compare_less`, `compare_less_equal` | Corresponding named comparison | Implemented |
 | `cmp_eq_mask`, `cmp_gt_mask`, `cmp_ge_mask`, `cmp_lt_mask`, `cmp_le_mask` | No compact-mask Register counterpart | Compatibility |
-| `cmp_eq_slim`, `cmp_gt_slim`, `cmp_ge_slim`, `cmp_lt_slim`, `cmp_le_slim` | Corresponding named comparison followed by `.bits()` | Phase 5 |
+| `cmp_eq_slim`, `cmp_gt_slim`, `cmp_ge_slim`, `cmp_lt_slim`, `cmp_le_slim` | Corresponding named comparison followed by `.bits()` | Implemented |
 | Deprecated `cmp_eq`, `cmp_gt`, `cmp_ge`, `cmp_lt`, `cmp_le` | Corresponding explicitly named `cmp_*_mask` method | Compatibility |
 | `expand`, `compress` | No Register operation | Compatibility |
-| `extract<index>` | `value.lane<index>()` | Phase 4 |
+| `extract<index>` | `value.lane<index>()` | Implemented |
 | Runtime `extract` | No initial Register operation | Compatibility |
-| `lower_half` | `value.lower_half()` | Phase 8 |
-| `insert<index>` | `value.with_lane<index>(lane)` | Phase 4 |
+| `lower_half` | `value.lower_half()` | Implemented |
+| `insert<index>` | `value.with_lane<index>(lane)` | Implemented |
 | Generic `insert(args...)` | No initial Register operation | Compatibility |
-| `unpack_lo` | `lhs.unpack_low(rhs)` | Phase 8 |
-| `unpack_hi` | `lhs.unpack_high(rhs)` | Phase 8 |
-| `shuffle<indices...>` | `value.shuffle<indices...>()` | Phase 8 |
+| `unpack_lo` | `lhs.unpack_low(rhs)` | Implemented |
+| `unpack_hi` | `lhs.unpack_high(rhs)` | Implemented |
+| `shuffle<indices...>` | `value.shuffle<indices...>()` | Implemented |
 | Generic `shuffle(args...)` | No initial Register operation | Compatibility |
-| `shuffle_lo` | `value.shuffle_low<imm8>()` | Phase 8 |
-| `shuffle_hi` | `value.shuffle_high<imm8>()` | Phase 8 |
-| `blend` | `lhs.blend<imm8>(rhs)`; predicate selection uses `mask.select()` | Phase 8 and Phase 5 |
-| `shift_left` | `value << count` | Phase 6 |
-| `shift_right` | `value.logical_shift_right(count)`; unsigned `operator>>` | Phase 6 |
-| `shift_right_arithmetic` | Signed `value >> count` | Phase 6 |
-| `byte_shift_left` | `value.byte_shift_left(count)` | Phase 6 |
-| `byte_shift_right` | `value.byte_shift_right(count)` | Phase 6 |
-| Runtime `bit_shift_left` | `value.bit_shift_left(count)` | Phase 6 |
-| Compile-time `bit_shift_left` | `value.bit_shift_left<count>()` | Phase 6 |
-| Runtime `bit_shift_right` | `value.bit_shift_right(count)` | Phase 6 |
-| Compile-time `bit_shift_right` | `value.bit_shift_right<count>()` | Phase 6 |
-| `bit_cast` | `value.bit_cast<target_t>()` | Phase 8 |
-| `convert_to_float` | `value.convert<float>()` | Phase 8 |
-| `convert_to_int` | `value.convert<int32_t>()` | Phase 8 |
-| Explicit-target `convert<target_t>` | `value.convert<target_t>()` | Phase 8 |
+| `shuffle_lo` | `value.shuffle_low<imm8>()` | Implemented |
+| `shuffle_hi` | `value.shuffle_high<imm8>()` | Implemented |
+| `blend` | `lhs.blend<imm8>(rhs)`; predicate selection uses `mask.select()` | Implemented |
+| `shift_left` | `value << count` | Implemented |
+| `shift_right` | `value.logical_shift_right(count)`; unsigned `operator>>` | Implemented |
+| `shift_right_arithmetic` | Signed `value >> count` | Implemented |
+| `byte_shift_left` | `value.byte_shift_left(count)` | Implemented |
+| `byte_shift_right` | `value.byte_shift_right(count)` | Implemented |
+| Runtime `bit_shift_left` | `value.bit_shift_left(count)` | Implemented |
+| Compile-time `bit_shift_left` | `value.bit_shift_left<count>()` | Implemented |
+| Runtime `bit_shift_right` | `value.bit_shift_right(count)` | Implemented |
+| Compile-time `bit_shift_right` | `value.bit_shift_right<count>()` | Implemented |
+| `bit_cast` | `value.bit_cast<target_t>()` | Implemented |
+| `convert_to_float` | `value.convert<float>()` | Implemented |
+| `convert_to_int` | `value.convert<int32_t>()` | Implemented |
+| Explicit-target `convert<target_t>` | `value.convert<target_t>()` | Implemented |
 | Inferred-target `convert` | No Register operation | Compatibility |
 | `transform_pack` | No Register operation | Collection |
 | Unary and binary span `transform` overloads | No Register operation | Collection |
@@ -330,7 +330,7 @@ documentation. CMake presets, CI workflows, and `ContainerValidation.md` own
 the reproducible invocation contract; generated build trees, JUnit reports,
 provenance files, and logs own individual outcomes.
 
-## Phase 1 language and build-integration design
+## Language and build-integration design
 
 This work introduces only the language boundary. `Register.h` deliberately
 contains no Register or RegisterMask declaration until the representation work
@@ -349,9 +349,9 @@ begins. It also remains absent from `SimdLib.h`.
 | Reproducible negative probes | The compile-failure inputs and public headers are configure dependencies; every fresh or affected configuration reruns each `try_compile` and records its compiler output |
 | External consumers | The core consumer explicitly remains C++20; the separate Register consumer receives C++23 only by linking `SimdLib::Register` |
 
-## Phase 2 container-environment design
+## Container-environment design
 
-Phase 2 selects Alpine Linux for both GNU-like compiler services. The complete
+The container environment uses Alpine Linux for both GNU-like compiler services. The complete
 Release, feature-labelled, sanitizer, constexpr, configuration, header,
 consumer, and C++23 availability gates are required to remain on Alpine/musl.
 A larger distribution is considered only after a concrete incompatibility is

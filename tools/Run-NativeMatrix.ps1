@@ -190,6 +190,30 @@ function Invoke-TestInventory {
 
 <#
 .SYNOPSIS
+Verifies that mandatory runtime-test labels and families exist in one native CTest tree.
+.PARAMETER Artifact
+Resolved native build-cell artifact.
+#>
+function Invoke-RuntimeTestInventoryAudit {
+    param([Parameter(Mandatory)]$Artifact)
+    $arguments = @(
+        "-DTEST_DIRECTORY=$($Artifact.Build)",
+        "-DCMAKE_CTEST_COMMAND=$ctest",
+        "-DAUDIT_FILE=$(Join-Path $Artifact.Reports 'runtime-test-inventory.audit.txt')",
+        '-DREGISTER_REQUIRED=ON'
+    )
+    if ($Artifact.Definition.Compiler -eq 'msvc') {
+        $arguments += "-DCONFIGURATION=$($Artifact.Definition.BuildProfile)"
+    }
+    $arguments += @('-P', (Join-Path $repositoryRoot 'cmake/VerifyRuntimeTestInventory.cmake'))
+    & $cmake @arguments
+    if ($LASTEXITCODE -ne 0) {
+        throw "Mandatory runtime-test inventory audit failed for $($Artifact.Id)"
+    }
+}
+
+<#
+.SYNOPSIS
 Returns a file hash or the manifest marker for an absent optional file.
 .PARAMETER Path
 File to hash.
@@ -352,6 +376,7 @@ function Test-NativeCell {
     [void](Assert-NativeManifest -Artifact $Artifact -Operation 'build-validation')
     Assert-NativeCpuFeatures
     New-Item -ItemType Directory -Path $Artifact.Reports -Force | Out-Null
+    Invoke-RuntimeTestInventoryAudit -Artifact $Artifact
     if ($Artifact.Definition.Coverage) {
         & $cmake "-DBINARY_DIRECTORY=$($Artifact.Build)" -P (Join-Path $repositoryRoot 'cmake/ResetCoverage.cmake')
         if ($LASTEXITCODE -ne 0) { throw "Coverage reset failed for $($Artifact.Id)" }

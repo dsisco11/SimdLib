@@ -468,8 +468,11 @@ function(simdlib_add_register_codegen_gate register_width isa_profile)
 		LABELS "REGISTER;CODEGEN;ABI;${isa_profile}" RUN_SERIAL TRUE)
 	set(codegen_gate_outputs
 		${expression_codegen_gate_outputs} "${consumer_abi_stamp_file}" "${abi_stamp_file}" "${default_abi_stamp_file}")
-	add_custom_target(RegisterCodegen${target_suffix} ALL DEPENDS ${codegen_gate_outputs})
-	add_dependencies(RegisterCodegen${target_suffix} ${codegen_object_targets})
+	add_custom_target(RegisterCodegen${target_suffix} ALL
+		DEPENDS "${abi_stamp_file}" "${default_abi_stamp_file}")
+	add_dependencies(RegisterCodegen${target_suffix}
+		RegisterExpressionCodegen${target_suffix}
+		RegisterConsumerAbi${target_suffix})
 	set(codegen_record_index "${artifact_directory}/all-records.txt")
 	file(GENERATE OUTPUT "${codegen_record_index}"
 		CONTENT "$<JOIN:${codegen_gate_outputs},\n>\n")

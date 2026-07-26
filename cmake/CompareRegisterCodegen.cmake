@@ -26,7 +26,9 @@ endif()
 if(NOT FMA_EXPECTATION MATCHES "^(none|enabled|disabled)$")
 	message(FATAL_ERROR "Unsupported FMA_EXPECTATION: ${FMA_EXPECTATION}")
 endif()
-file(REMOVE "${RECORD_FILE}" "${RECORD_FILE}.tmp")
+file(REMOVE "${RECORD_FILE}")
+string(RANDOM LENGTH 16 ALPHABET 0123456789abcdef record_temporary_suffix)
+set(record_temporary_file "${RECORD_FILE}.${record_temporary_suffix}.tmp")
 
 # @brief Escapes a string for inclusion as a JSON string value.
 # @param input_text Unescaped text.
@@ -404,7 +406,7 @@ foreach(json_value IN ITEMS
 	comparison_result accepted_exception policy_mode)
 	simdlib_escape_json("${${json_value}}" "${json_value}_json")
 endforeach()
-file(WRITE "${RECORD_FILE}.tmp"
+file(WRITE "${record_temporary_file}"
 	"{\n"
 	"  \"schema\": \"simdlib.codegen-record.v1\",\n"
 	"  \"kind\": \"comparison\",\n"
@@ -427,7 +429,7 @@ file(WRITE "${RECORD_FILE}.tmp"
 	"  \"vectorcall_enabled\": ${VECTORCALL_ENABLED},\n"
 	"  \"stack_protector_mode\": \"${STACK_PROTECTOR_MODE_json}\"\n"
 	"}\n")
-file(RENAME "${RECORD_FILE}.tmp" "${RECORD_FILE}")
+file(RENAME "${record_temporary_file}" "${RECORD_FILE}")
 
 if(comparison_result STREQUAL "recorded-difference")
 	message(STATUS

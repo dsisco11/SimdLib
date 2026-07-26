@@ -174,7 +174,12 @@ required_cpu_features()
 ## @brief Validates every required host CPU feature with an exact diagnostic.
 validate_cpu_features()
 {
-	flags=" $(sed -n 's/^flags[[:space:]]*: //p' /proc/cpuinfo | head -n 1) "
+	cpuinfo_file=${SIMDLIB_CPUINFO_PATH:-/proc/cpuinfo}
+	[ -r "$cpuinfo_file" ] || {
+		echo "Host CPU feature inventory is unavailable: $cpuinfo_file" >&2
+		exit 4
+	}
+	flags=" $(sed -n 's/^flags[[:space:]]*: //p' "$cpuinfo_file" | head -n 1) "
 	for required_flag in $(required_cpu_features); do
 		case "$flags" in
 			*" $required_flag "*) ;;
@@ -194,6 +199,10 @@ manifest_value()
 ## @brief Verifies shared toolchain and compiler invariants.
 validate_environment()
 {
+	command -v "$CXX" >/dev/null 2>&1 || {
+		echo "Configured C++ compiler is unavailable: $CXX" >&2
+		exit 3
+	}
 	case "$($CXX -dumpversion)" in
 		13.*|14.*|22.*) ;;
 		*) echo "Unexpected compiler version from $CXX: $($CXX -dumpfullversion -dumpversion)" >&2; exit 3 ;;
@@ -303,6 +312,18 @@ validate_test_inventory()
 		-DINVENTORY_FILE="$inventory_file" \
 		-DCMAKE_CTEST_COMMAND="$(command -v ctest)" \
 		-P "$source_directory/cmake/RecordTestInventory.cmake"
+}
+
+## @brief Verifies mandatory runtime-test labels and families before execution.
+audit_runtime_test_inventory()
+{
+	register_required=ON
+	[ "${SIMDLIB_COMPILER_ID:-}" != gcc13 ] || register_required=OFF
+	cmake -DTEST_DIRECTORY="$build_directory" \
+		-DCMAKE_CTEST_COMMAND="$(command -v ctest)" \
+		-DAUDIT_FILE="$report_directory/runtime-test-inventory.audit.txt" \
+		-DREGISTER_REQUIRED="$register_required" \
+		-P "$source_directory/cmake/VerifyRuntimeTestInventory.cmake"
 }
 
 ## @brief Records an atomic completed-operation manifest after all assigned builds succeed.
@@ -514,6 +535,7 @@ case "$operation" in
 	test)
 		validate_validation_manifest
 		validate_cpu_features
+		audit_runtime_test_inventory
 		set -- --test-dir "$build_directory" --output-on-failure \
 			--output-junit "$report_directory/main-test.xml"
 		[ -z "$test_regex" ] || set -- "$@" --tests-regex "$test_regex"

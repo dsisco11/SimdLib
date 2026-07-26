@@ -11,7 +11,9 @@ endforeach()
 if(NOT DEFINED RECORD_FILE OR "${RECORD_FILE}" STREQUAL "")
 	set(RECORD_FILE "${ARTIFACT_DIRECTORY}/default-abi.record.json")
 endif()
-file(REMOVE "${RECORD_FILE}" "${RECORD_FILE}.tmp")
+file(REMOVE "${RECORD_FILE}")
+string(RANDOM LENGTH 16 ALPHABET 0123456789abcdef record_temporary_suffix)
+set(record_temporary_file "${RECORD_FILE}.${record_temporary_suffix}.tmp")
 
 # @brief Disassembles one default-convention ABI fixture and writes the artifact.
 # @param object_file Compiled fixture object.
@@ -75,7 +77,7 @@ foreach(json_value IN ITEMS
 	COMPILER_PATH SYSTEM_NAME SYSTEM_PROCESSOR CONFIGURATION ISA_PROFILE STACK_PROTECTOR_MODE)
 	simdlib_escape_json("${${json_value}}" "${json_value}_json")
 endforeach()
-file(WRITE "${RECORD_FILE}.tmp"
+file(WRITE "${record_temporary_file}"
 	"{\n"
 	"  \"schema\": \"simdlib.codegen-record.v1\",\n"
 	"  \"kind\": \"diagnostic\",\n"
@@ -97,4 +99,4 @@ file(WRITE "${RECORD_FILE}.tmp"
 	"  \"vectorcall_enabled\": ${VECTORCALL_ENABLED},\n"
 	"  \"stack_protector_mode\": \"${STACK_PROTECTOR_MODE_json}\"\n"
 	"}\n")
-file(RENAME "${RECORD_FILE}.tmp" "${RECORD_FILE}")
+file(RENAME "${record_temporary_file}" "${RECORD_FILE}")

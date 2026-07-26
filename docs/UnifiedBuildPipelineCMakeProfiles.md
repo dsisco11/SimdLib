@@ -1,6 +1,6 @@
 # Unified build pipeline CMake profile evidence
 
-This report records the Phase 1 implementation and its 2026-07-25 execution
+This report records the initial modular CMake implementation and its 2026-07-25 execution
 evidence. It is an execution record, not a claim about later revisions.
 
 ## Production and development boundary

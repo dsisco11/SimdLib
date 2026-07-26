@@ -1,6 +1,6 @@
 # BMI public contract matrix
 
-Phase 1 classifies every symbol in `SimdLib::Bmi` that is outside its nested
+This matrix classifies every symbol in `SimdLib::Bmi` that is outside its nested
 `Detail` namespace. All tests use the public `Bmi` entry points; `Detail`
 contains implementation alternatives and is not a supported test seam.
 
@@ -25,7 +25,7 @@ contracts. The portable, BMI1-only, BMI2-only, and combined profiles must
 produce the same deterministic digest; their CTest equivalence tests are the
 configuration proof.
 
-## Phase 1 validation record
+## Validation record
 
 The `clang-debug-coverage` profile owns source-instrumented BMI coverage.
 The BMI subset ran 47 entries: eleven public-contract tests in each of the

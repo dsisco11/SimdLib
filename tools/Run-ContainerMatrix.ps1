@@ -31,6 +31,10 @@ $composeFile = Join-Path $repositoryRoot 'compose.yml'
 $pipelineRoot = Join-Path $repositoryRoot 'out/pipeline'
 $utf8NoBom = [System.Text.UTF8Encoding]::new($false)
 
+if (-not (Get-Command docker -CommandType Application -ErrorAction SilentlyContinue)) {
+    throw 'Docker CLI is required to run the container compiler matrix, but docker was not found on PATH.'
+}
+
 if (-not $env:SIMDLIB_BUILD_REVISION) {
     $env:SIMDLIB_BUILD_REVISION = (& git -C $repositoryRoot rev-parse HEAD).Trim()
     if ($LASTEXITCODE -ne 0) {
@@ -439,13 +443,14 @@ if ($cells.Count -eq 0) { throw 'The compiler and cell selections do not identif
 
 $runId = "{0}-{1}-{2}" -f (Get-Date -Format 'yyyyMMdd-HHmmssfff'), $Action.ToLowerInvariant(), $PID
 $projectName = "simdlib-container-$runId".ToLowerInvariant()
+$imageBuildProjectName = 'simdlib-container-images'
 $logDirectory = Join-Path $pipelineRoot "logs/$runId"
 New-Item -ItemType Directory -Path $logDirectory -Force | Out-Null
 Write-Host "Container operation: action=$Action cells=$($cells.Count) maxParallel=$MaxParallel"
 
 if ($Action -in @('Build', 'InspectEnvironment') -and -not $SkipImageBuild) {
     $buildArguments = @(
-        'compose', '--file', $composeFile, '--project-name', $projectName,
+        'compose', '--file', $composeFile, '--project-name', $imageBuildProjectName,
         '--profile', 'compilers', 'build', '--provenance=false'
     )
     if ($NoImageCache) { $buildArguments += '--no-cache' }

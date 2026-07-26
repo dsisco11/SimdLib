@@ -228,19 +228,19 @@ SimdLib Unified Build and Test Pipeline Implementation Plan:
     ✔ End Phase 5 only when local and CI workflows invoke the same build/test implementation and CI contains no scenario-specific duplicate build tree for an identical fingerprint.
 
   Phase 6 - Prove Completeness and Cache Reuse:
-    ☐ Run a clean unified build and verify every expected compiler, fingerprint, target, external consumer, generated-code comparison record, benchmark executable, manifest, and provenance record exists.
-    ☐ Run the unified build again without source changes and prove that it compiles zero SimdLib-owned, test, example, benchmark, consumer, and Catch2 translation units while still validating the build graph.
-    ☐ Run unified test with `-SkipBuild` and prove through process tracing and logs that it invokes neither CMake configure nor `cmake --build`.
-    ☐ Run unified test without `-SkipBuild` and prove it invokes the unified build exactly once before all test cells rather than once per scenario.
-    ☐ Touch or modify one representative public header, rebuild, and prove each compatible fingerprint recompiles affected targets once while unrelated fingerprints and images are not needlessly recreated.
-    ☐ Change one compiler, image, configuration, or instrumentation identity and prove manifest validation rejects incompatible artifacts and rebuilds only the affected fingerprint.
-    ☐ Compare the post-refactor target and test inventory with the frozen baseline and account for every addition, removal, and former duplicate.
-    ☐ Configure the external consumer and a representative parent project in clean build directories with their own tests enabled; prove that SimdLib adds only its production interface targets, does not fetch Catch2, does not declare development options, and does not add any SimdLib test to the parent CTest inventory.
-    ☐ Verify all feature-labelled tests execute once within the complete runtime-test inventory, and add a static or runtime audit that fails when mandatory tests are absent from that inventory.
-    ☐ Re-run strict warnings, header isolation, configuration and constexpr probes, ODR, runtime correctness, Debug diagnostics, sanitizers, external consumers, generated-code and ABI gates, accepted exceptions, and supplemental benchmarks across their owning fingerprints.
-    ☐ Re-run intentional single-service and multi-service failures, stale-manifest failures, cancellation, Ctrl-C cleanup, missing Docker, missing compiler, and unsupported-host-feature diagnostics.
-    ☐ Measure clean and warm wall time, compiler invocation count, artifact size, and test runtime against the Phase 0 baseline; explain any regression instead of assuming structural consolidation is faster.
-    ☐ End Phase 6 only when completeness is unchanged or improved, identical fingerprints are never rebuilt for separate scenarios, and the measured pipeline demonstrates the intended reuse.
+    ✔ Run a clean unified build and verify every expected compiler, fingerprint, target, external consumer, generated-code comparison record, benchmark executable, manifest, and provenance record exists.
+    ✔ Run the unified build again without source changes and prove that it compiles zero SimdLib-owned, test, example, benchmark, consumer, and Catch2 translation units while still validating the build graph.
+    ✔ Run unified test with `-SkipBuild` and prove through process tracing and logs that it invokes neither CMake configure nor `cmake --build`.
+    ✔ Run unified test without `-SkipBuild` and prove it invokes the unified build exactly once before all test cells rather than once per scenario.
+    ✔ Touch or modify one representative public header, rebuild, and prove each compatible fingerprint recompiles affected targets once while unrelated fingerprints and images are not needlessly recreated.
+    ✔ Change one compiler, image, configuration, or instrumentation identity and prove manifest validation rejects incompatible artifacts and rebuilds only the affected fingerprint.
+    ✔ Compare the post-refactor target and test inventory with the frozen baseline and account for every addition, removal, and former duplicate.
+    ✔ Configure the external consumer and a representative parent project in clean build directories with their own tests enabled; prove that SimdLib adds only its production interface targets, does not fetch Catch2, does not declare development options, and does not add any SimdLib test to the parent CTest inventory.
+    ✔ Verify all feature-labelled tests execute once within the complete runtime-test inventory, and add a static or runtime audit that fails when mandatory tests are absent from that inventory.
+    ✔ Re-run strict warnings, header isolation, configuration and constexpr probes, ODR, runtime correctness, Debug diagnostics, sanitizers, external consumers, generated-code and ABI gates, accepted exceptions, and supplemental benchmarks across their owning fingerprints.
+    ✔ Re-run intentional single-service and multi-service failures, stale-manifest failures, cancellation, Ctrl-C cleanup, missing Docker, missing compiler, and unsupported-host-feature diagnostics.
+    ✔ Measure clean and warm wall time, compiler invocation count, artifact size, and test runtime against the Phase 0 baseline; explain any regression instead of assuming structural consolidation is faster.
+    ✔ End Phase 6 only when completeness is unchanged or improved, identical fingerprints are never rebuilt for separate scenarios, and the measured pipeline demonstrates the intended reuse.
 
   Phase 7 - Document and Migrate Interfaces:
     ☐ Update `wiki/Technical-Reference.md` with the final unified build and test commands, scoped compiler commands, prerequisites, fingerprint model, incremental behavior, and explicit instrumentation boundaries.
