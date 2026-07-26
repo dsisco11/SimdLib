@@ -54,13 +54,13 @@ Register compilers.
 | MSVC Debug | `msvc-debug-diagnostics` | `msvc-debug-diagnostics` |
 | clang-cl Release | `clangcl-release-exhaustive` | `clangcl-release-exhaustive` |
 | clang-cl Debug | `clangcl-debug-diagnostics` | `clangcl-debug-diagnostics` |
-| GCC 13.2 core Release | `gcc13-core-release-exhaustive` | same name |
-| GCC 13.2 core Debug | `gcc13-core-debug-diagnostics` | same name |
-| GCC 14 Release | `gcc14-release-exhaustive` | same name |
-| GCC 14 Debug | `gcc14-debug-diagnostics` | same name |
-| Clang 22 Release | `clang22-release-exhaustive` | same name |
-| Clang 22 Debug | `clang22-debug-diagnostics` | same name |
-| Clang 22 Debug ASan+UBSan | `clang22-debug-asan-ubsan` | same name |
+| Linux GCC 13.2 core Release | `gcc13-core-release-exhaustive` | same name |
+| Linux GCC 13.2 core Debug | `gcc13-core-debug-diagnostics` | same name |
+| Linux GCC 14 Release | `gcc14-release-exhaustive` | same name |
+| Linux GCC 14 Debug | `gcc14-debug-diagnostics` | same name |
+| Linux Clang 22 Release | `clang22-release-exhaustive` | same name |
+| Linux Clang 22 Debug | `clang22-debug-diagnostics` | same name |
+| Linux Clang 22 Debug ASan+UBSan | `clang22-debug-asan-ubsan` | same name |
 | Clang Debug coverage | `clang-debug-coverage` | same name |
 
 Hidden presets own common development controls, exhaustive Release controls,

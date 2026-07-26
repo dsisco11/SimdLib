@@ -466,7 +466,7 @@ scope makes ownership explicit.
 
 The unified unqualified build is complete only when all twelve fingerprints
 below exist. GCC 13.2 is Linux x64 core-only; GCC 14 adds
-`SimdLib::Register`. No GNU-on-Windows fingerprint or command scope exists.
+`SimdLib::Register`.
 
 | Canonical fingerprint | Required ownership |
 | --- | --- |

@@ -280,18 +280,18 @@ compile-time audit; no prose-only availability list can drift independently.
 
 | Surface | Compiler | Architecture/configuration | Requirement |
 | --- | --- | --- | --- |
-| C++20 core | MSVC 19.44 | x64; Debug and Release | Existing full public matrix remains supported |
-| C++20 core | clang-cl 22.1.8 | x64; Debug and Release | Existing full public matrix remains supported |
-| C++20 core | Clang 22.1.8 | x64; Debug and Release | Existing full public matrix remains supported |
-| C++20 core | GCC 13.2 | x64; Debug and Release | Existing full public matrix remains supported; Register unavailable |
-| C++20 core sanitizer | Clang 22.1.8 | x64 Debug, `-O1`, ASan/UBSan, frame pointers | No sanitizer diagnostics |
-| Register | MSVC 19.44 | `/std:c++latest`; supported x64 profiles | SSE4.2 diagnostics and strict AVX2 gates; memory-writing fixtures retain `/GS` and the exact documented exception |
-| Register | clang-cl 22.1.8 | C++23; supported x64 profiles | SSE4.2 diagnostics and strict AVX2 correctness, ABI, and generated-code gates |
-| Register | Clang 22.1.8 | C++23; supported x64 profiles | SSE4.2 diagnostics and strict AVX2 correctness, ABI, and generated-code gates |
-| Register | GCC 14 or newer | C++23; supported x64 profiles | SSE4.2 diagnostics and strict AVX2 correctness, ABI, and generated-code gates |
+| C++20 core | MSVC 19.44 | Windows x64; Debug and Release | Existing full public matrix remains supported |
+| C++20 core | clang-cl 22.1.8 | Windows x64; Debug and Release | Existing full public matrix remains supported |
+| C++20 core | Clang 22.1.8 | Linux x64; Debug and Release | Existing full public matrix remains supported |
+| C++20 core | GCC 13.2 | Linux x64; Debug and Release | Existing full public matrix remains supported; Register unavailable |
+| C++20 core sanitizer | Clang 22.1.8 | Linux x64 Debug, `-O1`, ASan/UBSan, frame pointers | No sanitizer diagnostics |
+| Register | MSVC 19.44 | Windows x64, `/std:c++latest`; supported ISA profiles | SSE4.2 diagnostics and strict AVX2 gates; memory-writing fixtures retain `/GS` and the exact documented exception |
+| Register | clang-cl 22.1.8 | Windows x64, C++23; supported ISA profiles | SSE4.2 diagnostics and strict AVX2 correctness, ABI, and generated-code gates |
+| Register | Clang 22.1.8 | Linux x64, C++23; supported ISA profiles | SSE4.2 diagnostics and strict AVX2 correctness, ABI, and generated-code gates |
+| Register | GCC 14 or newer | Linux x64, C++23; supported ISA profiles | SSE4.2 diagnostics and strict AVX2 correctness, ABI, and generated-code gates |
 
-GCC 13.2 remains the required local unavailable-interface probe; it is not a
-Register compiler. A Register compiler floor is lowered or expanded only after
+Linux x64 GCC 13.2 remains the required unavailable-interface probe; it is not
+a Register compiler. A Register compiler floor is lowered or expanded only after
 the complete correctness, layout, ABI, and generated-code gates pass.
 
 ## Test and evidence ownership

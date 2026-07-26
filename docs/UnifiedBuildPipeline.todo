@@ -27,7 +27,7 @@ SimdLib Unified Build and Test Pipeline Implementation Plan:
     ☐ Never define coverage controls or targets, instrument downstream targets, or generate SimdLib coverage reports when SimdLib is consumed through `add_subdirectory` or FetchContent.
     ☐ Do not rely on `add_subdirectory(... EXCLUDE_FROM_ALL)` as the development boundary; it suppresses default building but still allows dependency targets, options, and CTest state to enter the parent configuration.
     ☐ Require maintainers who need SimdLib validation from a superbuild to configure the SimdLib source as its own top-level build rather than enabling comprehensive tests inside a downstream product graph.
-    ☐ Remove GNU-on-Windows from the supported platform contract and do not add a fingerprint, preset, CI cell, or unified-command scope for that retired target.
+    ✔ Remove GNU-on-Windows from the supported platform contract and do not add a fingerprint, preset, CI cell, or unified-command scope for that retired target.
     ☐ Retain GCC 13.2 as a supported Linux x64 compiler for the C++20 core and qualify it in dedicated Release and Debug core-only fingerprints; make the support matrix explicit that `SimdLib::Register` begins with GCC 14.
     ☐ Keep the root `CMakeLists.txt` focused on production targets, dependency-consumption behavior, and the top-level development entrypoint; do not move the existing monolith unchanged into one large `Development.cmake` file.
     ☐ Use a thin top-level-only development coordinator that includes cohesive scoped CMake modules in an explicit dependency order.
@@ -254,13 +254,13 @@ SimdLib Unified Build and Test Pipeline Implementation Plan:
     ✔ End Phase 7 only when the canonical local and CI interfaces are the unified commands, every old mandatory mode has a reviewed disposition, and no documentation suggests that objects are reusable across incompatible fingerprints.
 
   Phase 8 - Remove Retired Windows GNU Support References:
-    ☐ Remove the retired Windows GNU target from every compiler-support table, prerequisite list, compatibility statement, example, validation claim, and user-facing document; describe supported GCC targets as Linux x64 only.
-    ☐ Remove or generalize any source comment, CMake branch, preset, script parameter, test fixture, CI condition, artifact name, or legacy branch whose only purpose is to claim or exercise the retired target.
-    ☐ Do not remove generic GNU compiler handling that is required by supported Linux GCC builds merely because the same code could compile under an unsupported Windows toolchain.
-    ☐ Ensure no unified build scope, fingerprint manifest, compiler filter, help output, or failure diagnostic advertises the retired target as recognized or supported.
-    ☐ Search every tracked text file case-insensitively for the retired platform's conventional name and require zero remaining matches; retain historical evidence only in Git history, not in the current documentation tree.
-    ☐ Re-run documentation-link checks, CMake preset parsing, script syntax checks, and the supported compiler matrix after the removal so cleanup cannot silently damage Linux GCC support.
-    ☐ End Phase 8 only when the tracked repository contains no reference to the retired platform and every published compiler-support statement matches the implemented unified matrix.
+    ✔ Remove the retired Windows GNU target from every compiler-support table, prerequisite list, compatibility statement, example, validation claim, and user-facing document; describe supported GCC targets as Linux x64 only.
+    ✔ Remove or generalize any source comment, CMake branch, preset, script parameter, test fixture, CI condition, artifact name, or legacy branch whose only purpose is to claim or exercise the retired target.
+    ✔ Do not remove generic GNU compiler handling that is required by supported Linux GCC builds merely because the same code could compile under an unsupported Windows toolchain.
+    ✔ Ensure no unified build scope, fingerprint manifest, compiler filter, help output, or failure diagnostic advertises the retired target as recognized or supported.
+    ✔ Search every tracked text file case-insensitively for the retired platform's conventional name and require zero remaining matches; retain historical evidence only in Git history, not in the current documentation tree.
+    ✔ Re-run documentation-link checks, CMake preset parsing, script syntax checks, and the supported compiler matrix after the removal so cleanup cannot silently damage Linux GCC support.
+    ✔ End Phase 8 only when the tracked repository contains no reference to the retired platform and every published compiler-support statement matches the implemented unified matrix.
 
   Phase 9 - Analyze codebase for opportunities to reduce build time and improve test coverage:
     ☐ Identify any redundant or unnecessary build steps that can be eliminated or optimized.

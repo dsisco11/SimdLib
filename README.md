@@ -26,9 +26,10 @@ link the CMake interface target, and use only the pieces you need.
 - `Bmi` collects portable and hardware-assisted bit-manipulation helpers.
 - `uint128_t` provides an unsigned 128-bit value type with formatting support.
 
-SimdLib is currently aimed at x64 projects and is tested with MSVC, clang-cl,
-Clang, and GCC. The core requires C++20. `Register` requires a supported C++23
-compiler with explicit-object member support.
+SimdLib targets Windows x64 with MSVC or clang-cl and Linux x64 with Clang or
+GCC. The core requires C++20. GCC 13.2 qualifies the Linux core-only surface;
+GCC 14 or newer qualifies both the core and `Register`. `Register` otherwise
+requires a supported C++23 compiler with explicit-object member support.
 
 ## Add it to a project
 

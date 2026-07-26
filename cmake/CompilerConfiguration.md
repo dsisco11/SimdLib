@@ -40,7 +40,8 @@ Standalone tests are split and labelled `SSE42`, `AVX2`, `FMA`, `BMI`, and
 `SIMDLIB_BUILD_BMI_TESTS` controls describe the owned artifact families.
 
 `SIMDLIB_STRICT_WARNINGS=ON` selects `/W4 /WX /permissive-` for MSVC and
-clang-cl, and `-Wall -Wextra -Wpedantic -Werror` for native Clang/GCC. The policy intentionally
+clang-cl on Windows, and `-Wall -Wextra -Wpedantic -Werror` for GNU-like Clang
+and GCC on Linux. The policy intentionally
 suppresses Clang `-Wunknown-attributes` and `-Wc2y-extensions`, GCC
 `-Wattributes`, plus `-Wignored-attributes` on both, because public headers retain vendor attributes
 such as `[[msvc::flatten]]` and compiler SIMD register types can trigger

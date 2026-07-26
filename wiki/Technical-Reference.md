@@ -97,7 +97,7 @@ The current validation matrix covers:
 | MSVC            | Visual Studio 2022 / MSVC 19.44 | Windows x64         |
 | clang-cl        | LLVM Clang 22 with the MSVC ABI | Windows x64         |
 | Clang           | LLVM Clang 22                   | Linux x64           |
-| GCC             | GCC 13.2 or newer               | Linux and MinGW x64 |
+| GCC             | GCC 13.2 or newer               | Linux x64           |
 
 The SIMD backends require x86-family intrinsic headers on an x64 target. The portable
 configuration layer, BMI fallback algorithms, and two-word `uint128_t`

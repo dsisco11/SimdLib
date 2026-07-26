@@ -205,15 +205,15 @@ ODR hazard. The preprocessor macro is the only public availability query.
 The core target retains its existing C++20 compiler matrix. Register support is
 a narrower, separately validated matrix:
 
-| Compiler family | Initial Register floor | Language mode | Availability path |
-| --- | --- | --- | --- |
-| Microsoft C++ | MSVC 19.44 | `/std:c++latest` | `_MSC_VER` and `_MSVC_LANG` fallback |
-| clang-cl | 22 | C++23 | Standard feature-test macro |
-| Clang | 22 | C++23 | Standard feature-test macro |
-| GCC | 14 | C++23 | Standard feature-test macro |
+| Compiler family | Initial Register floor | Platform | Language mode | Availability path |
+| --- | --- | --- | --- | --- |
+| Microsoft C++ | MSVC 19.44 | Windows x64 | `/std:c++latest` | `_MSC_VER` and `_MSVC_LANG` fallback |
+| clang-cl | 22 | Windows x64 | C++23 | Standard feature-test macro |
+| Clang | 22 | Linux x64 | C++23 | Standard feature-test macro |
+| GCC | 14 | Linux x64 | C++23 | Standard feature-test macro |
 
-GCC 13.2 remains in the core C++20 matrix and must compile the umbrella header
-with `SIMDLIB_REGISTER_INTERFACE_AVAILABLE == 0`. A compiler is added to the
+Linux x64 GCC 13.2 remains in the core C++20 matrix and must compile the umbrella
+header with `SIMDLIB_REGISTER_INTERFACE_AVAILABLE == 0`. A compiler is added to the
 Register matrix only after all correctness and zero-overhead gates pass for the
 supported architecture, ISA profile, type, and width combinations.
 
@@ -1353,7 +1353,8 @@ The implementation requires evidence in each of these areas:
 - Debug-contract and sanitizer runs that confirm full-register access does not
   read beyond caller storage.
 - Separate validation of the core C++20 matrix and the narrower Register matrix:
-  MSVC 19.44, clang-cl 22, Clang 22, and GCC 14 or newer. GCC 13.2 is a required
+  Windows x64 uses MSVC 19.44 and clang-cl 22.
+  Linux x64 uses Clang 22 and GCC 14 or newer; GCC 13.2 is a required
   unavailable-interface probe for the core matrix.
 - Mandatory generated-code comparisons for chained arithmetic, comparison plus
   selection, load/operate/store, and explicit broadcast reuse. Benchmarks may

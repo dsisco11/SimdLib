@@ -7,11 +7,11 @@ command. A complete local build is:
 tools/Build.ps1 -Scope All
 ```
 
-This builds the MSVC Release and Debug, clang-cl Release and Debug, native
-Clang Debug coverage, GCC 13 core-only Release and Debug, GCC 14 Release and
-Debug, and Clang 22 Release, Debug, and ASan+UBSan cells. It then builds each
-Release cell's benchmark target in the same configure tree. It does not run a
-test or benchmark executable.
+This builds the Windows MSVC and clang-cl Release and Debug cells, native Clang
+Debug coverage, Linux GCC 13 core-only Release and Debug, Linux GCC 14 Release
+and Debug, and Linux Clang 22 Release, Debug, and ASan+UBSan cells. It then
+builds each Release cell's benchmark target in the same configure tree. It does
+not run a test or benchmark executable.
 
 The corresponding complete validation command is:
 

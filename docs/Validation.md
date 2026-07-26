@@ -183,9 +183,36 @@ entries are rejected and are not compatibility aliases.
 Representative object, log, coverage-profile, disassembly, and temporary-probe
 paths were all covered by repository ignore rules. A complete tracked-path audit
 found no generated build tree, binary, object, log, profile, disassembly, or
-temporary probe. The interface corrections changed documentation only, so this
-audit reused the completed compiler evidence above instead of performing another
-compiler build or test run.
+temporary probe. The interface corrections described in this subsection changed
+documentation only, so that audit reused the completed compiler evidence above.
+The later supported-platform cleanup below changed top-level CMake qualification
+and was therefore rebuilt and retested separately.
+
+## Supported-platform cleanup evidence
+
+The published support contract now assigns MSVC and clang-cl to Windows x64 and
+assigns Clang and GCC to Linux x64. GCC 13.2 remains core-only, while GCC 14 or
+newer owns the Linux Register surface. Top-level CMake likewise recognizes GNU
+Register qualification only for a 64-bit Linux system; generic GNU compiler
+handling remains available for the supported Linux GCC cells.
+
+A case-insensitive scan of every tracked file found zero occurrences of the
+retired platform's conventional name. A separate scan found no non-planning
+reference or platform association and no unified command, compiler filter,
+preset, Compose profile, workflow, or failure diagnostic that recognizes the
+retired target.
+
+The final validation used:
+
+```powershell
+tools/Build.ps1 -Scope All
+tools/Run-Tests.ps1 -Scope All -SkipBuild
+```
+
+The completed receipt matched the current source digest and owned all twelve
+required fingerprints. All five native cells and all seven container cells
+completed, including Linux GCC 13 core-only Release and Debug, Linux GCC 14
+Release and Debug, and the Linux Clang Release, Debug, and ASan+UBSan cells.
 
 ## Supplemental benchmarks
 
