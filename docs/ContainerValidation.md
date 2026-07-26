@@ -158,6 +158,7 @@ Image refreshes are deliberate review changes:
 3. Run `InspectEnvironment` with `-NoImageCache` and review the identities.
 4. Run `tools/Build.ps1 -Scope Containers`, then
    `tools/Run-Tests.ps1 -Scope Containers -SkipBuild` and
+   `tools/Build-Benchmarks.ps1 -Scope Containers` followed by
    `tools/Run-Benchmarks.ps1 -Scope Containers`.
 5. Confirm the native MSVC and clang-cl configurations separately.
 

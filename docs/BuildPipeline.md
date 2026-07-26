@@ -9,9 +9,10 @@ tools/Build.ps1 -Scope All
 
 This builds the Windows MSVC and clang-cl Release and Debug cells, native Clang
 Debug coverage, Linux GCC 13 core-only Release and Debug, Linux GCC 14 Release
-and Debug, and Linux Clang 22 Release, Debug, and ASan+UBSan cells. It then
-builds each Release cell's benchmark target in the same configure tree. It does
-not run a test or benchmark executable.
+and Debug, and Linux Clang 22 Release, Debug, and ASan+UBSan cells. It builds
+the correctness, ABI, generated-code, sanitizer, consumer, coverage, probe,
+example, and header-validation artifacts, but does not compile benchmark
+targets or run any executable.
 
 The corresponding complete validation command is:
 
@@ -22,9 +23,10 @@ tools/Run-Tests.ps1 -Scope All
 `Run-Tests.ps1` invokes `Build.ps1` exactly once, validates the exact set of
 completed manifests, and then starts test-only operations. The coverage cell
 resets profiles, runs its instrumented tests, and generates `coverage.info`.
-Benchmark execution remains separate:
+Benchmark compilation and execution remain separate:
 
 ```powershell
+tools/Build-Benchmarks.ps1 -Scope All
 tools/Run-Benchmarks.ps1 -Scope All
 ```
 
@@ -99,8 +101,12 @@ tools/Build-Benchmarks.ps1 -Scope All
 tools/Run-Benchmarks.ps1 -Scope All
 ```
 
-Benchmark builds reuse validated Release trees. Benchmark execution requires
-their completed benchmark manifests and never configures or builds.
+`Build-Benchmarks.ps1` requires completed validation manifests and builds only
+`BenchmarkArtifacts` in their existing exhaustive Release trees. It does not
+create a benchmark-specific configure tree or rebuild the validation
+aggregates. `Run-Benchmarks.ps1` requires current completed benchmark manifests
+and never configures or builds. `Run-Tests.ps1` does not require benchmark
+artifacts or manifests.
 
 ## Instrumentation boundaries
 
@@ -120,9 +126,9 @@ coverage option, instrumented test, or report target leaks downstream.
 ## Diagnostic runners and cleanup
 
 `Run-NativeMatrix.ps1` and `Run-ContainerMatrix.ps1` are lower-level diagnostic
-and CI implementation interfaces. Normal repository builds use `Build.ps1`,
-`Run-Tests.ps1`, and `Run-Benchmarks.ps1`; the lower-level scripts do not define
-additional mandatory modes.
+and CI implementation interfaces. Normal repository workflows use `Build.ps1`,
+`Run-Tests.ps1`, `Build-Benchmarks.ps1`, and `Run-Benchmarks.ps1`; the
+lower-level scripts do not define additional mandatory modes.
 
 Container images and selected Linux fingerprint roots can be removed with:
 

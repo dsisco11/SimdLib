@@ -3,9 +3,9 @@
 Builds the requested complete SimdLib validation artifact matrix.
 .DESCRIPTION
 Scope must be explicit so a host cannot silently omit required native or
-container cells. The command builds validation artifacts first, invokes the
-benchmark build operation once for the same selection, and records an exact
-manifest receipt consumed by Run-Tests.ps1.
+container cells. The command builds validation artifacts and records an exact
+manifest receipt consumed by Run-Tests.ps1. Benchmark compilation is owned
+exclusively by Build-Benchmarks.ps1.
 #>
 [CmdletBinding()]
 param(
@@ -124,6 +124,5 @@ if ($containerCompilers.Count -eq 3) {
 $logDirectory = Join-Path $pipelineRoot "logs/$(Get-Date -Format 'yyyyMMdd-HHmmssfff')-build-$PID"
 Invoke-PipelineChildOperations -Operations $operations.ToArray() -LogDirectory $logDirectory
 
-& (Join-Path $PSScriptRoot 'Build-Benchmarks.ps1') -Scope $Scope -Compiler $selectedCompilers
 $receipt = Write-BuildReceipt -SelectedCompilers $selectedCompilers
 Write-Host "Unified build passed. Receipt: $receipt"

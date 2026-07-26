@@ -258,8 +258,8 @@ Windows-hosted run additionally requires Visual Studio 2022 with the x64 C++
 tools, LLVM 22 on `PATH`, and Docker Desktop using Linux containers. Container-
 only runs require Docker and do not require the native Windows compilers.
 
-Build the complete native and Linux compiler matrix, including validation and
-benchmark artifacts, with an explicit scope:
+Build the complete native and Linux validation matrix, excluding benchmark
+artifacts, with an explicit scope:
 
 ```powershell
 tools/Build.ps1 -Scope All
@@ -272,9 +272,11 @@ consumer, and coverage test cell with:
 tools/Run-Tests.ps1 -Scope All
 ```
 
-Benchmark execution is supplemental and remains outside correctness testing:
+Benchmark compilation and execution are supplemental and remain outside the
+default build and correctness testing:
 
 ```powershell
+tools/Build-Benchmarks.ps1 -Scope All
 tools/Run-Benchmarks.ps1 -Scope All
 ```
 
@@ -294,10 +296,12 @@ diagnostic can use `tools/Run-Tests.ps1 -Scope Native -Compiler Msvc` or
 Each compiler/configuration owns a fingerprinted tree below `out/pipeline`.
 The fingerprint includes compiler and image identity, generator, configuration,
 instrumentation, required flags, dependencies, and CPU requirements. Source
-inputs have a separate digest in the completed manifest. Consequently, test-
-only and benchmark-execution operations reject missing, stale, or incompatible
-artifacts and never configure or compile. Objects are reusable only when their
-complete compilation fingerprint matches. See [Unified build and
+inputs have a separate digest in the completed manifest. Consequently,
+test-only and benchmark-execution operations reject missing, stale, or
+incompatible artifacts and never configure or compile. The explicit benchmark
+build requires completed validation manifests and targets only
+`BenchmarkArtifacts` in the owning Release trees. Objects are reusable only
+when their complete compilation fingerprint matches. See [Unified build and
 validation](../docs/BuildPipeline.md) for the complete identity and guarded
 `-SkipBuild` contract.
 
@@ -356,8 +360,10 @@ for example
 `.github/workflows/ci.yml` delegates to the same scoped `Build.ps1` and
 `Run-Tests.ps1 -SkipBuild` commands used locally. Native MSVC, native clang-cl
 plus coverage, and Linux container compilers each build their assigned
-fingerprints once and then run test-only operations. Clang ASan+UBSan remains
-an independent instrumented fingerprint. Mandatory instruction-family labels,
+fingerprints once and then run test-only operations. Each benchmark-owning CI
+job invokes `Build-Benchmarks.ps1` explicitly after correctness testing; the
+default build remains benchmark-free. Clang ASan+UBSan remains an independent
+instrumented fingerprint. Mandatory instruction-family labels,
 constexpr probes, first-include header hygiene, ODR, examples, consumers,
 generated-code comparisons, and ABI gates are members of those owned cells,
 not separate rebuild scenarios.

@@ -1,7 +1,7 @@
 SimdLib Compilation Cost Reduction Task List:
 
   Purpose:
-    ☐ Remove benchmark compilation from the default build while preserving a dedicated benchmark build and execution workflow.
+    ☒ Remove benchmark compilation from the default build while preserving a dedicated benchmark build and execution workflow.
     ☐ Evaluate whether SimdLib's constexpr implementation and validation strategy imposes avoidable compilation work.
     ☐ Analyze and reduce avoidable compilation cost attributable to the `uint128_t` surface.
     ☐ Analyze and reduce avoidable compilation cost attributable to `Bmi.h`.
@@ -28,16 +28,22 @@ SimdLib Compilation Cost Reduction Task List:
       - Original clean pipeline logs are retained under the timestamped `out/pipeline/logs/20260726-*` directories referenced by the temporary summary.
 
   Phase 1 - Separate Benchmark Compilation from the Default Build:
-    ☐ Remove benchmark targets and `BenchmarkArtifacts` from the unqualified `tools/Build.ps1` operation.
-    ☐ Keep benchmark targets configured in their owning exhaustive Release trees so benchmark builds reuse compatible configuration and dependency artifacts.
-    ☐ Retain `tools/Build-Benchmarks.ps1` as the explicit operation that builds only `BenchmarkArtifacts` for the requested scope.
-    ☐ Retain `tools/Run-Benchmarks.ps1` as an execution-only operation that requires current benchmark-build manifests and never configures or compiles.
-    ☐ Ensure `tools/Run-Tests.ps1` neither builds benchmarks nor requires benchmark artifacts or benchmark-build manifests.
-    ☐ Update presets, VS Code tasks, CI workflows, help text, and build documentation so `Build`, `Build-Benchmarks`, and `Run-Benchmarks` have unambiguous scopes.
-    ☐ Reconcile the maintained build documentation with the new default-build contract without restoring retired planning documents.
-    ☐ Prove through build logs or process tracing that a default build invokes no benchmark compiler or linker action.
-    ☐ Prove that a subsequent benchmark build reuses the owning Release trees and does not rebuild validation, example, probe, generated-code, or external-consumer targets.
-    ☐ End Phase 1 only when benchmark compilation occurs exclusively through the explicit benchmark-build operation.
+    ☒ Remove benchmark targets and `BenchmarkArtifacts` from the unqualified `tools/Build.ps1` operation.
+    ☒ Keep benchmark targets configured in their owning exhaustive Release trees so benchmark builds reuse compatible configuration and dependency artifacts.
+    ☒ Retain `tools/Build-Benchmarks.ps1` as the explicit operation that builds only `BenchmarkArtifacts` for the requested scope.
+    ☒ Retain `tools/Run-Benchmarks.ps1` as an execution-only operation that requires current benchmark-build manifests and never configures or compiles.
+    ☒ Ensure `tools/Run-Tests.ps1` neither builds benchmarks nor requires benchmark artifacts or benchmark-build manifests.
+    ☒ Update presets, VS Code tasks, CI workflows, help text, and build documentation so `Build`, `Build-Benchmarks`, and `Run-Benchmarks` have unambiguous scopes.
+    ☒ Reconcile the maintained build documentation with the new default-build contract without restoring retired planning documents.
+    ☒ Prove through build logs or process tracing that a default build invokes no benchmark compiler or linker action.
+    ☒ Prove that a subsequent benchmark build reuses the owning Release trees and does not rebuild validation, example, probe, generated-code, or external-consumer targets.
+    ☒ End Phase 1 only when benchmark compilation occurs exclusively through the explicit benchmark-build operation.
+
+    Execution evidence:
+      - Focused default build: `tools/Build.ps1 -Scope Native -Compiler Msvc`; `out/pipeline/logs/20260726-144242012-build-46112` contains no benchmark target, source, executable, compiler, or linker action.
+      - Explicit benchmark build: `tools/Build-Benchmarks.ps1 -Scope Native -Compiler Msvc`; `out/pipeline/logs/20260726-144358091-build-benchmarks-38908` reused `out/pipeline/windows-msvc/release-c30d27cf1cd4eeb8` and visited only `Benchmarks`, `Catch2`, and `Catch2WithMain`.
+      - Execution-only benchmark run: `tools/Run-Benchmarks.ps1 -Scope Native -Compiler Msvc`; `out/pipeline/logs/20260726-144447157-run-benchmarks-6176` contains no configure or build command.
+      - Focused syntax, JSON, shell, CMake-preset, orchestration-reference, and `git diff --check` validation completed successfully.
 
   Phase 2 - Evaluate the Constexpr Compilation Burden:
     ☐ Inventory every dedicated constexpr target, source file, compiler profile, feature profile, and ordinary test translation unit that repeats compile-time assertions.

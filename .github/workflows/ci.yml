@@ -22,6 +22,8 @@ jobs:
         run: tools/Build.ps1 -Scope Native -Compiler Msvc
       - name: Test the exact MSVC build receipt
         run: tools/Run-Tests.ps1 -Scope Native -Compiler Msvc -SkipBuild
+      - name: Build MSVC benchmark artifacts explicitly
+        run: tools/Build-Benchmarks.ps1 -Scope Native -Compiler Msvc
       - name: Upload MSVC evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -53,6 +55,8 @@ jobs:
         run: tools/Build.ps1 -Scope Native -Compiler ClangCl,ClangCoverage
       - name: Test the exact Clang build receipt
         run: tools/Run-Tests.ps1 -Scope Native -Compiler ClangCl,ClangCoverage -SkipBuild
+      - name: Build clang-cl benchmark artifacts explicitly
+        run: tools/Build-Benchmarks.ps1 -Scope Native -Compiler ClangCl
       - name: Upload Clang evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -83,6 +87,9 @@ jobs:
       - name: Test the exact Linux build receipt
         shell: pwsh
         run: tools/Run-Tests.ps1 -Scope Containers -SkipBuild
+      - name: Build Linux benchmark artifacts explicitly
+        shell: pwsh
+        run: tools/Build-Benchmarks.ps1 -Scope Containers
       - name: Upload container evidence
         if: always()
         uses: actions/upload-artifact@v4

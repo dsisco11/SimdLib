@@ -521,13 +521,12 @@ case "$operation" in
 	build-benchmarks)
 		rm -f "$benchmark_manifest"
 		source_digest=$(compute_source_digest)
-		if can_reuse_validation_configuration; then
-			printf 'Reusing validated Release configuration: %s\n' "$build_directory" |
-				tee "$report_directory/benchmark-configure.log"
-		else
-			configure_main_project
-			cp "$report_directory/main-configure.log" "$report_directory/benchmark-configure.log"
+		if ! can_reuse_validation_configuration; then
+			echo "Benchmark build requires a current validated Release configuration: $validation_manifest" >&2
+			exit 6
 		fi
+		printf 'Reusing validated Release configuration: %s\n' "$build_directory" |
+			tee "$report_directory/benchmark-configure.log"
 		run_reported "$report_directory/benchmark-build.log" \
 			cmake --build "$build_directory" --parallel --target BenchmarkArtifacts
 		write_completed_manifest "$benchmark_manifest" build-benchmarks "$source_digest"

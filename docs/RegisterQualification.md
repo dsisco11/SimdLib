@@ -119,6 +119,7 @@ tools/Build.ps1 -Scope Native -Compiler Msvc,ClangCl
 tools/Run-Tests.ps1 -Scope Native -Compiler Msvc,ClangCl -SkipBuild
 tools/Build.ps1 -Scope Containers -Compiler Gcc14,Clang22
 tools/Run-Tests.ps1 -Scope Containers -Compiler Gcc14,Clang22 -SkipBuild
+tools/Build-Benchmarks.ps1 -Scope All -Compiler Msvc,ClangCl,Gcc14,Clang22
 tools/Run-Benchmarks.ps1 -Scope All -Compiler Msvc,ClangCl,Gcc14,Clang22
 ```
 

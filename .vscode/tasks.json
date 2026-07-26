@@ -25,7 +25,7 @@
                 "kind": "build",
                 "isDefault": true
             },
-            "detail": "Builds the complete native and container validation matrix plus benchmark artifacts."
+            "detail": "Builds the complete native and container validation matrix without benchmark artifacts."
         },
         {
             "label": "Run-Tests",
@@ -49,6 +49,29 @@
             },
             "group": "test",
             "detail": "Builds the complete matrix once, then runs every assigned test-only cell."
+        },
+        {
+            "label": "Build-Benchmarks",
+            "type": "process",
+            "command": "pwsh",
+            "args": [
+                "-NoProfile",
+                "-File",
+                "${workspaceFolder}/tools/Build-Benchmarks.ps1",
+                "-Scope",
+                "All"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": "$msCompile",
+            "presentation": {
+                "clear": true,
+                "reveal": "always",
+                "panel": "dedicated"
+            },
+            "group": "build",
+            "detail": "Builds only benchmark artifacts in completed exhaustive Release trees."
         },
         {
             "label": "Run-Benchmarks",
