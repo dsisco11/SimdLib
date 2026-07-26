@@ -49,16 +49,16 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
-      - name: Build and run the Release compiler matrix
+      - name: Build every Linux validation cell
         shell: pwsh
-        run: tools/Run-ContainerMatrix.ps1 -Mode Release
-      - name: Run Clang sanitizers from the same image
+        run: tools/Run-ContainerMatrix.ps1 -Action Build
+      - name: Test every prebuilt Linux validation cell
         shell: pwsh
-        run: tools/Run-ContainerMatrix.ps1 -Mode AsanUbsan -SkipImageBuild
+        run: tools/Run-ContainerMatrix.ps1 -Action Test
       - name: Upload container evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: linux-container-evidence
-          path: out/container
+          path: out/pipeline
           if-no-files-found: error

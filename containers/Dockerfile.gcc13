@@ -46,11 +46,9 @@ RUN git init /opt/catch2 \
 
 FROM ${ALPINE_IMAGE}
 
-ARG BUILD_REVISION=unknown
 LABEL org.opencontainers.image.title="SimdLib GCC 13.2 validation" \
       org.opencontainers.image.description="Pinned Alpine/musl GCC 13.2 environment for SimdLib" \
       org.opencontainers.image.source="https://github.com/dsisco11/SimdLib" \
-      org.opencontainers.image.revision="${BUILD_REVISION}" \
       org.opencontainers.image.version="gcc-13.2.1-cmake-4.4.0" \
       org.simdlib.base.digest="sha256:765942a4039992336de8dd5db680586e1a206607dd06170ff0a37267a9e01958" \
       org.simdlib.cmake.sha256="65757f442fdd242e27f1728fc26dc0cba4164f7a0791a5c788631c00080369bc" \

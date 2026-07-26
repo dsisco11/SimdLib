@@ -381,19 +381,17 @@ Windows ABI, and calling-convention evidence.
 ### Compose and orchestration decision
 
 `compose.yml` is the single declarative environment used locally and in CI. It
-uses a shared service anchor and explicit focused, full, feature, sanitizer, and
-code-generation profiles. `tools/Run-ContainerMatrix.ps1` is the accepted thin
-aggregator: it selects the complete service set, pre-creates one unique project
-network, starts compiler services concurrently with `docker compose run --rm`,
-waits for every exit, retains separate logs, and removes only that run's unique
-Compose project.
+uses a shared service anchor and one compiler-service profile.
+`tools/Run-ContainerMatrix.ps1` owns the build-cell matrix: it builds selected
+images once, starts compiler cells with bounded concurrency, waits for every
+exit, retains separate logs, and removes only that invocation's unique Compose
+project.
 
 A separate Compose healthcheck is intentionally absent: these are one-shot
 `compose run` jobs, for which Compose does not wait on the service's own health
 state. The canonical entrypoint instead performs synchronous compiler, CMake,
 CPU-feature, and argument preflight before any configure or test work.
-The reserved code-generation profile runs that preflight for both compilers;
-generated-code comparison targets remain owned by Phase 3.
+Generated-code comparisons are ordinary artifacts of each owning build cell.
 
 Direct parallel `docker compose up` interleaves logs, retains stopped service
 containers, and cannot provide deterministic all-service failure attribution.
@@ -404,9 +402,10 @@ definition. Its intentional-failure and cancellation switches exercise
 one-service failure, multi-service failure, partial-log retention, and
 unique-project cleanup.
 
-The scheduled reproducibility workflow runs the canonical `Focused -NoCache`
-command and records image inspection output. Normal CI runs Full, Feature, and
-Sanitizer through the same wrapper and Dockerfiles;
-there is no CI-only Linux dependency installation path. Exact local commands,
-artifact conventions, refresh/security procedure, and project-owned cleanup
-are recorded in `ContainerValidation.md`.
+The scheduled reproducibility workflow runs the environment inspection action
+with Docker caching disabled and records image inspection output. Normal CI
+first builds every Linux cell and then runs a compile-free test operation
+through the same wrapper and Dockerfiles. There is no CI-only Linux dependency
+installation path. Exact local commands, artifact conventions,
+refresh/security procedure, and project-owned cleanup are recorded in
+`ContainerValidation.md`.

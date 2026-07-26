@@ -249,8 +249,8 @@ ctest --test-dir out/consumer/msvc -C Release --output-on-failure
 The pinned Linux compiler matrix is reproduced with:
 
 ```powershell
-.\tools\Run-ContainerMatrix.ps1 -Mode Release -Compiler All
-.\tools\Run-ContainerMatrix.ps1 -Mode Debug -Compiler All -SkipImageBuild
-.\tools\Run-ContainerMatrix.ps1 -Mode AsanUbsan -Compiler Clang22 -SkipImageBuild
-.\tools\Run-ContainerMatrix.ps1 -Mode Benchmarks -Compiler All -SkipImageBuild
+.\tools\Run-ContainerMatrix.ps1 -Action Build
+.\tools\Run-ContainerMatrix.ps1 -Action Test
+.\tools\Run-ContainerMatrix.ps1 -Action BuildBenchmarks
+.\tools\Run-ContainerMatrix.ps1 -Action RunBenchmarks
 ```

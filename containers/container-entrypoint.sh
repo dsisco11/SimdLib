@@ -9,6 +9,7 @@ test_label=
 build_profile=
 sanitizer=none
 artifact_root="/workspace/out/${SIMDLIB_COMPILER_ID:-unknown}"
+fingerprint_sha256=
 
 ## @brief Prints the supported container operation arguments.
 print_usage()
@@ -23,6 +24,7 @@ Usage: simdlib-container --operation OPERATION [options]
   --build-profile NAME   Release or Debug; must agree with the selected preset
   --sanitizer MODE       none or asan-ubsan
   --artifact-root PATH   Writable compiler-specific artifact root
+  --fingerprint-sha256   Full SHA256 of the canonical build-cell fingerprint
   --help                 Show this help
 EOF
 }
@@ -36,6 +38,7 @@ while [ "$#" -gt 0 ]; do
 		--build-profile) build_profile=$2; shift 2 ;;
 		--sanitizer) sanitizer=$2; shift 2 ;;
 		--artifact-root) artifact_root=$2; shift 2 ;;
+		--fingerprint-sha256) fingerprint_sha256=$2; shift 2 ;;
 		--help) print_usage; exit 0 ;;
 		*) echo "Unknown argument: $1" >&2; print_usage >&2; exit 2 ;;
 	esac
@@ -48,6 +51,18 @@ esac
 case "$artifact_root" in
 	/workspace/out/*) ;;
 	*) echo "Artifact root must be below /workspace/out: $artifact_root" >&2; exit 2 ;;
+esac
+case "$fingerprint_sha256" in
+	*[!0-9a-f]*|'') echo "A lowercase 64-character --fingerprint-sha256 is required" >&2; exit 2 ;;
+esac
+[ "${#fingerprint_sha256}" -eq 64 ] || {
+	echo "A lowercase 64-character --fingerprint-sha256 is required" >&2
+	exit 2
+}
+fingerprint_prefix=$(printf '%s' "$fingerprint_sha256" | cut -c 1-16)
+case "${artifact_root##*/}" in
+	*-$fingerprint_prefix) ;;
+	*) echo "Artifact root does not match fingerprint prefix: $artifact_root" >&2; exit 2 ;;
 esac
 case "$sanitizer" in
 	none|asan-ubsan) ;;
@@ -71,24 +86,35 @@ case "$operation" in
 		;;
 esac
 
-result_directory="$artifact_root/$preset"
-build_directory="$artifact_root/build/$preset"
-consumer_directory="$artifact_root/consumer/$preset"
-validation_manifest="$result_directory/validation-build.manifest"
-benchmark_manifest="$result_directory/benchmark-build.manifest"
-main_inventory="$result_directory/main-test-artifacts.inventory"
-consumer_inventory="$result_directory/consumer-test-artifacts.inventory"
-codegen_record_index="$result_directory/codegen-records.index"
-mkdir -p "$result_directory"
+build_directory="$artifact_root/build"
+consumer_directory="$artifact_root/consumer"
+report_directory="$artifact_root/reports"
+provenance_directory="$artifact_root/provenance"
+fingerprint_document="$provenance_directory/fingerprint.json"
+validation_manifest="$provenance_directory/validation-build.manifest"
+benchmark_manifest="$provenance_directory/benchmark-build.manifest"
+main_inventory="$provenance_directory/main-test-artifacts.inventory"
+consumer_inventory="$provenance_directory/consumer-test-artifacts.inventory"
+codegen_record_index="$provenance_directory/codegen-records.index"
+mkdir -p "$report_directory" "$provenance_directory"
+[ -f "$fingerprint_document" ] || {
+	echo "Canonical fingerprint document is missing: $fingerprint_document" >&2
+	exit 2
+}
+[ "$(sha256sum "$fingerprint_document" | cut -d ' ' -f 1)" = "$fingerprint_sha256" ] || {
+	echo "Canonical fingerprint document does not match --fingerprint-sha256" >&2
+	exit 2
+}
 
 ## @brief Runs a test-only operation under process tracing and rejects build processes.
 run_traced_test_operation()
 {
-	trace_temporary="$result_directory/test-only.execve.trace.tmp"
-	trace_file="$result_directory/test-only.execve.trace"
+	trace_temporary="$report_directory/test-only.execve.trace.tmp"
+	trace_file="$report_directory/test-only.execve.trace"
 	rm -f "$trace_temporary"
 	set -- --operation test --preset "$preset" --build-profile "$build_profile" \
-		--sanitizer "$sanitizer" --artifact-root "$artifact_root"
+		--sanitizer "$sanitizer" --artifact-root "$artifact_root" \
+		--fingerprint-sha256 "$fingerprint_sha256"
 	[ -z "$test_regex" ] || set -- "$@" --test-regex "$test_regex"
 	[ -z "$test_label" ] || set -- "$@" --test-label "$test_label"
 	set +e
@@ -181,7 +207,7 @@ validate_environment()
 ## @brief Writes shared compiler, image, host, and operation provenance.
 write_provenance()
 {
-	provenance_file="$result_directory/provenance.txt"
+	provenance_file="$provenance_directory/environment.txt"
 	{
 		echo "compiler_id=${SIMDLIB_COMPILER_ID:-unknown}"
 		echo "operation=$operation"
@@ -218,7 +244,7 @@ run_reported()
 ## @brief Configures the owning main-project tree, applying CI freshness only here.
 configure_main_project()
 {
-	export SIMDLIB_BUILD_ROOT="$artifact_root/build"
+	export SIMDLIB_BUILD_DIRECTORY="$build_directory"
 	cxx_flags=${SIMDLIB_REQUIRED_CXX_FLAGS:-}
 	linker_flags=${SIMDLIB_REQUIRED_LINKER_FLAGS:-}
 	set -- --preset "$preset" -S "$source_directory" \
@@ -234,7 +260,7 @@ configure_main_project()
 			break
 		}
 	done
-	run_reported "$result_directory/main-configure.log" cmake "$@"
+	run_reported "$report_directory/main-configure.log" cmake "$@"
 }
 
 ## @brief Configures and builds the assigned external-consumer tree.
@@ -244,14 +270,14 @@ build_external_consumer()
 	linker_flags=${SIMDLIB_REQUIRED_LINKER_FLAGS:-}
 	register_consumer=ON
 	[ "${SIMDLIB_COMPILER_ID:-unknown}" != gcc13 ] || register_consumer=OFF
-	run_reported "$result_directory/consumer-configure.log" cmake \
+	run_reported "$report_directory/consumer-configure.log" cmake \
 		-S "$source_directory/tests/consumer" -B "$consumer_directory" -G Ninja \
 		-DCMAKE_BUILD_TYPE="$build_profile" \
 		-DSIMDLIB_SOURCE_DIR="$source_directory" \
 		-DSIMDLIB_BUILD_REGISTER_CONSUMER="$register_consumer" \
 		-DCMAKE_CXX_FLAGS="$cxx_flags" \
 		-DCMAKE_EXE_LINKER_FLAGS="$linker_flags"
-	run_reported "$result_directory/consumer-build.log" \
+	run_reported "$report_directory/consumer-build.log" \
 		cmake --build "$consumer_directory" --parallel
 }
 
@@ -290,19 +316,6 @@ write_completed_manifest()
 	if [ "$source_revision" = unknown ]; then
 		source_revision=$(git -C "$source_directory" rev-parse HEAD 2>/dev/null || printf '%s' unknown)
 	fi
-	fingerprint_sha256=$(
-		{
-			printf 'compiler_id=%s\n' "${SIMDLIB_COMPILER_ID:-unknown}"
-			printf 'compiler=%s\n' "$($CXX --version | head -n 1)"
-			printf 'base_image=%s\n' "${SIMDLIB_BASE_IMAGE:-unknown}"
-			printf 'architecture=%s\n' "$(uname -m)"
-			printf 'preset=%s\n' "$preset"
-			printf 'build_profile=%s\n' "$build_profile"
-			printf 'sanitizer=%s\n' "$sanitizer"
-			printf 'cxx_flags=%s\n' "${SIMDLIB_REQUIRED_CXX_FLAGS:-}"
-			printf 'linker_flags=%s\n' "${SIMDLIB_REQUIRED_LINKER_FLAGS:-}"
-		} | sha256sum | cut -d ' ' -f 1
-	)
 	main_inventory_hash=none
 	consumer_inventory_hash=none
 	codegen_record_index_hash=none
@@ -327,6 +340,7 @@ write_completed_manifest()
 		echo "source_revision=$source_revision"
 		echo "source_digest=$source_digest"
 		echo "fingerprint_sha256=$fingerprint_sha256"
+		echo "fingerprint_document=$fingerprint_document"
 		echo "compiler_id=${SIMDLIB_COMPILER_ID:-unknown}"
 		echo "compiler=$($CXX --version | head -n 1)"
 		echo "base_image=${SIMDLIB_BASE_IMAGE:-unknown}"
@@ -364,6 +378,8 @@ validate_validation_manifest()
 			exit 6
 		}
 	[ "$(manifest_value "$validation_manifest" preset)" = "$preset" ] &&
+		[ "$(manifest_value "$validation_manifest" fingerprint_sha256)" = "$fingerprint_sha256" ] &&
+		[ "$(manifest_value "$validation_manifest" fingerprint_document)" = "$fingerprint_document" ] &&
 		[ "$(manifest_value "$validation_manifest" build_profile)" = "$build_profile" ] &&
 		[ "$(manifest_value "$validation_manifest" sanitizer)" = "$sanitizer" ] &&
 		[ "$(manifest_value "$validation_manifest" compiler_id)" = "${SIMDLIB_COMPILER_ID:-unknown}" ] &&
@@ -418,6 +434,8 @@ validate_benchmark_manifest()
 	[ "$(manifest_value "$benchmark_manifest" operation)" = build-benchmarks ] &&
 		[ "$(manifest_value "$benchmark_manifest" status)" = complete ] &&
 		[ "$(manifest_value "$benchmark_manifest" preset)" = "$preset" ] &&
+		[ "$(manifest_value "$benchmark_manifest" fingerprint_sha256)" = "$fingerprint_sha256" ] &&
+		[ "$(manifest_value "$benchmark_manifest" fingerprint_document)" = "$fingerprint_document" ] &&
 		[ "$(manifest_value "$benchmark_manifest" build_profile)" = "$build_profile" ] &&
 		[ "$(manifest_value "$benchmark_manifest" sanitizer)" = "$sanitizer" ] &&
 		[ "$(manifest_value "$benchmark_manifest" compiler_id)" = "${SIMDLIB_COMPILER_ID:-unknown}" ] &&
@@ -449,6 +467,8 @@ can_reuse_validation_configuration()
 		[ "$(manifest_value "$validation_manifest" schema)" = simdlib.build-manifest.v1 ] &&
 		[ "$(manifest_value "$validation_manifest" operation)" = build-validation ] &&
 		[ "$(manifest_value "$validation_manifest" status)" = complete ] &&
+		[ "$(manifest_value "$validation_manifest" fingerprint_sha256)" = "$fingerprint_sha256" ] &&
+		[ "$(manifest_value "$validation_manifest" fingerprint_document)" = "$fingerprint_document" ] &&
 		[ "$(manifest_value "$validation_manifest" preset)" = "$preset" ] &&
 		[ "$(manifest_value "$validation_manifest" build_profile)" = "$build_profile" ] &&
 		[ "$(manifest_value "$validation_manifest" sanitizer)" = "$sanitizer" ] &&
@@ -468,7 +488,7 @@ case "$operation" in
 		rm -f "$validation_manifest"
 		source_digest=$(compute_source_digest)
 		configure_main_project
-		run_reported "$result_directory/main-build.log" \
+		run_reported "$report_directory/main-build.log" \
 			cmake --build "$build_directory" --parallel --target ExhaustiveArtifacts
 		build_external_consumer
 		record_test_inventory "$build_directory" "$main_inventory"
@@ -482,12 +502,12 @@ case "$operation" in
 		source_digest=$(compute_source_digest)
 		if can_reuse_validation_configuration; then
 			printf 'Reusing validated Release configuration: %s\n' "$build_directory" |
-				tee "$result_directory/benchmark-configure.log"
+				tee "$report_directory/benchmark-configure.log"
 		else
 			configure_main_project
-			cp "$result_directory/main-configure.log" "$result_directory/benchmark-configure.log"
+			cp "$report_directory/main-configure.log" "$report_directory/benchmark-configure.log"
 		fi
-		run_reported "$result_directory/benchmark-build.log" \
+		run_reported "$report_directory/benchmark-build.log" \
 			cmake --build "$build_directory" --parallel --target BenchmarkArtifacts
 		write_completed_manifest "$benchmark_manifest" build-benchmarks "$source_digest"
 		;;
@@ -495,17 +515,17 @@ case "$operation" in
 		validate_validation_manifest
 		validate_cpu_features
 		set -- --test-dir "$build_directory" --output-on-failure \
-			--output-junit "$result_directory/main-test.xml"
+			--output-junit "$report_directory/main-test.xml"
 		[ -z "$test_regex" ] || set -- "$@" --tests-regex "$test_regex"
 		[ -z "$test_label" ] || set -- "$@" --label-regex "$test_label"
 		ctest "$@"
 		ctest --test-dir "$consumer_directory" --output-on-failure \
-			--output-junit "$result_directory/consumer-test.xml"
+			--output-junit "$report_directory/consumer-test.xml"
 		;;
 	run-benchmarks)
 		validate_benchmark_manifest
 		validate_cpu_features
-		run_reported "$result_directory/benchmark-execution.txt" \
+		run_reported "$report_directory/benchmark-execution.txt" \
 			"$build_directory/Benchmarks" '[simdlib][benchmark]' --benchmark-samples 25
 		;;
 esac

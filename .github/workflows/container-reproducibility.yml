@@ -14,16 +14,16 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
-      - name: Rebuild and run contracts
+      - name: Rebuild pinned environments without compiling the project
         shell: pwsh
-        run: tools/Run-ContainerMatrix.ps1 -Mode Contracts -NoImageCache
+        run: tools/Run-ContainerMatrix.ps1 -Action InspectEnvironment -NoImageCache
       - name: Record image identities and sizes
-        shell: bash
-        run: docker image inspect simdlib/gcc13:local simdlib/gcc14:local simdlib/clang22:local > out/container/image-inspect.json
+        shell: pwsh
+        run: docker image inspect simdlib/gcc13:local simdlib/gcc14:local simdlib/clang22:local | Out-File -Encoding utf8 out/pipeline/image-inspect.json
       - name: Upload reproducibility evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: container-reproducibility-evidence
-          path: out/container
+          path: out/pipeline
           if-no-files-found: error

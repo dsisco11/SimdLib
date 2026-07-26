@@ -13,9 +13,9 @@ authoritative for MSVC, clang-cl, Windows ABI behavior, and `VECTORCALL`.
 | `gcc14` | Full | Alpine 3.22.5, digest pinned | GCC/G++ 14.2.0 |
 | `clang22` | Full | Alpine 3.24.1, digest pinned | Clang 22.1.3 |
 
-GCC 13 remains a qualified core-only compiler. Its profiles do not claim
-support for `SimdLib::Register`. GCC 14 and Clang 22 own the complete core and
-Register surface.
+GCC 13 remains a qualified core-only compiler. Its cells do not claim support
+for `SimdLib::Register`. GCC 14 and Clang 22 own the complete core and Register
+surface.
 
 Each image builds the checksum-verified CMake 4.4.0 source release and contains
 the exact Catch2 commit declared by its Dockerfile. Package versions, Alpine
@@ -27,86 +27,109 @@ The runtime containers:
 - run without root privileges and with all Linux capabilities dropped;
 - use a read-only root filesystem and source mount;
 - provide an executable temporary filesystem only at `/tmp`;
-- write build trees and reports only below `out/container`;
+- write only below `out/pipeline`;
 - use UTC and the C locale; and
 - validate CPU features before executing ISA-specific tests or benchmarks.
 
-## Commands
+## Operations
 
-Build and run the exhaustive Release contracts for all supported container
-compilers:
-
-```powershell
-tools/Run-ContainerMatrix.ps1 -Mode Release
-```
-
-Select one compiler or one diagnostic profile:
+One build operation creates every Linux validation artifact. One later test
+operation consumes those artifacts without configuring or compiling:
 
 ```powershell
-tools/Run-ContainerMatrix.ps1 -Mode Release -Compiler Gcc14
-tools/Run-ContainerMatrix.ps1 -Mode Debug -Compiler Clang22
-tools/Run-ContainerMatrix.ps1 -Mode AsanUbsan -Compiler Clang22
-tools/Run-ContainerMatrix.ps1 -Mode Benchmarks -Compiler All
+tools/Run-ContainerMatrix.ps1 -Action Build
+tools/Run-ContainerMatrix.ps1 -Action Test
 ```
 
-`Contracts` performs environment and configure-contract validation without
-building the full artifact graph:
+Select one compiler or configuration when diagnosing a specific cell:
 
 ```powershell
-tools/Run-ContainerMatrix.ps1 -Mode Contracts
+tools/Run-ContainerMatrix.ps1 -Action Build -Compiler Gcc14 -Cell Release
+tools/Run-ContainerMatrix.ps1 -Action Test -Compiler Clang22 -Cell Debug
+tools/Run-ContainerMatrix.ps1 -Action Test -Compiler Clang22 -Cell AsanUbsan
 ```
 
-Reuse already-built images, rebuild without Docker cache, or inspect only the
-toolchain contract:
+Optional `-TestRegex` and `-TestLabel` filters only narrow a test operation;
+they never define a build profile or alter artifact identity.
+
+Benchmark compilation and execution are separate operations. Both own only the
+existing Release cells, and building benchmarks does not rebuild validation
+targets:
 
 ```powershell
-tools/Run-ContainerMatrix.ps1 -Mode Release -SkipImageBuild
-tools/Run-ContainerMatrix.ps1 -Mode Contracts -NoImageCache
-tools/Run-ContainerMatrix.ps1 -Mode Contracts -InspectEnvironment
+tools/Run-ContainerMatrix.ps1 -Action BuildBenchmarks
+tools/Run-ContainerMatrix.ps1 -Action RunBenchmarks
 ```
 
-Remove only the Compose containers, local image tags, and ignored artifact
-tree owned by this repository:
+Rebuild images without Docker cache, reuse existing images during a build, or
+inspect only the pinned environments without compiling SimdLib:
 
 ```powershell
-tools/Run-ContainerMatrix.ps1 -Clean
+tools/Run-ContainerMatrix.ps1 -Action InspectEnvironment -NoImageCache
+tools/Run-ContainerMatrix.ps1 -Action Build -SkipImageBuild
+tools/Run-ContainerMatrix.ps1 -Action InspectEnvironment -SkipImageBuild
 ```
 
-## Profiles and artifacts
+Remove the selected local images, fingerprinted artifacts, abandoned pipeline
+containers, and pipeline networks:
 
-| Mode | Services | Configuration | Artifact target |
+```powershell
+tools/Run-ContainerMatrix.ps1 -Action Clean
+tools/Run-ContainerMatrix.ps1 -Action Clean -Compiler Clang22
+```
+
+## Build cells and artifacts
+
+| Cell | Services | Configuration | Artifact target |
 | --- | --- | --- | --- |
-| `Contracts` | GCC 13, GCC 14, Clang 22 | Release configure contracts | none |
 | `Release` | GCC 13, GCC 14, Clang 22 | optimized exhaustive validation | `ExhaustiveArtifacts` |
 | `Debug` | GCC 13, GCC 14, Clang 22 | diagnostic, record-only codegen | `ExhaustiveArtifacts` |
 | `AsanUbsan` | Clang 22 | Debug with AddressSanitizer and UndefinedBehaviorSanitizer | `ExhaustiveArtifacts` |
-| `Benchmarks` | GCC 13, GCC 14, Clang 22 | optimized benchmark build and execution | `BenchmarkArtifacts` |
 
-Release and benchmark operations share each compiler's Release configure tree,
-so benchmark compilation does not create or rebuild the exhaustive validation
-targets. Debug and sanitizer profiles use separate trees because their flags
-are distinct compilation fingerprints.
+The runner builds selected images once, then executes cells with bounded
+parallelism controlled by `-MaxParallel`. Each invocation has a unique Compose
+project and independent standard-output and standard-error logs. A failure in
+one cell does not hide failures from the remaining cells.
 
-The runner owns matrix membership and starts selected services concurrently
-with `docker compose run --rm`. It retains separate output and error logs and
-returns failure when any selected service fails. Build trees use
-`out/container/<compiler>/build/<preset>`. Provenance, main CTest XML, and
-consumer CTest XML use `out/container/<compiler>/<preset>`.
+Each cell has a canonical JSON fingerprint. The full SHA-256 is stored in the
+fingerprint document, while its first 16 hexadecimal characters disambiguate
+the readable directory name:
+
+```text
+out/pipeline/linux-<compiler>/<cell>-<fingerprint>/
+  build/
+  consumer/
+  reports/
+  provenance/
+```
+
+Compiler image content identity, pinned base image, toolchain, configuration,
+sanitizers, required flags, generator, dependencies, and CPU requirements
+participate in the fingerprint. Source revision, source digest, test selection,
+CI state, and parallelism do not. Build manifests separately bind a completed
+artifact to its source digest and revision, so tests reject stale source inputs.
+Image builds disable BuildKit source-context provenance so unrelated project
+source changes cannot alter an otherwise identical toolchain image identity.
+The content identity covers the filesystem layer chain and runtime image
+configuration while excluding Compose's per-invocation project labels.
+
+Release and benchmark operations share each compiler's Release tree. Debug and
+sanitizer configurations have separate fingerprints and trees.
 
 ## Failure and cancellation checks
 
 The runner retains intentional-failure and cancellation controls for testing
-its aggregation behavior:
+aggregation and cleanup:
 
 ```powershell
-tools/Run-ContainerMatrix.ps1 -Mode Contracts -SkipImageBuild -InjectFailure Gcc14
-tools/Run-ContainerMatrix.ps1 -Mode Contracts -SkipImageBuild -InjectFailure All
-tools/Run-ContainerMatrix.ps1 -Mode Release -SkipImageBuild -CancelAfterSeconds 2
+tools/Run-ContainerMatrix.ps1 -Action InspectEnvironment -SkipImageBuild -InjectFailure gcc14-release
+tools/Run-ContainerMatrix.ps1 -Action InspectEnvironment -SkipImageBuild -InjectFailure All
+tools/Run-ContainerMatrix.ps1 -Action Build -SkipImageBuild -CancelAfterSeconds 2
 ```
 
-These commands must return nonzero. Cleanup is scoped to the unique Compose
-project created for that invocation, while logs already received from completed
-services remain available.
+These commands return nonzero. Cleanup is scoped to the unique Compose project
+created for the invocation, while logs received from completed cells remain
+available.
 
 ## Refresh procedure
 
@@ -115,10 +138,10 @@ Image refreshes are deliberate review changes:
 1. Select the smallest maintained Alpine release that provides the required
    compiler and retrieve its immutable multi-platform manifest digest.
 2. Update every exact package version, CMake checksum, and Catch2 commit.
-3. Run `Contracts` with `-NoImageCache` and review the environment identities.
-4. Run `Release`, `Debug`, `AsanUbsan`, and `Benchmarks` as applicable.
-5. Confirm the native MSVC and clang-cl profiles separately.
+3. Run `InspectEnvironment` with `-NoImageCache` and review the identities.
+4. Run `Build`, `Test`, `BuildBenchmarks`, and `RunBenchmarks`.
+5. Confirm the native MSVC and clang-cl configurations separately.
 
-The scheduled container reproducibility workflow performs the no-cache
-contract rebuild. Pull requests and normal CI use the same repository-owned
-definitions and runner.
+The scheduled reproducibility workflow performs the no-cache environment
+rebuild without compiling SimdLib. Pull requests and normal CI use the same
+repository-owned definitions and runner.

@@ -191,15 +191,15 @@ SimdLib Unified Build and Test Pipeline Implementation Plan:
     ✔ End Phase 2 only when a process-level trace proves that test-only performs zero configure and build invocations.
 
   Phase 3 - Refactor Container Matrix Orchestration:
-    ☐ Refactor `tools/Run-ContainerMatrix.ps1` into reusable, documented build-cell and test-cell operations instead of coupling one mode to configure, build, test, consumer build, and benchmark execution.
-    ☐ Build the GCC and Clang images once per unified invocation and retain Docker layer caching independently from CMake artifact caching.
-    ☐ Run compiler services concurrently with bounded parallelism while running each compiler's incompatible Release, Debug, and sanitizer fingerprints in explicit stable directories.
-    ☐ Remove Feature from the mandatory mode set, Compose profiles, CI steps, and canonical documentation while preserving feature-label filtering as an optional test-only diagnostic.
-    ☐ Apply the approved runner, entrypoint, Compose-profile, and artifact-directory vocabulary so image actions, project-build actions, test actions, and validation scopes cannot be confused.
-    ☐ Ensure codegen, benchmark-build, and benchmark-execution activities consume the owning Release tree rather than configuring `container-codegen` and `container-benchmark` sibling trees.
-    ☐ Preserve aggregate failure reporting, independent compiler logs, cancellation, unique Compose project names, read-only source mounts, non-root execution, and project-owned cleanup.
-    ☐ Update doctor, failure-injection, cancellation, image-no-cache, and cleanup paths for the new stable fingerprint layout.
-    ☐ End Phase 3 only when one Linux build operation produces every GCC and Clang artifact and subsequent Linux test operations perform no compilation.
+    ✔ Refactor `tools/Run-ContainerMatrix.ps1` into reusable, documented build-cell and test-cell operations instead of coupling one mode to configure, build, test, consumer build, and benchmark execution.
+    ✔ Build the GCC and Clang images once per unified invocation and retain Docker layer caching independently from CMake artifact caching.
+    ✔ Run compiler services concurrently with bounded parallelism while running each compiler's incompatible Release, Debug, and sanitizer fingerprints in explicit stable directories.
+    ✔ Remove Feature from the mandatory mode set, Compose profiles, CI steps, and canonical documentation while preserving feature-label filtering as an optional test-only diagnostic.
+    ✔ Apply the approved runner, entrypoint, Compose-profile, and artifact-directory vocabulary so image actions, project-build actions, test actions, and validation scopes cannot be confused.
+    ✔ Ensure codegen, benchmark-build, and benchmark-execution activities consume the owning Release tree rather than configuring `container-codegen` and `container-benchmark` sibling trees.
+    ✔ Preserve aggregate failure reporting, independent compiler logs, cancellation, unique Compose project names, read-only source mounts, non-root execution, and project-owned cleanup.
+    ✔ Update doctor, failure-injection, cancellation, image-no-cache, and cleanup paths for the new stable fingerprint layout.
+    ✔ End Phase 3 only when one Linux build operation produces every GCC and Clang artifact and subsequent Linux test operations perform no compilation.
 
   Phase 4 - Add Native Compiler and Top-Level Commands:
     ☐ Implement documented native build cells for MSVC Release, MSVC Debug, clang-cl Release, and clang-cl Debug using the same fingerprint, manifest, logging, and aggregate-failure model as the container cells.

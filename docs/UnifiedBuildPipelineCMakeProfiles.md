@@ -126,11 +126,10 @@ module layout:
 - separate MSVC, clang-cl, GCC 13.2, GCC 14, and Clang 22 benchmark aggregates.
 
 The three container Release aggregates were rerun together with
-`Run-ContainerMatrix.ps1 -Mode Release -Compiler All -SkipImageBuild`; the
-three Debug aggregates and the Clang sanitizer aggregate were rerun through
-their corresponding modes. These operations also exercised the standalone
-consumer projects. No native CTest suite was executed while validating the
-native aggregate targets.
+`Run-ContainerMatrix.ps1 -Action Build -SkipImageBuild`; the later
+`-Action Test` operation consumed those artifacts without rebuilding them.
+These operations also exercised the standalone consumer projects. No native
+CTest suite was executed while validating the native aggregate targets.
 
 Additional structural checks covered CMake preset parsing, Compose rendering,
 POSIX shell syntax, PowerShell parsing, JSON parsing, the retired-option

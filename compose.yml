@@ -1,4 +1,4 @@
-name: simdlib-register
+name: simdlib-container
 
 x-simdlib-service: &simdlib-service
   init: true
@@ -7,7 +7,7 @@ x-simdlib-service: &simdlib-service
   user: "${SIMDLIB_HOST_UID:-1000}:${SIMDLIB_HOST_GID:-1000}"
   volumes:
     - ./:/workspace/source:ro
-    - ./out/container:/workspace/out:rw
+    - ./out/pipeline:/workspace/out:rw
   tmpfs:
     - /tmp:exec,mode=1777
   security_opt:
@@ -44,9 +44,7 @@ services:
     build:
       context: .
       dockerfile: containers/Dockerfile.gcc13
-      args:
-        BUILD_REVISION: "${SIMDLIB_BUILD_REVISION:-unknown}"
-    profiles: [contracts, release, debug]
+    profiles: [compilers]
 
   gcc14:
     <<: *simdlib-service
@@ -54,9 +52,7 @@ services:
     build:
       context: .
       dockerfile: containers/Dockerfile.gcc14
-      args:
-        BUILD_REVISION: "${SIMDLIB_BUILD_REVISION:-unknown}"
-    profiles: [contracts, release, debug]
+    profiles: [compilers]
 
   clang22:
     <<: *simdlib-service
@@ -64,6 +60,4 @@ services:
     build:
       context: .
       dockerfile: containers/Dockerfile.clang22
-      args:
-        BUILD_REVISION: "${SIMDLIB_BUILD_REVISION:-unknown}"
-    profiles: [contracts, release, debug, asan-ubsan]
+    profiles: [compilers]

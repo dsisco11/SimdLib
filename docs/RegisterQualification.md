@@ -5,7 +5,7 @@ This document defines the supported `Register<T, Bits>` and
 supported cell, and the exclusions that bound the zero-overhead claim. Generated
 artifacts and individual execution results are intentionally not committed; the
 commands below reproduce them under `build*/register-codegen` or
-`out/container`.
+`out/pipeline`.
 
 ## Supported matrix
 
@@ -118,10 +118,10 @@ Native Windows Release and Debug builds use the ordinary CMake targets with
 The pinned Linux matrix is reproduced with:
 
 ```powershell
-.\tools\Run-ContainerMatrix.ps1 -Mode Release -Compiler All
-.\tools\Run-ContainerMatrix.ps1 -Mode Debug -Compiler All -SkipImageBuild
-.\tools\Run-ContainerMatrix.ps1 -Mode AsanUbsan -Compiler Clang22 -SkipImageBuild
-.\tools\Run-ContainerMatrix.ps1 -Mode Benchmarks -Compiler All -SkipImageBuild
+.\tools\Run-ContainerMatrix.ps1 -Action Build
+.\tools\Run-ContainerMatrix.ps1 -Action Test
+.\tools\Run-ContainerMatrix.ps1 -Action BuildBenchmarks
+.\tools\Run-ContainerMatrix.ps1 -Action RunBenchmarks
 ```
 
 Benchmarks are supplemental and run only after strict generated-code gates. The

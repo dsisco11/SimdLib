@@ -103,7 +103,7 @@
             "name": "container-common",
             "hidden": true,
             "generator": "Ninja",
-            "binaryDir": "$env{SIMDLIB_BUILD_ROOT}/${presetName}",
+            "binaryDir": "$env{SIMDLIB_BUILD_DIRECTORY}",
             "cacheVariables": {
                 "CMAKE_CXX_STANDARD": "20",
                 "CMAKE_CXX_STANDARD_REQUIRED": "ON",
