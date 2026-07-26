@@ -2,13 +2,15 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "Build: MSVC Release Artifacts",
+            "label": "Build",
             "type": "process",
-            "command": "cmake",
+            "command": "pwsh",
             "args": [
-                "--workflow",
-                "--preset",
-                "msvc-release-exhaustive"
+                "-NoProfile",
+                "-File",
+                "${workspaceFolder}/tools/Build.ps1",
+                "-Scope",
+                "All"
             ],
             "options": {
                 "cwd": "${workspaceFolder}"
@@ -23,7 +25,30 @@
                 "kind": "build",
                 "isDefault": true
             },
-            "detail": "Configures and builds the MSVC Release validation and benchmark aggregates."
+            "detail": "Builds the complete native and container validation matrix plus benchmark artifacts."
+        },
+        {
+            "label": "Run Tests",
+            "type": "process",
+            "command": "pwsh",
+            "args": [
+                "-NoProfile",
+                "-File",
+                "${workspaceFolder}/tools/Run-Tests.ps1",
+                "-Scope",
+                "All"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": [],
+            "presentation": {
+                "clear": true,
+                "reveal": "always",
+                "panel": "dedicated"
+            },
+            "group": "test",
+            "detail": "Builds the complete matrix once, then runs every assigned test-only cell."
         },
         {
             "label": "Format: All C/C++ Files",

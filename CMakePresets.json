@@ -87,13 +87,13 @@
             "hidden": true,
             "generator": "Visual Studio 17 2022",
             "architecture": "x64",
-            "binaryDir": "${sourceDir}/out/build/${presetName}"
+            "binaryDir": "$env{SIMDLIB_BUILD_DIRECTORY}"
         },
         {
             "name": "clangcl-common",
             "hidden": true,
             "generator": "Ninja",
-            "binaryDir": "${sourceDir}/out/build/${presetName}",
+            "binaryDir": "$env{SIMDLIB_BUILD_DIRECTORY}",
             "cacheVariables": {
                 "CMAKE_CXX_COMPILER": "clang-cl",
                 "CMAKE_MAKE_PROGRAM": "C:/Program Files/Microsoft Visual Studio/2022/Community/Common7/IDE/CommonExtensions/Microsoft/CMake/Ninja/ninja.exe"
@@ -203,7 +203,7 @@
             "name": "clang-debug-coverage",
             "displayName": "Clang Debug coverage",
             "generator": "Ninja",
-            "binaryDir": "${sourceDir}/out/build/${presetName}",
+            "binaryDir": "$env{SIMDLIB_BUILD_DIRECTORY}",
             "inherits": "coverage-options",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Debug",
@@ -249,17 +249,6 @@
         { "name": "msvc-debug-diagnostics", "configurePreset": "msvc-debug-diagnostics", "configuration": "Debug", "output": { "outputOnFailure": true }, "execution": { "jobs": 0 } },
         { "name": "clangcl-release-exhaustive", "configurePreset": "clangcl-release-exhaustive", "output": { "outputOnFailure": true }, "execution": { "jobs": 0 } },
         { "name": "clangcl-debug-diagnostics", "configurePreset": "clangcl-debug-diagnostics", "output": { "outputOnFailure": true }, "execution": { "jobs": 0 } },
-        { "name": "clang-debug-coverage", "configurePreset": "clang-debug-coverage", "inheritConfigureEnvironment": true, "environment": { "LLVM_PROFILE_FILE": "${sourceDir}/out/build/clang-debug-coverage/ctest-%p-%m.profraw" }, "output": { "outputOnFailure": true }, "execution": { "jobs": 0 } }
-    ],
-    "workflowPresets": [
-        {
-            "name": "msvc-release-exhaustive",
-            "displayName": "Configure and build MSVC Release artifacts",
-            "steps": [
-                { "type": "configure", "name": "msvc-release-exhaustive" },
-                { "type": "build", "name": "msvc-release-exhaustive" },
-                { "type": "build", "name": "msvc-release-benchmarks" }
-            ]
-        }
+        { "name": "clang-debug-coverage", "configurePreset": "clang-debug-coverage", "inheritConfigureEnvironment": true, "environment": { "LLVM_PROFILE_FILE": "$env{SIMDLIB_BUILD_DIRECTORY}/ctest-%p-%m.profraw" }, "output": { "outputOnFailure": true }, "execution": { "jobs": 0 } }
     ]
 }

@@ -253,31 +253,31 @@ other presentation types throw `std::format_error`.
 
 ## Development workflow
 
-The MSVC Release workflow configures and builds the exhaustive validation
-artifacts and the separately owned benchmark artifacts:
+Build the complete native and Linux compiler matrix, including all validation
+and benchmark artifacts, with an explicit scope:
 
 ```powershell
-cmake --workflow --preset msvc-release-exhaustive
+tools/Build.ps1 -Scope All
 ```
 
-The workflow owns `out/build/msvc-release-exhaustive`, uses strict warnings,
-and builds `ExhaustiveArtifacts` followed by `BenchmarkArtifacts`. It builds
-test executables without running them. Use the matching CTest preset when test
-execution is required. Coverage remains separate because it is a distinct
-instrumented Clang compilation fingerprint.
-
-The checked-in presets also provide MSVC Debug diagnostics and Clang/LLVM
-coverage builds:
+Build once and run every assigned correctness, ABI, generated-code, sanitizer,
+consumer, and coverage test cell with:
 
 ```powershell
-cmake --preset msvc-debug-diagnostics
-cmake --build --preset msvc-debug-diagnostics
-ctest --preset msvc-debug-diagnostics
-
-cmake --preset clang-debug-coverage
-cmake --build --preset clang-debug-coverage
-ctest --preset clang-debug-coverage
+tools/Run-Tests.ps1 -Scope All
 ```
+
+Benchmark execution is supplemental and remains outside correctness testing:
+
+```powershell
+tools/Run-Benchmarks.ps1 -Scope All
+```
+
+Each compiler/configuration owns a fingerprinted tree below `out/pipeline`.
+Test-only and benchmark-execution operations reject missing or stale manifests
+and never configure or compile. See [Unified build and
+validation](../docs/BuildPipeline.md) for prerequisites, focused compiler
+filters, artifact identity, and guarded `-SkipBuild` reuse.
 
 The main CMake options are:
 

@@ -12,8 +12,12 @@ endif()
 # @brief Produces a deterministic inventory of executables owned by one CTest tree.
 # @param output_variable Variable that receives newline-delimited path and SHA-256 pairs.
 function(simdlib_collect_test_inventory output_variable)
+	set(ctest_arguments --test-dir "${TEST_DIRECTORY}" -N -V)
+	if(DEFINED CONFIGURATION AND NOT "${CONFIGURATION}" STREQUAL "")
+		list(APPEND ctest_arguments -C "${CONFIGURATION}")
+	endif()
 	execute_process(
-		COMMAND "${CMAKE_CTEST_COMMAND}" --test-dir "${TEST_DIRECTORY}" -N -V
+		COMMAND "${CMAKE_CTEST_COMMAND}" ${ctest_arguments}
 		RESULT_VARIABLE ctest_result
 		OUTPUT_VARIABLE ctest_output
 		ERROR_VARIABLE ctest_error)

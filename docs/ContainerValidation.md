@@ -33,6 +33,11 @@ The runtime containers:
 
 ## Operations
 
+The formal cross-platform commands and fingerprint reuse contract are
+documented in [Unified build and validation](BuildPipeline.md). Direct use of
+the container runner remains available for Linux-cell diagnostics and CI
+ownership.
+
 One build operation creates every Linux validation artifact. One later test
 operation consumes those artifacts without configuring or compiling:
 

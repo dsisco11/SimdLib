@@ -202,20 +202,20 @@ SimdLib Unified Build and Test Pipeline Implementation Plan:
     ✔ End Phase 3 only when one Linux build operation produces every GCC and Clang artifact and subsequent Linux test operations perform no compilation.
 
   Phase 4 - Add Native Compiler and Top-Level Commands:
-    ☐ Implement documented native build cells for MSVC Release, MSVC Debug, clang-cl Release, and clang-cl Debug using the same fingerprint, manifest, logging, and aggregate-failure model as the container cells.
-    ☐ Implement `tools/Build.ps1` as the formal orchestrator over native and container compiler cells, with explicit `All`, `Native`, and `Containers` scopes and compiler filters for focused development and CI ownership.
-    ☐ Implement the documented `tools/Build-Benchmarks.ps1` operation that targets `BenchmarkArtifacts` in existing Release trees and is invoked once by the matching scope of `Build.ps1`.
-    ☐ Implement the documented `tools/Run-Benchmarks.ps1` operation that requires valid benchmark-build manifests and never configures or builds.
-    ☐ Require the unqualified `Build.ps1` command to fail rather than silently omit a required platform scope; document the host and Docker prerequisites for running the complete local matrix.
-    ☐ Implement `tools/Run-Tests.ps1` so its default path invokes `Build.ps1` exactly once and then runs all assigned test-only cells against the resulting manifests.
-    ☐ Propagate the resolved scope and compiler filters from `Run-Tests.ps1` to that single build invocation and require the resulting manifest set to match the exact requested test-cell set.
-    ☐ Add `Run-Tests.ps1 -SkipBuild` for CI steps and advanced local use only after manifest validation proves the required build command completed for the same fingerprint and canonical source-input digest.
-    ☐ Run the complete runtime-test inventory once per owning fingerprint; do not run the former Feature subset again.
-    ☐ Keep benchmark execution outside `Run-Tests.ps1`; invoke the dedicated benchmark-execution operation only after correctness, ABI, and generated-code validation succeeds.
-    ☐ Run the Clang coverage test cell and generate its report by default only for the top-level SimdLib validation scope; prove that downstream consumption cannot acquire coverage instrumentation or report work.
-    ☐ Ensure both commands wait for all started cells, preserve every failed cell, return nonzero on any failure, and clean up only their own processes, containers, and networks.
-    ☐ Replace the current VS Code all-target task with the final top-level command and add a corresponding unified test task without making a scoped MSVC workflow appear cross-compiler.
-    ☐ End Phase 4 only when one documented command builds the accepted complete compiler matrix and one documented command builds once and validates it without scenario-level rebuilds.
+    ✔ Implement documented native build cells for MSVC Release, MSVC Debug, clang-cl Release, and clang-cl Debug using the same fingerprint, manifest, logging, and aggregate-failure model as the container cells.
+    ✔ Implement `tools/Build.ps1` as the formal orchestrator over native and container compiler cells, with explicit `All`, `Native`, and `Containers` scopes and compiler filters for focused development and CI ownership.
+    ✔ Implement the documented `tools/Build-Benchmarks.ps1` operation that targets `BenchmarkArtifacts` in existing Release trees and is invoked once by the matching scope of `Build.ps1`.
+    ✔ Implement the documented `tools/Run-Benchmarks.ps1` operation that requires valid benchmark-build manifests and never configures or builds.
+    ✔ Require the unqualified `Build.ps1` command to fail rather than silently omit a required platform scope; document the host and Docker prerequisites for running the complete local matrix.
+    ✔ Implement `tools/Run-Tests.ps1` so its default path invokes `Build.ps1` exactly once and then runs all assigned test-only cells against the resulting manifests.
+    ✔ Propagate the resolved scope and compiler filters from `Run-Tests.ps1` to that single build invocation and require the resulting manifest set to match the exact requested test-cell set.
+    ✔ Add `Run-Tests.ps1 -SkipBuild` for CI steps and advanced local use only after manifest validation proves the required build command completed for the same fingerprint and canonical source-input digest.
+    ✔ Run the complete runtime-test inventory once per owning fingerprint; do not run the former Feature subset again.
+    ✔ Keep benchmark execution outside `Run-Tests.ps1`; invoke the dedicated benchmark-execution operation only after correctness, ABI, and generated-code validation succeeds.
+    ✔ Run the Clang coverage test cell and generate its report by default only for the top-level SimdLib validation scope; prove that downstream consumption cannot acquire coverage instrumentation or report work.
+    ✔ Ensure both commands wait for all started cells, preserve every failed cell, return nonzero on any failure, and clean up only their own processes, containers, and networks.
+    ✔ Replace the current VS Code all-target task with the final top-level command and add a corresponding unified test task without making a scoped MSVC workflow appear cross-compiler.
+    ✔ End Phase 4 only when one documented command builds the accepted complete compiler matrix and one documented command builds once and validates it without scenario-level rebuilds.
 
   Phase 5 - Migrate CI Without Losing Coverage:
     ☐ Replace ad hoc native configure/build/test commands with the scoped unified commands while preserving MSVC and clang-cl compiler ownership and Windows ABI evidence.
