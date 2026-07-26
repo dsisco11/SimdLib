@@ -118,6 +118,12 @@ non-instrumented cell. Benchmark compilation is the sole additional aggregate
 that reuses an existing fingerprint, and it reuses only validated Release
 trees.
 
+Compile-only constant-evaluation contracts are owned by each compiler's
+exhaustive Release tree instead of being repeated under Debug or sanitizer
+instrumentation. Native Clang coverage retains the contracts because its
+clang++ Windows driver and platform combination is distinct from the clang-cl
+Release cell. Runtime tests continue to exercise Debug and sanitizer behavior.
+
 Coverage is development infrastructure owned only by a top-level SimdLib
 build. The root CMake boundary does not load development modules for
 `add_subdirectory` consumers, and the external-consumer contract fails if a

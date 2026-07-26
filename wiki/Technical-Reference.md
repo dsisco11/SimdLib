@@ -336,6 +336,10 @@ project. They are not declared for an `add_subdirectory` consumer:
 - `SIMDLIB_BUILD_EXAMPLES=ON` builds and registers the complete API example.
 - `SIMDLIB_BUILD_CONFIGURATION_PROBES=ON` builds compile-only configuration
   probes. It is enabled by default.
+- `SIMDLIB_BUILD_CONSTEXPR_PROBES=ON` builds compile-only constant-evaluation
+  contracts. Exhaustive Release profiles own the compiler and feature matrix;
+  Debug and sanitizer profiles disable duplicate evaluation, while native
+  Clang coverage retains its distinct driver and platform contract.
 - `SIMDLIB_BUILD_REGISTER_CODEGEN_GATES=ON` builds the Register wrapper/raw
   generated-code and ABI comparison corpus when the compiler supports the
   C++23 Register interface.

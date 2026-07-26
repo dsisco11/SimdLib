@@ -65,6 +65,7 @@ if(SIMDLIB_VALIDATE_EXHAUSTIVE_TARGETS)
         SIMDLIB_BUILD_BENCHMARKS
         SIMDLIB_BUILD_EXAMPLES
         SIMDLIB_BUILD_CONFIGURATION_PROBES
+        SIMDLIB_BUILD_CONSTEXPR_PROBES
         SIMDLIB_BUILD_HEADER_PROBES)
     foreach(simdlib_required_exhaustive_option IN LISTS simdlib_required_exhaustive_options)
         if(NOT ${simdlib_required_exhaustive_option})

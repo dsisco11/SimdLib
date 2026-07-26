@@ -51,6 +51,8 @@ option(SIMDLIB_BUILD_BENCHMARKS "Build Catch2 benchmarks" OFF)
 option(SIMDLIB_BUILD_EXAMPLES "Build executable API examples" OFF)
 option(SIMDLIB_BUILD_CONFIGURATION_PROBES
     "Build compile-only configuration probes" ON)
+option(SIMDLIB_BUILD_CONSTEXPR_PROBES
+    "Build compile-only constant-evaluation contract probes" ON)
 option(SIMDLIB_BUILD_HEADER_PROBES
     "Build first-and-only public-header probes" ON)
 option(SIMDLIB_FETCH_TEST_DEPENDENCIES

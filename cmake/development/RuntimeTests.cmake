@@ -133,6 +133,11 @@ if(SIMDLIB_BUILD_RUNTIME_TESTS)
             UInt128Portable "UINT128;PORTABLE;SSE42")
         simdlib_add_catch_test(UInt128ScalarTests tests/UInt128.tests.cpp
             UInt128Scalar "UINT128;PORTABLE;SCALAR")
+        foreach(uint128_target IN ITEMS
+            UInt128OptimizedTests UInt128PortableTests UInt128ScalarTests)
+            target_compile_definitions(${uint128_target} PRIVATE
+                SIMDLIB_TEST_CONSTEXPR_ASSERTIONS=$<BOOL:${SIMDLIB_BUILD_CONSTEXPR_PROBES}>)
+        endforeach()
         target_compile_definitions(UInt128PortableTests PRIVATE
             SIMDLIB_USE_COMPILER_CARRY_INTRINSICS=0 SIMDLIB_EXPECT_CARRY_PATH=0)
 		target_compile_definitions(UInt128ScalarTests PRIVATE SIMDLIB_EXPECT_CARRY_PATH=0)

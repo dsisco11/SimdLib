@@ -19,12 +19,17 @@ if(SIMDLIB_BUILD_CONFIGURATION_PROBES)
         ConfigDisabledInstructionsProbe
         ConfigDisabledPublicHeadersProbe
         ConfigClangUnsupportedTargetProbe
-        ConfigVendorAttributeProbe
-        ConstexprProbe)
+        ConfigVendorAttributeProbe)
         add_library(${config_probe} OBJECT tests/config/${config_probe}.cpp)
         target_link_libraries(${config_probe} PRIVATE SimdLib::SimdLib)
         simdlib_enable_development_warnings(${config_probe})
     endforeach()
+endif()
+
+if(SIMDLIB_BUILD_CONSTEXPR_PROBES)
+    add_library(ConstexprProbe OBJECT tests/config/ConstexprProbe.cpp)
+    target_link_libraries(ConstexprProbe PRIVATE SimdLib::SimdLib)
+    simdlib_enable_development_warnings(ConstexprProbe)
 endif()
 
 # @brief Adds a compile-only language-availability probe with an exact standard mode.
@@ -100,22 +105,14 @@ if(SIMDLIB_BUILD_CONFIGURATION_PROBES)
 		foreach(register_width IN ITEMS 128 256)
 			add_library(RegisterRepresentation${register_width} OBJECT
 				tests/register/RegisterRepresentation.tests.cpp)
-			add_library(RegisterConstexpr${register_width}Probe OBJECT
-				tests/constexpr/RegisterConstexpr.tests.cpp)
 			target_link_libraries(RegisterRepresentation${register_width} PRIVATE SimdLib::Register)
-			target_link_libraries(RegisterConstexpr${register_width}Probe PRIVATE SimdLib::Register)
 			target_compile_definitions(RegisterRepresentation${register_width} PRIVATE
 				SIMDLIB_REGISTER_TEST_WIDTH=${register_width})
-			target_compile_definitions(RegisterConstexpr${register_width}Probe PRIVATE
-				SIMDLIB_REGISTER_TEST_WIDTH=${register_width})
 			simdlib_enable_development_warnings(RegisterRepresentation${register_width})
-			simdlib_enable_development_warnings(RegisterConstexpr${register_width}Probe)
 			if(register_width EQUAL 128)
 				simdlib_enable_register_sse42(RegisterRepresentation${register_width})
-				simdlib_enable_register_sse42(RegisterConstexpr${register_width}Probe)
 			else()
 				simdlib_enable_register_avx2(RegisterRepresentation${register_width})
-				simdlib_enable_register_avx2(RegisterConstexpr${register_width}Probe)
 			endif()
 		endforeach()
 
@@ -185,6 +182,23 @@ if(SIMDLIB_BUILD_CONFIGURATION_PROBES)
 			SIMDLIB_REGISTER_INTERFACE_UNAVAILABLE)
 	endif()
 endif()
+
+if(SIMDLIB_BUILD_CONSTEXPR_PROBES AND SIMDLIB_REGISTER_COMPILER_SUPPORTED)
+	foreach(register_width IN ITEMS 128 256)
+		add_library(RegisterConstexpr${register_width}Probe OBJECT
+			tests/constexpr/RegisterConstexpr.tests.cpp)
+		target_link_libraries(RegisterConstexpr${register_width}Probe PRIVATE SimdLib::Register)
+		target_compile_definitions(RegisterConstexpr${register_width}Probe PRIVATE
+			SIMDLIB_REGISTER_TEST_WIDTH=${register_width})
+		simdlib_enable_development_warnings(RegisterConstexpr${register_width}Probe)
+		if(register_width EQUAL 128)
+			simdlib_enable_register_sse42(RegisterConstexpr${register_width}Probe)
+		else()
+			simdlib_enable_register_avx2(RegisterConstexpr${register_width}Probe)
+		endif()
+	endforeach()
+endif()
+
 add_library(AvailabilityDisabledProbe OBJECT tests/availability/ApiDisabledProbe.cpp)
 target_link_libraries(AvailabilityDisabledProbe PRIVATE SimdLib::SimdLib)
 simdlib_enable_development_warnings(AvailabilityDisabledProbe)

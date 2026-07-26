@@ -2,6 +2,9 @@
 #ifndef SIMDLIB_EXPECT_CARRY_PATH
 #define SIMDLIB_EXPECT_CARRY_PATH -1
 #endif
+#ifndef SIMDLIB_TEST_CONSTEXPR_ASSERTIONS
+#define SIMDLIB_TEST_CONSTEXPR_ASSERTIONS 0
+#endif
 
 #if SIMDLIB_EXPECT_CARRY_PATH == 1
 #if !SIMDLIB_USE_COMPILER_CARRY_INTRINSICS || !SIMDLIB_COMPILER_MSVC || !defined(_M_X64)
@@ -288,7 +291,9 @@ constexpr bool constexpr_contract() noexcept
 	return true;
 }
 
+#if SIMDLIB_TEST_CONSTEXPR_ASSERTIONS
 static_assert(constexpr_contract());
+#endif
 static_assert(sizeof(uint128_t) == 16);
 static_assert(alignof(uint128_t) == 16);
 static_assert(std::is_standard_layout_v<uint128_t>);

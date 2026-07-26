@@ -2,7 +2,7 @@ SimdLib Compilation Cost Reduction Task List:
 
   Purpose:
     ☒ Remove benchmark compilation from the default build while preserving a dedicated benchmark build and execution workflow.
-    ☐ Evaluate whether SimdLib's constexpr implementation and validation strategy imposes avoidable compilation work.
+    ☒ Evaluate whether SimdLib's constexpr implementation and validation strategy imposes avoidable compilation work.
     ☐ Analyze and reduce avoidable compilation cost attributable to the `uint128_t` surface.
     ☐ Analyze and reduce avoidable compilation cost attributable to `Bmi.h`.
 
@@ -46,18 +46,31 @@ SimdLib Compilation Cost Reduction Task List:
       - Focused syntax, JSON, shell, CMake-preset, orchestration-reference, and `git diff --check` validation completed successfully.
 
   Phase 2 - Evaluate the Constexpr Compilation Burden:
-    ☐ Inventory every dedicated constexpr target, source file, compiler profile, feature profile, and ordinary test translation unit that repeats compile-time assertions.
-    ☐ Identify which constexpr scenarios prove distinct compiler, language-mode, ISA, feature-gating, public-header, or constant-evaluation contracts.
-    ☐ Identify assertions compiled redundantly in scenarios that do not provide an independent contract.
-    ☐ Measure the cost of constant evaluation separately from the cost of parsing the same public headers and templates.
-    ☐ Use compiler timing or trace facilities to identify the most expensive constexpr functions, assertion matrices, concepts, and template instantiations.
-    ☐ Evaluate whether assertion tables can share smaller constexpr fixtures, reduce repeated type products, or move non-constexpr behavioral combinations to runtime tests without reducing semantic coverage.
-    ☐ Evaluate whether dedicated constexpr targets can use focused headers rather than the complete umbrella while retaining explicit umbrella-header compile coverage elsewhere.
-    ☐ Evaluate whether costly compile-time checks need to run in every configuration or only once per compiler and materially distinct feature definition.
-    ☐ Document which constexpr work is an unavoidable public contract and which work can be consolidated, narrowed, or removed.
-    ☐ Implement only evidence-supported reductions and verify that every constant-evaluation branch retains compile-time proof on each owning compiler or feature profile.
-    ☐ Compare clean, warm, and public-header invalidation timings with the Phase 0 baseline.
-    ☐ End Phase 2 only when the constexpr matrix has no unexplained duplication and every accepted change preserves its assigned compile-time contracts.
+    ☒ Inventory every dedicated constexpr target, source file, compiler profile, feature profile, and ordinary test translation unit that repeats compile-time assertions.
+    ☒ Identify which constexpr scenarios prove distinct compiler, language-mode, ISA, feature-gating, public-header, or constant-evaluation contracts.
+    ☒ Identify assertions compiled redundantly in scenarios that do not provide an independent contract.
+    ☒ Measure the cost of constant evaluation separately from the cost of parsing the same public headers and templates.
+    ☒ Use compiler timing or trace facilities to identify the most expensive constexpr functions, assertion matrices, concepts, and template instantiations.
+    ☒ Evaluate whether assertion tables can share smaller constexpr fixtures, reduce repeated type products, or move non-constexpr behavioral combinations to runtime tests without reducing semantic coverage.
+    ☒ Evaluate whether dedicated constexpr targets can use focused headers rather than the complete umbrella while retaining explicit umbrella-header compile coverage elsewhere.
+    ☒ Evaluate whether costly compile-time checks need to run in every configuration or only once per compiler and materially distinct feature definition.
+    ☒ Document which constexpr work is an unavoidable public contract and which work can be consolidated, narrowed, or removed.
+    ☒ Implement only evidence-supported reductions and verify that every constant-evaluation branch retains compile-time proof on each owning compiler or feature profile.
+    ☒ Compare clean, warm, and public-header invalidation timings with the Phase 0 baseline.
+    ☒ End Phase 2 only when the constexpr matrix has no unexplained duplication and every accepted change preserves its assigned compile-time contracts.
+
+    Execution evidence:
+      - The dedicated matrix contains ten core probes (four BMI feature definitions, three `uint128_t` implementation definitions, SSE4.2 API, AVX2 API, and disabled-instruction API), one core configuration probe, and two C++23 Register-width probes. Fully supported compilers therefore own 13 translation units; GCC 13 owns the 11 C++20 core translation units.
+      - The original formal matrix compiled 152 dedicated constexpr translation units: Release and Debug for MSVC, clang-cl, GCC 13, and GCC 14; Release, Debug, and ASan+UBSan for Clang 22; and native clang++ coverage. Release compiler/feature owners and the distinct native coverage cell now retain 76, while 76 identical Debug/sanitizer translation units are removed.
+      - Ordinary-test assertions were classified separately. API tests retain their single-type constexpr/runtime parity oracle; Register specialized-operation assertions retain width- and availability-specific interface proof; and Release/coverage retain the broader three-profile `uint128_t` static-evaluation contract. Debug and sanitizer runtime tests still execute that `uint128_t` contract but no longer repeat its static evaluation.
+      - Clang time traces are retained under `out/pipeline/phase2-analysis/`. API256 recorded 910.99 ms frontend, 454.31 ms source, 336.32 ms function instantiation, and 271.91 ms summed evaluation events; Register256 recorded 1,058.33 ms, 420.97 ms, 418.35 ms, and 401.93 ms respectively. BMI portable recorded 240.42 ms frontend with 8.16 ms evaluation, while UInt128 optimized recorded 434.93 ms frontend with 11.97 ms evaluation.
+      - The hottest API work was the per-element construction matrix (26.50 ms for 256-bit signed byte and roughly 16-20 ms for the remaining leading element types). The hottest Register work was the full per-type contract and conversion/widening target products (roughly 16-19 ms each). These type products were retained because each proves a distinct public type, conversion, or width contract; reducing them would remove semantic coverage rather than eliminate duplicate configuration work.
+      - Every dedicated source already includes its focused public header or focused test-contract header. Separate first-and-only header probes and umbrella-header probes retain explicit public-header isolation and umbrella coverage, so adding the umbrella to constexpr targets would add parsing without a new contract.
+      - `SIMDLIB_BUILD_CONSTEXPR_PROBES` now owns the matrix independently from ordinary configuration probes. Exhaustive Release and native clang++ coverage profiles enable it; Debug, ASan+UBSan, and the narrow container contract profile disable it. Exhaustive inventory validation requires the option and the `ConstexprProbes` aggregate, whose direct dependencies now build every recorded object.
+      - The isolated pre-change MSVC Debug matrix compiled 13 objects in 16.135 s clean and 31.397 s after `Config.h` invalidation; its warm traversal was 5.870 s. The corresponding post-change Debug tree contains no constexpr target or object, so all three categories contribute zero constexpr compiler work there. The retained focused MSVC Release set built clean in 8.570 s with two workers, traversed warm in 1.918 s, and rebuilt after `Config.h` invalidation in 7.200 s.
+      - Focused retained-contract builds passed with MSVC 19.44, clang-cl 22.1.8, GCC 13.2.1, GCC 14.2.0, Clang 22.1.3, and the distinct native clang++ 22.1.8 coverage profile. `ConstexprProbes.Artifacts` passed in every focused compiler tree.
+      - Formal MSVC Release and Debug configurations resolved the option to `ON` and `OFF`, produced 13 and zero constexpr object targets respectively, and generated `SIMDLIB_TEST_CONSTEXPR_ASSERTIONS=1` and `=0` for the runtime UInt128 targets. The focused Release and Debug UInt128 optimized builds succeeded and all 12 runtime tests passed in each configuration.
+      - Preset-inheritance, downstream option-leak, JSON, CMake-preset, artifact-record, whitespace, and container-cleanup checks completed successfully. The complete compiler and runtime matrix remains assigned to the final validation phase.
 
   Phase 3 - Analyze the `uint128_t` Compilation Burden:
     ☐ Measure the direct and transitive include cost of the primary `uint128_t` header, its formatting support, BMI integration, concepts, and test support.

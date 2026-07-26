@@ -32,6 +32,7 @@
                 "SIMDLIB_BUILD_VECTOR_ALGORITHM_TESTS": "ON",
                 "SIMDLIB_BUILD_BENCHMARKS": "ON",
                 "SIMDLIB_BUILD_EXAMPLES": "ON",
+                "SIMDLIB_BUILD_CONSTEXPR_PROBES": "ON",
                 "SIMDLIB_BUILD_REGISTER_CODEGEN_GATES": "ON",
                 "SIMDLIB_REGISTER_CODEGEN_MODE": "ENFORCE",
                 "SIMDLIB_VALIDATE_EXHAUSTIVE_TARGETS": "ON"
@@ -50,6 +51,7 @@
                 "SIMDLIB_BUILD_VECTOR_ALGORITHM_TESTS": "ON",
                 "SIMDLIB_BUILD_BENCHMARKS": "OFF",
                 "SIMDLIB_BUILD_EXAMPLES": "ON",
+                "SIMDLIB_BUILD_CONSTEXPR_PROBES": "OFF",
                 "SIMDLIB_BUILD_REGISTER_CODEGEN_GATES": "ON",
                 "SIMDLIB_REGISTER_CODEGEN_MODE": "RECORD",
                 "SIMDLIB_VALIDATE_EXHAUSTIVE_TARGETS": "OFF"
@@ -77,6 +79,7 @@
                 "SIMDLIB_BUILD_VECTOR_ALGORITHM_TESTS": "ON",
                 "SIMDLIB_BUILD_BENCHMARKS": "OFF",
                 "SIMDLIB_BUILD_EXAMPLES": "ON",
+                "SIMDLIB_BUILD_CONSTEXPR_PROBES": "ON",
                 "SIMDLIB_BUILD_REGISTER_CODEGEN_GATES": "OFF",
                 "SIMDLIB_ENABLE_COVERAGE": "ON",
                 "SIMDLIB_VALIDATE_EXHAUSTIVE_TARGETS": "OFF"
@@ -231,6 +234,7 @@
                 "SIMDLIB_BUILD_RUNTIME_TESTS": "OFF",
                 "SIMDLIB_BUILD_BENCHMARKS": "OFF",
                 "SIMDLIB_BUILD_EXAMPLES": "OFF",
+                "SIMDLIB_BUILD_CONSTEXPR_PROBES": "OFF",
                 "SIMDLIB_BUILD_REGISTER_CODEGEN_GATES": "OFF"
             }
         }

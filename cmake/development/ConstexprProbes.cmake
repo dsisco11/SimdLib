@@ -18,7 +18,7 @@ function(simdlib_add_constexpr_probe target source)
 	simdlib_enable_development_warnings(${target})
 endfunction()
 
-if(SIMDLIB_BUILD_CONFIGURATION_PROBES)
+if(SIMDLIB_BUILD_CONSTEXPR_PROBES)
 	set(simdlib_constexpr_targets "")
 
 	# @brief Adds one BMI feature-macro compile profile.
@@ -108,7 +108,10 @@ if(SIMDLIB_BUILD_CONFIGURATION_PROBES)
 		COMMENT "Recording constexpr probe artifacts"
 		VERBATIM)
 	add_custom_target(ConstexprProbes ALL DEPENDS "${constexpr_record}")
-	add_dependencies(ConstexprProbes PublicHeaderAssertionAudit)
+	add_dependencies(ConstexprProbes ${simdlib_constexpr_targets})
+	if(TARGET PublicHeaderAssertionAudit)
+		add_dependencies(ConstexprProbes PublicHeaderAssertionAudit)
+	endif()
 	add_test(NAME ConstexprProbes.Artifacts
 		COMMAND ${CMAKE_COMMAND}
 			-DMODE=VALIDATE
