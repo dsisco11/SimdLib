@@ -296,22 +296,22 @@ the complete correctness, layout, ABI, and generated-code gates pass.
 
 ## Test and evidence ownership
 
-| Evidence family | Planned source owner | Planned CMake/CTest owner |
+| Evidence family | Source owner | CMake/CTest owner |
 | --- | --- | --- |
 | Runtime Register correctness | `tests/Register.tests.cpp` | `RegisterSse42Tests`, `RegisterAvx2Tests` |
 | Runtime mask/comparison correctness | `tests/Register.tests.cpp` | `RegisterSse42Tests`, `RegisterAvx2Tests` |
 | Complete public-surface and availability audit | `tests/RegisterOperationMatrix.tests.cpp` | `RegisterSse42Tests`, `RegisterAvx2Tests` |
 | Shared independent scalar oracles | Focused helpers in each Register runtime test source | Included only by public Register tests |
-| Constexpr contracts | `tests/constexpr/RegisterConstexpr.tests.cpp` | `SimdLibRegisterConstexpr128`, `SimdLibRegisterConstexpr256` |
+| Constexpr contracts | `tests/constexpr/RegisterConstexpr.tests.cpp` | `RegisterConstexpr128Probe`, `RegisterConstexpr256Probe` |
 | Availability and language modes | `tests/availability/Register*.cpp` | Compile-only Register availability targets |
 | Configuration fallback/exclusion | `tests/config/Register*.cpp` | Compile-only Register configuration targets |
-| First-and-only header | `tests/headers/RegisterHeaderProbe.cpp` | `SimdLibHeaderRegisterProbe` |
+| First-and-only headers | `tests/headers/RegisterHeaderProbe.cpp`, `tests/headers/RegisterMaskHeaderProbe.cpp`, and `tests/headers/SimdLibRegisterHeaderProbe.cpp` | `HeaderRegisterProbe`, `HeaderRegisterMaskProbe`, `HeaderSimdLibRegisterProbe` |
 | Invalid declarations | `tests/compile_fail/register/*.cpp` | CMake `try_compile`/CTest compile-failure driver |
-| ODR and multi-TU use | `tests/smoke/register_*.cpp` | `SimdLibHeaderOnlySmoke` extension |
+| ODR and multi-TU use | `tests/register_odr/main.cpp`, `tests/register_odr/second_translation_unit.cpp` | `RegisterOdr` |
 | External consumer | `tests/consumer/register.cpp` and consumer CMake target | Existing consumer CTest project linked through `SimdLib::Register` |
-| Forced-inline code generation | `tests/codegen/RegisterCodegen.cpp` and `RegisterCodegenFixture.h` | `SimdLibRegisterCodegen` plus compiler-specific extraction scripts |
-| Raw code-generation baselines | `tests/codegen/RegisterCodegenRaw.cpp` and `RegisterCodegenFixture.h` | Paired with `SimdLibRegisterCodegen` under identical flags |
-| Non-inlined ABI mirrors | `tests/codegen/RegisterAbi.cpp`, `RegisterAbiRaw.cpp` | `SimdLibRegisterAbi` comparison gate |
+| Forced-inline code generation | `tests/codegen/RegisterCodegen.cpp` and `RegisterCodegenFixture.h` | `RegisterCodegen` plus compiler-specific extraction scripts |
+| Raw code-generation baselines | `tests/codegen/RegisterCodegenRaw.cpp` and `RegisterCodegenFixture.h` | Paired with `RegisterCodegen` under identical flags |
+| Non-inlined ABI mirrors | `tests/codegen/RegisterAbi.cpp`, `tests/codegen/RegisterAbiRaw.cpp` | ABI records owned by `RegisterCodegen128Sse42`, `RegisterCodegen128Avx2`, and `RegisterCodegen256Avx2` |
 | Register pressure and opaque calls | `tests/codegen/RegisterCodegenFixture.h` | Register code-generation gate |
 | Code-generation comparison | `cmake/CompareRegisterCodegen.cmake` and checked-in allowlisted normalization rules | CTest mandatory performance gate |
 | Checks-enabled preconditions | `tests/RegisterPreconditionFailure.tests.cpp` | Existing precondition death-test infrastructure |
@@ -319,7 +319,7 @@ the complete correctness, layout, ABI, and generated-code gates pass.
 | Supplemental benchmarks | `benchmarks/Register.benchmarks.cpp` | `Benchmarks`; never a correctness/codegen substitute |
 | Final evidence | This document and `docs/Validation.md` | Updated after each completed phase |
 
-Every planned production class and method receives Doxygen documentation. Test
+Every production class and method has Doxygen documentation. Test
 and generated-code sources use only public SimdLib declarations except the
 proposal-approved narrow internal comparison adapter tests.
 

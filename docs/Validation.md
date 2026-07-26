@@ -165,6 +165,28 @@ command in 164.93 seconds, and benchmark-only execution in 27.12 seconds. These
 measurements are execution evidence for this machine and revision; they are not
 thresholds or guarantees.
 
+## Interface migration audit
+
+The final interface audit parsed all seven PowerShell scripts and modules, the
+four workspace and preset JSON files, both GitHub Actions workflows,
+`compose.yml`, and the POSIX container entrypoint. CMake accepted every preset,
+Docker Compose accepted the resolved service configuration, and all relative
+targets in the repository's 30 Markdown files existed.
+
+Current commands, examples, workflows, presets, VS Code tasks, and CTest
+documentation contain only the canonical action, scope, compiler, target, and
+fingerprint vocabulary. Retired names remain only where their text is required:
+the planning rename ledger, frozen pre-refactor inventories, and CMake's focused
+failure diagnostics for explicitly supplied retired cache options. Those cache
+entries are rejected and are not compatibility aliases.
+
+Representative object, log, coverage-profile, disassembly, and temporary-probe
+paths were all covered by repository ignore rules. A complete tracked-path audit
+found no generated build tree, binary, object, log, profile, disassembly, or
+temporary probe. The interface corrections changed documentation only, so this
+audit reused the completed compiler evidence above instead of performing another
+compiler build or test run.
+
 ## Supplemental benchmarks
 
 All five Release benchmark owners completed the runtime-derived wrapper/raw

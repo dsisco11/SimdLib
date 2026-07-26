@@ -317,6 +317,8 @@ project. They are not declared for an `add_subdirectory` consumer:
   only SimdLib header in its translation unit. It is enabled by default.
 - `SIMDLIB_BUILD_RUNTIME_TESTS=ON` builds the Catch2 test suite. Catch2 v3 is fetched
   when it is not installed and `SIMDLIB_FETCH_TEST_DEPENDENCIES=ON`.
+- `SIMDLIB_FETCH_TEST_DEPENDENCIES=ON` permits a top-level development build to
+  fetch Catch2 when no suitable package is already available.
 - `SIMDLIB_BUILD_API_SSE42_TESTS`, `SIMDLIB_BUILD_API_AVX2_TESTS`, and
   `SIMDLIB_BUILD_FMA_TESTS` independently control the SSE4.2, AVX2, and FMA
   executables. Disable instruction families the test host cannot execute.
@@ -330,6 +332,14 @@ project. They are not declared for an `add_subdirectory` consumer:
 - `SIMDLIB_BUILD_EXAMPLES=ON` builds and registers the complete API example.
 - `SIMDLIB_BUILD_CONFIGURATION_PROBES=ON` builds compile-only configuration
   probes. It is enabled by default.
+- `SIMDLIB_BUILD_REGISTER_CODEGEN_GATES=ON` builds the Register wrapper/raw
+  generated-code and ABI comparison corpus when the compiler supports the
+  C++23 Register interface.
+- `SIMDLIB_REGISTER_CODEGEN_MODE=ENFORCE|RECORD` selects whether generated-code
+  differences fail the supported optimized gate or are retained as diagnostic
+  records.
+- `SIMDLIB_VALIDATE_EXHAUSTIVE_TARGETS=ON` makes configuration fail when an
+  exhaustive profile does not define its required target inventory.
 - `SIMDLIB_STRICT_WARNINGS=ON` enables the compiler-specific strict warning
   policy and treats warnings as errors for SimdLib-owned targets.
 - `SIMDLIB_ENABLE_COVERAGE=ON` instruments supported Clang targets and
