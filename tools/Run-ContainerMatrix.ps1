@@ -58,6 +58,7 @@ concurrently while retaining independent logs.
 function Start-MatrixService {
     param(
         [Parameter(Mandatory)][string]$Service,
+        [Parameter(Mandatory)][string]$Operation,
         [Parameter(Mandatory)][string]$Profile,
         [Parameter(Mandatory)][string]$ProjectName,
         [Parameter(Mandatory)][string[]]$ContainerArguments,
@@ -101,8 +102,8 @@ function Start-MatrixService {
         Process = $process
         StandardOutput = $process.StandardOutput.ReadToEndAsync()
         StandardError = $process.StandardError.ReadToEndAsync()
-        StandardOutputPath = Join-Path $LogDirectory "$Service.stdout.log"
-        StandardErrorPath = Join-Path $LogDirectory "$Service.stderr.log"
+        StandardOutputPath = Join-Path $LogDirectory "$Service.$Operation.stdout.log"
+        StandardErrorPath = Join-Path $LogDirectory "$Service.$Operation.stderr.log"
     }
 }
 
@@ -220,6 +221,7 @@ $logDirectory = Join-Path $artifactRoot "logs/$runId"
 New-Item -ItemType Directory -Path $logDirectory -Force | Out-Null
 
 $runs = @()
+$allRuns = @()
 $cancelled = $false
 try {
     $createArguments = @(
@@ -228,48 +230,53 @@ try {
     ) + $services
     Invoke-DockerChecked $createArguments
 
-    foreach ($service in $services) {
-        $preset = Resolve-ContainerPreset -Service $service -Mode $Mode
-        $containerOutput = "/workspace/out/$service"
-        $buildTarget = if ($Mode -eq 'Benchmarks') {
-            'BenchmarkArtifacts'
-        }
-        else {
-            'ExhaustiveArtifacts'
-        }
-        $containerArguments = @(
-            '--preset', $preset,
-            '--build-target', $buildTarget,
-            '--build-profile', $buildProfile,
-            '--sanitizer', $sanitizer,
-            '--artifact-root', $containerOutput
-        )
-        if ($InspectEnvironment) {
-            $containerArguments += '--inspect-environment'
-        }
-        if ($Mode -eq 'Benchmarks' -and $service -ne 'gcc13') {
-            $containerArguments += '--run-benchmarks'
-        }
-        $failIntentionally = $InjectFailure -eq 'All' -or $InjectFailure.ToLowerInvariant() -eq $service
-        $runs += Start-MatrixService -Service $service -Profile $profile -ProjectName $projectName -ContainerArguments $containerArguments -LogDirectory $logDirectory -FailIntentionally $failIntentionally
-        Write-Host "Started $service"
+    $operations = if ($InspectEnvironment) {
+        @('inspect-environment')
     }
-
-    $cancellationDeadline = if ($CancelAfterSeconds -gt 0) {
-        (Get-Date).AddSeconds($CancelAfterSeconds)
+    elseif ($Mode -eq 'Benchmarks') {
+        @('build-benchmarks', 'run-benchmarks')
     }
     else {
-        $null
-    }
-    while ($runs.Process.HasExited -contains $false) {
-        if ($cancellationDeadline -and (Get-Date) -ge $cancellationDeadline) {
-            $cancelled = $true
-            break
-        }
-        Start-Sleep -Milliseconds 200
+        @('build-validation', 'test')
     }
 
-    if (-not $cancelled) {
+    foreach ($operation in $operations) {
+        $runs = @()
+        foreach ($service in $services) {
+            $preset = Resolve-ContainerPreset -Service $service -Mode $Mode
+            $containerOutput = "/workspace/out/$service"
+            $containerArguments = @(
+                '--operation', $operation,
+                '--preset', $preset,
+                '--build-profile', $buildProfile,
+                '--sanitizer', $sanitizer,
+                '--artifact-root', $containerOutput
+            )
+            $failIntentionally = $operation -eq $operations[0] -and (
+                $InjectFailure -eq 'All' -or $InjectFailure.ToLowerInvariant() -eq $service)
+            $run = Start-MatrixService -Service $service -Operation $operation -Profile $profile -ProjectName $projectName -ContainerArguments $containerArguments -LogDirectory $logDirectory -FailIntentionally $failIntentionally
+            $runs += $run
+            $allRuns += $run
+            Write-Host "Started $service operation=$operation"
+        }
+
+        $cancellationDeadline = if ($CancelAfterSeconds -gt 0) {
+            (Get-Date).AddSeconds($CancelAfterSeconds)
+        }
+        else {
+            $null
+        }
+        while ($runs.Process.HasExited -contains $false) {
+            if ($cancellationDeadline -and (Get-Date) -ge $cancellationDeadline) {
+                $cancelled = $true
+                break
+            }
+            Start-Sleep -Milliseconds 200
+        }
+        if ($cancelled) {
+            break
+        }
+
         $failedServices = @()
         foreach ($run in $runs) {
             $standardOutput = $run.StandardOutput.GetAwaiter().GetResult()
@@ -279,11 +286,10 @@ try {
             if ($run.Process.ExitCode -ne 0) {
                 $failedServices += $run.Service
             }
-            Write-Host "$($run.Service): exit=$($run.Process.ExitCode) logs=$logDirectory"
+            Write-Host "$($run.Service): operation=$operation exit=$($run.Process.ExitCode) logs=$logDirectory"
         }
-
         if ($failedServices.Count -ne 0) {
-            throw "Container matrix failed: $($failedServices -join ', ')"
+            throw "Container matrix operation $operation failed: $($failedServices -join ', ')"
         }
     }
 }
@@ -292,7 +298,7 @@ finally {
     if ($LASTEXITCODE -ne 0) {
         Write-Warning "Compose cleanup failed for project $projectName."
     }
-    foreach ($run in $runs) {
+    foreach ($run in $allRuns) {
         try {
             if (-not $run.Process.WaitForExit(5000)) {
                 $run.Process.Kill($true)

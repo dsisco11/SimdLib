@@ -20,9 +20,26 @@ endif()
 if(NOT DEFINED RECORD_ONLY OR "${RECORD_ONLY}" STREQUAL "")
 	set(RECORD_ONLY OFF)
 endif()
+if(NOT DEFINED RECORD_FILE OR "${RECORD_FILE}" STREQUAL "")
+	set(RECORD_FILE "${ARTIFACT_DIRECTORY}/comparison.record.json")
+endif()
 if(NOT FMA_EXPECTATION MATCHES "^(none|enabled|disabled)$")
 	message(FATAL_ERROR "Unsupported FMA_EXPECTATION: ${FMA_EXPECTATION}")
 endif()
+file(REMOVE "${RECORD_FILE}" "${RECORD_FILE}.tmp")
+
+# @brief Escapes a string for inclusion as a JSON string value.
+# @param input_text Unescaped text.
+# @param output_variable Variable that receives escaped text.
+function(simdlib_escape_json input_text output_variable)
+	set(escaped "${input_text}")
+	string(REPLACE "\\" "\\\\" escaped "${escaped}")
+	string(REPLACE "\"" "\\\"" escaped "${escaped}")
+	string(REPLACE "\r" "\\r" escaped "${escaped}")
+	string(REPLACE "\n" "\\n" escaped "${escaped}")
+	string(REPLACE "\t" "\\t" escaped "${escaped}")
+	set(${output_variable} "${escaped}" PARENT_SCOPE)
+endfunction()
 
 # @brief Disassembles one generated-code fixture object.
 # @param object_file Compiled object containing the fixture functions.
@@ -361,7 +378,58 @@ file(WRITE "${ARTIFACT_DIRECTORY}/provenance.txt"
 if(comparison_result STREQUAL "failed")
 	message(FATAL_ERROR
 		"Register wrapper generated code differs from the raw fixture; inspect ${ARTIFACT_DIRECTORY}")
-elseif(comparison_result STREQUAL "recorded-difference")
+endif()
+
+file(SHA256 "${WRAPPER_OBJECT}" wrapper_hash)
+file(SHA256 "${RAW_OBJECT}" raw_hash)
+file(SHA256 "${OBJDUMP}" tool_hash)
+execute_process(
+	COMMAND "${OBJDUMP}" --version
+	RESULT_VARIABLE tool_version_result
+	OUTPUT_VARIABLE tool_version_output
+	ERROR_VARIABLE tool_version_error)
+if(NOT tool_version_result EQUAL 0)
+	message(FATAL_ERROR "Unable to identify generated-code comparison tool: ${tool_version_error}")
+endif()
+string(REGEX REPLACE "\r?\n.*" "" tool_version "${tool_version_output}")
+if(RECORD_ONLY)
+	set(policy_mode "RECORD")
+else()
+	set(policy_mode "ENFORCE")
+endif()
+foreach(json_value IN ITEMS
+	WRAPPER_OBJECT RAW_OBJECT OBJDUMP tool_version COMPILER_ID COMPILER_VERSION
+	COMPILER_PATH SYSTEM_NAME SYSTEM_PROCESSOR CONFIGURATION ISA_PROFILE
+	STACK_PROTECTOR_MODE CODEGEN_PROFILE FMA_EXPECTATION SYMBOL_PATTERN
+	comparison_result accepted_exception policy_mode)
+	simdlib_escape_json("${${json_value}}" "${json_value}_json")
+endforeach()
+file(WRITE "${RECORD_FILE}.tmp"
+	"{\n"
+	"  \"schema\": \"simdlib.codegen-record.v1\",\n"
+	"  \"kind\": \"comparison\",\n"
+	"  \"result\": \"${comparison_result_json}\",\n"
+	"  \"accepted_exception\": \"${accepted_exception_json}\",\n"
+	"  \"inputs\": {\n"
+	"    \"wrapper\": {\"path\": \"${WRAPPER_OBJECT_json}\", \"sha256\": \"${wrapper_hash}\"},\n"
+	"    \"raw\": {\"path\": \"${RAW_OBJECT_json}\", \"sha256\": \"${raw_hash}\"}\n"
+	"  },\n"
+	"  \"tool\": {\"path\": \"${OBJDUMP_json}\", \"version\": \"${tool_version_json}\", \"sha256\": \"${tool_hash}\"},\n"
+	"  \"policy\": {\"id\": \"register-codegen-comparison-v1\", \"mode\": \"${policy_mode_json}\", "
+		"\"codegen_profile\": \"${CODEGEN_PROFILE_json}\", \"fma_expectation\": \"${FMA_EXPECTATION_json}\", "
+		"\"symbol_pattern\": \"${SYMBOL_PATTERN_json}\"},\n"
+	"  \"compiler\": {\"id\": \"${COMPILER_ID_json}\", \"version\": \"${COMPILER_VERSION_json}\", "
+		"\"path\": \"${COMPILER_PATH_json}\"},\n"
+	"  \"platform\": {\"system\": \"${SYSTEM_NAME_json}\", \"processor\": \"${SYSTEM_PROCESSOR_json}\"},\n"
+	"  \"configuration\": \"${CONFIGURATION_json}\",\n"
+	"  \"register_width\": ${REGISTER_WIDTH},\n"
+	"  \"isa_profile\": \"${ISA_PROFILE_json}\",\n"
+	"  \"vectorcall_enabled\": ${VECTORCALL_ENABLED},\n"
+	"  \"stack_protector_mode\": \"${STACK_PROTECTOR_MODE_json}\"\n"
+	"}\n")
+file(RENAME "${RECORD_FILE}.tmp" "${RECORD_FILE}")
+
+if(comparison_result STREQUAL "recorded-difference")
 	message(STATUS
 		"Recorded a non-Release Register wrapper/raw difference; artifacts: ${ARTIFACT_DIRECTORY}")
 elseif(comparison_result STREQUAL "accepted-compiler-exception")

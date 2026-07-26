@@ -177,18 +177,18 @@ SimdLib Unified Build and Test Pipeline Implementation Plan:
     ✔ End Phase 1 only when every configure-time contract for each fingerprint succeeds once and its aggregate target builds every assigned buildable artifact without running tests.
 
   Phase 2 - Separate Build and Test Responsibilities:
-    ☐ Refactor `containers/container-entrypoint.sh` to expose explicit build-only and test-only operations while retaining shared provenance, validation, and argument parsing.
-    ☐ Make validation build-only configure the owning fingerprint once, build `ExhaustiveArtifacts`, build the external consumer where assigned, and record its completed operation atomically only after every required configure-time contract and validation artifact succeeds.
-    ☐ Make benchmark build-only validate or create the same owning Release configuration, build only `BenchmarkArtifacts`, and record its completed operation without building `ExhaustiveArtifacts` or creating a benchmark-specific tree.
-    ☐ Replace empty success-only generated-code stamps with machine-readable comparison records that identify the compared input hashes, tool and policy identity, accepted exception where applicable, and result.
-    ☐ Make test-only validate the manifest and generated-code comparison records and then run CTest and consumer CTest without invoking CMake configure, `cmake --build`, or a benchmark executable.
-    ☐ Make test-only validate the current host's required CPU features before starting an ISA-specific executable and report the exact missing feature rather than silently skipping the test.
-    ☐ Move CI `--fresh` handling entirely into build-only configuration and prove that no test-only path removes `CMakeCache.txt`, `CMakeFiles`, objects, generated code, or discovered-test metadata.
-    ☐ Refactor CTest build-driver entries so the aggregate build owns compilation and CTest owns only validation of already-built outputs; retain explicit failure when a required comparison record or artifact is absent or stale.
-    ☐ Preserve distinct optimized enforcement, Debug record-only, sanitizer, ABI, and accepted MSVC exception behavior when comparisons are moved out of test-triggered builds.
-    ☐ Separate main-project, external-consumer, benchmark-build, and benchmark-execution reports without rebuilding validation or consumer artifacts for later selections.
-    ☐ Add negative checks proving test-only fails clearly before executing tests when the expected build manifest or artifacts are unavailable.
-    ☐ End Phase 2 only when a process-level trace proves that test-only performs zero configure and build invocations.
+    ✔ Refactor `containers/container-entrypoint.sh` to expose explicit build-only and test-only operations while retaining shared provenance, validation, and argument parsing.
+    ✔ Make validation build-only configure the owning fingerprint once, build `ExhaustiveArtifacts`, build the external consumer where assigned, and record its completed operation atomically only after every required configure-time contract and validation artifact succeeds.
+    ✔ Make benchmark build-only validate or create the same owning Release configuration, build only `BenchmarkArtifacts`, and record its completed operation without building `ExhaustiveArtifacts` or creating a benchmark-specific tree.
+    ✔ Replace empty success-only generated-code stamps with machine-readable comparison records that identify the compared input hashes, tool and policy identity, accepted exception where applicable, and result.
+    ✔ Make test-only validate the manifest and generated-code comparison records and then run CTest and consumer CTest without invoking CMake configure, `cmake --build`, or a benchmark executable.
+    ✔ Make test-only validate the current host's required CPU features before starting an ISA-specific executable and report the exact missing feature rather than silently skipping the test.
+    ✔ Move CI `--fresh` handling entirely into build-only configuration and prove that no test-only path removes `CMakeCache.txt`, `CMakeFiles`, objects, generated code, or discovered-test metadata.
+    ✔ Refactor CTest build-driver entries so the aggregate build owns compilation and CTest owns only validation of already-built outputs; retain explicit failure when a required comparison record or artifact is absent or stale.
+    ✔ Preserve distinct optimized enforcement, Debug record-only, sanitizer, ABI, and accepted MSVC exception behavior when comparisons are moved out of test-triggered builds.
+    ✔ Separate main-project, external-consumer, benchmark-build, and benchmark-execution reports without rebuilding validation or consumer artifacts for later selections.
+    ✔ Add negative checks proving test-only fails clearly before executing tests when the expected build manifest or artifacts are unavailable.
+    ✔ End Phase 2 only when a process-level trace proves that test-only performs zero configure and build invocations.
 
   Phase 3 - Refactor Container Matrix Orchestration:
     ☐ Refactor `tools/Run-ContainerMatrix.ps1` into reusable, documented build-cell and test-cell operations instead of coupling one mode to configure, build, test, consumer build, and benchmark execution.

@@ -91,11 +91,31 @@ if(SIMDLIB_BUILD_CONFIGURATION_PROBES)
 	simdlib_add_constexpr_probe(ApiDisabledConstexprProbe tests/constexpr/ApiDisabledConstexpr.tests.cpp)
 	list(APPEND simdlib_constexpr_targets ApiDisabledConstexprProbe)
 
-	add_custom_target(ConstexprProbes ALL DEPENDS ${simdlib_constexpr_targets})
+	set(constexpr_object_expressions "")
+	foreach(constexpr_target IN LISTS simdlib_constexpr_targets)
+		list(APPEND constexpr_object_expressions "$<TARGET_OBJECTS:${constexpr_target}>")
+	endforeach()
+	set(constexpr_record "${CMAKE_CURRENT_BINARY_DIR}/constexpr-probes/artifacts.record")
+	add_custom_command(
+		OUTPUT "${constexpr_record}"
+		COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_CURRENT_BINARY_DIR}/constexpr-probes"
+		COMMAND ${CMAKE_COMMAND}
+			-DMODE=RECORD
+			-DRECORD_FILE=${constexpr_record}
+			"-DARTIFACTS=$<JOIN:${constexpr_object_expressions},|>"
+			-P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/RecordArtifactHashes.cmake
+		DEPENDS ${constexpr_object_expressions} cmake/RecordArtifactHashes.cmake
+		COMMENT "Recording constexpr probe artifacts"
+		VERBATIM)
+	add_custom_target(ConstexprProbes ALL DEPENDS "${constexpr_record}")
 	add_dependencies(ConstexprProbes PublicHeaderAssertionAudit)
-	add_test(NAME ConstexprProbes.Build
-		COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --config $<CONFIG> --target ConstexprProbes)
-	set_tests_properties(ConstexprProbes.Build PROPERTIES LABELS "CONSTEXPR;COMPILE_ONLY" RUN_SERIAL TRUE)
+	add_test(NAME ConstexprProbes.Artifacts
+		COMMAND ${CMAKE_COMMAND}
+			-DMODE=VALIDATE
+			-DRECORD_FILE=${constexpr_record}
+			-P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/RecordArtifactHashes.cmake)
+	set_tests_properties(ConstexprProbes.Artifacts PROPERTIES
+		LABELS "CONSTEXPR;COMPILE_ONLY" RUN_SERIAL TRUE)
 endif()
 
 endblock()

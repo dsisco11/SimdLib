@@ -118,17 +118,17 @@ function(simdlib_add_register_codegen_gate register_width isa_profile)
 	endforeach()
 
 	set(artifact_directory "${CMAKE_CURRENT_BINARY_DIR}/register-codegen/${artifact_profile}/${register_width}")
-	set(stamp_file "${artifact_directory}/comparison.stamp")
-	set(register_only_stamp_file "${artifact_directory}/register-only-comparison.stamp")
-	set(reassignment_stamp_file "${artifact_directory}/reassignment-comparison.stamp")
-	set(lane_stamp_file "${artifact_directory}/lane-comparison.stamp")
-	set(default_abi_stamp_file "${artifact_directory}/default-abi.stamp")
-	set(abi_stamp_file "${artifact_directory}/abi-comparison.stamp")
-	set(consumer_abi_stamp_file "${artifact_directory}/consumer-abi-comparison.stamp")
-	set(specialized_fma_enabled_stamp_file "${artifact_directory}/specialized/fma-enabled/comparison.stamp")
-	set(specialized_fma_disabled_stamp_file "${artifact_directory}/specialized/fma-disabled/comparison.stamp")
-	set(rearrangement_stamp_file "${artifact_directory}/rearrangement-conversion/comparison.stamp")
-	set(type_matrix_stamp_file "${artifact_directory}/type-matrix/comparison.stamp")
+	set(stamp_file "${artifact_directory}/comparison.record.json")
+	set(register_only_stamp_file "${artifact_directory}/register-only/comparison.record.json")
+	set(reassignment_stamp_file "${artifact_directory}/reassignment/comparison.record.json")
+	set(lane_stamp_file "${artifact_directory}/lanes/comparison.record.json")
+	set(default_abi_stamp_file "${artifact_directory}/default-abi.record.json")
+	set(abi_stamp_file "${artifact_directory}/abi/comparison.record.json")
+	set(consumer_abi_stamp_file "${artifact_directory}/consumer-abi/comparison.record.json")
+	set(specialized_fma_enabled_stamp_file "${artifact_directory}/specialized/fma-enabled/comparison.record.json")
+	set(specialized_fma_disabled_stamp_file "${artifact_directory}/specialized/fma-disabled/comparison.record.json")
+	set(rearrangement_stamp_file "${artifact_directory}/rearrangement-conversion/comparison.record.json")
+	set(type_matrix_stamp_file "${artifact_directory}/type-matrix/comparison.record.json")
 	add_custom_command(
 		OUTPUT "${stamp_file}"
 		COMMAND ${CMAKE_COMMAND} -E make_directory "${artifact_directory}"
@@ -149,7 +149,6 @@ function(simdlib_add_register_codegen_gate register_width isa_profile)
 			-DSTACK_PROTECTOR_MODE=${stack_protector_mode}
 			-DRECORD_ONLY=${codegen_comparison_record_only}
 			-P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/CompareRegisterCodegen.cmake
-		COMMAND ${CMAKE_COMMAND} -E touch "${stamp_file}"
 		DEPENDS
 			$<TARGET_OBJECTS:${wrapper_target}>
 			$<TARGET_OBJECTS:${raw_target}>
@@ -177,7 +176,6 @@ function(simdlib_add_register_codegen_gate register_width isa_profile)
 			-DRECORD_ONLY=${codegen_comparison_record_only}
 			"-DSYMBOL_PATTERN=simdlib_codegen_(unary|binary|ternary|scalar|mask|native|zero|broadcast_reuse|from_array|lane_|with_lane_last|special_members|pressure|basic_)"
 			-P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/CompareRegisterCodegen.cmake
-		COMMAND ${CMAKE_COMMAND} -E touch "${register_only_stamp_file}"
 		DEPENDS
 			$<TARGET_OBJECTS:${wrapper_target}>
 			$<TARGET_OBJECTS:${raw_target}>
@@ -208,7 +206,6 @@ function(simdlib_add_register_codegen_gate register_width isa_profile)
 				-DFMA_EXPECTATION=enabled
 				-DSYMBOL_PATTERN=simdlib_specialized_codegen_
 				-P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/CompareRegisterCodegen.cmake
-			COMMAND ${CMAKE_COMMAND} -E touch "${specialized_fma_enabled_stamp_file}"
 			DEPENDS
 				$<TARGET_OBJECTS:${specialized_fma_enabled_wrapper_target}>
 				$<TARGET_OBJECTS:${specialized_fma_enabled_raw_target}>
@@ -239,7 +236,6 @@ function(simdlib_add_register_codegen_gate register_width isa_profile)
 			-DFMA_EXPECTATION=disabled
 			-DSYMBOL_PATTERN=simdlib_specialized_codegen_
 			-P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/CompareRegisterCodegen.cmake
-		COMMAND ${CMAKE_COMMAND} -E touch "${specialized_fma_disabled_stamp_file}"
 		DEPENDS
 			$<TARGET_OBJECTS:${specialized_fma_disabled_wrapper_target}>
 			$<TARGET_OBJECTS:${specialized_fma_disabled_raw_target}>
@@ -267,7 +263,6 @@ function(simdlib_add_register_codegen_gate register_width isa_profile)
 			-DRECORD_ONLY=${codegen_comparison_record_only}
 			-DSYMBOL_PATTERN=simdlib_codegen_lane_
 			-P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/CompareRegisterCodegen.cmake
-		COMMAND ${CMAKE_COMMAND} -E touch "${lane_stamp_file}"
 		DEPENDS
 			$<TARGET_OBJECTS:${wrapper_target}>
 			$<TARGET_OBJECTS:${raw_target}>
@@ -296,7 +291,6 @@ function(simdlib_add_register_codegen_gate register_width isa_profile)
 			-DCODEGEN_PROFILE=rearrangement-conversion
 			-DSYMBOL_PATTERN=simdlib_rearrangement_codegen_
 			-P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/CompareRegisterCodegen.cmake
-		COMMAND ${CMAKE_COMMAND} -E touch "${rearrangement_stamp_file}"
 		DEPENDS
 			$<TARGET_OBJECTS:${rearrangement_wrapper_target}>
 			$<TARGET_OBJECTS:${rearrangement_raw_target}>
@@ -325,7 +319,6 @@ function(simdlib_add_register_codegen_gate register_width isa_profile)
 			-DCODEGEN_PROFILE=common-type-matrix
 			-DSYMBOL_PATTERN=simdlib_type_matrix_
 			-P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/CompareRegisterCodegen.cmake
-		COMMAND ${CMAKE_COMMAND} -E touch "${type_matrix_stamp_file}"
 		DEPENDS
 			$<TARGET_OBJECTS:${type_matrix_wrapper_target}>
 			$<TARGET_OBJECTS:${type_matrix_raw_target}>
@@ -353,7 +346,6 @@ function(simdlib_add_register_codegen_gate register_width isa_profile)
 			-DRECORD_ONLY=${codegen_comparison_record_only}
 			-DSYMBOL_PATTERN=simdlib_codegen_reassignment_arithmetic
 			-P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/CompareRegisterCodegen.cmake
-		COMMAND ${CMAKE_COMMAND} -E touch "${reassignment_stamp_file}"
 		DEPENDS
 			$<TARGET_OBJECTS:${wrapper_target}>
 			$<TARGET_OBJECTS:${raw_target}>
@@ -381,7 +373,6 @@ function(simdlib_add_register_codegen_gate register_width isa_profile)
 			-DRECORD_ONLY=${codegen_comparison_record_only}
 			-DSYMBOL_PATTERN=simdlib_abi_
 			-P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/CompareRegisterCodegen.cmake
-		COMMAND ${CMAKE_COMMAND} -E touch "${abi_stamp_file}"
 		DEPENDS
 			$<TARGET_OBJECTS:${abi_wrapper_target}>
 			$<TARGET_OBJECTS:${abi_raw_target}>
@@ -407,7 +398,6 @@ function(simdlib_add_register_codegen_gate register_width isa_profile)
 			-DVECTORCALL_ENABLED=${vectorcall_enabled}
 			-DSTACK_PROTECTOR_MODE=${stack_protector_mode}
 			-P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/RecordRegisterDefaultAbi.cmake
-		COMMAND ${CMAKE_COMMAND} -E touch "${default_abi_stamp_file}"
 		DEPENDS
 			$<TARGET_OBJECTS:${default_wrapper_target}>
 			$<TARGET_OBJECTS:${default_raw_target}>
@@ -435,7 +425,6 @@ function(simdlib_add_register_codegen_gate register_width isa_profile)
 			-DRECORD_ONLY=${codegen_comparison_record_only}
 			-DSYMBOL_PATTERN=simdlib_consumer_abi_
 			-P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/CompareRegisterCodegen.cmake
-		COMMAND ${CMAKE_COMMAND} -E touch "${consumer_abi_stamp_file}"
 		DEPENDS
 			$<TARGET_OBJECTS:${abi_wrapper_target}>
 			$<TARGET_OBJECTS:${abi_raw_target}>
@@ -455,27 +444,39 @@ function(simdlib_add_register_codegen_gate register_width isa_profile)
 	add_custom_target(RegisterExpressionCodegen${target_suffix}
 		DEPENDS ${expression_codegen_gate_outputs})
 	add_dependencies(RegisterExpressionCodegen${target_suffix} ${codegen_object_targets})
+	set(expression_record_index "${artifact_directory}/expression-records.txt")
+	file(GENERATE OUTPUT "${expression_record_index}"
+		CONTENT "$<JOIN:${expression_codegen_gate_outputs},\n>\n")
 	add_test(NAME RegisterExpressionCodegen.${target_suffix}
-		COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --config $<CONFIG>
-			--target RegisterExpressionCodegen${target_suffix})
+		COMMAND ${CMAKE_COMMAND}
+			-DRECORD_INDEX=${expression_record_index}
+			-P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/ValidateCodegenRecords.cmake)
 	set_tests_properties(RegisterExpressionCodegen.${target_suffix} PROPERTIES
 		LABELS "REGISTER;CODEGEN;${isa_profile}" RUN_SERIAL TRUE)
 	add_custom_target(RegisterConsumerAbi${target_suffix}
 		DEPENDS "${consumer_abi_stamp_file}")
 	add_dependencies(RegisterConsumerAbi${target_suffix}
 		${abi_wrapper_target} ${abi_raw_target})
+	set(consumer_abi_record_index "${artifact_directory}/consumer-abi-record.txt")
+	file(GENERATE OUTPUT "${consumer_abi_record_index}"
+		CONTENT "${consumer_abi_stamp_file}\n")
 	add_test(NAME RegisterConsumerAbi.${target_suffix}
-		COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --config $<CONFIG>
-			--target RegisterConsumerAbi${target_suffix})
+		COMMAND ${CMAKE_COMMAND}
+			-DRECORD_INDEX=${consumer_abi_record_index}
+			-P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/ValidateCodegenRecords.cmake)
 	set_tests_properties(RegisterConsumerAbi.${target_suffix} PROPERTIES
 		LABELS "REGISTER;CODEGEN;ABI;${isa_profile}" RUN_SERIAL TRUE)
 	set(codegen_gate_outputs
 		${expression_codegen_gate_outputs} "${consumer_abi_stamp_file}" "${abi_stamp_file}" "${default_abi_stamp_file}")
 	add_custom_target(RegisterCodegen${target_suffix} ALL DEPENDS ${codegen_gate_outputs})
 	add_dependencies(RegisterCodegen${target_suffix} ${codegen_object_targets})
+	set(codegen_record_index "${artifact_directory}/all-records.txt")
+	file(GENERATE OUTPUT "${codegen_record_index}"
+		CONTENT "$<JOIN:${codegen_gate_outputs},\n>\n")
 	add_test(NAME RegisterCodegen.${target_suffix}
-		COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --config $<CONFIG>
-			--target RegisterCodegen${target_suffix})
+		COMMAND ${CMAKE_COMMAND}
+			-DRECORD_INDEX=${codegen_record_index}
+			-P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/ValidateCodegenRecords.cmake)
 	set_tests_properties(RegisterCodegen.${target_suffix} PROPERTIES
 		LABELS "REGISTER;CODEGEN;ABI;${isa_profile}" RUN_SERIAL TRUE)
 endfunction()

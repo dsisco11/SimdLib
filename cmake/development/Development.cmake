@@ -7,6 +7,8 @@ if(NOT TARGET SimdLib OR NOT TARGET SimdLibRegister)
     message(FATAL_ERROR "Development.cmake requires the production SimdLib targets")
 endif()
 
+include(CTest)
+
 block(SCOPE_FOR VARIABLES)
 
 set(simdlib_development_modules

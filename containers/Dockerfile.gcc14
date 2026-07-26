@@ -63,6 +63,7 @@ RUN apk add --no-cache \
         musl-dev=1.2.5-r12 \
         ninja-is-really-ninja=1.12.1-r1 \
         openssl=3.5.7-r0 \
+        strace=6.13-r0 \
     && addgroup -g 1000 simdlib \
     && adduser -D -u 1000 -G simdlib simdlib \
     && mkdir -p /workspace/out \
@@ -85,4 +86,4 @@ ENV PATH="/opt/cmake/bin:${PATH}" \
 USER simdlib
 WORKDIR /workspace/source
 ENTRYPOINT ["/usr/local/bin/simdlib-container"]
-CMD ["--preset", "gcc14-release-exhaustive", "--build-target", "ExhaustiveArtifacts"]
+CMD ["--operation", "build-validation", "--preset", "gcc14-release-exhaustive"]

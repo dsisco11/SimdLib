@@ -24,9 +24,12 @@ x-simdlib-service: &simdlib-service
     GITLAB_CI: "${GITLAB_CI:-}"
     HOME: /tmp
     JENKINS_URL: "${JENKINS_URL:-}"
+    SIMDLIB_BUILD_REVISION: "${SIMDLIB_BUILD_REVISION:-unknown}"
     TEAMCITY_VERSION: "${TEAMCITY_VERSION:-}"
     TF_BUILD: "${TF_BUILD:-}"
   command:
+    - --operation
+    - build-validation
     - --preset
     - "${SIMDLIB_CONTAINER_PRESET:-container-release-contracts}"
     - --build-profile
