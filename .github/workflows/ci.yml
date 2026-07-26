@@ -10,39 +10,67 @@ permissions:
 
 jobs:
   native-msvc:
-    name: MSVC x64 ${{ matrix.preset }}
+    name: MSVC x64 validation
     runs-on: windows-2022
-    strategy:
-      fail-fast: false
-      matrix:
-        preset: [msvc-debug-diagnostics, msvc-release-exhaustive]
     steps:
       - uses: actions/checkout@v4
-      - name: Configure
-        run: cmake --preset ${{ matrix.preset }}
-      - name: Build
-        run: cmake --build --preset ${{ matrix.preset }}
-      - name: Test
-        run: ctest --preset ${{ matrix.preset }}
+      - name: Install required CMake
+        run: |
+          python -m pip install --disable-pip-version-check cmake==4.4.0
+          python -c "import sysconfig; print(sysconfig.get_path('scripts'))" | Out-File -Encoding utf8 -Append $env:GITHUB_PATH
+      - name: Build every MSVC validation cell
+        run: tools/Build.ps1 -Scope Native -Compiler Msvc
+      - name: Test the exact MSVC build receipt
+        run: tools/Run-Tests.ps1 -Scope Native -Compiler Msvc -SkipBuild
+      - name: Upload MSVC evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: msvc-evidence
+          path: |
+            out/pipeline/windows-msvc/**/provenance
+            out/pipeline/windows-msvc/**/reports
+            out/pipeline/windows-msvc/**/validation-build.manifest
+            out/pipeline/windows-msvc/**/benchmark-build.manifest
+            out/pipeline/windows-msvc/**/build/register-codegen/**/*.json
+            out/pipeline/windows-msvc/**/build/register-codegen/**/*.txt
+            out/pipeline/logs
+            out/pipeline/provenance
+          if-no-files-found: error
 
   native-clangcl:
-    name: clang-cl x64 ${{ matrix.preset }}
+    name: clang-cl and Clang coverage x64 validation
     runs-on: windows-2022
-    strategy:
-      fail-fast: false
-      matrix:
-        preset: [clangcl-debug-diagnostics, clangcl-release-exhaustive]
     steps:
       - uses: actions/checkout@v4
-      - uses: ilammy/msvc-dev-cmd@v1
+      - name: Install required CMake and LLVM
+        run: |
+          python -m pip install --disable-pip-version-check cmake==4.4.0
+          choco upgrade llvm --version=22.1.7 --yes --no-progress
+          python -c "import sysconfig; print(sysconfig.get_path('scripts'))" | Out-File -Encoding utf8 -Append $env:GITHUB_PATH
+          'C:\Program Files\LLVM\bin' | Out-File -Encoding utf8 -Append $env:GITHUB_PATH
+      - name: Build every Clang validation cell
+        run: tools/Build.ps1 -Scope Native -Compiler ClangCl,ClangCoverage
+      - name: Test the exact Clang build receipt
+        run: tools/Run-Tests.ps1 -Scope Native -Compiler ClangCl,ClangCoverage -SkipBuild
+      - name: Upload Clang evidence
+        if: always()
+        uses: actions/upload-artifact@v4
         with:
-          arch: x64
-      - name: Configure standalone clang-cl
-        run: cmake --preset ${{ matrix.preset }}
-      - name: Build
-        run: cmake --build --preset ${{ matrix.preset }}
-      - name: Test
-        run: ctest --preset ${{ matrix.preset }}
+          name: clang-evidence
+          path: |
+            out/pipeline/windows-clangcl/**/provenance
+            out/pipeline/windows-clangcl/**/reports
+            out/pipeline/windows-clangcl/**/validation-build.manifest
+            out/pipeline/windows-clangcl/**/benchmark-build.manifest
+            out/pipeline/windows-clangcl/**/build/register-codegen/**/*.json
+            out/pipeline/windows-clangcl/**/build/register-codegen/**/*.txt
+            out/pipeline/windows-clang-coverage/**/provenance
+            out/pipeline/windows-clang-coverage/**/reports
+            out/pipeline/windows-clang-coverage/**/validation-build.manifest
+            out/pipeline/logs
+            out/pipeline/provenance
+          if-no-files-found: error
 
   container-compilers:
     name: GCC 13, GCC 14, and Clang 22 containers
@@ -51,14 +79,22 @@ jobs:
       - uses: actions/checkout@v4
       - name: Build every Linux validation cell
         shell: pwsh
-        run: tools/Run-ContainerMatrix.ps1 -Action Build
-      - name: Test every prebuilt Linux validation cell
+        run: tools/Build.ps1 -Scope Containers
+      - name: Test the exact Linux build receipt
         shell: pwsh
-        run: tools/Run-ContainerMatrix.ps1 -Action Test
+        run: tools/Run-Tests.ps1 -Scope Containers -SkipBuild
       - name: Upload container evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: linux-container-evidence
-          path: out/pipeline
+          path: |
+            out/pipeline/linux-*/**/provenance
+            out/pipeline/linux-*/**/reports
+            out/pipeline/linux-*/**/validation-build.manifest
+            out/pipeline/linux-*/**/benchmark-build.manifest
+            out/pipeline/linux-*/**/build/register-codegen/**/*.json
+            out/pipeline/linux-*/**/build/register-codegen/**/*.txt
+            out/pipeline/logs
+            out/pipeline/provenance
           if-no-files-found: error

@@ -218,14 +218,14 @@ SimdLib Unified Build and Test Pipeline Implementation Plan:
     ✔ End Phase 4 only when one documented command builds the accepted complete compiler matrix and one documented command builds once and validates it without scenario-level rebuilds.
 
   Phase 5 - Migrate CI Without Losing Coverage:
-    ☐ Replace ad hoc native configure/build/test commands with the scoped unified commands while preserving MSVC and clang-cl compiler ownership and Windows ABI evidence.
-    ☐ Change the Linux job to build every required container fingerprint once and then call test-only against those exact artifacts.
-    ☐ Remove the separate Full-followed-by-Feature CI sequence and verify the unified runtime-test inventory still contains every AVX2, FMA, BMI, and scalar-labelled test.
-    ☐ Keep sanitizer in its independent instrumented tree and ensure its test-only operation cannot consume ordinary Debug artifacts.
-    ☐ Preserve the scheduled no-cache image reproducibility job, but prevent it from becoming an accidental second project compilation when only environment provenance is required.
-    ☐ Upload manifests, JUnit reports, provenance, generated-code records, benchmark logs, and per-cell console logs from the stable fingerprint paths.
-    ☐ Preserve fail-fast policy intentionally: do not allow one early compiler failure to hide the result and logs of another compiler already started by the aggregate command.
-    ☐ End Phase 5 only when local and CI workflows invoke the same build/test implementation and CI contains no scenario-specific duplicate build tree for an identical fingerprint.
+    ✔ Replace ad hoc native configure/build/test commands with the scoped unified commands while preserving MSVC and clang-cl compiler ownership and Windows ABI evidence.
+    ✔ Change the Linux job to build every required container fingerprint once and then call test-only against those exact artifacts.
+    ✔ Remove the separate Full-followed-by-Feature CI sequence and verify the unified runtime-test inventory still contains every AVX2, FMA, BMI, and scalar-labelled test.
+    ✔ Keep sanitizer in its independent instrumented tree and ensure its test-only operation cannot consume ordinary Debug artifacts.
+    ✔ Preserve the scheduled no-cache image reproducibility job, but prevent it from becoming an accidental second project compilation when only environment provenance is required.
+    ✔ Upload manifests, JUnit reports, provenance, generated-code records, benchmark logs, and per-cell console logs from the stable fingerprint paths.
+    ✔ Preserve fail-fast policy intentionally: do not allow one early compiler failure to hide the result and logs of another compiler already started by the aggregate command.
+    ✔ End Phase 5 only when local and CI workflows invoke the same build/test implementation and CI contains no scenario-specific duplicate build tree for an identical fingerprint.
 
   Phase 6 - Prove Completeness and Cache Reuse:
     ☐ Run a clean unified build and verify every expected compiler, fingerprint, target, external consumer, generated-code comparison record, benchmark executable, manifest, and provenance record exists.

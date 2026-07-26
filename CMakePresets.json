@@ -96,7 +96,7 @@
             "binaryDir": "$env{SIMDLIB_BUILD_DIRECTORY}",
             "cacheVariables": {
                 "CMAKE_CXX_COMPILER": "clang-cl",
-                "CMAKE_MAKE_PROGRAM": "C:/Program Files/Microsoft Visual Studio/2022/Community/Common7/IDE/CommonExtensions/Microsoft/CMake/Ninja/ninja.exe"
+                "CMAKE_MAKE_PROGRAM": "$env{SIMDLIB_NINJA}"
             }
         },
         {
@@ -208,7 +208,7 @@
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Debug",
                 "CMAKE_CXX_COMPILER": "clang++",
-                "CMAKE_MAKE_PROGRAM": "C:/Program Files/Microsoft Visual Studio/2022/Community/Common7/IDE/CommonExtensions/Microsoft/CMake/Ninja/ninja.exe"
+                "CMAKE_MAKE_PROGRAM": "$env{SIMDLIB_NINJA}"
             }
         },
         {

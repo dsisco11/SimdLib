@@ -28,7 +28,11 @@ $pipelineRoot = Join-Path $repositoryRoot 'out/pipeline'
 $cmake = (Get-Command cmake -ErrorAction Stop).Source
 $ctest = (Get-Command ctest -ErrorAction Stop).Source
 $visualStudio = Initialize-PipelineVisualStudioEnvironment
-$ninja = 'C:/Program Files/Microsoft Visual Studio/2022/Community/Common7/IDE/CommonExtensions/Microsoft/CMake/Ninja/ninja.exe'
+$ninja = Join-Path $visualStudio 'Common7\IDE\CommonExtensions\Microsoft\CMake\Ninja\ninja.exe'
+if (-not (Test-Path -LiteralPath $ninja -PathType Leaf)) {
+    throw "Visual Studio's bundled Ninja executable is missing: $ninja"
+}
+$env:SIMDLIB_NINJA = $ninja
 
 <#
 .SYNOPSIS
