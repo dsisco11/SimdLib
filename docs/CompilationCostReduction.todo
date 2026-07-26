@@ -1,0 +1,88 @@
+SimdLib Compilation Cost Reduction Task List:
+
+  Purpose:
+    ☐ Remove benchmark compilation from the default build while preserving a dedicated benchmark build and execution workflow.
+    ☐ Evaluate whether SimdLib's constexpr implementation and validation strategy imposes avoidable compilation work.
+    ☐ Analyze and reduce avoidable compilation cost attributable to the `uint128_t` surface.
+    ☐ Analyze and reduce avoidable compilation cost attributable to `Bmi.h`.
+
+  Constraints:
+    ☐ Preserve the supported compiler, configuration, ISA, sanitizer, coverage, generated-code, ABI, header-isolation, and external-consumer contracts.
+    ☐ Treat separately configured compiler and feature profiles as redundant only when they prove the same contract with compatible compile definitions and options.
+    ☐ Measure preprocessing, parsing, template instantiation, optimization, and linking separately where the available compiler tooling permits.
+    ☐ Record clean-build, warm-build, and representative public-header invalidation results so an optimization is not selected from a single timing.
+    ☐ Require a repeatable material improvement before accepting added complexity in public headers, tests, or build tooling.
+    ☐ Treat machine-specific timings, raw traces, and intermediate conclusions as temporary execution evidence rather than permanent project documentation.
+
+  Phase 0 - Establish the Compilation Baseline:
+    ☐ Record the current default-build target inventory and identify which targets compile benchmark translation units.
+    ☐ Capture per-target and per-translation-unit compile timings for representative MSVC, clang-cl, GCC, and Clang Release builds.
+    ☐ Record compiler invocation counts, peak parallel resource use, object sizes, and total clean and warm wall times.
+    ☐ Attribute the measured cost of constexpr probes, `uint128_t` tests and consumers, BMI profile variants, and benchmark targets.
+    ☐ Preserve the commands, compiler versions, build fingerprints, logs, and raw timing artifacts required to reproduce the baseline for the duration of this task.
+    ☐ End Phase 0 only when each proposed work area has a measured baseline rather than an inferred cost.
+
+  Phase 1 - Separate Benchmark Compilation from the Default Build:
+    ☐ Remove benchmark targets and `BenchmarkArtifacts` from the unqualified `tools/Build.ps1` operation.
+    ☐ Keep benchmark targets configured in their owning exhaustive Release trees so benchmark builds reuse compatible configuration and dependency artifacts.
+    ☐ Retain `tools/Build-Benchmarks.ps1` as the explicit operation that builds only `BenchmarkArtifacts` for the requested scope.
+    ☐ Retain `tools/Run-Benchmarks.ps1` as an execution-only operation that requires current benchmark-build manifests and never configures or compiles.
+    ☐ Ensure `tools/Run-Tests.ps1` neither builds benchmarks nor requires benchmark artifacts or benchmark-build manifests.
+    ☐ Update presets, VS Code tasks, CI workflows, help text, and build documentation so `Build`, `Build-Benchmarks`, and `Run-Benchmarks` have unambiguous scopes.
+    ☐ Reconcile the maintained build documentation with the new default-build contract without restoring retired planning documents.
+    ☐ Prove through build logs or process tracing that a default build invokes no benchmark compiler or linker action.
+    ☐ Prove that a subsequent benchmark build reuses the owning Release trees and does not rebuild validation, example, probe, generated-code, or external-consumer targets.
+    ☐ End Phase 1 only when benchmark compilation occurs exclusively through the explicit benchmark-build operation.
+
+  Phase 2 - Evaluate the Constexpr Compilation Burden:
+    ☐ Inventory every dedicated constexpr target, source file, compiler profile, feature profile, and ordinary test translation unit that repeats compile-time assertions.
+    ☐ Identify which constexpr scenarios prove distinct compiler, language-mode, ISA, feature-gating, public-header, or constant-evaluation contracts.
+    ☐ Identify assertions compiled redundantly in scenarios that do not provide an independent contract.
+    ☐ Measure the cost of constant evaluation separately from the cost of parsing the same public headers and templates.
+    ☐ Use compiler timing or trace facilities to identify the most expensive constexpr functions, assertion matrices, concepts, and template instantiations.
+    ☐ Evaluate whether assertion tables can share smaller constexpr fixtures, reduce repeated type products, or move non-constexpr behavioral combinations to runtime tests without reducing semantic coverage.
+    ☐ Evaluate whether dedicated constexpr targets can use focused headers rather than the complete umbrella while retaining explicit umbrella-header compile coverage elsewhere.
+    ☐ Evaluate whether costly compile-time checks need to run in every configuration or only once per compiler and materially distinct feature definition.
+    ☐ Document which constexpr work is an unavoidable public contract and which work can be consolidated, narrowed, or removed.
+    ☐ Implement only evidence-supported reductions and verify that every constant-evaluation branch retains compile-time proof on each owning compiler or feature profile.
+    ☐ Compare clean, warm, and public-header invalidation timings with the Phase 0 baseline.
+    ☐ End Phase 2 only when the constexpr matrix has no unexplained duplication and every accepted change preserves its assigned compile-time contracts.
+
+  Phase 3 - Analyze the `uint128_t` Compilation Burden:
+    ☐ Measure the direct and transitive include cost of the primary `uint128_t` header, its formatting support, BMI integration, concepts, and test support.
+    ☐ Inventory every target and translation unit that instantiates `uint128_t` arithmetic, formatting, comparison, bit-operation, and compatibility matrices.
+    ☐ Distinguish intentionally different portable, compiler-carry, scalar-only, optimized, constexpr, formatter, and external-consumer profiles from redundant repetition.
+    ☐ Use compiler timing or trace facilities to identify expensive templates, overload sets, concepts, constant-evaluation paths, and formatter instantiations.
+    ☐ Evaluate whether optional formatting, stream, BMI, or other heavyweight integration can remain in focused opt-in headers rather than the core `uint128_t` include path.
+    ☐ Evaluate whether non-dependent implementation can be simplified or moved out of repeatedly instantiated templates without weakening the header-only distribution model.
+    ☐ Evaluate whether test type products and scalar-reference machinery can be consolidated without hiding width, signedness, boundary, or compiler-path failures.
+    ☐ Evaluate target-scoped precompiled headers or shared test support only for compatible behavioral-test targets; exclude header-isolation, constexpr, generated-code, ABI, and external-consumer probes.
+    ☐ Document each candidate with its expected benefit, API and ABI consequences, implementation complexity, and affected validation contracts.
+    ☐ Implement only evidence-supported reductions and rerun the complete `uint128_t`, formatter, BMI-integration, constexpr, header-isolation, and external-consumer coverage.
+    ☐ Compare clean, warm, and public-header invalidation timings with the Phase 0 baseline.
+    ☐ End Phase 3 only when the dominant `uint128_t` compilation costs are explained and every accepted reduction has measured benefit and complete validation.
+
+  Phase 4 - Analyze the `Bmi.h` Compilation Burden:
+    ☐ Measure the direct and transitive cost of `Bmi.h`, including intrinsic headers, portable helpers, concepts, constexpr implementations, and template instantiations.
+    ☐ Inventory BMI portable, BMI1-only, BMI2-only, BMI1+BMI2, disabled-feature, constexpr, runtime, header-isolation, and external-consumer compilation profiles.
+    ☐ Identify which profile repetitions are required to prove feature detection, intrinsic selection, portable fallback, and result equivalence.
+    ☐ Use compiler timing or trace facilities to identify expensive BMI operations, type-width matrices, constant-evaluation paths, and test-reference implementations.
+    ☐ Confirm that repeated preprocessor target checks are treated as a readability and configuration-invariant concern rather than assumed to be a measurable compilation hotspot.
+    ☐ Evaluate whether x64 support invariants can be enforced centrally so redundant per-operation target branches can be simplified without permitting contradictory feature overrides.
+    ☐ Evaluate whether intrinsic-header inclusion can be narrowed or isolated without relying on undeclared compiler intrinsics or weakening public-header self-sufficiency.
+    ☐ Evaluate whether fixed-width overloads, shared portable building blocks, or more focused headers would reduce template instantiation while preserving the supported API.
+    ☐ Evaluate whether BMI test matrices can share non-templated runtime reference support without merging incompatible compile-definition profiles.
+    ☐ Document each candidate with its expected benefit, portability consequences, implementation complexity, and affected validation contracts.
+    ☐ Implement only evidence-supported reductions and rerun portable and intrinsic result equivalence, constexpr, feature-detection, header-isolation, strict-warning, and external-consumer validation.
+    ☐ Compare clean, warm, and public-header invalidation timings with the Phase 0 baseline.
+    ☐ End Phase 4 only when the dominant BMI compilation costs are explained and every accepted reduction has measured benefit and complete validation.
+
+  Phase 5 - Validate and Record the Result:
+    ☐ Run the complete supported compiler and validation matrix after all accepted changes.
+    ☐ Verify that default builds omit benchmark artifacts and explicit benchmark builds remain reproducible.
+    ☐ Compare compiler invocation counts, per-target timings, clean and warm wall times, header-invalidation times, object sizes, and peak resource use against the Phase 0 baseline.
+    ☐ Confirm that no optimization merges incompatible fingerprints, hides missing includes, weakens constant-evaluation proof, or bypasses feature-specific runtime paths.
+    ☐ Update permanent documentation only where the user-facing build or benchmark command contract changed; report measurements and optimization decisions as task execution evidence.
+    ☐ Remove temporary timing reports, traces, logs, and analysis files after the final comparisons have been reported.
+    ☐ Verify formatting and `git diff --check`.
+    ☐ End Phase 5 only when the benchmark separation is proven, all accepted compilation-cost reductions are measurable, and the complete validation matrix remains green.
