@@ -15,12 +15,17 @@ SimdLib Compilation Cost Reduction Task List:
     ☐ Treat machine-specific timings, raw traces, and intermediate conclusions as temporary execution evidence rather than permanent project documentation.
 
   Phase 0 - Establish the Compilation Baseline:
-    ☐ Record the current default-build target inventory and identify which targets compile benchmark translation units.
-    ☐ Capture per-target and per-translation-unit compile timings for representative MSVC, clang-cl, GCC, and Clang Release builds.
-    ☐ Record compiler invocation counts, peak parallel resource use, object sizes, and total clean and warm wall times.
-    ☐ Attribute the measured cost of constexpr probes, `uint128_t` tests and consumers, BMI profile variants, and benchmark targets.
-    ☐ Preserve the commands, compiler versions, build fingerprints, logs, and raw timing artifacts required to reproduce the baseline for the duration of this task.
-    ☐ End Phase 0 only when each proposed work area has a measured baseline rather than an inferred cost.
+    ☒ Record the current default-build target inventory and identify which targets compile benchmark translation units.
+    ☒ Capture per-target and per-translation-unit compile timings for representative MSVC, clang-cl, GCC, and Clang Release builds.
+    ☒ Record compiler invocation counts, peak parallel resource use, object sizes, and total clean and warm wall times.
+    ☒ Attribute the measured cost of constexpr probes, `uint128_t` tests and consumers, BMI profile variants, and benchmark targets.
+    ☒ Preserve the commands, compiler versions, build fingerprints, logs, and raw timing artifacts required to reproduce the baseline for the duration of this task.
+    ☒ End Phase 0 only when each proposed work area has a measured baseline rather than an inferred cost.
+
+    Execution evidence:
+      - Temporary summary: `out/pipeline/phase0-baseline/README.md`.
+      - Raw per-target, per-translation-unit, clean, warm, invalidation, resource, version, command, and fingerprint evidence is retained under `out/pipeline/phase0-baseline/`.
+      - Original clean pipeline logs are retained under the timestamped `out/pipeline/logs/20260726-*` directories referenced by the temporary summary.
 
   Phase 1 - Separate Benchmark Compilation from the Default Build:
     ☐ Remove benchmark targets and `BenchmarkArtifacts` from the unqualified `tools/Build.ps1` operation.
