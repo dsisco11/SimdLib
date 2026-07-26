@@ -4,7 +4,7 @@ SimdLib Compilation Cost Reduction Task List:
     ☒ Remove benchmark compilation from the default build while preserving a dedicated benchmark build and execution workflow.
     ☒ Evaluate whether SimdLib's constexpr implementation and validation strategy imposes avoidable compilation work.
     ☒ Analyze and reduce avoidable compilation cost attributable to the `uint128_t` surface.
-    ☐ Analyze and reduce avoidable compilation cost attributable to `Bmi.h`.
+    ☒ Analyze and reduce avoidable compilation cost attributable to `Bmi.h`.
 
   Constraints:
     ☐ Preserve the supported compiler, configuration, ISA, sanitizer, coverage, generated-code, ABI, header-isolation, and external-consumer contracts.
@@ -98,19 +98,31 @@ SimdLib Compilation Cost Reduction Task List:
       - The complete repository build and test matrix was intentionally not rerun and remains assigned to the final validation section.
 
   Phase 4 - Analyze the `Bmi.h` Compilation Burden:
-    ☐ Measure the direct and transitive cost of `Bmi.h`, including intrinsic headers, portable helpers, concepts, constexpr implementations, and template instantiations.
-    ☐ Inventory BMI portable, BMI1-only, BMI2-only, BMI1+BMI2, disabled-feature, constexpr, runtime, header-isolation, and external-consumer compilation profiles.
-    ☐ Identify which profile repetitions are required to prove feature detection, intrinsic selection, portable fallback, and result equivalence.
-    ☐ Use compiler timing or trace facilities to identify expensive BMI operations, type-width matrices, constant-evaluation paths, and test-reference implementations.
-    ☐ Confirm that repeated preprocessor target checks are treated as a readability and configuration-invariant concern rather than assumed to be a measurable compilation hotspot.
-    ☐ Evaluate whether x64 support invariants can be enforced centrally so redundant per-operation target branches can be simplified without permitting contradictory feature overrides.
-    ☐ Evaluate whether intrinsic-header inclusion can be narrowed or isolated without relying on undeclared compiler intrinsics or weakening public-header self-sufficiency.
-    ☐ Evaluate whether fixed-width overloads, shared portable building blocks, or more focused headers would reduce template instantiation while preserving the supported API.
-    ☐ Evaluate whether BMI test matrices can share non-templated runtime reference support without merging incompatible compile-definition profiles.
-    ☐ Document each candidate with its expected benefit, portability consequences, implementation complexity, and affected validation contracts.
-    ☐ Implement only evidence-supported reductions and rerun portable and intrinsic result equivalence, constexpr, feature-detection, header-isolation, strict-warning, and external-consumer validation.
-    ☐ Compare clean, warm, and public-header invalidation timings with the Phase 0 baseline.
-    ☐ End Phase 4 only when the dominant BMI compilation costs are explained and every accepted reduction has measured benefit and complete validation.
+    ☒ Measure the direct and transitive cost of `Bmi.h`, including intrinsic headers, portable helpers, concepts, constexpr implementations, and template instantiations.
+    ☒ Inventory BMI portable, BMI1-only, BMI2-only, BMI1+BMI2, disabled-feature, constexpr, runtime, header-isolation, and external-consumer compilation profiles.
+    ☒ Identify which profile repetitions are required to prove feature detection, intrinsic selection, portable fallback, and result equivalence.
+    ☒ Use compiler timing or trace facilities to identify expensive BMI operations, type-width matrices, constant-evaluation paths, and test-reference implementations.
+    ☒ Confirm that repeated preprocessor target checks are treated as a readability and configuration-invariant concern rather than assumed to be a measurable compilation hotspot.
+    ☒ Evaluate whether x64 support invariants can be enforced centrally so redundant per-operation target branches can be simplified without permitting contradictory feature overrides.
+    ☒ Evaluate whether intrinsic-header inclusion can be narrowed or isolated without relying on undeclared compiler intrinsics or weakening public-header self-sufficiency.
+    ☒ Evaluate whether fixed-width overloads, shared portable building blocks, or more focused headers would reduce template instantiation while preserving the supported API.
+    ☒ Evaluate whether BMI test matrices can share non-templated runtime reference support without merging incompatible compile-definition profiles.
+    ☒ Document each candidate with its expected benefit, portability consequences, implementation complexity, and affected validation contracts.
+    ☒ Implement only evidence-supported reductions and rerun portable and intrinsic result equivalence, constexpr, feature-detection, header-isolation, strict-warning, and external-consumer validation.
+    ☒ Compare clean, warm, and public-header invalidation timings with the Phase 0 baseline.
+    ☒ End Phase 4 only when the dominant BMI compilation costs are explained and every accepted reduction has measured benefit and complete validation.
+
+    Execution evidence:
+      - Temporary include probes, dependency decompositions, Clang traces, MSVC experiments, isolated timing artifacts, and focused compiler outputs are summarized in `out/pipeline/phase4-analysis/README.md`.
+      - Native Clang measured required direct dependencies at 228.33 ms and 2,650,048 preprocessed bytes, `Bmi.h` at 245.97 ms and 2,672,155 bytes, and representative signed/unsigned 8/16/32/64-bit instantiation at 272.22 ms and 2,673,251 bytes.
+      - Constexpr traces recorded 226-230 ms frontend work, 16-19 ms function instantiation, 2-3 ms constraint checks, and less than 0.3 ms constant-expression evaluation. Runtime traces recorded 951-975 ms frontend and 569-610 ms backend work; Catch2 and standard-library parsing, instantiation, and optimization dominated.
+      - The exhaustive matrix's nine owned translation units remain four incompatible runtime profiles, four matching constexpr feature-definition profiles, and one first-and-only header probe. Configuration, umbrella composition, UInt128 integration, and downstream consumption retain separate contract owners.
+      - Repeated architecture checks, a central x64 hard invariant, direct family-intrinsic headers, MSVC-only include narrowing, focused public-header splits, fixed-width overloads, out-of-header portable support, shared runtime reference objects, profile merging, and PCH reuse were evaluated and rejected because they provided no repeatable material reduction or weakened configuration, portability, constexpr, diagnostic, or header-only contracts.
+      - The MSVC `<intrin.h>`-only experiment was restored exactly. Its 1,497,641-byte preprocessed output was effectively identical to the original 1,497,590-byte output, so its initially lower compiler-stage median was not accepted as a repeatable improvement.
+      - The Phase 0 nine-TU compiler-job totals remain MSVC 6.770 s, clang-cl 17.080 s, GCC 14 46.210 s, and Clang 22 56.670 s. With no accepted source or build reduction, no before/after compiler-job improvement is claimed.
+      - A current isolated MSVC tree with Catch2 prebuilt and two root workers measured 18.029 s clean, 4.907 s warm, and 16.186 s after `Bmi.h` invalidation; the exact header timestamp was restored.
+      - Strict-warning runtime, constexpr, feature-detection, and header-isolation compilation succeeded with MSVC 19.44, clang-cl 22.1.8, GCC 13.2.1, GCC 14.2.0, and Clang 22.1.3. The BMI label passed 51 tests on MSVC and 52 in every other compiler cell; downstream consumer smoke tests passed on every compiler.
+      - The complete repository build and test matrix was intentionally not rerun and remains assigned to Phase 5.
 
   Phase 5 - Validate and Record the Result:
     ☐ Run the complete supported compiler and validation matrix after all accepted changes.
