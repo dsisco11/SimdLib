@@ -243,15 +243,15 @@ SimdLib Unified Build and Test Pipeline Implementation Plan:
     ✔ End Phase 6 only when completeness is unchanged or improved, identical fingerprints are never rebuilt for separate scenarios, and the measured pipeline demonstrates the intended reuse.
 
   Phase 7 - Document and Migrate Interfaces:
-    ☐ Update `wiki/Technical-Reference.md` with the final unified build and test commands, scoped compiler commands, prerequisites, fingerprint model, incremental behavior, and explicit instrumentation boundaries.
-    ☐ Update `docs/ContainerValidation.md` to replace mode-owned build directories with fingerprint-owned artifacts and remove Feature as a mandatory profile.
-    ☐ Update `docs/Validation.md` with execution evidence, measured before/after work, exact compiler and configuration ownership, artifact paths, and any retained exclusions or exceptions.
-    ☐ Update `.github/workflows`, VS Code tasks, CMake preset descriptions, Compose profiles, cleanup documentation, and every stale `Run-ContainerMatrix.ps1` example together.
-    ☐ Search the repository for every retired name, require zero transitional compatibility aliases, and verify help output and examples use the canonical vocabulary.
-    ☐ Keep transient passing-test claims and timing measurements in validation evidence rather than presenting them as timeless command documentation.
-    ☐ Mark the unified build and test items in `docs/project.todo` complete only after the commands cover the accepted matrix, not after one compiler or one configuration succeeds.
-    ☐ Verify `git diff --check`, JSON/YAML/PowerShell/POSIX shell syntax, CMake preset parsing, Compose configuration, ignored artifact paths, and absence of tracked build output, logs, profiles, disassembly, or temporary probes.
-    ☐ End Phase 7 only when the canonical local and CI interfaces are the unified commands, every old mandatory mode has a reviewed disposition, and no documentation suggests that objects are reusable across incompatible fingerprints.
+    ✔ Update `wiki/Technical-Reference.md` with the final unified build and test commands, scoped compiler commands, prerequisites, fingerprint model, incremental behavior, and explicit instrumentation boundaries.
+    ✔ Update `docs/ContainerValidation.md` to replace mode-owned build directories with fingerprint-owned artifacts and remove Feature as a mandatory profile.
+    ✔ Update `docs/Validation.md` with execution evidence, measured before/after work, exact compiler and configuration ownership, artifact paths, and any retained exclusions or exceptions.
+    ✔ Update `.github/workflows`, VS Code tasks, CMake preset descriptions, Compose profiles, cleanup documentation, and every stale `Run-ContainerMatrix.ps1` example together.
+    ✔ Search the repository for every retired name, require zero transitional compatibility aliases, and verify help output and examples use the canonical vocabulary.
+    ✔ Keep transient passing-test claims and timing measurements in validation evidence rather than presenting them as timeless command documentation.
+    ✔ Mark the unified build and test items in `docs/project.todo` complete only after the commands cover the accepted matrix, not after one compiler or one configuration succeeds.
+    ✔ Verify `git diff --check`, JSON/YAML/PowerShell/POSIX shell syntax, CMake preset parsing, Compose configuration, ignored artifact paths, and absence of tracked build output, logs, profiles, disassembly, or temporary probes.
+    ✔ End Phase 7 only when the canonical local and CI interfaces are the unified commands, every old mandatory mode has a reviewed disposition, and no documentation suggests that objects are reusable across incompatible fingerprints.
 
   Phase 8 - Remove Retired Windows GNU Support References:
     ☐ Remove the retired Windows GNU target from every compiler-support table, prerequisite list, compatibility statement, example, validation claim, and user-facing document; describe supported GCC targets as Linux x64 only.

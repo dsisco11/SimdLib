@@ -9,11 +9,6 @@
     "cmake.ctest.allowParallelJobs": true,
     "cmake.ctest.testSuiteDelimiter": "\\.",
     "cmake.ctest.testSuiteDelimiterMaxOccurrence": 0,
-    "cmake.preRunCoverageTarget": "CoverageReset",
-    "cmake.postRunCoverageTarget": "CoverageReport",
-    "cmake.coverageInfoFiles": [
-        "${workspaceFolder}/out/build/clang-debug-coverage/coverage.info"
-    ],
     "C_Cpp.formatting": "clangFormat",
     "C_Cpp.clang_format_style": "file",
     "C_Cpp.clang_format_fallbackStyle": "none",

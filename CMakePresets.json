@@ -130,6 +130,7 @@
         {
             "name": "msvc-release-exhaustive",
             "displayName": "MSVC Release exhaustive",
+            "description": "Windows x64 optimized correctness, ABI, and enforced generated-code qualification",
             "inherits": ["msvc-common", "release-exhaustive-options"],
             "cacheVariables": {
                 "CMAKE_CONFIGURATION_TYPES": "Release"
@@ -138,6 +139,7 @@
         {
             "name": "msvc-debug-diagnostics",
             "displayName": "MSVC Debug diagnostics",
+            "description": "Windows x64 Debug correctness and recorded generated-code diagnostics",
             "inherits": ["msvc-common", "debug-diagnostics-options"],
             "cacheVariables": {
                 "CMAKE_CONFIGURATION_TYPES": "Debug"
@@ -146,6 +148,7 @@
         {
             "name": "clangcl-release-exhaustive",
             "displayName": "clang-cl Release exhaustive",
+            "description": "Windows x64 optimized correctness, ABI, and enforced generated-code qualification",
             "inherits": ["clangcl-common", "release-exhaustive-options"],
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Release"
@@ -154,6 +157,7 @@
         {
             "name": "clangcl-debug-diagnostics",
             "displayName": "clang-cl Debug diagnostics",
+            "description": "Windows x64 Debug correctness and recorded generated-code diagnostics",
             "inherits": ["clangcl-common", "debug-diagnostics-options"],
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Debug"
@@ -174,26 +178,31 @@
         {
             "name": "gcc14-release-exhaustive",
             "displayName": "GCC 14 Release exhaustive",
+            "description": "Linux x64 optimized core and Register qualification in the pinned GCC 14 image",
             "inherits": ["container-release-exhaustive"]
         },
         {
             "name": "gcc14-debug-diagnostics",
             "displayName": "GCC 14 Debug diagnostics",
+            "description": "Linux x64 Debug core and Register diagnostics in the pinned GCC 14 image",
             "inherits": ["container-debug-diagnostics"]
         },
         {
             "name": "clang22-release-exhaustive",
             "displayName": "Clang 22 Release exhaustive",
+            "description": "Linux x64 optimized core and Register qualification in the pinned Clang 22 image",
             "inherits": ["container-release-exhaustive"]
         },
         {
             "name": "clang22-debug-diagnostics",
             "displayName": "Clang 22 Debug diagnostics",
+            "description": "Linux x64 Debug core and Register diagnostics in the pinned Clang 22 image",
             "inherits": ["container-debug-diagnostics"]
         },
         {
             "name": "clang22-debug-asan-ubsan",
             "displayName": "Clang 22 Debug ASan and UBSan",
+            "description": "Independent Linux x64 Clang AddressSanitizer and UndefinedBehaviorSanitizer fingerprint",
             "inherits": ["container-common", "debug-asan-ubsan-options"],
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Debug"
@@ -202,6 +211,7 @@
         {
             "name": "clang-debug-coverage",
             "displayName": "Clang Debug coverage",
+            "description": "Independent native Clang Debug source-coverage fingerprint",
             "generator": "Ninja",
             "binaryDir": "$env{SIMDLIB_BUILD_DIRECTORY}",
             "inherits": "coverage-options",
@@ -214,6 +224,7 @@
         {
             "name": "container-release-contracts",
             "displayName": "Container Release contracts",
+            "description": "Narrow Linux Release contract preset for direct container-environment diagnostics",
             "inherits": ["container-common", "development-common"],
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Release",
@@ -225,30 +236,30 @@
         }
     ],
     "buildPresets": [
-        { "name": "msvc-release-exhaustive", "configurePreset": "msvc-release-exhaustive", "configuration": "Release", "targets": ["ExhaustiveArtifacts"], "jobs": 0 },
-        { "name": "msvc-release-benchmarks", "configurePreset": "msvc-release-exhaustive", "configuration": "Release", "targets": ["BenchmarkArtifacts"], "jobs": 0 },
-        { "name": "msvc-debug-diagnostics", "configurePreset": "msvc-debug-diagnostics", "configuration": "Debug", "targets": ["ExhaustiveArtifacts"], "jobs": 0 },
-        { "name": "clangcl-release-exhaustive", "configurePreset": "clangcl-release-exhaustive", "targets": ["ExhaustiveArtifacts"], "jobs": 0 },
-        { "name": "clangcl-release-benchmarks", "configurePreset": "clangcl-release-exhaustive", "targets": ["BenchmarkArtifacts"], "jobs": 0 },
-        { "name": "clangcl-debug-diagnostics", "configurePreset": "clangcl-debug-diagnostics", "targets": ["ExhaustiveArtifacts"], "jobs": 0 },
-        { "name": "gcc13-core-release-exhaustive", "configurePreset": "gcc13-core-release-exhaustive", "targets": ["ExhaustiveArtifacts"], "jobs": 0 },
-        { "name": "gcc13-core-release-benchmarks", "configurePreset": "gcc13-core-release-exhaustive", "targets": ["BenchmarkArtifacts"], "jobs": 0 },
-        { "name": "gcc13-core-debug-diagnostics", "configurePreset": "gcc13-core-debug-diagnostics", "targets": ["ExhaustiveArtifacts"], "jobs": 0 },
-        { "name": "gcc14-release-exhaustive", "configurePreset": "gcc14-release-exhaustive", "targets": ["ExhaustiveArtifacts"], "jobs": 0 },
-        { "name": "gcc14-release-benchmarks", "configurePreset": "gcc14-release-exhaustive", "targets": ["BenchmarkArtifacts"], "jobs": 0 },
-        { "name": "gcc14-debug-diagnostics", "configurePreset": "gcc14-debug-diagnostics", "targets": ["ExhaustiveArtifacts"], "jobs": 0 },
-        { "name": "clang22-release-exhaustive", "configurePreset": "clang22-release-exhaustive", "targets": ["ExhaustiveArtifacts"], "jobs": 0 },
-        { "name": "clang22-release-benchmarks", "configurePreset": "clang22-release-exhaustive", "targets": ["BenchmarkArtifacts"], "jobs": 0 },
-        { "name": "clang22-debug-diagnostics", "configurePreset": "clang22-debug-diagnostics", "targets": ["ExhaustiveArtifacts"], "jobs": 0 },
-        { "name": "clang22-debug-asan-ubsan", "configurePreset": "clang22-debug-asan-ubsan", "targets": ["ExhaustiveArtifacts"], "jobs": 0 },
-        { "name": "clang-debug-coverage", "configurePreset": "clang-debug-coverage", "targets": ["ExhaustiveArtifacts"], "jobs": 0 },
-        { "name": "container-release-contracts", "configurePreset": "container-release-contracts", "targets": ["ExhaustiveArtifacts"], "jobs": 0 }
+        { "name": "msvc-release-exhaustive", "description": "Build the MSVC Release exhaustive validation artifacts", "configurePreset": "msvc-release-exhaustive", "configuration": "Release", "targets": ["ExhaustiveArtifacts"], "jobs": 0 },
+        { "name": "msvc-release-benchmarks", "description": "Build benchmark executables in the existing MSVC Release tree", "configurePreset": "msvc-release-exhaustive", "configuration": "Release", "targets": ["BenchmarkArtifacts"], "jobs": 0 },
+        { "name": "msvc-debug-diagnostics", "description": "Build the MSVC Debug diagnostic artifacts", "configurePreset": "msvc-debug-diagnostics", "configuration": "Debug", "targets": ["ExhaustiveArtifacts"], "jobs": 0 },
+        { "name": "clangcl-release-exhaustive", "description": "Build the clang-cl Release exhaustive validation artifacts", "configurePreset": "clangcl-release-exhaustive", "targets": ["ExhaustiveArtifacts"], "jobs": 0 },
+        { "name": "clangcl-release-benchmarks", "description": "Build benchmark executables in the existing clang-cl Release tree", "configurePreset": "clangcl-release-exhaustive", "targets": ["BenchmarkArtifacts"], "jobs": 0 },
+        { "name": "clangcl-debug-diagnostics", "description": "Build the clang-cl Debug diagnostic artifacts", "configurePreset": "clangcl-debug-diagnostics", "targets": ["ExhaustiveArtifacts"], "jobs": 0 },
+        { "name": "gcc13-core-release-exhaustive", "description": "Build the GCC 13.2 core-only Release validation artifacts", "configurePreset": "gcc13-core-release-exhaustive", "targets": ["ExhaustiveArtifacts"], "jobs": 0 },
+        { "name": "gcc13-core-release-benchmarks", "description": "Build core benchmark executables in the existing GCC 13.2 Release tree", "configurePreset": "gcc13-core-release-exhaustive", "targets": ["BenchmarkArtifacts"], "jobs": 0 },
+        { "name": "gcc13-core-debug-diagnostics", "description": "Build the GCC 13.2 core-only Debug diagnostic artifacts", "configurePreset": "gcc13-core-debug-diagnostics", "targets": ["ExhaustiveArtifacts"], "jobs": 0 },
+        { "name": "gcc14-release-exhaustive", "description": "Build the GCC 14 Release exhaustive validation artifacts", "configurePreset": "gcc14-release-exhaustive", "targets": ["ExhaustiveArtifacts"], "jobs": 0 },
+        { "name": "gcc14-release-benchmarks", "description": "Build benchmark executables in the existing GCC 14 Release tree", "configurePreset": "gcc14-release-exhaustive", "targets": ["BenchmarkArtifacts"], "jobs": 0 },
+        { "name": "gcc14-debug-diagnostics", "description": "Build the GCC 14 Debug diagnostic artifacts", "configurePreset": "gcc14-debug-diagnostics", "targets": ["ExhaustiveArtifacts"], "jobs": 0 },
+        { "name": "clang22-release-exhaustive", "description": "Build the Clang 22 Release exhaustive validation artifacts", "configurePreset": "clang22-release-exhaustive", "targets": ["ExhaustiveArtifacts"], "jobs": 0 },
+        { "name": "clang22-release-benchmarks", "description": "Build benchmark executables in the existing Clang 22 Release tree", "configurePreset": "clang22-release-exhaustive", "targets": ["BenchmarkArtifacts"], "jobs": 0 },
+        { "name": "clang22-debug-diagnostics", "description": "Build the Clang 22 Debug diagnostic artifacts", "configurePreset": "clang22-debug-diagnostics", "targets": ["ExhaustiveArtifacts"], "jobs": 0 },
+        { "name": "clang22-debug-asan-ubsan", "description": "Build the Clang 22 ASan and UBSan validation artifacts", "configurePreset": "clang22-debug-asan-ubsan", "targets": ["ExhaustiveArtifacts"], "jobs": 0 },
+        { "name": "clang-debug-coverage", "description": "Build the native Clang coverage validation artifacts", "configurePreset": "clang-debug-coverage", "targets": ["ExhaustiveArtifacts"], "jobs": 0 },
+        { "name": "container-release-contracts", "description": "Build the narrow container Release contract artifacts", "configurePreset": "container-release-contracts", "targets": ["ExhaustiveArtifacts"], "jobs": 0 }
     ],
     "testPresets": [
-        { "name": "msvc-release-exhaustive", "configurePreset": "msvc-release-exhaustive", "configuration": "Release", "output": { "outputOnFailure": true }, "execution": { "jobs": 0 } },
-        { "name": "msvc-debug-diagnostics", "configurePreset": "msvc-debug-diagnostics", "configuration": "Debug", "output": { "outputOnFailure": true }, "execution": { "jobs": 0 } },
-        { "name": "clangcl-release-exhaustive", "configurePreset": "clangcl-release-exhaustive", "output": { "outputOnFailure": true }, "execution": { "jobs": 0 } },
-        { "name": "clangcl-debug-diagnostics", "configurePreset": "clangcl-debug-diagnostics", "output": { "outputOnFailure": true }, "execution": { "jobs": 0 } },
-        { "name": "clang-debug-coverage", "configurePreset": "clang-debug-coverage", "inheritConfigureEnvironment": true, "environment": { "LLVM_PROFILE_FILE": "$env{SIMDLIB_BUILD_DIRECTORY}/ctest-%p-%m.profraw" }, "output": { "outputOnFailure": true }, "execution": { "jobs": 0 } }
+        { "name": "msvc-release-exhaustive", "description": "Run the MSVC Release runtime and artifact-validation inventory", "configurePreset": "msvc-release-exhaustive", "configuration": "Release", "output": { "outputOnFailure": true }, "execution": { "jobs": 0 } },
+        { "name": "msvc-debug-diagnostics", "description": "Run the MSVC Debug runtime and artifact-validation inventory", "configurePreset": "msvc-debug-diagnostics", "configuration": "Debug", "output": { "outputOnFailure": true }, "execution": { "jobs": 0 } },
+        { "name": "clangcl-release-exhaustive", "description": "Run the clang-cl Release runtime and artifact-validation inventory", "configurePreset": "clangcl-release-exhaustive", "output": { "outputOnFailure": true }, "execution": { "jobs": 0 } },
+        { "name": "clangcl-debug-diagnostics", "description": "Run the clang-cl Debug runtime and artifact-validation inventory", "configurePreset": "clangcl-debug-diagnostics", "output": { "outputOnFailure": true }, "execution": { "jobs": 0 } },
+        { "name": "clang-debug-coverage", "description": "Run the native Clang coverage inventory with isolated profile output", "configurePreset": "clang-debug-coverage", "inheritConfigureEnvironment": true, "environment": { "LLVM_PROFILE_FILE": "$env{SIMDLIB_BUILD_DIRECTORY}/ctest-%p-%m.profraw" }, "output": { "outputOnFailure": true }, "execution": { "jobs": 0 } }
     ]
 }

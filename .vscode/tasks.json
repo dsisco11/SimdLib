@@ -28,7 +28,7 @@
             "detail": "Builds the complete native and container validation matrix plus benchmark artifacts."
         },
         {
-            "label": "Run Tests",
+            "label": "Run-Tests",
             "type": "process",
             "command": "pwsh",
             "args": [
@@ -49,6 +49,29 @@
             },
             "group": "test",
             "detail": "Builds the complete matrix once, then runs every assigned test-only cell."
+        },
+        {
+            "label": "Run-Benchmarks",
+            "type": "process",
+            "command": "pwsh",
+            "args": [
+                "-NoProfile",
+                "-File",
+                "${workspaceFolder}/tools/Run-Benchmarks.ps1",
+                "-Scope",
+                "All"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": [],
+            "presentation": {
+                "clear": true,
+                "reveal": "always",
+                "panel": "dedicated"
+            },
+            "group": "test",
+            "detail": "Runs supplemental benchmarks from completed Release fingerprint manifests without building."
         },
         {
             "label": "Format: All C/C++ Files",

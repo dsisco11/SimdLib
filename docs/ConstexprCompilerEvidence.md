@@ -2,7 +2,11 @@
 
 ## Compile-only matrix
 
-All targets are ordinary CMake object-library probes. They are dependencies of `SimdLibConstexprProbes`, are built by the default build, and are also exposed through `SimdLib.ConstexprProbes.Build` so assertion diagnostics retain their source file and expression in build or CTest output.
+All targets are ordinary CMake object-library probes. They are dependencies of
+`ConstexprProbes`, which is owned by `ExhaustiveArtifacts`. The
+`ConstexprProbes.Artifacts` CTest entry validates the recorded object hashes
+without compiling, so assertion diagnostics retain their source file and
+expression during the owning build operation.
 
 | Contract source | Compile profiles | Result |
 | --- | --- | --- |

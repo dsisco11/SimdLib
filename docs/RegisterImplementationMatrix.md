@@ -368,15 +368,18 @@ BuildKit Dockerfile frontend is pinned to the digest used by the no-cache proof.
 The containers run as a non-root user with a read-only root and source mount,
 dropped capabilities, an executable temporary filesystem, and explicit
 writable outputs. The Clang image intentionally omits the GCC compiler after
-the CMake builder stage. CMake configures fresh on each invocation so a cached
-missing-tool result cannot survive an image refresh.
+the CMake builder stage. A build operation configures each fingerprint-owned
+tree once and CI applies CMake's fresh-toolchain behavior during that configure
+step. Test and benchmark-execution operations validate the completed manifest
+and never configure, clear, or rebuild the tree.
 
-The full profiles compile and run the complete Linux-supported C++20/C++23
-suite, not a platform-independent subset. Portable header repairs guard the
-Windows-only `<intrin.h>` boundary, include x86 intrinsics only on x86, disable
-`VECTORCALL` for GNU-like Linux Clang, and value-initialize the temporary used
-by `register_set`. Native Windows jobs remain authoritative for MSVC, clang-cl,
-Windows ABI, and calling-convention evidence.
+The exhaustive build and test operations collectively cover the complete
+Linux-supported C++20/C++23 suite, not a platform-independent subset. Portable
+header repairs guard the Windows-only `<intrin.h>` boundary, include x86
+intrinsics only on x86, disable `VECTORCALL` for GNU-like Linux Clang, and
+value-initialize the temporary used by `register_set`. Native Windows jobs
+remain authoritative for MSVC, clang-cl, Windows ABI, and calling-convention
+evidence.
 
 ### Compose and orchestration decision
 

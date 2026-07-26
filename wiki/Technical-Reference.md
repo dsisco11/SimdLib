@@ -92,12 +92,12 @@ and the appropriate target flags.
 
 The current validation matrix covers:
 
-| Compiler family | Validated frontend | Targets |
-| --- | --- | --- |
-| MSVC | Visual Studio 2022 / MSVC 19.44 | Windows x64 |
-| clang-cl | LLVM Clang 22 with the MSVC ABI | Windows x64 |
-| Clang | LLVM Clang 22 | Linux x64 |
-| GCC | GCC 13.2 or newer | Linux and MinGW x64 |
+| Compiler family | Validated frontend              | Targets             |
+| --------------- | ------------------------------- | ------------------- |
+| MSVC            | Visual Studio 2022 / MSVC 19.44 | Windows x64         |
+| clang-cl        | LLVM Clang 22 with the MSVC ABI | Windows x64         |
+| Clang           | LLVM Clang 22                   | Linux x64           |
+| GCC             | GCC 13.2 or newer               | Linux and MinGW x64 |
 
 The SIMD backends require x86-family intrinsic headers on an x64 target. The portable
 configuration layer, BMI fallback algorithms, and two-word `uint128_t`
@@ -137,20 +137,20 @@ FMA-disabled paths, and all four BMI1/BMI2 combinations.
 
 ## Public headers
 
-| Header | Public entry point |
-| --- | --- |
-| `<SimdLib/Config.h>` | Version, compiler, target, instruction, assertion, and ABI configuration |
-| `<SimdLib/Api.h>` | Auto-sized `NativeApi<element_t>`, explicit-width `Api<register_width, element_t>`, and availability query |
-| `<SimdLib/Register.h>` | C++23 `Register<element_t, register_width>` and `NativeRegister<element_t>` complete-register values |
-| `<SimdLib/RegisterMask.h>` | C++23 `RegisterMask<element_t, register_width>` predicate values |
-| `<SimdLib/SimdApi.h>` | Deprecated compatibility forwarding header; use `Api.h` |
-| `<SimdLib/SimdVector.h>` | `SimdVector<element_t, element_count>` value type |
-| `<SimdLib/SimdAlgo.h>` | Fixed-extent and dynamic-span `SimdAlgo` operations |
-| `<SimdLib/SimdResample.h>` | Byte-mask reduction and expansion functions |
-| `<SimdLib/Bmi.h>` | Portable and intrinsic `SimdLib::Bmi` bit helpers |
-| `<SimdLib/UInt128.h>` | `uint128_t`, literals, bit utilities, hash, and numeric limits |
-| `<SimdLib/Format.h>` | Opt-in `std::formatter` specializations |
-| `<SimdLib/SimdLib.h>` | Complete non-formatting public surface |
+| Header                     | Public entry point                                                                                         |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `<SimdLib/Config.h>`       | Version, compiler, target, instruction, assertion, and ABI configuration                                   |
+| `<SimdLib/Api.h>`          | Auto-sized `NativeApi<element_t>`, explicit-width `Api<register_width, element_t>`, and availability query |
+| `<SimdLib/Register.h>`     | C++23 `Register<element_t, register_width>` and `NativeRegister<element_t>` complete-register values       |
+| `<SimdLib/RegisterMask.h>` | C++23 `RegisterMask<element_t, register_width>` predicate values                                           |
+| `<SimdLib/SimdApi.h>`      | Deprecated compatibility forwarding header; use `Api.h`                                                    |
+| `<SimdLib/SimdVector.h>`   | `SimdVector<element_t, element_count>` value type                                                          |
+| `<SimdLib/SimdAlgo.h>`     | Fixed-extent and dynamic-span `SimdAlgo` operations                                                        |
+| `<SimdLib/SimdResample.h>` | Byte-mask reduction and expansion functions                                                                |
+| `<SimdLib/Bmi.h>`          | Portable and intrinsic `SimdLib::Bmi` bit helpers                                                          |
+| `<SimdLib/UInt128.h>`      | `uint128_t`, literals, bit utilities, hash, and numeric limits                                             |
+| `<SimdLib/Format.h>`       | Opt-in `std::formatter` specializations                                                                    |
+| `<SimdLib/SimdLib.h>`      | Complete non-formatting public surface                                                                     |
 
 Headers and declarations below `SimdLib::Detail` are implementation-only.
 
@@ -253,8 +253,13 @@ other presentation types throw `std::format_error`.
 
 ## Development workflow
 
-Build the complete native and Linux compiler matrix, including all validation
-and benchmark artifacts, with an explicit scope:
+The repository-owned commands require PowerShell 7+ and CMake 4.4. A complete
+Windows-hosted run additionally requires Visual Studio 2022 with the x64 C++
+tools, LLVM 22 on `PATH`, and Docker Desktop using Linux containers. Container-
+only runs require Docker and do not require the native Windows compilers.
+
+Build the complete native and Linux compiler matrix, including validation and
+benchmark artifacts, with an explicit scope:
 
 ```powershell
 tools/Build.ps1 -Scope All
@@ -273,13 +278,38 @@ Benchmark execution is supplemental and remains outside correctness testing:
 tools/Run-Benchmarks.ps1 -Scope All
 ```
 
-Each compiler/configuration owns a fingerprinted tree below `out/pipeline`.
-Test-only and benchmark-execution operations reject missing or stale manifests
-and never configure or compile. See [Unified build and
-validation](../docs/BuildPipeline.md) for prerequisites, focused compiler
-filters, artifact identity, and guarded `-SkipBuild` reuse.
+The accepted scopes and compiler filters are:
 
-The main CMake options are:
+| Scope        | Compiler filters                   | Owned cells                                         |
+| ------------ | ---------------------------------- | --------------------------------------------------- |
+| `All`        | `All` or any compatible subset     | Every native and container cell                     |
+| `Native`     | `Msvc`, `ClangCl`, `ClangCoverage` | MSVC and clang-cl Release/Debug plus Clang coverage |
+| `Containers` | `Gcc13`, `Gcc14`, `Clang22`        | Linux Release/Debug plus Clang ASan+UBSan           |
+
+For example, a Linux-only CI worker uses `tools/Build.ps1 -Scope Containers`
+followed by `tools/Run-Tests.ps1 -Scope Containers -SkipBuild`. A focused local
+diagnostic can use `tools/Run-Tests.ps1 -Scope Native -Compiler Msvc` or
+`tools/Run-Tests.ps1 -Scope Containers -Compiler Gcc14`.
+
+Each compiler/configuration owns a fingerprinted tree below `out/pipeline`.
+The fingerprint includes compiler and image identity, generator, configuration,
+instrumentation, required flags, dependencies, and CPU requirements. Source
+inputs have a separate digest in the completed manifest. Consequently, test-
+only and benchmark-execution operations reject missing, stale, or incompatible
+artifacts and never configure or compile. Objects are reusable only when their
+complete compilation fingerprint matches. See [Unified build and
+validation](../docs/BuildPipeline.md) for the complete identity and guarded
+`-SkipBuild` contract.
+
+Instrumentation boundaries are explicit. Release and Debug use separate trees;
+Clang ASan+UBSan has its own instrumented Debug fingerprint; source coverage has
+its own native Clang tree; and benchmark compilation reuses only an already
+validated Release tree. Coverage is enabled only for top-level SimdLib
+development builds and is never introduced into an `add_subdirectory`
+consumer.
+
+The following development CMake options exist only when SimdLib is the top-level
+project. They are not declared for an `add_subdirectory` consumer:
 
 - `SIMDLIB_BUILD_SMOKE_TESTS=ON` builds the two-translation-unit ODR smoke
   executable. It is enabled by default.
@@ -307,16 +337,20 @@ The main CMake options are:
 
 CTest labels identify instruction families and test groups so automation can
 include or exclude them explicitly. The `CoverageReset` and `CoverageReport`
-targets produce `out/build/clang-debug-coverage/coverage.info` for command-line
-use and VS Code CMake Tools.
+targets produce `coverage.info` below the active fingerprint's build directory,
+for example
+`out/pipeline/windows-clang-coverage/debug-coverage-<fingerprint>/build/coverage.info`.
 
 ## Continuous validation
 
-`.github/workflows/ci.yml` defines Debug and Release jobs for MSVC, clang-cl,
-Clang, and GCC on supported x64 targets. It also contains Clang ASan/UBSan
-coverage, an independent instruction-family matrix, and explicit constexpr,
-first-include header-hygiene, multi-translation-unit ODR, example, and consumer
-gates.
+`.github/workflows/ci.yml` delegates to the same scoped `Build.ps1` and
+`Run-Tests.ps1 -SkipBuild` commands used locally. Native MSVC, native clang-cl
+plus coverage, and Linux container compilers each build their assigned
+fingerprints once and then run test-only operations. Clang ASan+UBSan remains
+an independent instrumented fingerprint. Mandatory instruction-family labels,
+constexpr probes, first-include header hygiene, ODR, examples, consumers,
+generated-code comparisons, and ABI gates are members of those owned cells,
+not separate rebuild scenarios.
 
 The consumer smoke project under `tests/consumer` imports SimdLib with
 `add_subdirectory`, verifies that `SimdLib` is an `INTERFACE_LIBRARY`, and

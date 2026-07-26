@@ -10,8 +10,8 @@ authoritative for MSVC, clang-cl, Windows ABI behavior, and `VECTORCALL`.
 | Service | Scope | Base | Compiler |
 | --- | --- | --- | --- |
 | `gcc13` | Core-only | Alpine 3.20.8, digest pinned | GCC/G++ 13.2.1 |
-| `gcc14` | Full | Alpine 3.22.5, digest pinned | GCC/G++ 14.2.0 |
-| `clang22` | Full | Alpine 3.24.1, digest pinned | Clang 22.1.3 |
+| `gcc14` | Core and Register | Alpine 3.22.5, digest pinned | GCC/G++ 14.2.0 |
+| `clang22` | Core and Register | Alpine 3.24.1, digest pinned | Clang 22.1.3 |
 
 GCC 13 remains a qualified core-only compiler. Its cells do not claim support
 for `SimdLib::Register`. GCC 14 and Clang 22 own the complete core and Register
@@ -57,6 +57,11 @@ tools/Run-ContainerMatrix.ps1 -Action Test -Compiler Clang22 -Cell AsanUbsan
 Optional `-TestRegex` and `-TestLabel` filters only narrow a test operation;
 they never define a build profile or alter artifact identity.
 
+There is no mandatory Feature build cell. AVX2, FMA, BMI, and scalar tests are
+registered in the exhaustive runtime inventory, audited before execution, and
+run once in each owning cell. A label filter is an optional diagnostic view of
+that existing inventory, not a second compilation scenario.
+
 Benchmark compilation and execution are separate operations. Both own only the
 existing Release cells, and building benchmarks does not rebuild validation
 targets:
@@ -75,13 +80,17 @@ tools/Run-ContainerMatrix.ps1 -Action Build -SkipImageBuild
 tools/Run-ContainerMatrix.ps1 -Action InspectEnvironment -SkipImageBuild
 ```
 
-Remove the selected local images, fingerprinted artifacts, abandoned pipeline
-containers, and pipeline networks:
+Remove the selected local images and compiler artifact roots together with
+abandoned `simdlib-container-*` containers and networks:
 
 ```powershell
 tools/Run-ContainerMatrix.ps1 -Action Clean
 tools/Run-ContainerMatrix.ps1 -Action Clean -Compiler Clang22
 ```
+
+`Clean` is intentionally destructive to the selected generated state below
+`out/pipeline`; it does not touch source files or artifacts owned by an
+unselected compiler. Normal incremental work does not require cleaning.
 
 ## Build cells and artifacts
 
@@ -91,10 +100,13 @@ tools/Run-ContainerMatrix.ps1 -Action Clean -Compiler Clang22
 | `Debug` | GCC 13, GCC 14, Clang 22 | diagnostic, record-only codegen | `ExhaustiveArtifacts` |
 | `AsanUbsan` | Clang 22 | Debug with AddressSanitizer and UndefinedBehaviorSanitizer | `ExhaustiveArtifacts` |
 
-The runner builds selected images once, then executes cells with bounded
-parallelism controlled by `-MaxParallel`. Each invocation has a unique Compose
-project and independent standard-output and standard-error logs. A failure in
-one cell does not hide failures from the remaining cells.
+The runner builds selected images once under the stable
+`simdlib-container-images` Compose project, then executes cells with bounded
+parallelism controlled by `-MaxParallel`. Each operation has a unique Compose
+project and independent standard-output and standard-error logs. Stable image
+build ownership prevents an invocation-only Compose label from changing image
+identity. A failure in one cell does not hide failures from the remaining
+cells.
 
 Each cell has a canonical JSON fingerprint. The full SHA-256 is stored in the
 fingerprint document, while its first 16 hexadecimal characters disambiguate
@@ -144,7 +156,9 @@ Image refreshes are deliberate review changes:
    compiler and retrieve its immutable multi-platform manifest digest.
 2. Update every exact package version, CMake checksum, and Catch2 commit.
 3. Run `InspectEnvironment` with `-NoImageCache` and review the identities.
-4. Run `Build`, `Test`, `BuildBenchmarks`, and `RunBenchmarks`.
+4. Run `tools/Build.ps1 -Scope Containers`, then
+   `tools/Run-Tests.ps1 -Scope Containers -SkipBuild` and
+   `tools/Run-Benchmarks.ps1 -Scope Containers`.
 5. Confirm the native MSVC and clang-cl configurations separately.
 
 The scheduled reproducibility workflow performs the no-cache environment

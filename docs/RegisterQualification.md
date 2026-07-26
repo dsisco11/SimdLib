@@ -110,18 +110,16 @@ the operation cannot satisfy the supported zero-overhead contract.
 
 ## Reproduction commands
 
-Native Windows Release and Debug builds use the ordinary CMake targets with
-`SIMDLIB_BUILD_REGISTER_CODEGEN_GATES=ON`. Release uses
-`SIMDLIB_REGISTER_CODEGEN_MODE=ENFORCE`, while Debug uses
-`SIMDLIB_REGISTER_CODEGEN_MODE=RECORD`.
-
-The pinned Linux matrix is reproduced with:
+The formal scoped commands reproduce the native and pinned Linux Register
+qualification. Release fingerprints enforce generated-code policy; Debug and
+sanitizer fingerprints record diagnostics:
 
 ```powershell
-.\tools\Run-ContainerMatrix.ps1 -Action Build
-.\tools\Run-ContainerMatrix.ps1 -Action Test
-.\tools\Run-ContainerMatrix.ps1 -Action BuildBenchmarks
-.\tools\Run-ContainerMatrix.ps1 -Action RunBenchmarks
+tools/Build.ps1 -Scope Native -Compiler Msvc,ClangCl
+tools/Run-Tests.ps1 -Scope Native -Compiler Msvc,ClangCl -SkipBuild
+tools/Build.ps1 -Scope Containers -Compiler Gcc14,Clang22
+tools/Run-Tests.ps1 -Scope Containers -Compiler Gcc14,Clang22 -SkipBuild
+tools/Run-Benchmarks.ps1 -Scope All -Compiler Msvc,ClangCl,Gcc14,Clang22
 ```
 
 Benchmarks are supplemental and run only after strict generated-code gates. The

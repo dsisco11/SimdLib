@@ -102,7 +102,41 @@ tools/Run-Benchmarks.ps1 -Scope All
 Benchmark builds reuse validated Release trees. Benchmark execution requires
 their completed benchmark manifests and never configures or builds.
 
+## Instrumentation boundaries
+
+Release, Debug, Clang ASan+UBSan, and native Clang coverage are incompatible
+compilation fingerprints and always use separate trees. Debug diagnostics do
+not inherit Release optimization enforcement. Sanitizer objects are never
+consumed by ordinary Debug tests, and coverage objects are never consumed by a
+non-instrumented cell. Benchmark compilation is the sole additional aggregate
+that reuses an existing fingerprint, and it reuses only validated Release
+trees.
+
 Coverage is development infrastructure owned only by a top-level SimdLib
 build. The root CMake boundary does not load development modules for
 `add_subdirectory` consumers, and the external-consumer contract fails if a
 coverage option, instrumented test, or report target leaks downstream.
+
+## Diagnostic runners and cleanup
+
+`Run-NativeMatrix.ps1` and `Run-ContainerMatrix.ps1` are lower-level diagnostic
+and CI implementation interfaces. Normal repository builds use `Build.ps1`,
+`Run-Tests.ps1`, and `Run-Benchmarks.ps1`; the lower-level scripts do not define
+additional mandatory modes.
+
+Container images and selected Linux fingerprint roots can be removed with:
+
+```powershell
+tools/Run-ContainerMatrix.ps1 -Action Clean
+tools/Run-ContainerMatrix.ps1 -Action Clean -Compiler Clang22
+```
+
+All pipeline output is generated below the ignored `out/pipeline` directory.
+When no pipeline command is running, removing that directory discards every
+native and container fingerprint, report, log, and receipt without touching
+source files. A later `Build.ps1` invocation recreates only its selected scope.
+
+Pre-release option and mode names have no compatibility aliases. Supplying a
+retired CMake option is a configuration error with a replacement diagnostic;
+the PowerShell commands accept only the canonical action, scope, compiler, and
+cell vocabulary documented here.
