@@ -21,6 +21,10 @@ endfunction()
 if(SIMDLIB_BUILD_CONSTEXPR_PROBES)
 	set(simdlib_constexpr_targets "")
 
+	simdlib_add_constexpr_probe(LogicalShuffleOracleConstexprProbe
+		tests/constexpr/LogicalShuffleOracle.tests.cpp)
+	list(APPEND simdlib_constexpr_targets LogicalShuffleOracleConstexprProbe)
+
 	# @brief Adds one BMI feature-macro compile profile.
 	# @param profile_name Profile suffix used in the target name.
 	# @param bmi1 Whether BMI1 declarations are enabled.

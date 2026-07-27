@@ -1,5 +1,7 @@
 #pragma once
 
+#include "../LogicalShuffleTestSupport.h"
+
 #include <SimdLib/Api.h>
 #include <SimdLib/SimdVector.h>
 
@@ -15,6 +17,50 @@
 
 namespace SimdLib::Tests::Constexpr
 {
+
+/**
+ * @brief Expands one logical selector array into an Api shuffle during constant evaluation.
+ * @tparam api_t Api specialization under test.
+ * @tparam selectors Logical source-lane selectors.
+ * @tparam positions Output lane positions.
+ * @param value Source native register.
+ * @return Constant-evaluated shuffled native register.
+ */
+template <class api_t, auto selectors, std::size_t... positions>
+[[nodiscard]] constexpr auto logical_shuffle_value(typename api_t::vector_t value, std::index_sequence<positions...>) noexcept
+{
+	return api_t::template shuffle<selectors[positions]...>(value);
+}
+
+/**
+ * @brief Verifies one constant-evaluated Api shuffle against the scalar oracle.
+ * @tparam Width SIMD register width in bits.
+ * @tparam Element Logical lane type.
+ * @tparam selectors Logical source-lane selectors.
+ * @return True when every result lane preserves the oracle's object representation.
+ */
+template <std::size_t Width, class Element, auto selectors> [[nodiscard]] consteval bool logical_shuffle_case() noexcept
+{
+	using api_t = Api<Width, Element>;
+	constexpr auto source = LogicalShuffle::distinct_lanes<Element, Width>();
+	constexpr auto actual =
+		api_t::to_array(logical_shuffle_value<api_t, selectors>(api_t::construct(source), std::make_index_sequence<api_t::element_count>{}));
+	constexpr auto expected = LogicalShuffle::logical_shuffle_oracle<Element, Width, selectors>(source);
+	return LogicalShuffle::same_object_representations(actual, expected);
+}
+
+/**
+ * @brief Verifies nonidentity and repeated-selector constexpr logical shuffles.
+ * @tparam Width SIMD register width in bits.
+ * @tparam Element Logical lane type.
+ * @return True when both independent scalar-oracle comparisons succeed.
+ */
+template <std::size_t Width, class Element> [[nodiscard]] consteval bool logical_shuffle_contract() noexcept
+{
+	return logical_shuffle_case<Width, Element, LogicalShuffle::reverse_selectors<Element, Width>()>() &&
+		   logical_shuffle_case<Width, Element, LogicalShuffle::repeated_selectors<Element, Width>()>();
+}
+
 /**
  * @brief Creates a deterministic lane sequence for constexpr API contracts.
  * @tparam Width SIMD register width in bits.

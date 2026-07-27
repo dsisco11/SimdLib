@@ -1,3 +1,5 @@
+#include "../LogicalShuffleTestSupport.h"
+
 #include <SimdLib/Register.h>
 
 #include <array>
@@ -18,6 +20,49 @@ template <class... element_types> struct register_element_types
 
 using supported_register_element_types =
 	register_element_types<std::int8_t, std::uint8_t, std::int16_t, std::uint16_t, std::int32_t, std::uint32_t, std::int64_t, std::uint64_t, float, double>;
+
+/**
+ * @brief Expands one logical selector array into a Register shuffle during constant evaluation.
+ * @tparam register_t Register specialization under test.
+ * @tparam selectors Logical source-lane selectors.
+ * @tparam positions Output lane positions.
+ * @param value Source Register.
+ * @return Constant-evaluated shuffled Register.
+ */
+template <class register_t, auto selectors, std::size_t... positions>
+[[nodiscard]] consteval register_t register_logical_shuffle_value(register_t value, std::index_sequence<positions...>) noexcept
+{
+	return value.template shuffle<selectors[positions]...>();
+}
+
+/**
+ * @brief Verifies one constant-evaluated Register shuffle against the scalar oracle.
+ * @tparam element_t Logical lane type.
+ * @tparam bits Register width in bits.
+ * @tparam selectors Logical source-lane selectors.
+ * @return True when every result lane preserves the oracle's object representation.
+ */
+template <class element_t, std::size_t bits, auto selectors> [[nodiscard]] consteval bool register_logical_shuffle_case() noexcept
+{
+	using register_t = SimdLib::Register<element_t, bits>;
+	constexpr auto source = SimdLib::Tests::LogicalShuffle::distinct_lanes<element_t, bits>();
+	constexpr auto actual =
+		register_logical_shuffle_value<register_t, selectors>(register_t::from_array(source), std::make_index_sequence<register_t::lane_count>{}).to_array();
+	constexpr auto expected = SimdLib::Tests::LogicalShuffle::logical_shuffle_oracle<element_t, bits, selectors>(source);
+	return SimdLib::Tests::LogicalShuffle::same_object_representations(actual, expected);
+}
+
+/**
+ * @brief Verifies nonidentity and repeated-selector constexpr Register shuffles.
+ * @tparam element_t Logical lane type.
+ * @tparam bits Register width in bits.
+ * @return True when both independent scalar-oracle comparisons succeed.
+ */
+template <class element_t, std::size_t bits> [[nodiscard]] consteval bool register_logical_shuffle_contract() noexcept
+{
+	return register_logical_shuffle_case<element_t, bits, SimdLib::Tests::LogicalShuffle::reverse_selectors<element_t, bits>()>() &&
+		   register_logical_shuffle_case<element_t, bits, SimdLib::Tests::LogicalShuffle::repeated_selectors<element_t, bits>()>();
+}
 
 /** @brief Constructs a register from an expanded compile-time lane array. */
 template <class register_t, std::size_t... indices>
@@ -401,6 +446,22 @@ SIMDLIB_ASSERT_REGISTER_SHIFT_CONSTEXPR(std::int64_t);
 SIMDLIB_ASSERT_REGISTER_SHIFT_CONSTEXPR(std::uint64_t);
 
 #undef SIMDLIB_ASSERT_REGISTER_SHIFT_CONSTEXPR
+
+#define SIMDLIB_ASSERT_REGISTER_LOGICAL_SHUFFLE_CONSTEXPR(element_type)                                                                                        \
+	static_assert(register_logical_shuffle_contract<element_type, SIMDLIB_REGISTER_TEST_WIDTH>())
+
+SIMDLIB_ASSERT_REGISTER_LOGICAL_SHUFFLE_CONSTEXPR(std::int8_t);
+SIMDLIB_ASSERT_REGISTER_LOGICAL_SHUFFLE_CONSTEXPR(std::uint8_t);
+SIMDLIB_ASSERT_REGISTER_LOGICAL_SHUFFLE_CONSTEXPR(std::int16_t);
+SIMDLIB_ASSERT_REGISTER_LOGICAL_SHUFFLE_CONSTEXPR(std::uint16_t);
+SIMDLIB_ASSERT_REGISTER_LOGICAL_SHUFFLE_CONSTEXPR(std::int32_t);
+SIMDLIB_ASSERT_REGISTER_LOGICAL_SHUFFLE_CONSTEXPR(std::uint32_t);
+SIMDLIB_ASSERT_REGISTER_LOGICAL_SHUFFLE_CONSTEXPR(std::int64_t);
+SIMDLIB_ASSERT_REGISTER_LOGICAL_SHUFFLE_CONSTEXPR(std::uint64_t);
+SIMDLIB_ASSERT_REGISTER_LOGICAL_SHUFFLE_CONSTEXPR(float);
+SIMDLIB_ASSERT_REGISTER_LOGICAL_SHUFFLE_CONSTEXPR(double);
+
+#undef SIMDLIB_ASSERT_REGISTER_LOGICAL_SHUFFLE_CONSTEXPR
 
 static_assert(register_complete_shift_constexpr_contract());
 static_assert(register_rearrangement_conversion_constexpr_contract<SIMDLIB_REGISTER_TEST_WIDTH>());

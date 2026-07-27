@@ -47,6 +47,7 @@ if(SIMDLIB_BUILD_RUNTIME_TESTS)
 			tests/RegisterBasicOperations.tests.cpp
 			tests/RegisterSpecializedOperations.tests.cpp
 			tests/RegisterRearrangementConversion.tests.cpp
+			tests/LogicalShuffleRegister.tests.cpp
 			tests/RegisterOperationMatrix.tests.cpp)
 		target_link_libraries(RegisterAvx2Tests PRIVATE SimdLib::Register)
 		target_compile_definitions(RegisterAvx2Tests PRIVATE
@@ -59,6 +60,7 @@ if(SIMDLIB_BUILD_RUNTIME_TESTS)
 			tests/RegisterBasicOperations.tests.cpp
 			tests/RegisterSpecializedOperations.tests.cpp
 			tests/RegisterRearrangementConversion.tests.cpp
+			tests/LogicalShuffleRegister.tests.cpp
 			tests/RegisterOperationMatrix.tests.cpp)
 		target_link_libraries(RegisterSse42Tests PRIVATE SimdLib::Register)
 		target_compile_definitions(RegisterSse42Tests PRIVATE
@@ -117,6 +119,9 @@ if(SIMDLIB_BUILD_RUNTIME_TESTS)
     if(SIMDLIB_BUILD_API_SSE42_TESTS)
         simdlib_add_catch_test(ApiSse42Tests tests/Api128.tests.cpp
             Api.SSE42 "SSE42")
+		target_sources(ApiSse42Tests PRIVATE tests/LogicalShuffleApi.tests.cpp)
+		target_compile_definitions(ApiSse42Tests PRIVATE
+			SIMDLIB_LOGICAL_SHUFFLE_TEST_WIDTH=128)
 		if(SIMDLIB_MSVC_STYLE_DRIVER)
 			target_compile_definitions(ApiSse42Tests PRIVATE
 				SIMDLIB_HAS_SSE3=1 SIMDLIB_HAS_SSSE3=1 SIMDLIB_HAS_SSE41=1 SIMDLIB_HAS_SSE42=1)
@@ -182,6 +187,9 @@ if(SIMDLIB_BUILD_RUNTIME_TESTS)
     if(SIMDLIB_BUILD_API_AVX2_TESTS)
         simdlib_add_catch_test(ApiAvx2Tests tests/Api256.tests.cpp
             Api.AVX2 "AVX2")
+		target_sources(ApiAvx2Tests PRIVATE tests/LogicalShuffleApi.tests.cpp)
+		target_compile_definitions(ApiAvx2Tests PRIVATE
+			SIMDLIB_LOGICAL_SHUFFLE_TEST_WIDTH=256)
 		if(SIMDLIB_MSVC_STYLE_DRIVER)
             target_compile_options(ApiAvx2Tests PRIVATE /arch:AVX2)
         else()

@@ -63,20 +63,36 @@ Logical Shuffle Element-Type Support Plan:
       - Five already-built clang-cl Release shuffle tests passed execution-only without rebuilding targets.
 
   Phase 1 - Establish Independent Behavioral and Constraint Oracles:
-    ☐ Add a scalar logical-shuffle oracle parameterized by element type, register width, and selector sequence.
-    ☐ Compare floating-point results by object representation rather than scalar equality so NaN payloads and signed zero remain observable.
-    ☐ Add runtime `Api` tests for all ten element types at 128 and 256 bits.
-    ☐ Cover identity, complete reversal within each 128-bit group, first-lane broadcast, last-lane broadcast, repeated selectors, pair swaps, and rotations.
-    ☐ For every 256-bit type, include a case whose upper 128-bit group uses a different permutation from its lower group.
-    ☐ Use lane values with unique bit patterns so byte-order mistakes, partial-lane reconstruction, signedness mistakes, and group aliasing cannot pass accidentally.
-    ☐ Add runtime `Register` tests using the independent scalar oracle for all compiler-supported Register type and width combinations.
-    ☐ Add constexpr contracts for every element type and both widths, including at least one nonidentity and one repeated-selector result.
-    ☐ Update availability assertions so `IApi::Shuffle` and `IRegister::Shuffle` are required for every supported element type and width.
-    ☐ Add negative concept and compile-failure coverage for too few selectors, too many selectors, an out-of-range selector, and a 256-bit selector crossing a 128-bit group.
-    ☐ Exercise those rejection contracts at the controlling `Api` layer and through the forwarding `Register` layer.
-    ☐ Exercise invalid-selector constraints for representative 8-, 16-, 32-, and 64-bit lane counts and for a floating-point specialization.
-    ☐ Keep invalid calls rejected during overload resolution rather than by a function-body assertion.
-    ☐ End Phase 1 only when the desired result and rejection matrices are independent from both `Api` and `Register` implementations.
+    ☑ Add a scalar logical-shuffle oracle parameterized by element type, register width, and selector sequence.
+    ☑ Compare floating-point results by object representation rather than scalar equality so NaN payloads and signed zero remain observable.
+    ☑ Add runtime `Api` tests for all ten element types at 128 and 256 bits.
+    ☑ Cover identity, complete reversal within each 128-bit group, first-lane broadcast, last-lane broadcast, repeated selectors, pair swaps, and rotations.
+    ☑ For every 256-bit type, include a case whose upper 128-bit group uses a different permutation from its lower group.
+    ☑ Use lane values with unique bit patterns so byte-order mistakes, partial-lane reconstruction, signedness mistakes, and group aliasing cannot pass accidentally.
+    ☑ Add runtime `Register` tests using the independent scalar oracle for all compiler-supported Register type and width combinations.
+    ☑ Add constexpr contracts for every element type and both widths, including at least one nonidentity and one repeated-selector result.
+    ☑ Update availability assertions so `IApi::Shuffle` and `IRegister::Shuffle` are required for every supported element type and width.
+    ☑ Add negative concept and compile-failure coverage for too few selectors, too many selectors, an out-of-range selector, and a 256-bit selector crossing a 128-bit group.
+    ☑ Exercise those rejection contracts at the controlling `Api` layer and through the forwarding `Register` layer.
+    ☑ Exercise invalid-selector constraints for representative 8-, 16-, 32-, and 64-bit lane counts and for a floating-point specialization.
+    ☑ Keep invalid calls rejected during overload resolution rather than by a function-body assertion.
+    ☑ End Phase 1 only when the desired result and rejection matrices are independent from both `Api` and `Register` implementations.
+
+    Oracle and Desired-Contract Record:
+      - `LogicalShuffleTestSupport.h` owns the scalar oracle, selector generators, deterministic object-representation inputs, and bitwise lane comparison without including or calling `Api` or `Register`.
+      - Integer lanes use unique nonuniform byte patterns. Floating lanes include positive zero, negative zero, multiple NaN payloads, finite values, a subnormal, and infinity where the lane count permits.
+      - `LogicalShuffleOracle.tests.cpp` independently validates all selector generators and scalar results for every element type and both widths. Its 256-bit checks prove lower-group identity and upper-group reversal remain distinct and group-local.
+      - `LogicalShuffleApi.tests.cpp` and `LogicalShuffleRegister.tests.cpp` apply identity, group reversal, first- and last-lane broadcasts, repeated selectors, pair swaps, rotations, and the distinct-group pattern to every desired type/width cell.
+      - `Api128Constexpr.tests.cpp`, `Api256Constexpr.tests.cpp`, and `RegisterConstexpr.tests.cpp` require reversal and repeated-selector results for all ten types at each configured width.
+      - Availability assertions require complete identity selector packs through `IApi::Shuffle` and `IRegister::Shuffle`; the stale 16-bit unavailability assertion was removed.
+      - Api and Register compile-failure probes independently cover too few byte selectors, too many 16-bit selectors, out-of-range 32- and 64-bit selectors, and a cross-group 256-bit floating selector.
+      - Every invalid call is placed in a `requires` expression. The probes fail only after all invalid expressions are absent from overload resolution, preserving constraint-based diagnostics.
+
+    Focused Validation:
+      - The independent oracle compiled with strict warnings under pinned GCC 13.2.1, GCC 14.2.0, and Clang 22.1.3 in C++20 mode.
+      - All four Api/Register selector compile-failure probes reproduced their exact diagnostic markers with Clang 22.
+      - A focused Clang 22 CMake configure generated the runtime and constexpr targets with unrelated configuration probes disabled. The first ad hoc configure with those probes enabled stopped in the pre-existing `RegisterPartialLaneListFailure` harness before reaching these targets.
+      - The Api and Register constexpr desired matrices were compiled as expected-red contracts and stopped at the current 16-bit logical-shuffle availability boundary. Runtime and constexpr result execution remains assigned to the backend implementation sections.
 
   Phase 2 - Implement the 128-Bit Backends:
     ☐ Add an explicit compile-time logical shuffle method to each `SimdImpl128<T>` specialization.

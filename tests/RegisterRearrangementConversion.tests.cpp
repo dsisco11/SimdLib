@@ -34,7 +34,7 @@ template <class register_t> [[nodiscard]] constexpr std::array<typename register
 	return result;
 }
 
-/** @brief Reports whether a byte Register accepts its complete identity selector list. */
+/** @brief Reports whether a Register accepts its complete logical identity selector list. */
 template <class register_t> [[nodiscard]] consteval bool has_complete_shuffle() noexcept
 {
 	return []<std::size_t... indices>(std::index_sequence<indices...>) consteval
@@ -155,7 +155,7 @@ static_assert(has_complete_shuffle<I8x128>());
 #if SIMDLIB_REGISTER_TEST_ENABLE_256
 static_assert(has_complete_shuffle<U8x256>());
 #endif
-static_assert(!has_complete_shuffle<I16x128>());
+static_assert(has_complete_shuffle<I16x128>());
 static_assert(SimdLib::IRegister::ShuffleLow<I16x128, 0> && SimdLib::IRegister::ShuffleHigh<U16x128, 255>);
 static_assert(!SimdLib::IRegister::ShuffleLow<I32x128, 0>);
 static_assert(SimdLib::IRegister::Blend<I16x128, 0> && SimdLib::IRegister::Blend<U32x128, 255> && SimdLib::IRegister::Blend<F32x128, 0> &&

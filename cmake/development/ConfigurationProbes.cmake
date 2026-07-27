@@ -89,6 +89,8 @@ if(SIMDLIB_BUILD_CONFIGURATION_PROBES)
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/RegisterUninitialized.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/RegisterInvalidShuffleSelector.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/RegisterWrongShuffleSelectorCount.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/api/ApiInvalidShuffleSelector.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/api/ApiWrongShuffleSelectorCount.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/RegisterInvalidRearrangementImmediate.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/RegisterUnsupportedConversionTarget.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/RegisterUnavailableWidthChange.cpp
@@ -176,6 +178,12 @@ if(SIMDLIB_BUILD_CONFIGURATION_PROBES)
 	simdlib_expect_language_probe_failure(RegisterAvailabilityOverrideFailure
 		tests/compile_fail/register/RegisterAvailabilityOverride.cpp 20
 		SIMDLIB_REGISTER_INTERFACE_AVAILABILITY_IS_COMPUTED)
+	simdlib_expect_language_probe_failure(ApiInvalidShuffleSelectorFailure
+		tests/compile_fail/api/ApiInvalidShuffleSelector.cpp 20
+		SIMDLIB_API_REJECTS_INVALID_SHUFFLE_SELECTOR)
+	simdlib_expect_language_probe_failure(ApiWrongShuffleSelectorCountFailure
+		tests/compile_fail/api/ApiWrongShuffleSelectorCount.cpp 20
+		SIMDLIB_API_REJECTS_WRONG_SHUFFLE_SELECTOR_COUNT)
 	if(NOT SIMDLIB_REGISTER_COMPILER_SUPPORTED)
 		simdlib_expect_language_probe_failure(RegisterUnsupportedCompilerFailure
 			tests/compile_fail/register/RegisterUnsupportedCompiler.cpp 23

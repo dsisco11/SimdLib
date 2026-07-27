@@ -63,4 +63,15 @@ static_assert(lane_shift_contract<256, std::int32_t>());
 static_assert(lane_shift_contract<256, std::uint32_t>());
 static_assert(lane_shift_contract<256, std::int64_t>());
 static_assert(lane_shift_contract<256, std::uint64_t>());
+static_assert(logical_shuffle_contract<256, std::int8_t>());
+static_assert(logical_shuffle_contract<256, std::uint8_t>());
+static_assert(logical_shuffle_contract<256, std::int16_t>());
+static_assert(logical_shuffle_contract<256, std::uint16_t>());
+static_assert(logical_shuffle_contract<256, std::int32_t>());
+static_assert(logical_shuffle_contract<256, std::uint32_t>());
+static_assert(logical_shuffle_contract<256, std::int64_t>());
+static_assert(logical_shuffle_contract<256, std::uint64_t>());
+static_assert(logical_shuffle_contract<256, float>());
+static_assert(logical_shuffle_contract<256, double>());
+
 static_assert(simd_vector_contract<8>());
