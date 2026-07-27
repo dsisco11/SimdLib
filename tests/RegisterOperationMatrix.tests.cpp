@@ -24,6 +24,12 @@ template <class api_t, std::size_t... indices> [[nodiscard]] consteval bool has_
 	return SimdLib::IApi::Shuffle<api_t, indices...>;
 }
 
+/** @brief Reports whether a Register exposes a complete identity byte shuffle. */
+template <class register_t, std::size_t... indices> [[nodiscard]] consteval bool has_identity_byte_shuffle(std::index_sequence<indices...>) noexcept
+{
+	return SimdLib::IRegister::ShuffleBytes<register_t, indices...>;
+}
+
 /** @brief Audits every public Register and RegisterMask declaration for one supported element/width cell. */
 template <class element_t, std::size_t bits> [[nodiscard]] consteval bool has_complete_surface() noexcept
 {
@@ -99,6 +105,8 @@ template <class element_t, std::size_t bits> [[nodiscard]] consteval bool has_co
 	constexpr bool unpack_high = SimdLib::IRegister::UnpackHigh<register_t> == SimdLib::IApi::UnpackHigh<api_t>;
 	constexpr bool logical_shuffle = has_identity_shuffle<register_t>(std::make_index_sequence<register_t::lane_count>{}) ==
 									 has_identity_api_shuffle<api_t>(std::make_index_sequence<register_t::lane_count>{});
+	constexpr bool byte_shuffle = has_identity_byte_shuffle<register_t>(std::make_index_sequence<register_t::byte_count>{}) ==
+								  has_identity_api_shuffle<SimdLib::Api<bits, std::uint8_t>>(std::make_index_sequence<register_t::byte_count>{});
 	constexpr bool shuffle_low = SimdLib::IRegister::ShuffleLow<register_t, 0> == SimdLib::IApi::ShuffleLow<api_t, 0>;
 	constexpr bool shuffle_high = SimdLib::IRegister::ShuffleHigh<register_t, 0> == SimdLib::IApi::ShuffleHigh<api_t, 0>;
 	constexpr bool blend = SimdLib::IRegister::Blend<register_t, 0> == SimdLib::IApi::Blend<api_t, 0>;
@@ -113,6 +121,7 @@ template <class element_t, std::size_t bits> [[nodiscard]] consteval bool has_co
 	static_assert(unpack_low);
 	static_assert(unpack_high);
 	static_assert(logical_shuffle);
+	static_assert(byte_shuffle);
 	static_assert(shuffle_low);
 	static_assert(shuffle_high);
 	static_assert(blend);

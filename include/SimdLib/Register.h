@@ -13,6 +13,7 @@
 #include <array>
 #include <concepts>
 #include <cstddef>
+#include <cstdint>
 #include <span>
 #include <utility>
 
@@ -972,6 +973,22 @@ class Register final
 	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr Register VECTORCALL shuffle(this Register value) noexcept
 	{
 		return Register{api_type::template shuffle<indices...>(value.native)};
+	}
+
+	/** @brief Rearranges the complete register as a sequence of bytes.
+	 *  @tparam indices One source-byte index for every result byte.
+	 *  @param value Source register.
+	 *  @return Register containing the selected bytes while retaining its original element type.
+	 *  @note Every selector may name any byte in the complete source register, including across the 128-bit boundary of a 256-bit register.
+	 */
+	template <std::size_t... indices>
+		requires IApi::Shuffle<Api<register_width, std::uint8_t>, indices...>
+	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr Register VECTORCALL shuffle_bytes(this Register value) noexcept
+	{
+		using byte_api_type = Api<register_width, std::uint8_t>;
+		const auto bytes = api_type::template bit_cast<std::uint8_t>(value.native);
+		const auto shuffled = byte_api_type::template shuffle<indices...>(bytes);
+		return Register{byte_api_type::template bit_cast<element_type>(shuffled)};
 	}
 
 	/** @brief Shuffles the low four 16-bit lanes in each 128-bit group.

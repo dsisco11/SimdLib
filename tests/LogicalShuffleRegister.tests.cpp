@@ -33,6 +33,20 @@ template <class register_t, auto selectors, std::size_t... positions>
 }
 
 /**
+ * @brief Invokes one Register byte shuffle by expanding a selector array.
+ * @tparam register_t Register specialization under test.
+ * @tparam selectors Source-byte selectors.
+ * @tparam positions Output byte positions.
+ * @param value Source Register.
+ * @return Register returned by the byte shuffle.
+ */
+template <class register_t, auto selectors, std::size_t... positions>
+[[nodiscard]] register_t invoke_register_byte_shuffle(register_t value, std::index_sequence<positions...>) noexcept
+{
+	return value.template shuffle_bytes<selectors[positions]...>();
+}
+
+/**
  * @brief Reports whether one Register exposes a complete logical selector sequence.
  * @tparam register_t Register specialization under test.
  * @tparam selectors Logical source-lane selectors.
@@ -43,6 +57,19 @@ template <class register_t, auto selectors, std::size_t... positions>
 [[nodiscard]] consteval bool register_accepts_shuffle_impl(std::index_sequence<positions...>) noexcept
 {
 	return SimdLib::IRegister::Shuffle<register_t, selectors[positions]...>;
+}
+
+/**
+ * @brief Reports whether one Register exposes a complete byte selector sequence.
+ * @tparam register_t Register specialization under test.
+ * @tparam selectors Source-byte selectors.
+ * @tparam positions Output byte positions.
+ * @return True when the selector-pack member participates in overload resolution.
+ */
+template <class register_t, auto selectors, std::size_t... positions>
+[[nodiscard]] consteval bool register_accepts_byte_shuffle_impl(std::index_sequence<positions...>) noexcept
+{
+	return SimdLib::IRegister::ShuffleBytes<register_t, selectors[positions]...>;
 }
 
 /**
@@ -59,6 +86,19 @@ template <class element_t, std::size_t bits> [[nodiscard]] consteval bool regist
 }
 
 /**
+ * @brief Reports whether one Register exposes its complete identity byte shuffle.
+ * @tparam element_t Logical lane type retained by the result.
+ * @tparam bits Register width in bits.
+ * @return True when one selector is accepted for every byte.
+ */
+template <class element_t, std::size_t bits> [[nodiscard]] consteval bool register_accepts_identity_byte_shuffle() noexcept
+{
+	using register_t = SimdLib::Register<element_t, bits>;
+	constexpr auto selectors = identity_selectors<std::uint8_t, bits>();
+	return register_accepts_byte_shuffle_impl<register_t, selectors>(std::make_index_sequence<register_t::byte_count>{});
+}
+
+/**
  * @brief Compares one Register shuffle result against the independent scalar oracle.
  * @tparam element_t Logical lane type.
  * @tparam bits Register width in bits.
@@ -72,6 +112,24 @@ template <class element_t, std::size_t bits, auto selectors> void require_regist
 		invoke_register_shuffle<register_t, selectors>(register_t::from_array(source), std::make_index_sequence<register_t::lane_count>{}).to_array();
 	constexpr auto expected = logical_shuffle_oracle<element_t, bits, selectors>(source);
 	REQUIRE(same_object_representations(actual, expected));
+}
+
+/**
+ * @brief Compares one Register byte shuffle against an independent byte-array oracle.
+ * @tparam element_t Logical lane type retained by the result.
+ * @tparam bits Register width in bits.
+ * @tparam selectors Source-byte selectors.
+ */
+template <class element_t, std::size_t bits, auto selectors> void require_register_byte_shuffle() noexcept
+{
+	using register_t = SimdLib::Register<element_t, bits>;
+	constexpr auto source = distinct_lanes<element_t, bits>();
+	const auto actual_register =
+		invoke_register_byte_shuffle<register_t, selectors>(register_t::from_array(source), std::make_index_sequence<register_t::byte_count>{});
+	const auto actual = std::bit_cast<std::array<std::uint8_t, register_t::byte_count>>(actual_register.to_array());
+	constexpr auto source_bytes = std::bit_cast<std::array<std::uint8_t, register_t::byte_count>>(source);
+	constexpr auto expected = logical_shuffle_oracle<std::uint8_t, bits, selectors>(source_bytes);
+	REQUIRE(actual == expected);
 }
 
 /**
@@ -97,6 +155,20 @@ template <class element_t, std::size_t bits> void require_register_shuffle_suite
 	}
 }
 
+/** @brief Exercises representative local and cross-half byte selector patterns for one Register shape. */
+template <class element_t, std::size_t bits> void require_register_byte_shuffle_suite() noexcept
+{
+	require_register_byte_shuffle<element_t, bits, identity_selectors<std::uint8_t, bits>()>();
+	require_register_byte_shuffle<element_t, bits, reverse_selectors<std::uint8_t, bits>()>();
+	require_register_byte_shuffle<element_t, bits, pair_swap_selectors<std::uint8_t, bits>()>();
+	if constexpr (bits == 256)
+	{
+		require_register_byte_shuffle<element_t, bits, swap_half_selectors<std::uint8_t>()>();
+		require_register_byte_shuffle<element_t, bits, mixed_half_selectors<std::uint8_t>()>();
+		require_register_byte_shuffle<element_t, bits, full_reverse_selectors<std::uint8_t>()>();
+	}
+}
+
 static_assert(register_accepts_identity_shuffle<std::int8_t, 128>());
 static_assert(register_accepts_identity_shuffle<std::uint8_t, 128>());
 static_assert(register_accepts_identity_shuffle<std::int16_t, 128>());
@@ -107,6 +179,8 @@ static_assert(register_accepts_identity_shuffle<std::int64_t, 128>());
 static_assert(register_accepts_identity_shuffle<std::uint64_t, 128>());
 static_assert(register_accepts_identity_shuffle<float, 128>());
 static_assert(register_accepts_identity_shuffle<double, 128>());
+static_assert(register_accepts_identity_byte_shuffle<std::int32_t, 128>());
+static_assert(register_accepts_identity_byte_shuffle<float, 128>());
 
 #if SIMDLIB_REGISTER_TEST_ENABLE_256
 static_assert(register_accepts_identity_shuffle<std::int8_t, 256>());
@@ -118,6 +192,8 @@ static_assert(register_accepts_identity_shuffle<std::uint32_t, 256>());
 static_assert(register_accepts_identity_shuffle<std::int64_t, 256>());
 static_assert(register_accepts_identity_shuffle<std::uint64_t, 256>());
 static_assert(register_accepts_identity_shuffle<float, 256>());
+static_assert(register_accepts_identity_byte_shuffle<std::int32_t, 256>());
+static_assert(register_accepts_identity_byte_shuffle<double, 256>());
 static_assert(register_accepts_identity_shuffle<double, 256>());
 #endif
 
@@ -144,6 +220,16 @@ TEST_CASE("Register logical shuffle matches an independent object-representation
 	require_register_shuffle_suite<std::uint64_t, 256>();
 	require_register_shuffle_suite<float, 256>();
 	require_register_shuffle_suite<double, 256>();
+#endif
+}
+
+TEST_CASE("Register byte shuffle preserves the element type while selecting complete-register bytes", "[simdlib][register][logical-shuffle]")
+{
+	require_register_byte_shuffle_suite<std::int32_t, 128>();
+	require_register_byte_shuffle_suite<float, 128>();
+#if SIMDLIB_REGISTER_TEST_ENABLE_256
+	require_register_byte_shuffle_suite<std::uint16_t, 256>();
+	require_register_byte_shuffle_suite<double, 256>();
 #endif
 }
 

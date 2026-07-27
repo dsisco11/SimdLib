@@ -436,6 +436,12 @@ concept Shuffle = Type<register_t> && requires(register_t value) {
 	{ value.template shuffle<indices...>() } -> std::same_as<register_t>;
 };
 
+/** @brief Reports whether a Register accepts one compile-time byte selector sequence. */
+template <class register_t, std::size_t... indices>
+concept ShuffleBytes = Type<register_t> && requires(register_t value) {
+	{ value.template shuffle_bytes<indices...>() } -> std::same_as<register_t>;
+};
+
 /** @brief Reports whether a Register exposes an immediate-controlled low-half shuffle. */
 template <class register_t, int immediate>
 concept ShuffleLow = Type<register_t> && requires(register_t value) {

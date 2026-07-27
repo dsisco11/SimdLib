@@ -38,6 +38,7 @@ static_assert(!SimdLib::IRegister::UnpackLow<RegisterShape>);
 static_assert(!SimdLib::IRegister::UnpackHigh<RegisterShape>);
 static_assert(!SimdLib::IRegister::Shuffle<RegisterShape, 0>);
 static_assert(!SimdLib::IRegister::ShuffleLow<RegisterShape, 0>);
+static_assert(!SimdLib::IRegister::ShuffleBytes<RegisterShape, 0>);
 static_assert(!SimdLib::IRegister::ShuffleHigh<RegisterShape, 0>);
 static_assert(!SimdLib::IRegister::Blend<RegisterShape, 0>);
 static_assert(!SimdLib::IRegister::BitCast<RegisterShape, float>);

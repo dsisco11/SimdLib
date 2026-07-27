@@ -39,6 +39,8 @@ template <class element_t, std::size_t bits = SIMDLIB_REGISTER_TEST_WIDTH> using
 #define SIMDLIB_REARRANGE_WIDEN(source_type, target_type, target_bits, value)                                                                                  \
 	(SimdLib::Register<source_type, 128>{value}.template widen_low<target_type, target_bits>().native)
 #define SIMDLIB_REARRANGE_LOGICAL_SHUFFLE(type, value, ...) (SimdLib::Register<type, SIMDLIB_REGISTER_TEST_WIDTH>{value}.template shuffle<__VA_ARGS__>().native)
+#define SIMDLIB_REARRANGE_BYTE_SHUFFLE(type, value, ...)                                                                                                       \
+	(SimdLib::Register<type, SIMDLIB_REGISTER_TEST_WIDTH>{value}.template shuffle_bytes<__VA_ARGS__>().native)
 #else
 #define SIMDLIB_REARRANGE_UNARY(type, member, api, value) (SimdLib::Api<SIMDLIB_REGISTER_TEST_WIDTH, type>::api(value))
 #define SIMDLIB_REARRANGE_BINARY(type, member, api, lhs, rhs) (SimdLib::Api<SIMDLIB_REGISTER_TEST_WIDTH, type>::api(lhs, rhs))
@@ -53,6 +55,10 @@ template <class element_t, std::size_t bits = SIMDLIB_REGISTER_TEST_WIDTH> using
 #define SIMDLIB_REARRANGE_WIDEN(source_type, target_type, target_bits, value)                                                                                  \
 	(SimdLib::Api<128, source_type>::template widen<SimdLib::Api<target_bits, target_type>>(value))
 #define SIMDLIB_REARRANGE_LOGICAL_SHUFFLE(type, value, ...) (SimdLib::Api<SIMDLIB_REGISTER_TEST_WIDTH, type>::template shuffle<__VA_ARGS__>(value))
+#define SIMDLIB_REARRANGE_BYTE_SHUFFLE(type, value, ...)                                                                                                       \
+	(SimdLib::Api<SIMDLIB_REGISTER_TEST_WIDTH, std::uint8_t>::template bit_cast<type>(                                                                         \
+		SimdLib::Api<SIMDLIB_REGISTER_TEST_WIDTH, std::uint8_t>::template shuffle<__VA_ARGS__>(                                                                \
+			SimdLib::Api<SIMDLIB_REGISTER_TEST_WIDTH, type>::template bit_cast<std::uint8_t>(value))))
 #endif
 
 #define SIMDLIB_DEFINE_REARRANGE_UNARY(operation, token, type, member, api)                                                                                    \
@@ -161,6 +167,25 @@ SIMDLIB_DEFINE_LOWER(f64, double)
 #undef SIMDLIB_DEFINE_LOWER
 #endif
 
+#define SIMDLIB_DEFINE_BYTE_SHUFFLE(token, type, ...)                                                                                                          \
+	/** @brief Compares one complete byte shuffle wrapper against its direct Api expression. */                                                                \
+	SIMDLIB_REGISTER_ONLY SIMDLIB_REARRANGEMENT_CODEGEN_NOINLINE SimdLibRearrangementCodegen::native_t<type> VECTORCALL                                        \
+	simdlib_rearrangement_codegen_byte_shuffle_##token(SimdLibRearrangementCodegen::native_t<type> value) noexcept                                             \
+	{                                                                                                                                                          \
+		return SIMDLIB_REARRANGE_BYTE_SHUFFLE(type, value, __VA_ARGS__);                                                                                       \
+	}
+
+#if SIMDLIB_REGISTER_TEST_WIDTH == 128
+SIMDLIB_DEFINE_BYTE_SHUFFLE(i32, std::int32_t, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0)
+#else
+SIMDLIB_DEFINE_BYTE_SHUFFLE(i32_local, std::int32_t, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19,
+							18, 17, 16)
+SIMDLIB_DEFINE_BYTE_SHUFFLE(i32_cross, std::int32_t, 31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4,
+							3, 2, 1, 0)
+SIMDLIB_DEFINE_BYTE_SHUFFLE(i32_mixed, std::int32_t, 16, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28,
+							29, 30, 31)
+#endif
+
 #define SIMDLIB_DEFINE_BIT_CAST(source_token, source_type, target_token, target_type)                                                                          \
 	/** @brief Compares one full-width bit reinterpretation wrapper against its Api expression. */                                                             \
 	SIMDLIB_REGISTER_ONLY SIMDLIB_REARRANGEMENT_CODEGEN_NOINLINE SimdLibRearrangementCodegen::native_t<target_type> VECTORCALL                                 \
@@ -240,7 +265,9 @@ SIMDLIB_DEFINE_WIDEN_WIDTHS(u32, std::uint32_t, u64, std::uint64_t)
 #undef SIMDLIB_DEFINE_REARRANGE_BINARY
 #undef SIMDLIB_DEFINE_REARRANGE_UNARY
 #undef SIMDLIB_DEFINE_LOGICAL_SHUFFLE
+#undef SIMDLIB_DEFINE_BYTE_SHUFFLE
 #undef SIMDLIB_REARRANGE_LOGICAL_SHUFFLE
+#undef SIMDLIB_REARRANGE_BYTE_SHUFFLE
 #undef SIMDLIB_REARRANGE_WIDEN
 #undef SIMDLIB_REARRANGE_LOWER
 #undef SIMDLIB_REARRANGE_CONVERT
