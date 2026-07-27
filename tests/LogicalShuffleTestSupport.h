@@ -219,6 +219,49 @@ template <class element_t> [[nodiscard]] consteval auto distinct_group_selectors
 }
 
 /**
+ * @brief Builds selectors that exchange the lower and upper 128-bit halves.
+ * @tparam element_t Logical lane type.
+ * @return One cross-half source selector per output lane.
+ */
+template <class element_t> [[nodiscard]] consteval auto swap_half_selectors() noexcept
+{
+	constexpr std::size_t lane_count = 256 / (sizeof(element_t) * 8);
+	constexpr std::size_t lanes_per_half = lane_count / 2;
+	auto result = identity_selectors<element_t, 256>();
+	for (std::size_t lane = 0; lane < lane_count; ++lane)
+		result[lane] = (lane + lanes_per_half) % lane_count;
+	return result;
+}
+
+/**
+ * @brief Builds selectors combining local-half and cross-half sources.
+ * @tparam element_t Logical lane type.
+ * @return Identity selectors except for exchanged first lanes in each 128-bit half.
+ */
+template <class element_t> [[nodiscard]] consteval auto mixed_half_selectors() noexcept
+{
+	constexpr std::size_t lane_count = 256 / (sizeof(element_t) * 8);
+	constexpr std::size_t lanes_per_half = lane_count / 2;
+	auto result = identity_selectors<element_t, 256>();
+	result[0] = lanes_per_half;
+	result[lanes_per_half] = 0;
+	return result;
+}
+
+/**
+ * @brief Builds a complete low-to-high reversal across the entire 256-bit register.
+ * @tparam element_t Logical lane type.
+ * @return One full-width reverse selector per output lane.
+ */
+template <class element_t> [[nodiscard]] consteval auto full_reverse_selectors() noexcept
+{
+	constexpr std::size_t lane_count = 256 / (sizeof(element_t) * 8);
+	auto result = identity_selectors<element_t, 256>();
+	for (std::size_t lane = 0; lane < lane_count; ++lane)
+		result[lane] = lane_count - 1 - lane;
+	return result;
+}
+/**
  * @brief Expands one compile-time selector array into an independent scalar shuffle result.
  * @tparam selectors Logical source-lane selector array.
  * @tparam element_t Logical lane type.

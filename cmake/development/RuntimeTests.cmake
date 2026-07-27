@@ -197,6 +197,14 @@ if(SIMDLIB_BUILD_RUNTIME_TESTS)
     endif()
 
     if(SIMDLIB_BUILD_API_AVX2_TESTS)
+        simdlib_add_catch_test(LogicalShuffleImpl256Tests tests/LogicalShuffleImpl256.tests.cpp
+            LogicalShuffle.Impl256 "LOGICAL_SHUFFLE;AVX2")
+        if(SIMDLIB_MSVC_STYLE_DRIVER)
+            target_compile_options(LogicalShuffleImpl256Tests PRIVATE /arch:AVX2)
+        else()
+            target_compile_options(LogicalShuffleImpl256Tests PRIVATE -mavx2)
+        endif()
+
         simdlib_add_catch_test(ApiAvx2Tests tests/Api256.tests.cpp
             Api.AVX2 "AVX2")
 		target_sources(ApiAvx2Tests PRIVATE tests/LogicalShuffleApi.tests.cpp)

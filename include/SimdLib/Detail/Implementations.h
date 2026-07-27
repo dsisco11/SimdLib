@@ -3356,12 +3356,103 @@ struct SimdImpl256
 {
 };
 
+/**
+ * @brief Reports whether a 256-bit logical shuffle selects any lane from the opposite 128-bit half.
+ * @tparam lanes_per_half Logical lanes in one 128-bit half.
+ * @tparam indices Complete logical selector array.
+ * @return True when at least one output lane crosses the 128-bit boundary.
+ */
+template <std::size_t lanes_per_half, auto indices> [[nodiscard]] consteval bool logical_shuffle_256_has_cross_half_selector() noexcept
+{
+	for (std::size_t output = 0; output < indices.size(); ++output)
+		if (output / lanes_per_half != indices[output] / lanes_per_half)
+			return true;
+	return false;
+}
+
+/**
+ * @brief Reports whether a 256-bit logical shuffle selects any lane from its original 128-bit half.
+ * @tparam lanes_per_half Logical lanes in one 128-bit half.
+ * @tparam indices Complete logical selector array.
+ * @return True when at least one output lane remains within its original 128-bit half.
+ */
+template <std::size_t lanes_per_half, auto indices> [[nodiscard]] consteval bool logical_shuffle_256_has_local_half_selector() noexcept
+{
+	for (std::size_t output = 0; output < indices.size(); ++output)
+		if (output / lanes_per_half == indices[output] / lanes_per_half)
+			return true;
+	return false;
+}
+
+/**
+ * @brief Encodes one byte of a full-width 256-bit byte or word shuffle control.
+ * @tparam element_bytes Bytes in each logical lane.
+ * @tparam select_cross_half Whether this control selects cross-half or local-half lanes.
+ * @tparam indices Complete logical selector array.
+ * @tparam byte_position Output byte position.
+ * @return Lane-relative VPSHUFB selector or the zeroing sentinel when handled by the other control.
+ */
+template <std::size_t element_bytes, bool select_cross_half, auto indices, std::size_t byte_position>
+	requires(element_bytes == 1 || element_bytes == 2)
+[[nodiscard]] consteval int encode_logical_shuffle_256_byte() noexcept
+{
+	constexpr std::size_t lanes_per_half = 16 / element_bytes;
+	constexpr std::size_t output_lane = byte_position / element_bytes;
+	constexpr std::size_t source_lane = indices[output_lane];
+	constexpr bool crosses_half = output_lane / lanes_per_half != source_lane / lanes_per_half;
+	if constexpr (crosses_half != select_cross_half)
+		return 0x80;
+	else
+		return static_cast<int>((source_lane % lanes_per_half) * element_bytes + byte_position % element_bytes);
+}
+
+/**
+ * @brief Builds one constant VPSHUFB control for a full-width 256-bit byte or word shuffle.
+ * @tparam element_bytes Bytes in each logical lane.
+ * @tparam select_cross_half Whether this control selects cross-half or local-half lanes.
+ * @tparam indices Complete logical selector array.
+ * @tparam byte_positions Output byte positions.
+ * @return Native AVX2 byte-control register.
+ */
+template <std::size_t element_bytes, bool select_cross_half, auto indices, std::size_t... byte_positions>
+SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m256i VECTORCALL
+make_logical_shuffle_256_byte_control(std::index_sequence<byte_positions...>) noexcept
+{
+	return _mm256_setr_epi8(static_cast<char>(encode_logical_shuffle_256_byte<element_bytes, select_cross_half, indices, byte_positions>())...);
+}
+
 template <> struct SimdImpl256<int8_t>
 {
 	/** @brief Selects bytes from two registers using a canonical predicate register. */
 	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m256i VECTORCALL select(__m256i condition, __m256i when_true, __m256i when_false) noexcept
 	{
 		return _mm256_blendv_epi8(when_false, when_true, condition);
+	}
+
+	/**
+	 * @brief Shuffles logical signed-byte lanes across the complete 256-bit register.
+	 * @tparam indices Source lane for each result lane in low-to-high order.
+	 * @param lhs Source register.
+	 * @return Register containing the selected logical lanes.
+	 */
+	template <std::size_t... indices>
+		requires(sizeof...(indices) == 32 && ((indices < 32) && ...))
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m256i VECTORCALL shuffle(__m256i lhs) noexcept
+	{
+		constexpr auto selectors = std::array{indices...};
+		if constexpr (!logical_shuffle_256_has_cross_half_selector<16, selectors>())
+		{
+			return _mm256_shuffle_epi8(lhs, make_logical_shuffle_256_byte_control<1, false, selectors>(std::make_index_sequence<32>{}));
+		}
+		else
+		{
+			const __m256i swapped = _mm256_permute2x128_si256(lhs, lhs, 0x01);
+			if constexpr (!logical_shuffle_256_has_local_half_selector<16, selectors>())
+				return _mm256_shuffle_epi8(swapped, make_logical_shuffle_256_byte_control<1, true, selectors>(std::make_index_sequence<32>{}));
+			else
+				return _mm256_or_si256(_mm256_shuffle_epi8(lhs, make_logical_shuffle_256_byte_control<1, false, selectors>(std::make_index_sequence<32>{})),
+									   _mm256_shuffle_epi8(swapped, make_logical_shuffle_256_byte_control<1, true, selectors>(std::make_index_sequence<32>{})));
+		}
 	}
 
 	// arithmetic
@@ -3600,6 +3691,32 @@ template <> struct SimdImpl256<uint8_t>
 	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m256i VECTORCALL select(__m256i condition, __m256i when_true, __m256i when_false) noexcept
 	{
 		return _mm256_blendv_epi8(when_false, when_true, condition);
+	}
+
+	/**
+	 * @brief Shuffles logical unsigned-byte lanes across the complete 256-bit register.
+	 * @tparam indices Source lane for each result lane in low-to-high order.
+	 * @param lhs Source register.
+	 * @return Register containing the selected logical lanes.
+	 */
+	template <std::size_t... indices>
+		requires(sizeof...(indices) == 32 && ((indices < 32) && ...))
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m256i VECTORCALL shuffle(__m256i lhs) noexcept
+	{
+		constexpr auto selectors = std::array{indices...};
+		if constexpr (!logical_shuffle_256_has_cross_half_selector<16, selectors>())
+		{
+			return _mm256_shuffle_epi8(lhs, make_logical_shuffle_256_byte_control<1, false, selectors>(std::make_index_sequence<32>{}));
+		}
+		else
+		{
+			const __m256i swapped = _mm256_permute2x128_si256(lhs, lhs, 0x01);
+			if constexpr (!logical_shuffle_256_has_local_half_selector<16, selectors>())
+				return _mm256_shuffle_epi8(swapped, make_logical_shuffle_256_byte_control<1, true, selectors>(std::make_index_sequence<32>{}));
+			else
+				return _mm256_or_si256(_mm256_shuffle_epi8(lhs, make_logical_shuffle_256_byte_control<1, false, selectors>(std::make_index_sequence<32>{})),
+									   _mm256_shuffle_epi8(swapped, make_logical_shuffle_256_byte_control<1, true, selectors>(std::make_index_sequence<32>{})));
+		}
 	}
 
 	// arithmetic
@@ -3843,6 +3960,32 @@ template <> struct SimdImpl256<int16_t>
 	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m256i VECTORCALL select(__m256i condition, __m256i when_true, __m256i when_false) noexcept
 	{
 		return _mm256_blendv_epi8(when_false, when_true, condition);
+	}
+
+	/**
+	 * @brief Shuffles logical signed 16-bit lanes across the complete 256-bit register.
+	 * @tparam indices Source lane for each result lane in low-to-high order.
+	 * @param lhs Source register.
+	 * @return Register containing the selected logical lanes.
+	 */
+	template <std::size_t... indices>
+		requires(sizeof...(indices) == 16 && ((indices < 16) && ...))
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m256i VECTORCALL shuffle(__m256i lhs) noexcept
+	{
+		constexpr auto selectors = std::array{indices...};
+		if constexpr (!logical_shuffle_256_has_cross_half_selector<8, selectors>())
+		{
+			return _mm256_shuffle_epi8(lhs, make_logical_shuffle_256_byte_control<2, false, selectors>(std::make_index_sequence<32>{}));
+		}
+		else
+		{
+			const __m256i swapped = _mm256_permute2x128_si256(lhs, lhs, 0x01);
+			if constexpr (!logical_shuffle_256_has_local_half_selector<8, selectors>())
+				return _mm256_shuffle_epi8(swapped, make_logical_shuffle_256_byte_control<2, true, selectors>(std::make_index_sequence<32>{}));
+			else
+				return _mm256_or_si256(_mm256_shuffle_epi8(lhs, make_logical_shuffle_256_byte_control<2, false, selectors>(std::make_index_sequence<32>{})),
+									   _mm256_shuffle_epi8(swapped, make_logical_shuffle_256_byte_control<2, true, selectors>(std::make_index_sequence<32>{})));
+		}
 	}
 
 	// arithmetic
@@ -4123,6 +4266,32 @@ template <> struct SimdImpl256<uint16_t>
 	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m256i VECTORCALL select(__m256i condition, __m256i when_true, __m256i when_false) noexcept
 	{
 		return _mm256_blendv_epi8(when_false, when_true, condition);
+	}
+
+	/**
+	 * @brief Shuffles logical unsigned 16-bit lanes across the complete 256-bit register.
+	 * @tparam indices Source lane for each result lane in low-to-high order.
+	 * @param lhs Source register.
+	 * @return Register containing the selected logical lanes.
+	 */
+	template <std::size_t... indices>
+		requires(sizeof...(indices) == 16 && ((indices < 16) && ...))
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m256i VECTORCALL shuffle(__m256i lhs) noexcept
+	{
+		constexpr auto selectors = std::array{indices...};
+		if constexpr (!logical_shuffle_256_has_cross_half_selector<8, selectors>())
+		{
+			return _mm256_shuffle_epi8(lhs, make_logical_shuffle_256_byte_control<2, false, selectors>(std::make_index_sequence<32>{}));
+		}
+		else
+		{
+			const __m256i swapped = _mm256_permute2x128_si256(lhs, lhs, 0x01);
+			if constexpr (!logical_shuffle_256_has_local_half_selector<8, selectors>())
+				return _mm256_shuffle_epi8(swapped, make_logical_shuffle_256_byte_control<2, true, selectors>(std::make_index_sequence<32>{}));
+			else
+				return _mm256_or_si256(_mm256_shuffle_epi8(lhs, make_logical_shuffle_256_byte_control<2, false, selectors>(std::make_index_sequence<32>{})),
+									   _mm256_shuffle_epi8(swapped, make_logical_shuffle_256_byte_control<2, true, selectors>(std::make_index_sequence<32>{})));
+		}
 	}
 
 	// arithmetic
@@ -4420,6 +4589,19 @@ template <> struct SimdImpl256<int32_t>
 		return _mm256_blendv_epi8(when_false, when_true, condition);
 	}
 
+	/**
+	 * @brief Shuffles logical signed 32-bit lanes across the complete 256-bit register.
+	 * @tparam indices Source lane for each result lane in low-to-high order.
+	 * @param lhs Source register.
+	 * @return Register containing the selected logical lanes.
+	 */
+	template <std::size_t... indices>
+		requires(sizeof...(indices) == 8 && ((indices < 8) && ...))
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m256i VECTORCALL shuffle(__m256i lhs) noexcept
+	{
+		return _mm256_permutevar8x32_epi32(lhs, _mm256_setr_epi32(static_cast<int>(indices)...));
+	}
+
 	// arithmetic
 	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL add(auto lhs, auto rhs) noexcept
 	{
@@ -4643,6 +4825,19 @@ template <> struct SimdImpl256<uint32_t>
 	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m256i VECTORCALL select(__m256i condition, __m256i when_true, __m256i when_false) noexcept
 	{
 		return _mm256_blendv_epi8(when_false, when_true, condition);
+	}
+
+	/**
+	 * @brief Shuffles logical unsigned 32-bit lanes across the complete 256-bit register.
+	 * @tparam indices Source lane for each result lane in low-to-high order.
+	 * @param lhs Source register.
+	 * @return Register containing the selected logical lanes.
+	 */
+	template <std::size_t... indices>
+		requires(sizeof...(indices) == 8 && ((indices < 8) && ...))
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m256i VECTORCALL shuffle(__m256i lhs) noexcept
+	{
+		return _mm256_permutevar8x32_epi32(lhs, _mm256_setr_epi32(static_cast<int>(indices)...));
 	}
 
 	// arithmetic
@@ -4885,6 +5080,19 @@ template <> struct SimdImpl256<int64_t>
 		return _mm256_blendv_epi8(when_false, when_true, condition);
 	}
 
+	/**
+	 * @brief Shuffles logical signed 64-bit lanes across the complete 256-bit register.
+	 * @tparam indices Source lane for each result lane in low-to-high order.
+	 * @param lhs Source register.
+	 * @return Register containing the selected logical lanes.
+	 */
+	template <std::size_t... indices>
+		requires(sizeof...(indices) == 4 && ((indices < 4) && ...))
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m256i VECTORCALL shuffle(__m256i lhs) noexcept
+	{
+		return _mm256_permute4x64_epi64(lhs, encode_logical_shuffle_32_immediate<indices...>());
+	}
+
 	// arithmetic
 	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL add(auto lhs, auto rhs) noexcept
 	{
@@ -5073,6 +5281,19 @@ template <> struct SimdImpl256<uint64_t>
 		return _mm256_blendv_epi8(when_false, when_true, condition);
 	}
 
+	/**
+	 * @brief Shuffles logical unsigned 64-bit lanes across the complete 256-bit register.
+	 * @tparam indices Source lane for each result lane in low-to-high order.
+	 * @param lhs Source register.
+	 * @return Register containing the selected logical lanes.
+	 */
+	template <std::size_t... indices>
+		requires(sizeof...(indices) == 4 && ((indices < 4) && ...))
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m256i VECTORCALL shuffle(__m256i lhs) noexcept
+	{
+		return _mm256_permute4x64_epi64(lhs, encode_logical_shuffle_32_immediate<indices...>());
+	}
+
 	// arithmetic
 	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL add(auto lhs, auto rhs) noexcept
 	{
@@ -5259,6 +5480,19 @@ template <> struct SimdImpl256<float>
 	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m256 VECTORCALL select(__m256 condition, __m256 when_true, __m256 when_false) noexcept
 	{
 		return _mm256_blendv_ps(when_false, when_true, condition);
+	}
+
+	/**
+	 * @brief Shuffles logical floating-point lanes across the complete 256-bit register.
+	 * @tparam indices Source lane for each result lane in low-to-high order.
+	 * @param lhs Source register.
+	 * @return Register containing the selected logical lanes.
+	 */
+	template <std::size_t... indices>
+		requires(sizeof...(indices) == 8 && ((indices < 8) && ...))
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m256 VECTORCALL shuffle(__m256 lhs) noexcept
+	{
+		return _mm256_permutevar8x32_ps(lhs, _mm256_setr_epi32(static_cast<int>(indices)...));
 	}
 
 	// arithmetic
@@ -5450,6 +5684,19 @@ template <> struct SimdImpl256<double>
 	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m256d VECTORCALL select(__m256d condition, __m256d when_true, __m256d when_false) noexcept
 	{
 		return _mm256_blendv_pd(when_false, when_true, condition);
+	}
+
+	/**
+	 * @brief Shuffles logical double-precision floating-point lanes across the complete 256-bit register.
+	 * @tparam indices Source lane for each result lane in low-to-high order.
+	 * @param lhs Source register.
+	 * @return Register containing the selected logical lanes.
+	 */
+	template <std::size_t... indices>
+		requires(sizeof...(indices) == 4 && ((indices < 4) && ...))
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m256d VECTORCALL shuffle(__m256d lhs) noexcept
+	{
+		return _mm256_permute4x64_pd(lhs, encode_logical_shuffle_32_immediate<indices...>());
 	}
 
 	// arithmetic
@@ -5653,6 +5900,8 @@ template <class element_t> struct SimdMappings<256, element_t> : public SimdImpl
 	using impl = SimdImpl256<element_t>;
 
   public:
+	using impl::shuffle;
+
 	template <class ty> using Mappings = SimdMappings<256, ty>;
 	template <class ty> using mapped_vector_t = typename Mappings<ty>::vector_t;
 	template <class ty>
@@ -6038,15 +6287,6 @@ template <class element_t> struct SimdMappings<256, element_t> : public SimdImpl
 		return _mm256_shuffle_epi8(lhs, rhs);
 	}
 
-	/// <summary> Shuffles the bytes in the vector using the templated index sequence. </summary>
-	template <std::size_t... indices>
-		requires(sizeof...(indices) == 32)
-	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static int_vector_t VECTORCALL shuffle(int_vector_t lhs) noexcept
-	{
-		// A constexpr register initializer was intentionally replaced by the portable runtime intrinsic.
-		// The active compiler-independent constexpr register construction lives in Detail::register_from_values.
-		return _mm256_shuffle_epi8(lhs, _mm256_setr_epi8(indices...));
-	}
 #pragma endregion
 
 #pragma region Miscellaneous Operations

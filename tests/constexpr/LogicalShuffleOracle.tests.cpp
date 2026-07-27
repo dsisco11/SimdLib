@@ -88,6 +88,24 @@ template <class element_t, std::size_t bits> [[nodiscard]] consteval bool oracle
 					std::bit_cast<object_bits_t<element_t>>(source[2 * lanes_per_group - 1 - lane]))
 				return false;
 		}
+		constexpr auto swapped_halves = swap_half_selectors<element_t>();
+		constexpr auto mixed_halves = mixed_half_selectors<element_t>();
+		constexpr auto full_reverse = full_reverse_selectors<element_t>();
+		static_assert(!selectors_are_group_local<element_t, bits, swapped_halves>());
+		static_assert(!selectors_are_group_local<element_t, bits, mixed_halves>());
+		static_assert(!selectors_are_group_local<element_t, bits, full_reverse>());
+		constexpr auto swapped_result = logical_shuffle_oracle<element_t, bits, swapped_halves>(source);
+		constexpr auto mixed_result = logical_shuffle_oracle<element_t, bits, mixed_halves>(source);
+		constexpr auto full_reverse_result = logical_shuffle_oracle<element_t, bits, full_reverse>(source);
+		for (std::size_t lane = 0; lane < source.size(); ++lane)
+		{
+			const std::size_t opposite = (lane + lanes_per_group) % source.size();
+			const std::size_t mixed_source = lane == 0 ? lanes_per_group : (lane == lanes_per_group ? 0 : lane);
+			if (std::bit_cast<object_bits_t<element_t>>(swapped_result[lane]) != std::bit_cast<object_bits_t<element_t>>(source[opposite]) ||
+				std::bit_cast<object_bits_t<element_t>>(mixed_result[lane]) != std::bit_cast<object_bits_t<element_t>>(source[mixed_source]) ||
+				std::bit_cast<object_bits_t<element_t>>(full_reverse_result[lane]) != std::bit_cast<object_bits_t<element_t>>(source[source.size() - 1 - lane]))
+				return false;
+		}
 	}
 	return true;
 }
