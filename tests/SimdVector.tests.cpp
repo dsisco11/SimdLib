@@ -1,4 +1,4 @@
-#include <SimdLib/SimdVector.h>
+#include <SimdLib/Aliases.h>
 
 #include <catch2/catch_test_macros.hpp>
 

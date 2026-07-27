@@ -13,6 +13,7 @@ if(SIMDLIB_BUILD_HEADER_PROBES)
     foreach(header_probe IN ITEMS
         Config
         TemplateTools
+        Aliases
         IApi
         IImpl
         IRegister

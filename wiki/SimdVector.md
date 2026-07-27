@@ -91,7 +91,8 @@
 <a id="overview"></a>
 ## Overview
 
-Include `<SimdLib/SimdVector.h>`. Overloads with the same name are collected in one subsection; every public overload is listed below.
+Include `<SimdLib/SimdVector.h>` for the class template. Examples that use a
+named vector alias also require `<SimdLib/Aliases.h>`. Overloads with the same name are collected in one subsection; every public overload is listed below.
 
 <a id="example-setup"></a>
 ## Example alias
@@ -1563,4 +1564,4 @@ Vector3{1.0F, 2.0F, 3.0F}.z(); // => 3.0F
 <a id="related-types-and-constants"></a>
 ## Related types and constants
 
-The header provides `VectorInt8`, `VectorUInt8`, `VectorInt16`, `VectorUInt16`, `VectorInt32`, `VectorUInt32`, `VectorInt64`, and `VectorUInt64`, plus register-sized aliases such as `uint8x16`, `uint32x8`, `int16x8`, and `int64x4`. Use `SimdVector<T, N>` directly for position-like dimensions such as two, three, or four.
+`<SimdLib/Aliases.h>` provides `VectorInt8`, `VectorUInt8`, `VectorInt16`, `VectorUInt16`, `VectorInt32`, `VectorUInt32`, `VectorInt64`, and `VectorUInt64`, plus register-sized aliases such as `uint8x16`, `uint32x8`, `int16x8`, and `int64x4`. Use `SimdVector<T, N>` directly for position-like dimensions such as two, three, or four.

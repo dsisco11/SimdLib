@@ -1,6 +1,6 @@
+#include <SimdLib/Aliases.h>
 #include <SimdLib/Api.h>
 #include <SimdLib/Bmi.h>
-#include <SimdLib/SimdVector.h>
 #include <SimdLib/UInt128.h>
 
 #include <concepts>

@@ -71,9 +71,9 @@ Compile-only targets cover:
   `ConfigOverrideVectorcallProbe`, `ConfigVendorAttributeProbe`,
   `ConfigClangUnsupportedTargetProbe`, and `ConstexprProbe` for detection,
   override, disabled, attribute, target, and constant-evaluation paths;
-- first-and-only include probes for `Api.h`, `Bmi.h`, `Config.h`, `Format.h`,
-  `SimdAlgo.h`, the deprecated `SimdApi.h` compatibility include, `SimdLib.h`,
-  `SimdResample.h`, `SimdVector.h`, `TemplateTools.h`, and `UInt128.h`; and
+- first-and-only include probes for `Aliases.h`, `Api.h`, `Bmi.h`, `Config.h`,
+  `Format.h`, `SimdAlgo.h`, the deprecated `SimdApi.h` compatibility include,
+  `SimdLib.h`, `SimdResample.h`, `SimdVector.h`, `TemplateTools.h`, and `UInt128.h`; and
 - `PublicSurfaceHeaderProbe` for the supported umbrella/focused-header boundary
   and the guard against public `Detail` dependencies; and
 - dedicated BMI, UInt128, 128/256-bit API/vector, and disabled-feature constexpr

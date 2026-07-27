@@ -144,6 +144,7 @@ FMA-disabled paths, and all four BMI1/BMI2 combinations.
 | `<SimdLib/Register.h>`     | C++23 `Register<element_t, register_width>` and `NativeRegister<element_t>` complete-register values       |
 | `<SimdLib/RegisterMask.h>` | C++23 `RegisterMask<element_t, register_width>` predicate values                                           |
 | `<SimdLib/SimdApi.h>`      | Deprecated compatibility forwarding header; use `Api.h`                                                    |
+| `<SimdLib/Aliases.h>`      | Named `SimdVector` aliases for fixed-width signed and unsigned element types                               |
 | `<SimdLib/SimdVector.h>`   | `SimdVector<element_t, element_count>` value type                                                          |
 | `<SimdLib/SimdAlgo.h>`     | Fixed-extent and dynamic-span `SimdAlgo` operations                                                        |
 | `<SimdLib/SimdResample.h>` | Byte-mask reduction and expansion functions                                                                |
