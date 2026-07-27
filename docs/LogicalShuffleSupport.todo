@@ -13,7 +13,7 @@ Logical Shuffle Element-Type Support Plan:
     ☐ Preserve element object representations exactly. Floating-point shuffles move lane bits without arithmetic normalization, including NaN payloads and positive or negative zero.
     ☐ Keep `shuffle_lo<imm8>()` and `shuffle_hi<imm8>()` as the existing 16-bit half-shuffle operations.
     ☐ Keep the generic `shuffle(args...)` overload as an implementation-specific compatibility surface; do not use it as the logical lane-shuffle contract.
-    ☐ Reserve cross-128-bit rearrangement for a separately designed whole-register permutation API rather than changing `shuffle<indices...>()` semantics.
+    ☐ Treat full-register cross-128-bit selection as part of `shuffle<indices...>()`; a future permutation API must not narrow this logical-selector contract.
     ☐ Implement runtime shuffles in the individual `SimdImpl128<T>` and `SimdImpl256<T>` specializations. Shared helpers may encode validated selectors, but must not combine all element types behind one monolithic element-type switch.
     ☐ Keep every public and backend shuffle method flattened, force-inlined, and register-only where its runtime path operates exclusively on native register values and compile-time constants.
 
@@ -157,16 +157,63 @@ Logical Shuffle Element-Type Support Plan:
       - The Api and Register out-of-range and wrong-selector-count probes retain their stable expected diagnostics. Their obsolete cross-half rejection clauses were removed because cross-half selection is now a required positive contract.
 
   Phase 5 - Prove Runtime Code Quality and Compilation Cost:
-    ☐ Expand the rearrangement code-generation fixture from byte shuffles to all ten element types at both widths.
-    ☐ Compare direct intrinsic, `Api`, and `Register` expressions under identical compiler, ISA, optimization, calling-convention, flatten, and stack-protection settings.
-    ☐ Use nonidentity patterns that cannot optimize away and include a distinct-upper-group 256-bit pattern where the instruction family permits independent controls.
-    ☐ Require no wrapper-only calls, branches, scalar extraction/insertion, writable stack arrays, spills, security-cookie sequence, or redundant register moves.
-    ☐ Record the selected shuffle or permutation opcode for every compiler/type/width cell and explicitly review any compiler-specific deviation from the canonical mapping table.
-    ☐ Validate optimized code generation with MSVC, clang-cl, GCC 14, and Clang 22; retain the existing core-only boundary for GCC 13 while testing its C++20 `Api` surface.
-    ☐ Compare focused `Api.h` preprocessing size, frontend time, template-instantiation time, object size, and public-header invalidation time with the Phase 0 baseline.
-    ☐ Consolidate selector encoders only when measurements show repeated template work and the consolidation preserves specialization ownership and diagnostics.
-    ☐ Do not claim a zero-overhead or compilation-cost result from source inspection alone.
-    ☐ End Phase 5 only when every supported cell has reviewed generated-code evidence and any compilation-cost change is measured and explained.
+    ☑ Expand the rearrangement code-generation fixture from byte shuffles to all ten element types at both widths.
+    ☑ Compare direct intrinsic, `Api`, and `Register` expressions under identical compiler, ISA, optimization, calling-convention, flatten, and stack-protection settings.
+    ☑ Use nonidentity patterns that cannot optimize away and include a distinct-upper-group 256-bit pattern where the instruction family permits independent controls.
+    ☑ Require no wrapper-only calls, branches, scalar extraction/insertion, writable stack arrays, spills, security-cookie sequence, or redundant register moves.
+    ☑ Record the selected shuffle or permutation opcode for every compiler/type/width cell and explicitly review any compiler-specific deviation from the canonical mapping table.
+    ☑ Validate optimized code generation with MSVC, clang-cl, GCC 14, and Clang 22; retain the existing core-only boundary for GCC 13 while testing its C++20 `Api` surface.
+    ☑ Compare focused `Api.h` preprocessing size, frontend time, template-instantiation time, object size, and public-header invalidation time with the Phase 0 baseline.
+    ☑ Consolidate selector encoders only when measurements show repeated template work and the consolidation preserves specialization ownership and diagnostics.
+    ☑ Do not claim a zero-overhead or compilation-cost result from source inspection alone.
+    ☑ End Phase 5 only when every supported cell has reviewed generated-code evidence and any compilation-cost change is measured and explained.
+
+    Execution evidence:
+      - The maintained fixture covers all ten types at 128 and 256 bits. The 128-bit pattern reverses logical lanes; the 256-bit byte/word patterns mix local and cross-half selections, while the wider types use full-register reversal. None is an identity operation.
+      - Optimized Release/`-O2` checks used SSE4.2 and AVX2 at 128 bits and AVX2 at 256 bits. Windows compiler targets used vectorcall and compiler-default stack protection; GNU-driver targets used `-fstack-protector-strong`. All maintained methods retained their flatten, force-inline, and register-only declarations.
+      - MSVC 19.44.35222.0, clang-cl 22.1.8, GCC 14.2.0, and Clang 22.1.8 produced exact normalized parity from direct intrinsic to `Api` to `Register`. GCC 13.2.1 produced exact direct-intrinsic/`Api` parity from its C++20 core-only surface without including `Register.h`.
+      - The 15 profiles contain 150 type/profile cells. A mechanical review found ten expected symbols per profile and no calls, branches, stack-pointer or frame-pointer traffic, scalar extract/insert operations, spills, or security-cookie sequences.
+
+      128-bit SSE4.2 opcode matrix:
+
+      | Compiler | `int8_t` / `uint8_t` | `int16_t` / `uint16_t` | `int32_t` / `uint32_t` | `int64_t` / `uint64_t` | `float` | `double` |
+      | --- | --- | --- | --- | --- | --- | --- |
+      | MSVC 19.44 | `pshufb` | `pshufb` | `pshufd` | `pshufd` | `shufps` | `shufpd` |
+      | clang-cl 22.1.8 | `pshufb` | `pshufb` | `pshufd` | `pshufd` | `shufps` | `shufps` |
+      | GCC 14.2 | `pshufb` | `pshufb` | `pshufd` | `pshufd` | `shufps` | `palignr` |
+      | Clang 22.1.8 | `pshufb` | `pshufb` | `pshufd` | `pshufd` | `shufps` | `shufps` |
+      | GCC 13.2.1 `Api` | `pshufb` | `pshufb` | `pshufd` | `pshufd` | `shufps` | `palignr` |
+
+      256-bit AVX2 opcode matrix:
+
+      | Compiler | `int8_t` / `uint8_t` | `int16_t` / `uint16_t` | `int32_t` / `uint32_t` | `int64_t` / `uint64_t` | `float` | `double` |
+      | --- | --- | --- | --- | --- | --- | --- |
+      | MSVC 19.44 | `vpshufb + vperm2i128 + vpshufb + vpor` | `vpshufb + vperm2i128 + vpshufb + vpor` | `vmovdqu + vpermd` | `vpermq` | `vmovdqu + vpermps` | `vpermpd` |
+      | clang-cl 22.1.8 | `vpermq + vpbroadcastw + vpblendvb` | `vpermq + vpblendw` | `vshufps + vpermpd` | `vpermpd` | `vshufps + vpermpd` | `vpermpd` |
+      | GCC 14.2 | `vperm2i128 + vpshufb + vpshufb + vpor` | `vperm2i128 + vpshufb + vpshufb + vpor` | `vmovdqa + vpermd` | `vpermq` | `vmovdqa + vpermps` | `vpermpd` |
+      | Clang 22.1.8 | `vpermq + vpbroadcastw + vpblendvb` | `vpermq + vpblendw` | `vshufps + vpermpd` | `vpermpd` | `vshufps + vpermpd` | `vpermpd` |
+      | GCC 13.2.1 `Api` | `vperm2i128 + vpshufb + vpshufb + vpor` | `vperm2i128 + vpshufb + vpshufb + vpor` | `vmovdqa + vpermd` | `vpermq` | `vmovdqa + vpermps` | `vpermpd` |
+
+      - The 128-bit AVX2 profiles also passed exact parity. Their differences from the SSE4.2 table are VEX encodings and equivalent compiler canonicalizations rather than wrapper instructions.
+      - Reviewed compiler deviations are bit-equivalent canonicalizations of the direct intrinsic fixtures: Clang uses `shufps` for the 128-bit double swap, GCC uses `palignr`, Clang reduces mixed byte/word controls to permute-and-blend sequences, and Clang represents several 256-bit integer permutations with floating shuffle/permute opcodes. MSVC and GCC retain explicit selector-vector loads for 32-bit integer and floating permutations. Because each direct fixture canonicalized identically, none is abstraction overhead.
+
+      Compilation-cost comparison with the Phase 0 Clang 22.1.8 baseline:
+
+      | Probe | Phase 0 | Phase 5 | Change |
+      | --- | ---: | ---: | ---: |
+      | `Api.h` preprocessed bytes | 4,554,118 | 4,566,184 | +12,066 (+0.27%) |
+      | `Api.h` non-empty preprocessed lines | 81,682 | 81,887 | +205 (+0.25%) |
+      | Include-only/public-header invalidation median | 448.31 ms | 529.55 ms | +81.24 ms (+18.12%) |
+      | Focused constexpr probe median | 470.92 ms | 543.35 ms | +72.43 ms (+15.38%) |
+      | Frontend trace | 489.63 ms | 559.22 ms | +69.59 ms (+14.21%) |
+      | Function-instantiation trace | 33.45 ms | 47.72 ms | +14.27 ms (+42.66%) |
+      | Class-instantiation trace | 19.53 ms | 26.42 ms | +6.89 ms (+35.28%) |
+      | Include-only object | 1,149 bytes | 1,149 bytes | unchanged |
+      | Focused constexpr object | 1,167 bytes | 1,167 bytes | unchanged |
+
+      - Each timing median uses seven separate C++23/`-O2`/AVX2 compiler processes. The include-only translation unit is the reproducible public-header invalidation proxy: it forces a downstream translation unit that includes `Api.h` to be recompiled after the public header changes.
+      - The small preprocessing increase shows that source volume is not the main cost. The focused trace attributes the larger frontend increase to added template/class instantiation required by the widened availability and selector machinery; backend time and both object sizes remained effectively unchanged.
+      - The first post-change trace exposed repeated per-byte encoder template instantiations: 54.01 ms of function-instantiation time. Converting only those leaf encoders to non-template `consteval` functions reduced the final measurement to 47.72 ms while preserving specialization-owned shuffle methods, diagnostics, and exact codegen parity on every compiler.
 
   Phase 6 - Document and Complete Validation:
     ☐ Add a logical shuffle row to `docs/ApiOperationMatrix.md` with checkmarks for every newly tested type and no stale byte-only classification.

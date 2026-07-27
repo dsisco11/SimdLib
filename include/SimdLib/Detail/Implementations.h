@@ -161,13 +161,11 @@ template <std::size_t index0, std::size_t index1, std::size_t index2, std::size_
 
 /**
  * @brief Encodes one byte of a selected logical 16-bit lane.
- * @tparam index Logical 16-bit source-lane selector.
- * @tparam byte Byte position within the selected lane.
+ * @param index Logical 16-bit source-lane selector.
+ * @param byte Byte position within the selected lane.
  * @return Byte selector accepted by the 128-bit byte-shuffle intrinsic.
  */
-template <std::size_t index, std::size_t byte>
-	requires(byte < 2)
-[[nodiscard]] consteval int encode_logical_shuffle_16_byte() noexcept
+[[nodiscard]] consteval int encode_logical_shuffle_16_byte(const std::size_t index, const std::size_t byte) noexcept
 {
 	return static_cast<int>((index * 2) + byte);
 }
@@ -182,7 +180,7 @@ template <auto indices, std::size_t... byte_positions>
 SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m128i VECTORCALL
 make_logical_shuffle_16_control(std::index_sequence<byte_positions...>) noexcept
 {
-	return _mm_setr_epi8(encode_logical_shuffle_16_byte<indices[byte_positions / 2], byte_positions % 2>()...);
+	return _mm_setr_epi8(encode_logical_shuffle_16_byte(indices[byte_positions / 2], byte_positions % 2)...);
 }
 
 /**
@@ -3386,24 +3384,21 @@ template <std::size_t lanes_per_half, auto indices> [[nodiscard]] consteval bool
 
 /**
  * @brief Encodes one byte of a full-width 256-bit byte or word shuffle control.
- * @tparam element_bytes Bytes in each logical lane.
- * @tparam select_cross_half Whether this control selects cross-half or local-half lanes.
- * @tparam indices Complete logical selector array.
- * @tparam byte_position Output byte position.
+ * @param element_bytes Bytes in each logical lane.
+ * @param select_cross_half Whether this control selects cross-half or local-half lanes.
+ * @param output_lane Logical output lane containing the byte.
+ * @param source_lane Logical source lane selected for the output lane.
+ * @param byte_in_lane Byte position within the logical output lane.
  * @return Lane-relative VPSHUFB selector or the zeroing sentinel when handled by the other control.
  */
-template <std::size_t element_bytes, bool select_cross_half, auto indices, std::size_t byte_position>
-	requires(element_bytes == 1 || element_bytes == 2)
-[[nodiscard]] consteval int encode_logical_shuffle_256_byte() noexcept
+[[nodiscard]] consteval int encode_logical_shuffle_256_byte(const std::size_t element_bytes, const bool select_cross_half, const std::size_t output_lane,
+															const std::size_t source_lane, const std::size_t byte_in_lane) noexcept
 {
-	constexpr std::size_t lanes_per_half = 16 / element_bytes;
-	constexpr std::size_t output_lane = byte_position / element_bytes;
-	constexpr std::size_t source_lane = indices[output_lane];
-	constexpr bool crosses_half = output_lane / lanes_per_half != source_lane / lanes_per_half;
-	if constexpr (crosses_half != select_cross_half)
+	const std::size_t lanes_per_half = 16 / element_bytes;
+	const bool crosses_half = output_lane / lanes_per_half != source_lane / lanes_per_half;
+	if (crosses_half != select_cross_half)
 		return 0x80;
-	else
-		return static_cast<int>((source_lane % lanes_per_half) * element_bytes + byte_position % element_bytes);
+	return static_cast<int>((source_lane % lanes_per_half) * element_bytes + byte_in_lane);
 }
 
 /**
@@ -3418,7 +3413,8 @@ template <std::size_t element_bytes, bool select_cross_half, auto indices, std::
 SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m256i VECTORCALL
 make_logical_shuffle_256_byte_control(std::index_sequence<byte_positions...>) noexcept
 {
-	return _mm256_setr_epi8(static_cast<char>(encode_logical_shuffle_256_byte<element_bytes, select_cross_half, indices, byte_positions>())...);
+	return _mm256_setr_epi8(static_cast<char>(encode_logical_shuffle_256_byte(element_bytes, select_cross_half, byte_positions / element_bytes,
+																			  indices[byte_positions / element_bytes], byte_positions % element_bytes))...);
 }
 
 template <> struct SimdImpl256<int8_t>

@@ -1,6 +1,10 @@
 #pragma once
 
+#if SIMDLIB_CODEGEN_USE_WRAPPER
 #include <SimdLib/Register.h>
+#else
+#include <SimdLib/Api.h>
+#endif
 
 #include <cstddef>
 #include <cstdint>
@@ -34,12 +38,7 @@ template <class element_t, std::size_t bits = SIMDLIB_REGISTER_TEST_WIDTH> using
 #define SIMDLIB_REARRANGE_LOWER(type, value) (SimdLib::Register<type, 256>{value}.lower_half().native)
 #define SIMDLIB_REARRANGE_WIDEN(source_type, target_type, target_bits, value)                                                                                  \
 	(SimdLib::Register<source_type, 128>{value}.template widen_low<target_type, target_bits>().native)
-#define SIMDLIB_REARRANGE_BYTE_SHUFFLE_128(type, value)                                                                                                        \
-	(SimdLib::Register<type, 128>{value}.template shuffle<15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0>().native)
-#define SIMDLIB_REARRANGE_BYTE_SHUFFLE_256(type, value)                                                                                                        \
-	(SimdLib::Register<type, 256>{value}                                                                                                                       \
-		 .template shuffle<15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16>()             \
-		 .native)
+#define SIMDLIB_REARRANGE_LOGICAL_SHUFFLE(type, value, ...) (SimdLib::Register<type, SIMDLIB_REGISTER_TEST_WIDTH>{value}.template shuffle<__VA_ARGS__>().native)
 #else
 #define SIMDLIB_REARRANGE_UNARY(type, member, api, value) (SimdLib::Api<SIMDLIB_REGISTER_TEST_WIDTH, type>::api(value))
 #define SIMDLIB_REARRANGE_BINARY(type, member, api, lhs, rhs) (SimdLib::Api<SIMDLIB_REGISTER_TEST_WIDTH, type>::api(lhs, rhs))
@@ -53,10 +52,7 @@ template <class element_t, std::size_t bits = SIMDLIB_REGISTER_TEST_WIDTH> using
 #define SIMDLIB_REARRANGE_LOWER(type, value) (SimdLib::Api<256, type>::lower_half(value))
 #define SIMDLIB_REARRANGE_WIDEN(source_type, target_type, target_bits, value)                                                                                  \
 	(SimdLib::Api<128, source_type>::template widen<SimdLib::Api<target_bits, target_type>>(value))
-#define SIMDLIB_REARRANGE_BYTE_SHUFFLE_128(type, value) (SimdLib::Api<128, type>::template shuffle<15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0>(value))
-#define SIMDLIB_REARRANGE_BYTE_SHUFFLE_256(type, value)                                                                                                        \
-	(SimdLib::Api<256, type>::template shuffle<15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18,   \
-											   17, 16>(value))
+#define SIMDLIB_REARRANGE_LOGICAL_SHUFFLE(type, value, ...) (SimdLib::Api<SIMDLIB_REGISTER_TEST_WIDTH, type>::template shuffle<__VA_ARGS__>(value))
 #endif
 
 #define SIMDLIB_DEFINE_REARRANGE_UNARY(operation, token, type, member, api)                                                                                    \
@@ -113,33 +109,38 @@ SIMDLIB_DEFINE_REARRANGE_INDEXED_BINARY(blend, u32, std::uint32_t, blend, blend,
 SIMDLIB_DEFINE_REARRANGE_INDEXED_BINARY(blend, f32, float, blend, blend, 0xA5)
 SIMDLIB_DEFINE_REARRANGE_INDEXED_BINARY(blend, f64, double, blend, blend, 0xA5)
 
-#if SIMDLIB_REGISTER_TEST_WIDTH == 128
-/** @brief Compares the complete 128-bit logical byte shuffle wrapper against its Api expression. */
-SIMDLIB_REGISTER_ONLY SIMDLIB_REARRANGEMENT_CODEGEN_NOINLINE SimdLibRearrangementCodegen::native_t<std::int8_t> VECTORCALL
-simdlib_rearrangement_codegen_shuffle_i8(SimdLibRearrangementCodegen::native_t<std::int8_t> value) noexcept
-{
-	return SIMDLIB_REARRANGE_BYTE_SHUFFLE_128(std::int8_t, value);
-}
-/** @brief Compares the complete 128-bit unsigned logical byte shuffle wrapper against its Api expression. */
-SIMDLIB_REGISTER_ONLY SIMDLIB_REARRANGEMENT_CODEGEN_NOINLINE SimdLibRearrangementCodegen::native_t<std::uint8_t> VECTORCALL
-simdlib_rearrangement_codegen_shuffle_u8(SimdLibRearrangementCodegen::native_t<std::uint8_t> value) noexcept
-{
-	return SIMDLIB_REARRANGE_BYTE_SHUFFLE_128(std::uint8_t, value);
-}
-#else
-/** @brief Compares the complete 256-bit logical byte shuffle wrapper against its Api expression. */
-SIMDLIB_REGISTER_ONLY SIMDLIB_REARRANGEMENT_CODEGEN_NOINLINE SimdLibRearrangementCodegen::native_t<std::int8_t> VECTORCALL
-simdlib_rearrangement_codegen_shuffle_i8(SimdLibRearrangementCodegen::native_t<std::int8_t> value) noexcept
-{
-	return SIMDLIB_REARRANGE_BYTE_SHUFFLE_256(std::int8_t, value);
-}
-/** @brief Compares the complete 256-bit unsigned logical byte shuffle wrapper against its Api expression. */
-SIMDLIB_REGISTER_ONLY SIMDLIB_REARRANGEMENT_CODEGEN_NOINLINE SimdLibRearrangementCodegen::native_t<std::uint8_t> VECTORCALL
-simdlib_rearrangement_codegen_shuffle_u8(SimdLibRearrangementCodegen::native_t<std::uint8_t> value) noexcept
-{
-	return SIMDLIB_REARRANGE_BYTE_SHUFFLE_256(std::uint8_t, value);
-}
+#define SIMDLIB_DEFINE_LOGICAL_SHUFFLE(token, type, ...)                                                                                                       \
+	/** @brief Compares one complete logical shuffle wrapper against its Api expression. */                                                                    \
+	SIMDLIB_REGISTER_ONLY SIMDLIB_REARRANGEMENT_CODEGEN_NOINLINE SimdLibRearrangementCodegen::native_t<type> VECTORCALL                                        \
+	simdlib_rearrangement_codegen_logical_shuffle_##token(SimdLibRearrangementCodegen::native_t<type> value) noexcept                                          \
+	{                                                                                                                                                          \
+		return SIMDLIB_REARRANGE_LOGICAL_SHUFFLE(type, value, __VA_ARGS__);                                                                                    \
+	}
 
+#if SIMDLIB_REGISTER_TEST_WIDTH == 128
+SIMDLIB_DEFINE_LOGICAL_SHUFFLE(i8, std::int8_t, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0)
+SIMDLIB_DEFINE_LOGICAL_SHUFFLE(u8, std::uint8_t, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0)
+SIMDLIB_DEFINE_LOGICAL_SHUFFLE(i16, std::int16_t, 7, 6, 5, 4, 3, 2, 1, 0)
+SIMDLIB_DEFINE_LOGICAL_SHUFFLE(u16, std::uint16_t, 7, 6, 5, 4, 3, 2, 1, 0)
+SIMDLIB_DEFINE_LOGICAL_SHUFFLE(i32, std::int32_t, 3, 2, 1, 0)
+SIMDLIB_DEFINE_LOGICAL_SHUFFLE(u32, std::uint32_t, 3, 2, 1, 0)
+SIMDLIB_DEFINE_LOGICAL_SHUFFLE(i64, std::int64_t, 1, 0)
+SIMDLIB_DEFINE_LOGICAL_SHUFFLE(u64, std::uint64_t, 1, 0)
+SIMDLIB_DEFINE_LOGICAL_SHUFFLE(f32, float, 3, 2, 1, 0)
+SIMDLIB_DEFINE_LOGICAL_SHUFFLE(f64, double, 1, 0)
+#else
+SIMDLIB_DEFINE_LOGICAL_SHUFFLE(i8, std::int8_t, 0, 17, 2, 19, 4, 21, 6, 23, 8, 25, 10, 27, 12, 29, 14, 31, 16, 1, 18, 3, 20, 5, 22, 7, 24, 9, 26, 11, 28, 13,
+							   30, 15)
+SIMDLIB_DEFINE_LOGICAL_SHUFFLE(u8, std::uint8_t, 0, 17, 2, 19, 4, 21, 6, 23, 8, 25, 10, 27, 12, 29, 14, 31, 16, 1, 18, 3, 20, 5, 22, 7, 24, 9, 26, 11, 28, 13,
+							   30, 15)
+SIMDLIB_DEFINE_LOGICAL_SHUFFLE(i16, std::int16_t, 0, 9, 2, 11, 4, 13, 6, 15, 8, 1, 10, 3, 12, 5, 14, 7)
+SIMDLIB_DEFINE_LOGICAL_SHUFFLE(u16, std::uint16_t, 0, 9, 2, 11, 4, 13, 6, 15, 8, 1, 10, 3, 12, 5, 14, 7)
+SIMDLIB_DEFINE_LOGICAL_SHUFFLE(i32, std::int32_t, 7, 6, 5, 4, 3, 2, 1, 0)
+SIMDLIB_DEFINE_LOGICAL_SHUFFLE(u32, std::uint32_t, 7, 6, 5, 4, 3, 2, 1, 0)
+SIMDLIB_DEFINE_LOGICAL_SHUFFLE(i64, std::int64_t, 3, 2, 1, 0)
+SIMDLIB_DEFINE_LOGICAL_SHUFFLE(u64, std::uint64_t, 3, 2, 1, 0)
+SIMDLIB_DEFINE_LOGICAL_SHUFFLE(f32, float, 7, 6, 5, 4, 3, 2, 1, 0)
+SIMDLIB_DEFINE_LOGICAL_SHUFFLE(f64, double, 3, 2, 1, 0)
 #define SIMDLIB_DEFINE_LOWER(token, type)                                                                                                                      \
 	/** @brief Compares one lower-half wrapper against its Api expression. */                                                                                  \
 	SIMDLIB_REGISTER_ONLY SIMDLIB_REARRANGEMENT_CODEGEN_NOINLINE SimdLibRearrangementCodegen::native_t<type, 128> VECTORCALL                                   \
@@ -238,8 +239,8 @@ SIMDLIB_DEFINE_WIDEN_WIDTHS(u32, std::uint32_t, u64, std::uint64_t)
 #undef SIMDLIB_DEFINE_REARRANGE_INDEXED_UNARY
 #undef SIMDLIB_DEFINE_REARRANGE_BINARY
 #undef SIMDLIB_DEFINE_REARRANGE_UNARY
-#undef SIMDLIB_REARRANGE_BYTE_SHUFFLE_256
-#undef SIMDLIB_REARRANGE_BYTE_SHUFFLE_128
+#undef SIMDLIB_DEFINE_LOGICAL_SHUFFLE
+#undef SIMDLIB_REARRANGE_LOGICAL_SHUFFLE
 #undef SIMDLIB_REARRANGE_WIDEN
 #undef SIMDLIB_REARRANGE_LOWER
 #undef SIMDLIB_REARRANGE_CONVERT

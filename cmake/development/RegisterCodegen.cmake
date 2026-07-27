@@ -54,6 +54,7 @@ function(simdlib_add_register_codegen_gate register_width isa_profile)
 	set(specialized_fma_disabled_raw_target RegisterSpecializedFmaDisabledRaw${target_suffix})
 	set(rearrangement_wrapper_target RegisterRearrangementWrapper${target_suffix})
 	set(rearrangement_raw_target RegisterRearrangementRaw${target_suffix})
+	set(logical_shuffle_intrinsic_target LogicalShuffleIntrinsic${target_suffix})
 	set(type_matrix_wrapper_target RegisterTypeMatrixWrapper${target_suffix})
 	set(type_matrix_raw_target RegisterTypeMatrixRaw${target_suffix})
 	add_library(${wrapper_target} OBJECT tests/codegen/RegisterCodegen.cpp)
@@ -70,13 +71,14 @@ function(simdlib_add_register_codegen_gate register_width isa_profile)
 	add_library(${specialized_fma_disabled_raw_target} OBJECT tests/codegen/RegisterSpecializedCodegenRaw.cpp)
 	add_library(${rearrangement_wrapper_target} OBJECT tests/codegen/RegisterRearrangementCodegen.cpp)
 	add_library(${rearrangement_raw_target} OBJECT tests/codegen/RegisterRearrangementCodegenRaw.cpp)
+	add_library(${logical_shuffle_intrinsic_target} OBJECT tests/codegen/LogicalShuffleCodegenRaw.cpp)
 	add_library(${type_matrix_wrapper_target} OBJECT tests/codegen/RegisterTypeMatrixCodegen.cpp)
 	add_library(${type_matrix_raw_target} OBJECT tests/codegen/RegisterTypeMatrixCodegenRaw.cpp)
 	set(codegen_object_targets
 		${wrapper_target} ${raw_target} ${default_wrapper_target} ${default_raw_target}
 		${abi_wrapper_target} ${abi_raw_target}
 		${specialized_fma_disabled_wrapper_target} ${specialized_fma_disabled_raw_target}
-		${rearrangement_wrapper_target} ${rearrangement_raw_target}
+		${rearrangement_wrapper_target} ${rearrangement_raw_target} ${logical_shuffle_intrinsic_target}
 		${type_matrix_wrapper_target} ${type_matrix_raw_target})
 	if(isa_profile STREQUAL "AVX2")
 		list(APPEND codegen_object_targets
@@ -128,6 +130,7 @@ function(simdlib_add_register_codegen_gate register_width isa_profile)
 	set(specialized_fma_enabled_stamp_file "${artifact_directory}/specialized/fma-enabled/comparison.record.json")
 	set(specialized_fma_disabled_stamp_file "${artifact_directory}/specialized/fma-disabled/comparison.record.json")
 	set(rearrangement_stamp_file "${artifact_directory}/rearrangement-conversion/comparison.record.json")
+	set(logical_shuffle_intrinsic_stamp_file "${artifact_directory}/logical-shuffle-intrinsic/comparison.record.json")
 	set(type_matrix_stamp_file "${artifact_directory}/type-matrix/comparison.record.json")
 	add_custom_command(
 		OUTPUT "${stamp_file}"
@@ -298,6 +301,34 @@ function(simdlib_add_register_codegen_gate register_width isa_profile)
 		COMMENT "Comparing ${register_width}-bit rearrangement and conversion wrapper and raw generated code"
 		VERBATIM)
 	add_custom_command(
+		OUTPUT "${logical_shuffle_intrinsic_stamp_file}"
+		COMMAND ${CMAKE_COMMAND} -E make_directory "${artifact_directory}/logical-shuffle-intrinsic"
+		COMMAND ${CMAKE_COMMAND}
+			-DWRAPPER_OBJECT=$<TARGET_OBJECTS:${rearrangement_raw_target}>
+			-DRAW_OBJECT=$<TARGET_OBJECTS:${logical_shuffle_intrinsic_target}>
+			-DOBJDUMP=${CMAKE_OBJDUMP}
+			-DARTIFACT_DIRECTORY=${artifact_directory}/logical-shuffle-intrinsic
+			-DCOMPILER_ID=${CMAKE_CXX_COMPILER_ID}
+			-DCOMPILER_VERSION=${CMAKE_CXX_COMPILER_VERSION}
+			-DCOMPILER_PATH=${CMAKE_CXX_COMPILER}
+			-DSYSTEM_NAME=${CMAKE_SYSTEM_NAME}
+			-DSYSTEM_PROCESSOR=${CMAKE_SYSTEM_PROCESSOR}
+			-DCONFIGURATION=$<CONFIG>
+			-DREGISTER_WIDTH=${register_width}
+			-DISA_PROFILE=${isa_profile}
+			-DVECTORCALL_ENABLED=${vectorcall_enabled}
+			-DSTACK_PROTECTOR_MODE=${stack_protector_mode}
+			-DRECORD_ONLY=${codegen_comparison_record_only}
+			-DCODEGEN_PROFILE=logical-shuffle-intrinsic
+			-DSYMBOL_PATTERN=simdlib_rearrangement_codegen_logical_shuffle_
+			-P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/CompareRegisterCodegen.cmake
+		DEPENDS
+			$<TARGET_OBJECTS:${rearrangement_raw_target}>
+			$<TARGET_OBJECTS:${logical_shuffle_intrinsic_target}>
+			cmake/CompareRegisterCodegen.cmake
+		COMMENT "Comparing ${register_width}-bit Api logical shuffles against direct intrinsics"
+		VERBATIM)
+	add_custom_command(
 		OUTPUT "${type_matrix_stamp_file}"
 		COMMAND ${CMAKE_COMMAND} -E make_directory "${artifact_directory}/type-matrix"
 		COMMAND ${CMAKE_COMMAND}
@@ -434,13 +465,17 @@ function(simdlib_add_register_codegen_gate register_width isa_profile)
 	set(expression_codegen_gate_outputs
 		"${register_only_stamp_file}" "${reassignment_stamp_file}" "${lane_stamp_file}"
 		"${specialized_fma_disabled_stamp_file}"
-		"${rearrangement_stamp_file}" "${type_matrix_stamp_file}")
+		"${rearrangement_stamp_file}" "${logical_shuffle_intrinsic_stamp_file}" "${type_matrix_stamp_file}")
 	if(isa_profile STREQUAL "AVX2")
 		list(APPEND expression_codegen_gate_outputs "${specialized_fma_enabled_stamp_file}")
 	endif()
 	if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
 		list(APPEND expression_codegen_gate_outputs "${stamp_file}")
 	endif()
+	add_custom_target(LogicalShuffleCodegen${target_suffix}
+		DEPENDS "${rearrangement_stamp_file}" "${logical_shuffle_intrinsic_stamp_file}")
+	add_dependencies(LogicalShuffleCodegen${target_suffix}
+		${rearrangement_wrapper_target} ${rearrangement_raw_target} ${logical_shuffle_intrinsic_target})
 	add_custom_target(RegisterExpressionCodegen${target_suffix}
 		DEPENDS ${expression_codegen_gate_outputs})
 	add_dependencies(RegisterExpressionCodegen${target_suffix} ${codegen_object_targets})
@@ -494,6 +529,10 @@ if(SIMDLIB_BUILD_REGISTER_CODEGEN_GATES AND SIMDLIB_REGISTER_COMPILER_SUPPORTED)
 	simdlib_add_register_codegen_gate(128 SSE42)
 	simdlib_add_register_codegen_gate(128 AVX2)
 	simdlib_add_register_codegen_gate(256 AVX2)
+	add_custom_target(LogicalShuffleCodegen DEPENDS
+		LogicalShuffleCodegen128Sse42
+		LogicalShuffleCodegen128Avx2
+		LogicalShuffleCodegen256Avx2)
 	add_custom_target(RegisterCodegen DEPENDS
 		RegisterCodegen128Sse42
 		RegisterCodegen128Avx2
