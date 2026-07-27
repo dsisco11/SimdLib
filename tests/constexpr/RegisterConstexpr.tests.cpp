@@ -65,6 +65,54 @@ template <class element_t, std::size_t bits> [[nodiscard]] consteval bool regist
 		   register_logical_shuffle_case<element_t, bits, SimdLib::Tests::LogicalShuffle::repeated_selectors<element_t, bits>()>();
 }
 
+/**
+ * @brief Expands one byte-selector array into a Register byte shuffle during constant evaluation.
+ * @tparam register_t Register specialization under test.
+ * @tparam selectors Source-byte selectors.
+ * @tparam positions Output byte positions.
+ * @param value Source Register.
+ * @return Constant-evaluated byte-shuffled Register.
+ */
+template <class register_t, auto selectors, std::size_t... positions>
+[[nodiscard]] consteval register_t register_byte_shuffle_value(register_t value, std::index_sequence<positions...>) noexcept
+{
+	return value.template shuffle_bytes<selectors[positions]...>();
+}
+
+/**
+ * @brief Verifies one constant-evaluated Register byte shuffle against the scalar byte oracle.
+ * @tparam element_t Logical lane type retained by the result.
+ * @tparam bits Register width in bits.
+ * @tparam selectors Source-byte selectors.
+ * @return True when every result byte matches the independently selected source byte.
+ */
+template <class element_t, std::size_t bits, auto selectors> [[nodiscard]] consteval bool register_byte_shuffle_case() noexcept
+{
+	using register_t = SimdLib::Register<element_t, bits>;
+	constexpr auto source = SimdLib::Tests::LogicalShuffle::distinct_lanes<element_t, bits>();
+	constexpr register_t source_register = register_t::from_array(source);
+	constexpr register_t shuffled = register_byte_shuffle_value<register_t, selectors>(source_register, std::make_index_sequence<register_t::byte_count>{});
+	constexpr auto actual = std::bit_cast<std::array<std::uint8_t, register_t::byte_count>>(shuffled.to_array());
+	constexpr auto source_bytes = std::bit_cast<std::array<std::uint8_t, register_t::byte_count>>(source);
+	constexpr auto expected = SimdLib::Tests::LogicalShuffle::logical_shuffle_oracle<std::uint8_t, bits, selectors>(source_bytes);
+	return actual == expected;
+}
+
+/**
+ * @brief Verifies local and cross-half constant-evaluated Register byte shuffles.
+ * @tparam element_t Logical lane type retained by the result.
+ * @tparam bits Register width in bits.
+ * @return True when every independent scalar-oracle comparison succeeds.
+ */
+template <class element_t, std::size_t bits> [[nodiscard]] consteval bool register_byte_shuffle_contract() noexcept
+{
+	if constexpr (bits == 128)
+		return register_byte_shuffle_case<element_t, bits, SimdLib::Tests::LogicalShuffle::reverse_selectors<std::uint8_t, bits>()>();
+	else
+		return register_byte_shuffle_case<element_t, bits, SimdLib::Tests::LogicalShuffle::reverse_selectors<std::uint8_t, bits>()>() &&
+			   register_byte_shuffle_case<element_t, bits, SimdLib::Tests::LogicalShuffle::mixed_half_selectors<std::uint8_t>()>();
+}
+
 /** @brief Constructs a register from an expanded compile-time lane array. */
 template <class register_t, std::size_t... indices>
 [[nodiscard]] consteval register_t from_lanes(const std::array<typename register_t::element_type, register_t::lane_count> &values,
@@ -463,6 +511,13 @@ SIMDLIB_ASSERT_REGISTER_LOGICAL_SHUFFLE_CONSTEXPR(float);
 SIMDLIB_ASSERT_REGISTER_LOGICAL_SHUFFLE_CONSTEXPR(double);
 
 #undef SIMDLIB_ASSERT_REGISTER_LOGICAL_SHUFFLE_CONSTEXPR
+
+#define SIMDLIB_ASSERT_REGISTER_BYTE_SHUFFLE_CONSTEXPR(element_type) static_assert(register_byte_shuffle_contract<element_type, SIMDLIB_REGISTER_TEST_WIDTH>())
+
+SIMDLIB_ASSERT_REGISTER_BYTE_SHUFFLE_CONSTEXPR(std::int32_t);
+SIMDLIB_ASSERT_REGISTER_BYTE_SHUFFLE_CONSTEXPR(double);
+
+#undef SIMDLIB_ASSERT_REGISTER_BYTE_SHUFFLE_CONSTEXPR
 
 static_assert(register_complete_shift_constexpr_contract());
 static_assert(register_rearrangement_conversion_constexpr_contract<SIMDLIB_REGISTER_TEST_WIDTH>());

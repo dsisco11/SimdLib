@@ -89,6 +89,8 @@ if(SIMDLIB_BUILD_CONFIGURATION_PROBES)
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/RegisterUninitialized.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/RegisterInvalidShuffleSelector.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/RegisterWrongShuffleSelectorCount.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/RegisterInvalidByteShuffleSelector.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/RegisterWrongByteShuffleSelectorCount.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/api/ApiInvalidShuffleSelector.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/api/ApiWrongShuffleSelectorCount.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/RegisterInvalidRearrangementImmediate.cpp
@@ -145,6 +147,12 @@ if(SIMDLIB_BUILD_CONFIGURATION_PROBES)
 		simdlib_expect_language_probe_failure(RegisterWrongShuffleSelectorCountFailure
 			tests/compile_fail/register/RegisterWrongShuffleSelectorCount.cpp 23
 			SIMDLIB_REGISTER_REJECTS_WRONG_SHUFFLE_SELECTOR_COUNT)
+		simdlib_expect_language_probe_failure(RegisterInvalidByteShuffleSelectorFailure
+			tests/compile_fail/register/RegisterInvalidByteShuffleSelector.cpp 23
+			SIMDLIB_REGISTER_REJECTS_INVALID_BYTE_SHUFFLE_SELECTOR)
+		simdlib_expect_language_probe_failure(RegisterWrongByteShuffleSelectorCountFailure
+			tests/compile_fail/register/RegisterWrongByteShuffleSelectorCount.cpp 23
+			SIMDLIB_REGISTER_REJECTS_WRONG_BYTE_SHUFFLE_SELECTOR_COUNT)
 		simdlib_expect_language_probe_failure(RegisterInvalidRearrangementImmediateFailure
 			tests/compile_fail/register/RegisterInvalidRearrangementImmediate.cpp 23
 			SIMDLIB_REGISTER_REJECTS_INVALID_REARRANGEMENT_IMMEDIATE)

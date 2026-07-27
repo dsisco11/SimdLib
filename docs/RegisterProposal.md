@@ -973,6 +973,7 @@ requires an explicit integer reinterpretation followed by integer comparison.
 | `unpack_lo` | `lhs.unpack_low(rhs)` | Wrapped backend result |
 | `unpack_hi` | `lhs.unpack_high(rhs)` | Wrapped backend result |
 | `shuffle<indices...>` | `value.shuffle<indices...>()` | One compile-time logical source-lane selector per output lane |
+| `Api<Bits, std::uint8_t>::shuffle<indices...>` | `value.shuffle_bytes<indices...>()` | One compile-time logical source-byte selector per output byte; result retains `T` |
 | Generic `shuffle(args...)` | None initially | Implementation-specific signature remains compatibility-only |
 | `shuffle_lo` | `value.shuffle_low<imm8>()` | Compile-time immediate form |
 | `shuffle_hi` | `value.shuffle_high<imm8>()` | Compile-time immediate form |
@@ -986,6 +987,13 @@ Floating-point lanes preserve their object representations, including NaN
 payloads and signed zero. There is no out-of-range zero-fill sentinel; the
 generic implementation-specific `Api::shuffle(args...)` overload retains any
 control-mask behavior defined by its backend.
+
+Byte shuffle selectors view the complete register as `byte_count` bytes numbered
+from low to high. The selector count must equal `byte_count`, repeated selectors
+are permitted, and every selector must be less than `byte_count`. There is no
+zero-fill sentinel. A 256-bit byte shuffle may move bytes across the 128-bit
+boundary, and output bytes may cross the element boundaries of `T`; the result
+nevertheless remains `Register<T, Bits>`.
 
 ### Shift and conversion ledger
 
@@ -1073,7 +1081,7 @@ explicit; no other preferred operation may silently discard active lanes.
 
 Compile-time selectors should be preferred when an instruction requires an
 immediate. Examples include `value.shuffle<indices...>()`,
-`lhs.blend<mask>(rhs)`, `value.lane<index>()`, and
+`value.shuffle_bytes<indices...>()`, `lhs.blend<mask>(rhs)`, `value.lane<index>()`, and
 `value.with_lane<index>(lane_value)`. Runtime-selector overloads should exist
 only where the current implementation supports them without misrepresenting an
 immediate-only instruction as a cheap dynamic operation.
@@ -1081,9 +1089,11 @@ immediate-only instruction as a cheap dynamic operation.
 Every `imm8` template control is constrained to the inclusive range `0..255`;
 operation-specific unused bits retain the underlying intrinsic behavior. Lane
 selectors require `index < lane_count`. Logical `shuffle<indices...>` overloads
-require exactly the documented result selector count and reject every index
-outside the documented input-lane range. These requirements participate in
-overload constraints instead of relying on a late intrinsic diagnostic.
+require exactly `lane_count` selectors and reject every index outside
+`[0, lane_count)`. Logical `shuffle_bytes<indices...>` overloads require exactly
+`byte_count` selectors and reject every index outside `[0, byte_count)`. These
+requirements participate in overload constraints instead of relying on a late
+intrinsic diagnostic.
 
 Lane order at the public boundary is always logical low-to-high order. Native
 intrinsic argument order remains available only through explicit native
