@@ -1,0 +1,140 @@
+Logical Shuffle Element-Type Support Plan:
+
+  Purpose:
+    ☐ Extend the compile-time logical `Api<bits, T>::shuffle<indices...>()` operation from signed and unsigned 8-bit lanes to every supported arithmetic element type at 128 and 256 bits.
+    ☐ Expose the same availability and semantics through `Register<T, bits>::shuffle<indices...>()` without adding wrapper overhead.
+    ☐ Preserve constexpr behavior, intrinsic-backed runtime behavior, overload-resolution diagnostics, and the existing 128-bit-group rearrangement contract.
+
+  Controlling Decisions:
+    ☐ Support `int8_t`, `uint8_t`, `int16_t`, `uint16_t`, `int32_t`, `uint32_t`, `int64_t`, `uint64_t`, `float`, and `double` wherever the corresponding `Api` width is available.
+    ☐ Interpret every template argument as a logical source-lane index for the corresponding output lane.
+    ☐ Require exactly `Api<bits, T>::element_count` selectors; permit repeated selectors; reject every selector outside the source register.
+    ☐ At 256 bits, require each output selector to name a source lane in the same 128-bit group. Preserve independent lower- and upper-group selector sequences.
+    ☐ Preserve element object representations exactly. Floating-point shuffles move lane bits without arithmetic normalization, including NaN payloads and positive or negative zero.
+    ☐ Keep `shuffle_lo<imm8>()` and `shuffle_hi<imm8>()` as the existing 16-bit half-shuffle operations.
+    ☐ Keep the generic `shuffle(args...)` overload as an implementation-specific compatibility surface; do not use it as the logical lane-shuffle contract.
+    ☐ Reserve cross-128-bit rearrangement for a separately designed whole-register permutation API rather than changing `shuffle<indices...>()` semantics.
+    ☐ Implement runtime shuffles in the individual `SimdImpl128<T>` and `SimdImpl256<T>` specializations. Shared helpers may encode validated selectors, but must not combine all element types behind one monolithic element-type switch.
+    ☐ Keep every public and backend shuffle method flattened, force-inlined, and register-only where its runtime path operates exclusively on native register values and compile-time constants.
+
+  Non-Goals:
+    ☐ Do not add runtime-selected logical lane indices.
+    ☐ Do not add a zero-fill selector sentinel or accept out-of-range indices as zeroing controls.
+    ☐ Do not broaden 256-bit shuffles across 128-bit groups merely because a selected AVX2 intrinsic can do so.
+    ☐ Do not remove or rename the existing immediate-controlled half shuffles, generic compatibility overloads, or internal `shuffle_32` helpers as part of this work.
+    ☐ Do not add 512-bit support, new instruction-set requirements, or new Register storage or ABI state.
+    ☐ Do not treat agreement between `Register` and `Api` as an independent correctness oracle.
+    ☐ Do not add performance benchmarks unless generated-code inspection leaves a genuine choice between instruction sequences with materially different costs.
+    ☐ Do not combine the unrelated `Api.h` compilation-cost experiment with this feature implementation.
+
+  Required Runtime Instruction Mapping:
+    | Width | Element family | General implementation |
+    | --- | --- | --- |
+    | 128 | `int8_t`, `uint8_t` | `_mm_shuffle_epi8` with one control byte per logical lane |
+    | 128 | `int16_t`, `uint16_t` | `_mm_shuffle_epi8` with every logical selector expanded into a two-byte control pair |
+    | 128 | `int32_t`, `uint32_t` | `_mm_shuffle_epi32` with the logical selectors encoded into `imm8` |
+    | 128 | `int64_t`, `uint64_t` | `_mm_shuffle_epi32` with each 64-bit selector expanded into its two 32-bit sublanes |
+    | 128 | `float` | `_mm_shuffle_ps(lhs, lhs, imm8)` |
+    | 128 | `double` | `_mm_shuffle_pd(lhs, lhs, imm8)` |
+    | 256 | `int8_t`, `uint8_t` | `_mm256_shuffle_epi8` with independent control bytes in each 128-bit group |
+    | 256 | `int16_t`, `uint16_t` | `_mm256_shuffle_epi8` with independent two-byte control pairs in each 128-bit group |
+    | 256 | `int32_t`, `uint32_t` | `_mm256_permutevar8x32_epi32` using the validated logical selector vector |
+    | 256 | `int64_t`, `uint64_t` | `_mm256_permute4x64_epi64` using the encoded logical selectors |
+    | 256 | `float` | `_mm256_permutevar8x32_ps` using the validated logical selector vector |
+    | 256 | `double` | `_mm256_permute4x64_pd` using the encoded logical selectors |
+
+    ☐ Treat this table as the canonical general-case mapping, subject to supported-compiler intrinsic spelling and equivalent generated instructions.
+    ☐ Permit an immediate-form fast path for 256-bit 32-bit lanes when both 128-bit groups request the same permutation only if code-generation evidence proves it is better and the general independent-group path remains covered.
+
+  Phase 0 - Freeze the Existing Surface and Baseline:
+    ☐ Inventory the current logical selector overload, generic compatibility overloads, `shuffle_lo`, `shuffle_hi`, `shuffle_32`, interface concepts, Register forwarding, compile-failure probes, runtime tests, constexpr probes, and generated-code fixtures.
+    ☐ Record the existing availability matrix, including the intentional current absence of logical shuffles for elements wider than eight bits.
+    ☐ Record representative 128-bit SSE4.2 and 256-bit AVX2 generated code for the existing signed and unsigned byte shuffles.
+    ☐ Record focused compile time, `Api.h` preprocessing size, and logical-shuffle constexpr-probe time before adding the wider overloads.
+    ☐ Confirm that the selector contract in this plan agrees with `docs/RegisterImplementationMatrix.md` and every existing cross-group rejection probe.
+    ☐ End Phase 0 only when the pre-change API, instruction, constraint, code-generation, and compilation-cost baselines are reproducible.
+
+  Phase 1 - Establish Independent Behavioral and Constraint Oracles:
+    ☐ Add a scalar logical-shuffle oracle parameterized by element type, register width, and selector sequence.
+    ☐ Compare floating-point results by object representation rather than scalar equality so NaN payloads and signed zero remain observable.
+    ☐ Add runtime `Api` tests for all ten element types at 128 and 256 bits.
+    ☐ Cover identity, complete reversal within each 128-bit group, first-lane broadcast, last-lane broadcast, repeated selectors, pair swaps, and rotations.
+    ☐ For every 256-bit type, include a case whose upper 128-bit group uses a different permutation from its lower group.
+    ☐ Use lane values with unique bit patterns so byte-order mistakes, partial-lane reconstruction, signedness mistakes, and group aliasing cannot pass accidentally.
+    ☐ Add runtime `Register` tests using the independent scalar oracle for all compiler-supported Register type and width combinations.
+    ☐ Add constexpr contracts for every element type and both widths, including at least one nonidentity and one repeated-selector result.
+    ☐ Update availability assertions so `IApi::Shuffle` and `IRegister::Shuffle` are required for every supported element type and width.
+    ☐ Add negative concept and compile-failure coverage for too few selectors, too many selectors, an out-of-range selector, and a 256-bit selector crossing a 128-bit group.
+    ☐ Exercise those rejection contracts at the controlling `Api` layer and through the forwarding `Register` layer.
+    ☐ Exercise invalid-selector constraints for representative 8-, 16-, 32-, and 64-bit lane counts and for a floating-point specialization.
+    ☐ Keep invalid calls rejected during overload resolution rather than by a function-body assertion.
+    ☐ End Phase 1 only when the desired result and rejection matrices are independent from both `Api` and `Register` implementations.
+
+  Phase 2 - Implement the 128-Bit Backends:
+    ☐ Add an explicit compile-time logical shuffle method to each `SimdImpl128<T>` specialization.
+    ☐ Add narrowly scoped, documented `consteval` or constexpr helpers for selector-to-immediate and selector-to-byte-control encoding where sharing does not hide the owning element specialization.
+    ☐ Preserve the existing signed and unsigned byte implementation and migrate it to the same specialization-level routing used by the new element types.
+    ☐ Implement signed and unsigned 16-bit shuffles by expanding each lane selector to correctly ordered low- and high-byte selectors.
+    ☐ Implement signed and unsigned 32-bit shuffles with an immediate that preserves logical low-to-high lane ordering.
+    ☐ Implement signed and unsigned 64-bit shuffles by expanding each logical lane to an inseparable pair of 32-bit sublanes.
+    ☐ Implement `float` and `double` with the type-correct single-source shuffle intrinsic.
+    ☐ Ensure runtime control values are compile-time constants and are never staged through a writable local array.
+    ☐ Ensure the mapping layer delegates to the selected element specialization without hiding the generic compatibility overload set.
+    ☐ Run the focused 128-bit runtime, constexpr, availability, compile-failure, strict-warning, and generated-code checks.
+    ☐ End Phase 2 only when every 128-bit type produces the scalar-oracle result and its intended intrinsic sequence.
+
+  Phase 3 - Implement the 256-Bit Backends:
+    ☐ Add an explicit compile-time logical shuffle method to each `SimdImpl256<T>` specialization.
+    ☐ Implement signed and unsigned 8- and 16-bit lanes with independent `vpshufb` controls for the lower and upper 128-bit groups.
+    ☐ Implement signed and unsigned 32-bit lanes with the validated eight-lane control vector while retaining the same-group public constraint.
+    ☐ Implement signed and unsigned 64-bit lanes with the encoded four-lane immediate while retaining the same-group public constraint.
+    ☐ Implement `float` and `double` with their type-correct AVX2 permutation intrinsics.
+    ☐ Prove that different lower- and upper-group patterns do not collapse into one repeated 128-bit immediate.
+    ☐ Prove that no backend silently accepts a cross-group selector through direct mapping-layer use.
+    ☐ Ensure runtime control vectors are compiler constants and do not introduce writable stack buffers, scalar lane extraction, or per-lane insertion.
+    ☐ Run the focused 256-bit runtime, constexpr, availability, compile-failure, strict-warning, and generated-code checks.
+    ☐ End Phase 3 only when every 256-bit type preserves group-local semantics and produces the scalar-oracle result through its intended intrinsic family.
+
+  Phase 4 - Generalize the Public Layers:
+    ☐ Change `Api::shuffle<indices...>()` from a byte-only integer constraint to the complete supported arithmetic-type contract.
+    ☐ Rename byte-specific internal comments and helper descriptions to logical lane terminology without weakening exact-count, range, or group validation.
+    ☐ Update `IImpl::IndexedShuffle` to validate the implementation's actual `vector_t` rather than assuming `int_vector_t`.
+    ☐ Keep `IApi::Shuffle` and `IRegister::Shuffle` as the authoritative interface concepts and verify that their results match backend availability for every matrix cell.
+    ☐ Preserve `Register::shuffle<indices...>()` as a one-expression aggregate-wrapper delegation with no new storage, conversion, or temporary-array path.
+    ☐ Audit overload resolution between the logical template-index form and the generic implementation-specific `shuffle(args...)` form for integral and floating types.
+    ☐ Preserve the existing behavior and availability of `shuffle_lo`, `shuffle_hi`, `shuffle_32`, and runtime byte-control shuffles.
+    ☐ Update Doxygen comments for every affected public, interface, backend, and helper declaration.
+    ☐ Run first-and-only header probes for `IImpl.h`, `IApi.h`, `Api.h`, `IRegister.h`, and `Register.h`.
+    ☐ End Phase 4 only when the public concepts, overloads, comments, and Register forwarding expose exactly the backend matrix defined by this plan.
+
+  Phase 5 - Prove Runtime Code Quality and Compilation Cost:
+    ☐ Expand the rearrangement code-generation fixture from byte shuffles to all ten element types at both widths.
+    ☐ Compare direct intrinsic, `Api`, and `Register` expressions under identical compiler, ISA, optimization, calling-convention, flatten, and stack-protection settings.
+    ☐ Use nonidentity patterns that cannot optimize away and include a distinct-upper-group 256-bit pattern where the instruction family permits independent controls.
+    ☐ Require no wrapper-only calls, branches, scalar extraction/insertion, writable stack arrays, spills, security-cookie sequence, or redundant register moves.
+    ☐ Record the selected shuffle or permutation opcode for every compiler/type/width cell and explicitly review any compiler-specific deviation from the canonical mapping table.
+    ☐ Validate optimized code generation with MSVC, clang-cl, GCC 14, and Clang 22; retain the existing core-only boundary for GCC 13 while testing its C++20 `Api` surface.
+    ☐ Compare focused `Api.h` preprocessing size, frontend time, template-instantiation time, object size, and public-header invalidation time with the Phase 0 baseline.
+    ☐ Consolidate selector encoders only when measurements show repeated template work and the consolidation preserves specialization ownership and diagnostics.
+    ☐ Do not claim a zero-overhead or compilation-cost result from source inspection alone.
+    ☐ End Phase 5 only when every supported cell has reviewed generated-code evidence and any compilation-cost change is measured and explained.
+
+  Phase 6 - Document and Complete Validation:
+    ☐ Add a logical shuffle row to `docs/ApiOperationMatrix.md` with checkmarks for every newly tested type and no stale byte-only classification.
+    ☐ Update `docs/RegisterImplementationMatrix.md`, `docs/RegisterProposal.md`, `docs/TestCoverage.md`, and other maintained Register documentation where they describe logical byte shuffles or byte-only availability.
+    ☐ Rewrite the `wiki/Api.md` shuffle section to document the logical selector-pack overload separately from the generic implementation-specific overload.
+    ☐ Document exact selector count, repeated selectors, range rejection, independent 128-bit groups, floating object-representation preservation, and the absence of a zeroing sentinel.
+    ☐ Add representative 16-, 32-, and 64-bit examples without presenting transient validation results as enduring documentation.
+    ☐ Run the complete supported build and test matrix once after the implementation and focused checks are complete.
+    ☐ Run strict warnings, constexpr probes, runtime tests, compile-failure probes, sanitizer tests, header isolation, configuration probes, external consumers, ABI checks, and generated-code gates.
+    ☐ Verify GCC 13 retains its documented C++20 core-only support and that wider `Api` shuffles do not accidentally require the C++23 Register interface.
+    ☐ Verify formatting and `git diff --check`.
+    ☐ Remove temporary disassembly, compiler traces, timing probes, generated objects, and other analysis artifacts after final execution reporting.
+    ☐ End Phase 6 only when all ten element types at both supported widths satisfy the logical, constexpr, constraint, documentation, compiler, and zero-overhead contracts.
+
+  Execution Evidence:
+    ☐ Record the baseline and final instruction matrix with compiler version, target ISA, optimization, and stack-protection provenance.
+    ☐ Record the runtime and constexpr result matrix separately from generated-code and compilation-cost evidence.
+    ☐ Record compile-failure diagnostics for selector count, range, and group violations.
+    ☐ Record focused validation after each implementation section and the complete matrix only at final close-out.
+    ☐ Keep transient logs, timings, disassembly, and test totals out of enduring API documentation.

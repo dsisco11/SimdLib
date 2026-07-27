@@ -24,6 +24,8 @@ Build Pipeline:
     ☐ Ensure that the codegen tests are building the actual SimdLib code without optimizations enabled, but building the comparison code WITH optimizations enabled, so we guarantee that the zero-overhead guarantee isnt relying on compiler optimization and also that debug builds are still going to produce optimal codegen.
 
 Testing:
+    ☐ Expand compile-time logical `shuffle<indices...>()` support to every supported element type at 128 and 256 bits.
+        Implementation plan: `docs/LogicalShuffleSupport.todo`.
     ☐ Ensure test coverage of all `SimdImplementation::negate()` methods.
     ☐ Review test coverage of all `SimdImplementation` namespace methods.
     ☐ Review test coverage for Api layer runtime methods.
