@@ -11,6 +11,7 @@
 #include <intrin.h>
 #endif
 #include <span>
+#include <utility>
 
 namespace SimdLib::Detail
 {
@@ -144,6 +145,68 @@ struct SimdImpl128
 {
 };
 
+/**
+ * @brief Encodes four logical 32-bit selectors in low-to-high result-lane order.
+ * @tparam index0 Source lane for result lane zero.
+ * @tparam index1 Source lane for result lane one.
+ * @tparam index2 Source lane for result lane two.
+ * @tparam index3 Source lane for result lane three.
+ * @return Immediate accepted by the 128-bit four-lane shuffle intrinsics.
+ */
+template <std::size_t index0, std::size_t index1, std::size_t index2, std::size_t index3>
+[[nodiscard]] consteval int encode_logical_shuffle_32_immediate() noexcept
+{
+	return static_cast<int>(index0 | (index1 << 2) | (index2 << 4) | (index3 << 6));
+}
+
+/**
+ * @brief Encodes one byte of a selected logical 16-bit lane.
+ * @tparam index Logical 16-bit source-lane selector.
+ * @tparam byte Byte position within the selected lane.
+ * @return Byte selector accepted by the 128-bit byte-shuffle intrinsic.
+ */
+template <std::size_t index, std::size_t byte>
+	requires(byte < 2)
+[[nodiscard]] consteval int encode_logical_shuffle_16_byte() noexcept
+{
+	return static_cast<int>((index * 2) + byte);
+}
+
+/**
+ * @brief Builds the constant byte-control register for a logical 16-bit shuffle.
+ * @tparam indices Logical 16-bit lane selectors.
+ * @tparam byte_positions Byte positions in the resulting control register.
+ * @return Native byte-control register for the 128-bit byte-shuffle intrinsic.
+ */
+template <auto indices, std::size_t... byte_positions>
+SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m128i VECTORCALL
+make_logical_shuffle_16_control(std::index_sequence<byte_positions...>) noexcept
+{
+	return _mm_setr_epi8(encode_logical_shuffle_16_byte<indices[byte_positions / 2], byte_positions % 2>()...);
+}
+
+/**
+ * @brief Encodes two logical 64-bit selectors as inseparable 32-bit pairs.
+ * @tparam index0 Source lane for result lane zero.
+ * @tparam index1 Source lane for result lane one.
+ * @return Immediate accepted by the 128-bit 32-bit-lane shuffle intrinsic.
+ */
+template <std::size_t index0, std::size_t index1> [[nodiscard]] consteval int encode_logical_shuffle_64_immediate() noexcept
+{
+	return encode_logical_shuffle_32_immediate<(index0 * 2), (index0 * 2) + 1, (index1 * 2), (index1 * 2) + 1>();
+}
+
+/**
+ * @brief Encodes two logical 64-bit floating-point selectors in low-to-high result-lane order.
+ * @tparam index0 Source lane for result lane zero.
+ * @tparam index1 Source lane for result lane one.
+ * @return Immediate accepted by the 128-bit two-lane floating-point shuffle intrinsic.
+ */
+template <std::size_t index0, std::size_t index1> [[nodiscard]] consteval int encode_logical_shuffle_double_immediate() noexcept
+{
+	return static_cast<int>(index0 | (index1 << 1));
+}
+
 template <> struct SimdImpl128<int8_t>
 {
 	/** @brief Selects bytes from two registers using a canonical predicate register. */
@@ -152,6 +215,18 @@ template <> struct SimdImpl128<int8_t>
 		return _mm_blendv_epi8(when_false, when_true, condition);
 	}
 
+	/**
+	 * @brief Shuffles logical signed-byte lanes using compile-time source selectors.
+	 * @tparam indices Source lane for each result lane in low-to-high order.
+	 * @param lhs Source register.
+	 * @return Register containing the selected logical lanes.
+	 */
+	template <std::size_t... indices>
+		requires(sizeof...(indices) == 16 && ((indices < 16) && ...))
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m128i VECTORCALL shuffle(__m128i lhs) noexcept
+	{
+		return _mm_shuffle_epi8(lhs, _mm_setr_epi8(static_cast<int>(indices)...));
+	}
 	// arithmetic
 	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL add(auto lhs, auto rhs) noexcept
 	{
@@ -431,6 +506,18 @@ template <> struct SimdImpl128<uint8_t>
 		return _mm_blendv_epi8(when_false, when_true, condition);
 	}
 
+	/**
+	 * @brief Shuffles logical unsigned-byte lanes using compile-time source selectors.
+	 * @tparam indices Source lane for each result lane in low-to-high order.
+	 * @param lhs Source register.
+	 * @return Register containing the selected logical lanes.
+	 */
+	template <std::size_t... indices>
+		requires(sizeof...(indices) == 16 && ((indices < 16) && ...))
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m128i VECTORCALL shuffle(__m128i lhs) noexcept
+	{
+		return _mm_shuffle_epi8(lhs, _mm_setr_epi8(static_cast<int>(indices)...));
+	}
 	// arithmetic
 	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL add(auto lhs, auto rhs) noexcept
 	{
@@ -719,6 +806,18 @@ template <> struct SimdImpl128<int16_t>
 		return _mm_blendv_epi8(when_false, when_true, condition);
 	}
 
+	/**
+	 * @brief Shuffles logical signed 16-bit lanes using compile-time source selectors.
+	 * @tparam indices Source lane for each result lane in low-to-high order.
+	 * @param lhs Source register.
+	 * @return Register containing the selected logical lanes.
+	 */
+	template <std::size_t... indices>
+		requires(sizeof...(indices) == 8 && ((indices < 8) && ...))
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m128i VECTORCALL shuffle(__m128i lhs) noexcept
+	{
+		return _mm_shuffle_epi8(lhs, make_logical_shuffle_16_control<std::array{indices...}>(std::make_index_sequence<16>{}));
+	}
 	// arithmetic
 	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL add(auto lhs, auto rhs) noexcept
 	{
@@ -1032,6 +1131,18 @@ template <> struct SimdImpl128<uint16_t>
 		return _mm_blendv_epi8(when_false, when_true, condition);
 	}
 
+	/**
+	 * @brief Shuffles logical unsigned 16-bit lanes using compile-time source selectors.
+	 * @tparam indices Source lane for each result lane in low-to-high order.
+	 * @param lhs Source register.
+	 * @return Register containing the selected logical lanes.
+	 */
+	template <std::size_t... indices>
+		requires(sizeof...(indices) == 8 && ((indices < 8) && ...))
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m128i VECTORCALL shuffle(__m128i lhs) noexcept
+	{
+		return _mm_shuffle_epi8(lhs, make_logical_shuffle_16_control<std::array{indices...}>(std::make_index_sequence<16>{}));
+	}
 	// arithmetic
 	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL add(auto lhs, auto rhs) noexcept
 	{
@@ -1349,6 +1460,18 @@ template <> struct SimdImpl128<int32_t>
 		return _mm_blendv_epi8(when_false, when_true, condition);
 	}
 
+	/**
+	 * @brief Shuffles logical signed 32-bit lanes using compile-time source selectors.
+	 * @tparam indices Source lane for each result lane in low-to-high order.
+	 * @param lhs Source register.
+	 * @return Register containing the selected logical lanes.
+	 */
+	template <std::size_t... indices>
+		requires(sizeof...(indices) == 4 && ((indices < 4) && ...))
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m128i VECTORCALL shuffle(__m128i lhs) noexcept
+	{
+		return _mm_shuffle_epi32(lhs, encode_logical_shuffle_32_immediate<indices...>());
+	}
 	// arithmetic
 	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL add(auto lhs, auto rhs) noexcept
 	{
@@ -1608,6 +1731,18 @@ template <> struct SimdImpl128<uint32_t>
 		return _mm_blendv_epi8(when_false, when_true, condition);
 	}
 
+	/**
+	 * @brief Shuffles logical unsigned 32-bit lanes using compile-time source selectors.
+	 * @tparam indices Source lane for each result lane in low-to-high order.
+	 * @param lhs Source register.
+	 * @return Register containing the selected logical lanes.
+	 */
+	template <std::size_t... indices>
+		requires(sizeof...(indices) == 4 && ((indices < 4) && ...))
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m128i VECTORCALL shuffle(__m128i lhs) noexcept
+	{
+		return _mm_shuffle_epi32(lhs, encode_logical_shuffle_32_immediate<indices...>());
+	}
 	// arithmetic
 	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL add(auto lhs, auto rhs) noexcept
 	{
@@ -1884,6 +2019,18 @@ template <> struct SimdImpl128<int64_t>
 		return _mm_blendv_epi8(when_false, when_true, condition);
 	}
 
+	/**
+	 * @brief Shuffles logical signed 64-bit lanes using compile-time source selectors.
+	 * @tparam indices Source lane for each result lane in low-to-high order.
+	 * @param lhs Source register.
+	 * @return Register containing the selected logical lanes.
+	 */
+	template <std::size_t... indices>
+		requires(sizeof...(indices) == 2 && ((indices < 2) && ...))
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m128i VECTORCALL shuffle(__m128i lhs) noexcept
+	{
+		return _mm_shuffle_epi32(lhs, encode_logical_shuffle_64_immediate<indices...>());
+	}
 	// arithmetic
 	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL add(auto lhs, auto rhs) noexcept
 	{
@@ -2104,6 +2251,18 @@ template <> struct SimdImpl128<uint64_t>
 		return _mm_blendv_epi8(when_false, when_true, condition);
 	}
 
+	/**
+	 * @brief Shuffles logical unsigned 64-bit lanes using compile-time source selectors.
+	 * @tparam indices Source lane for each result lane in low-to-high order.
+	 * @param lhs Source register.
+	 * @return Register containing the selected logical lanes.
+	 */
+	template <std::size_t... indices>
+		requires(sizeof...(indices) == 2 && ((indices < 2) && ...))
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m128i VECTORCALL shuffle(__m128i lhs) noexcept
+	{
+		return _mm_shuffle_epi32(lhs, encode_logical_shuffle_64_immediate<indices...>());
+	}
 	// arithmetic
 	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL add(auto lhs, auto rhs) noexcept
 	{
@@ -2318,6 +2477,18 @@ template <> struct SimdImpl128<float>
 		return _mm_blendv_ps(when_false, when_true, condition);
 	}
 
+	/**
+	 * @brief Shuffles logical floating-point lanes using compile-time source selectors.
+	 * @tparam indices Source lane for each result lane in low-to-high order.
+	 * @param lhs Source register.
+	 * @return Register containing the selected logical lanes.
+	 */
+	template <std::size_t... indices>
+		requires(sizeof...(indices) == 4 && ((indices < 4) && ...))
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m128 VECTORCALL shuffle(__m128 lhs) noexcept
+	{
+		return _mm_shuffle_ps(lhs, lhs, encode_logical_shuffle_32_immediate<indices...>());
+	}
 	// arithmetic
 	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL add(auto lhs, auto rhs) noexcept
 	{
@@ -2487,6 +2658,18 @@ template <> struct SimdImpl128<double>
 		return _mm_blendv_pd(when_false, when_true, condition);
 	}
 
+	/**
+	 * @brief Shuffles logical double-precision floating-point lanes using compile-time source selectors.
+	 * @tparam indices Source lane for each result lane in low-to-high order.
+	 * @param lhs Source register.
+	 * @return Register containing the selected logical lanes.
+	 */
+	template <std::size_t... indices>
+		requires(sizeof...(indices) == 2 && ((indices < 2) && ...))
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m128d VECTORCALL shuffle(__m128d lhs) noexcept
+	{
+		return _mm_shuffle_pd(lhs, lhs, encode_logical_shuffle_double_immediate<indices...>());
+	}
 	// arithmetic
 	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL add(auto lhs, auto rhs) noexcept
 	{
@@ -2664,6 +2847,8 @@ template <class element_t> struct SimdMappings<128, element_t> : public SimdImpl
 	using impl = SimdImpl128<element_t>;
 
   public:
+	using impl::shuffle;
+
 	template <class ty> using Mappings = SimdMappings<128, ty>;
 	template <class ty> using mapped_vector_t = typename Mappings<ty>::vector_t;
 	template <class ty>
@@ -3079,15 +3264,6 @@ template <class element_t> struct SimdMappings<128, element_t> : public SimdImpl
 		return _mm_shuffle_epi8(lhs, indices);
 	}
 
-	/// <summary> Shuffles the bytes in the vector using the templated index sequence. </summary>
-	template <std::size_t... indices>
-		requires(sizeof...(indices) == 16)
-	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static int_vector_t VECTORCALL shuffle(int_vector_t lhs) noexcept
-	{
-		// A constexpr register initializer was intentionally replaced by the portable runtime intrinsic.
-		// The active compiler-independent constexpr register construction lives in Detail::register_from_values.
-		return _mm_shuffle_epi8(lhs, _mm_setr_epi8(indices...));
-	}
 #pragma endregion
 
 #pragma region Miscellaneous Operations

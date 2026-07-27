@@ -95,17 +95,25 @@ Logical Shuffle Element-Type Support Plan:
       - The Api and Register constexpr desired matrices were compiled as expected-red contracts and stopped at the current 16-bit logical-shuffle availability boundary. Runtime and constexpr result execution remains assigned to the backend implementation sections.
 
   Phase 2 - Implement the 128-Bit Backends:
-    ☐ Add an explicit compile-time logical shuffle method to each `SimdImpl128<T>` specialization.
-    ☐ Add narrowly scoped, documented `consteval` or constexpr helpers for selector-to-immediate and selector-to-byte-control encoding where sharing does not hide the owning element specialization.
-    ☐ Preserve the existing signed and unsigned byte implementation and migrate it to the same specialization-level routing used by the new element types.
-    ☐ Implement signed and unsigned 16-bit shuffles by expanding each lane selector to correctly ordered low- and high-byte selectors.
-    ☐ Implement signed and unsigned 32-bit shuffles with an immediate that preserves logical low-to-high lane ordering.
-    ☐ Implement signed and unsigned 64-bit shuffles by expanding each logical lane to an inseparable pair of 32-bit sublanes.
-    ☐ Implement `float` and `double` with the type-correct single-source shuffle intrinsic.
-    ☐ Ensure runtime control values are compile-time constants and are never staged through a writable local array.
-    ☐ Ensure the mapping layer delegates to the selected element specialization without hiding the generic compatibility overload set.
-    ☐ Run the focused 128-bit runtime, constexpr, availability, compile-failure, strict-warning, and generated-code checks.
-    ☐ End Phase 2 only when every 128-bit type produces the scalar-oracle result and its intended intrinsic sequence.
+    ☑ Add an explicit compile-time logical shuffle method to each `SimdImpl128<T>` specialization.
+    ☑ Add narrowly scoped, documented `consteval` or constexpr helpers for selector-to-immediate and selector-to-byte-control encoding where sharing does not hide the owning element specialization.
+    ☑ Preserve the existing signed and unsigned byte implementation and migrate it to the same specialization-level routing used by the new element types.
+    ☑ Implement signed and unsigned 16-bit shuffles by expanding each lane selector to correctly ordered low- and high-byte selectors.
+    ☑ Implement signed and unsigned 32-bit shuffles with an immediate that preserves logical low-to-high lane ordering.
+    ☑ Implement signed and unsigned 64-bit shuffles by expanding each logical lane to an inseparable pair of 32-bit sublanes.
+    ☑ Implement `float` and `double` with the type-correct single-source shuffle intrinsic.
+    ☑ Ensure runtime control values are compile-time constants and are never staged through a writable local array.
+    ☑ Ensure the mapping layer delegates to the selected element specialization without hiding the generic compatibility overload set.
+    ☑ Run the focused 128-bit runtime, constexpr, availability, compile-failure, strict-warning, and generated-code checks.
+    ☑ End Phase 2 only when every 128-bit type produces the scalar-oracle result and its intended intrinsic sequence.
+
+    Evidence:
+      - `SimdImpl128<T>` now owns the compile-time logical-shuffle overload for every signed, unsigned, and floating element specialization; `SimdMappings<128, T>` retains its dynamic byte-control compatibility overload and re-exposes the specialization overload set with `using`.
+      - Narrow consteval encoders cover four-lane immediates, expanded 16-bit byte selectors, inseparable 64-bit sublane pairs, and double-lane immediates. The 16-bit control register is built entirely from template constants and never uses a writable local array.
+      - `LogicalShuffleImpl128Tests` validates identity, reversal, first/last broadcasts, repeated selectors, pair swaps, and rotations for all ten types against the independent object-representation oracle. Its compile-time assertions also cover availability, wrong selector counts, out-of-range selectors, and encoder values.
+      - Focused Clang 22 Release configuration, strict-warning build, and CTest execution passed. `LogicalShuffleOracleConstexprProbe` compiled, and all four Api/Register negative probes emitted their stable diagnostics.
+      - Equivalent optimized oracle probes passed under MSVC 19.36 and containerized GCC 13.2 with the repository's strict warning profiles.
+      - Reviewed vectorcall assembly under Clang 22, GCC 13.2, and MSVC 19.36 contains no stack or security-cookie traffic. Byte and word paths lower to `pshufb`; dword and qword paths lower to `pshufd`; float lowers to `shufps`. MSVC lowers the double path to `shufpd`; Clang and GCC canonicalize the same pair-preserving operation to an equivalent `shufps` or `palignr` instruction.
 
   Phase 3 - Implement the 256-Bit Backends:
     ☐ Add an explicit compile-time logical shuffle method to each `SimdImpl256<T>` specialization.

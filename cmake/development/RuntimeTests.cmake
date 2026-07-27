@@ -117,6 +117,18 @@ if(SIMDLIB_BUILD_RUNTIME_TESTS)
     endif()
 
     if(SIMDLIB_BUILD_API_SSE42_TESTS)
+        simdlib_add_catch_test(LogicalShuffleImpl128Tests tests/LogicalShuffleImpl128.tests.cpp
+            LogicalShuffle.Impl128 "LOGICAL_SHUFFLE;SSE42")
+        if(SIMDLIB_MSVC_STYLE_DRIVER)
+            target_compile_definitions(LogicalShuffleImpl128Tests PRIVATE
+                SIMDLIB_HAS_SSE3=1 SIMDLIB_HAS_SSSE3=1 SIMDLIB_HAS_SSE41=1 SIMDLIB_HAS_SSE42=1)
+            if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+                target_compile_options(LogicalShuffleImpl128Tests PRIVATE /arch:AVX2)
+            endif()
+        else()
+            target_compile_options(LogicalShuffleImpl128Tests PRIVATE -msse4.2)
+        endif()
+
         simdlib_add_catch_test(ApiSse42Tests tests/Api128.tests.cpp
             Api.SSE42 "SSE42")
 		target_sources(ApiSse42Tests PRIVATE tests/LogicalShuffleApi.tests.cpp)
