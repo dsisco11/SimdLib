@@ -1476,7 +1476,7 @@ namespace SimdLib
 #pragma endregion
 
 #pragma region Vector Types
-
+// TODO: Remove these "Vector..." aliases in favor of the more descriptive "int8x16" style aliases below.
 using VectorInt8 = SimdVector<int8_t, 4>;
 using VectorUInt8 = SimdVector<uint8_t, 4>;
 
@@ -1490,6 +1490,9 @@ using VectorInt64 = SimdVector<int64_t, 4>;
 using VectorUInt64 = SimdVector<uint64_t, 4>;
 
 #pragma endregion
+
+// TODO: Move these aliases to an "Aliases.h" header file for better organization.
+// TODO: Redefine these aliases to use SimdRegister rather than SimdVector for better performance and clarity.
 
 #pragma region Type Aliases (Unsigned)
 
