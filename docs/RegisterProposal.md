@@ -972,11 +972,20 @@ requires an explicit integer reinterpretation followed by integer comparison.
 | Generic `insert(args...)` | None initially | Implementation-specific signature remains compatibility-only |
 | `unpack_lo` | `lhs.unpack_low(rhs)` | Wrapped backend result |
 | `unpack_hi` | `lhs.unpack_high(rhs)` | Wrapped backend result |
-| `shuffle<indices...>` | `value.shuffle<indices...>()` | Compile-time logical selector |
+| `shuffle<indices...>` | `value.shuffle<indices...>()` | One compile-time logical source-lane selector per output lane |
 | Generic `shuffle(args...)` | None initially | Implementation-specific signature remains compatibility-only |
 | `shuffle_lo` | `value.shuffle_low<imm8>()` | Compile-time immediate form |
 | `shuffle_hi` | `value.shuffle_high<imm8>()` | Compile-time immediate form |
 | `blend` | `lhs.blend<imm8>(rhs)` | Immediate blend; predicate blend uses `mask.select(lhs, rhs)` |
+
+Logical shuffle selectors use low-to-high lane numbering for the element type.
+The selector count must equal the register lane count, repeated selectors are
+permitted, and every selector must name a lane in the complete source register.
+A 256-bit shuffle may therefore move a lane across the 128-bit boundary.
+Floating-point lanes preserve their object representations, including NaN
+payloads and signed zero. There is no out-of-range zero-fill sentinel; the
+generic implementation-specific `Api::shuffle(args...)` overload retains any
+control-mask behavior defined by its backend.
 
 ### Shift and conversion ledger
 

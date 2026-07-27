@@ -55,7 +55,7 @@ Logical Shuffle Element-Type Support Plan:
     ☒ End Phase 0 only when the pre-change API, instruction, constraint, code-generation, and compilation-cost baselines are reproducible.
 
     Execution evidence:
-      - Temporary baseline summary, focused probe sources, preprocessed output, Clang time trace, and wrapper/raw assembly are retained under `out/pipeline/logical-shuffle-phase0/`.
+      - Temporary baseline summary, focused probe sources, preprocessed output, Clang time trace, and wrapper/raw assembly were generated under `out/pipeline/logical-shuffle-phase0/`; the measurements below preserve their conclusions after the temporary files were removed at final close-out.
       - A strict-warning C++23/AVX2 availability probe freezes the public `Api` and `Register` byte-only matrix separately from the backend's existing 16/32-byte indexed compatibility form.
       - The existing selector-count and invalid/cross-group compile-failure probes produced their required diagnostic markers with nonzero compiler results.
       - Native Clang 22.1.8 emitted exactly matching wrapper/raw `pshufb` bodies for signed and unsigned 128-bit byte shuffles and matching `vpshufb` bodies for the corresponding 256-bit shuffles under strong stack protection.
@@ -216,21 +216,29 @@ Logical Shuffle Element-Type Support Plan:
       - The first post-change trace exposed repeated per-byte encoder template instantiations: 54.01 ms of function-instantiation time. Converting only those leaf encoders to non-template `consteval` functions reduced the final measurement to 47.72 ms while preserving specialization-owned shuffle methods, diagnostics, and exact codegen parity on every compiler.
 
   Phase 6 - Document and Complete Validation:
-    ☐ Add a logical shuffle row to `docs/ApiOperationMatrix.md` with checkmarks for every newly tested type and no stale byte-only classification.
-    ☐ Update `docs/RegisterImplementationMatrix.md`, `docs/RegisterProposal.md`, `docs/TestCoverage.md`, and other maintained Register documentation where they describe logical byte shuffles or byte-only availability.
-    ☐ Rewrite the `wiki/Api.md` shuffle section to document the logical selector-pack overload separately from the generic implementation-specific overload.
-    ☐ Document exact selector count, repeated selectors, range rejection, full-register 256-bit selection, floating object-representation preservation, and the absence of a zeroing sentinel.
-    ☐ Add representative 16-, 32-, and 64-bit examples without presenting transient validation results as enduring documentation.
-    ☐ Run the complete supported build and test matrix once after the implementation and focused checks are complete.
-    ☐ Run strict warnings, constexpr probes, runtime tests, compile-failure probes, sanitizer tests, header isolation, configuration probes, external consumers, ABI checks, and generated-code gates.
-    ☐ Verify GCC 13 retains its documented C++20 core-only support and that wider `Api` shuffles do not accidentally require the C++23 Register interface.
-    ☐ Verify formatting and `git diff --check`.
-    ☐ Remove temporary disassembly, compiler traces, timing probes, generated objects, and other analysis artifacts after final execution reporting.
-    ☐ End Phase 6 only when all ten element types at both supported widths satisfy the logical, constexpr, constraint, documentation, compiler, and zero-overhead contracts.
+    ☑ Add a logical shuffle row to `docs/ApiOperationMatrix.md` with checkmarks for every newly tested type and no stale byte-only classification.
+    ☑ Update `docs/RegisterImplementationMatrix.md`, `docs/RegisterProposal.md`, `docs/TestCoverage.md`, and other maintained Register documentation where they describe logical byte shuffles or byte-only availability.
+    ☑ Rewrite the `wiki/Api.md` shuffle section to document the logical selector-pack overload separately from the generic implementation-specific overload.
+    ☑ Document exact selector count, repeated selectors, range rejection, full-register 256-bit selection, floating object-representation preservation, and the absence of a zeroing sentinel.
+    ☑ Add representative 16-, 32-, and 64-bit examples without presenting transient validation results as enduring documentation.
+    ☑ Run the complete supported build and test matrix once after the implementation and focused checks are complete.
+    ☑ Run strict warnings, constexpr probes, runtime tests, compile-failure probes, sanitizer tests, header isolation, configuration probes, external consumers, ABI checks, and generated-code gates.
+    ☑ Verify GCC 13 retains its documented C++20 core-only support and that wider `Api` shuffles do not accidentally require the C++23 Register interface.
+    ☑ Verify formatting and `git diff --check`.
+    ☑ Remove temporary disassembly, compiler traces, timing probes, generated objects, and other analysis artifacts after final execution reporting.
+    ☑ End Phase 6 only when all ten element types at both supported widths satisfy the logical, constexpr, constraint, documentation, compiler, and zero-overhead contracts.
 
   Execution Evidence:
-    ☐ Record the baseline and final instruction matrix with compiler version, target ISA, optimization, and stack-protection provenance.
-    ☐ Record the runtime and constexpr result matrix separately from generated-code and compilation-cost evidence.
-    ☐ Record compile-failure diagnostics for selector count, range, and group violations.
-    ☐ Record focused validation after each implementation section and the complete matrix only at final close-out.
-    ☐ Keep transient logs, timings, disassembly, and test totals out of enduring API documentation.
+    ☑ Record the baseline and final instruction matrix with compiler version, target ISA, optimization, and stack-protection provenance.
+    ☑ Record the runtime and constexpr result matrix separately from generated-code and compilation-cost evidence.
+    ☑ Record compile-failure diagnostics for selector count and range, and positive evidence that full-register cross-group selectors are accepted.
+    ☑ Record focused validation after each implementation section and the complete matrix only at final close-out.
+    ☑ Keep transient logs, timings, disassembly, and test totals out of enduring API documentation.
+
+    Final close-out:
+      - `Tools/Build.ps1 -Scope All` completed with a current source-digest receipt for MSVC Release/Debug, clang-cl Release/Debug, native Clang coverage, GCC 13 core-only Release/Debug, GCC 14 Release/Debug, and Clang 22 Release/Debug/ASan-UBSan. This build includes strict-warning compilation, constexpr and header/configuration probes, compile-failure contracts, external consumers, ABI comparisons, and generated-code gates.
+      - `Tools/Run-Tests.ps1 -Scope All -SkipBuild` accepted that receipt and completed every native and container test operation without rebuilding. Runtime logical-shuffle suites and separately compiled constexpr probes cover all ten arithmetic element types at 128 and 256 bits.
+      - GCC 13.2.1 compiled `LogicalShuffleApi.tests.cpp` in both `ApiSse42Tests` and `ApiAvx2Tests` with `-std=c++20`; its core-only presets expose no Register test target.
+      - Clang 22 compile-failure artifacts contain the expected Api and Register diagnostic markers for too few, too many, and out-of-range selectors. Runtime/constexpr oracle cases separately accept repeated selectors and complete-register 256-bit cross-half selectors.
+      - The first complete build attempt exposed three stale test calls that still used template syntax after the encoder leaf functions became ordinary `consteval` functions. The calls were corrected, focused native targets compiled, and the complete build/test close-out above passed.
+      - Repository-wide `clang-format --dry-run --Werror --style=file --fallback-style=none` and `git diff --check` completed cleanly. Temporary `logical-shuffle-phase0`, `logical-shuffle-phase3`, and `logical-shuffle-phase5` analysis directories were then removed; reproducible build/test manifests and logs remain under `out/pipeline`.

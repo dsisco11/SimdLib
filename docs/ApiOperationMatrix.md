@@ -24,6 +24,7 @@ corresponding `Api` cell rather than inventing a second implementation policy.
 | Integer conversion | ✗ | ✗ | ✗ | ✗ | ✓ | ✓ | ✗ | ✗ | ✗ | ✗ |
 | Floating absolute value, comparison helpers, and element extraction | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✓ | ✓ |
 | Floating `set1` and bitwise operations | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✓ | ✓ |
+| Compile-time logical `shuffle<indices...>` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | `uint64_t::multiply_add_adjacent` | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✓ | ✗ | ✗ |
 | Whole-register byte shifts | 128 ✓ / 256 ✗ | 128 ✓ / 256 ✗ | 128 ✓ / 256 ✗ | 128 ✓ / 256 ✗ | 128 ✓ / 256 ✗ | 128 ✓ / 256 ✗ | 128 ✓ / 256 ✗ | 128 ✓ / 256 ✗ | ✗ | ✗ |
 | `transform_pack` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✗ | ✗ |

@@ -71,8 +71,8 @@ static_assert(accepts_mapping_shuffle<int32_mapping, 0, 1, 2, 3>);
 static_assert(!accepts_mapping_shuffle<int32_mapping, 0, 1, 2>);
 static_assert(!accepts_mapping_shuffle<int32_mapping, 0, 1, 2, 4>);
 static_assert(SimdLib::Detail::encode_logical_shuffle_32_immediate<3, 2, 1, 0>() == 0x1B);
-static_assert(SimdLib::Detail::encode_logical_shuffle_16_byte<3, 0>() == 6);
-static_assert(SimdLib::Detail::encode_logical_shuffle_16_byte<3, 1>() == 7);
+static_assert(SimdLib::Detail::encode_logical_shuffle_16_byte(3, 0) == 6);
+static_assert(SimdLib::Detail::encode_logical_shuffle_16_byte(3, 1) == 7);
 static_assert(SimdLib::Detail::encode_logical_shuffle_64_immediate<1, 0>() == 0x4E);
 static_assert(SimdLib::Detail::encode_logical_shuffle_double_immediate<1, 0>() == 0x01);
 

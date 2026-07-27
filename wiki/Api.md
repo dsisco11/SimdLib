@@ -1314,22 +1314,43 @@ I32::shift_right_arithmetic(I32::construct({-8, -8, -8, -8}), 1); // => every la
 <a id="shuffle"></a>
 ## `shuffle`
 
-Shuffles register contents according to the implementation-specific control form.
+The compile-time logical overload constructs each output lane from the source
+lane named by the selector at the same output position. It requires exactly one
+selector per lane, permits repeated selectors, and rejects selectors outside
+the complete source register. At 256 bits, any selector may cross the 128-bit
+boundary. Floating-point lanes are moved by object representation, preserving
+NaN payloads and signed zero.
+
+Logical selectors have no zero-fill sentinel. The separate generic overload
+forwards an implementation-specific argument list to the selected backend; any
+control-mask zeroing behavior belongs only to that compatibility form.
 
 Signatures:
 
 ```cpp
-template <std::size_t... indices> static auto shuffle(int_vector_t lhs)
+template <std::size_t... indices> static vector_t shuffle(vector_t lhs)
 template <class... Args> static auto shuffle(Args &&...args)
 ```
 
-Example:
+Examples:
 
 ```cpp
+using U16x8 = SimdLib::Api<128, std::uint16_t>;
+const auto words = U16x8::construct({0, 1, 2, 3, 4, 5, 6, 7});
+U16x8::shuffle<7, 6, 5, 4, 3, 2, 1, 0>(words); // => {7, 6, 5, 4, 3, 2, 1, 0}
+
+using I32x8 = SimdLib::Api<256, std::int32_t>;
+const auto integers = I32x8::construct({0, 1, 2, 3, 4, 5, 6, 7});
+I32x8::shuffle<4, 5, 6, 7, 0, 1, 2, 3>(integers); // => exchanges the 128-bit halves
+
+using F64x4 = SimdLib::Api<256, double>;
+const auto doubles = F64x4::construct({1.0, 2.0, 3.0, 4.0});
+F64x4::shuffle<3, 3, 0, 0>(doubles); // => {4.0, 4.0, 1.0, 1.0}
+
 using U8x16 = SimdLib::Api<128, std::uint8_t>;
 U8x16::shuffle(
     U8x16::set1(7U),
-    U8x16::set1(0x80U)); // => every lane is cleared to 0U by the mask''s high bit
+    U8x16::set1(0x80U)); // generic control mask: high bits clear output bytes
 ```
 
 <a id="shuffle-hi"></a>

@@ -92,7 +92,7 @@ static_assert(!accepts_mapping_shuffle<dword_mapping, 0, 1, 2, 3, 4, 5, 6>);
 static_assert(!accepts_mapping_shuffle<dword_mapping, 0, 1, 2, 3, 4, 5, 6, 8>);
 static_assert(SimdLib::Detail::logical_shuffle_256_has_cross_half_selector<16, byte_half_swap>());
 static_assert(!SimdLib::Detail::logical_shuffle_256_has_local_half_selector<16, byte_half_swap>());
-static_assert(SimdLib::Detail::encode_logical_shuffle_256_byte<1, true, byte_half_swap, 0>() == 0);
+static_assert(SimdLib::Detail::encode_logical_shuffle_256_byte(1, true, 0, byte_half_swap[0], 0) == 0);
 
 TEST_CASE("256-bit mapping logical shuffle supports full-register lane selection", "[simdlib][logical-shuffle][backend]")
 {

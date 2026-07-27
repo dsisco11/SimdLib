@@ -64,8 +64,8 @@ These portability rules do not change a public declaration.
 | Comparison semantics | Named comparisons reproduce the selected intrinsic, including signedness, NaNs, signed zero, ordered/unordered predicates, and lane bit patterns | 5 | Runtime, portable, emulated, and constexpr parity |
 | Whole equality | `operator==` means all lanes compare equal; `operator!=` is its Boolean negation; relational operators are absent | 5 | Boolean and compile-rejection tests |
 | Shift counts | Per-lane negative counts are invalid; logical overshifts zero, arithmetic overshifts sign-fill, and byte/whole-register shifts follow the proposal boundary table | 6 | Boundary, precondition, constexpr, and codegen tests |
-| Immediate controls | Every `imm8` is constrained to `0..255`; logical selectors have exact counts, valid source indices, and remain within the intrinsic's 128-bit source group | 7, 8 | Compile-success/failure boundaries |
-| Rearrangement order | `lower_half()`, unpacking, and shuffling use logical low-to-high lanes; 256-bit unpack and shuffle operations apply independently to each 128-bit group | 8 | Independent lane oracles, highest-lane sentinels, and exact code-generation parity |
+| Immediate controls | Every `imm8` is constrained to `0..255`; logical shuffles require exactly one selector per output lane, permit repeated selectors, and reject selectors outside the complete source register | 7, 8 | Compile-success/failure boundaries |
+| Rearrangement order | `lower_half()`, unpacking, and shuffling use logical low-to-high lanes. The 256-bit logical shuffle may select any lane from the complete source register across the 128-bit boundary; lane-group restrictions remain only on operations whose names or intrinsic contracts specify them | 8 | Independent lane oracles, cross-half selectors, highest-lane sentinels, and exact code-generation parity |
 | Type-changing results | Public operations name the exact constrained namespace-level result alias and never expose a raw intrinsic result | 7 | Type assertions and unsupported-combination rejection |
 | Conversion split | `bit_cast()` preserves bits; `convert()` changes numeric values; `widen_low()` explicitly consumes only low source lanes | 8 | Independent bit/numeric/lane-consumption tests |
 | Zero overhead | No supported register-only wrapper expression or call boundary adds instructions, moves, spills, reloads, stack traffic, temporaries, return buffers, branches, or indirection relative to the identical raw baseline | 3, 10 | Mandatory exact-parity generated-code and ABI gates with provenance |
@@ -177,7 +177,7 @@ the operation or intentionally leaves it in a compatibility or collection layer.
 | Generic `insert(args...)` | No initial Register operation | Compatibility |
 | `unpack_lo` | `lhs.unpack_low(rhs)` | Implemented |
 | `unpack_hi` | `lhs.unpack_high(rhs)` | Implemented |
-| `shuffle<indices...>` | `value.shuffle<indices...>()` | Implemented |
+| `shuffle<indices...>` | `value.shuffle<indices...>()` | Implemented for every arithmetic element type at 128 and 256 bits |
 | Generic `shuffle(args...)` | No initial Register operation | Compatibility |
 | `shuffle_lo` | `value.shuffle_low<imm8>()` | Implemented |
 | `shuffle_hi` | `value.shuffle_high<imm8>()` | Implemented |
@@ -267,7 +267,7 @@ compile-time audit; no prose-only availability list can drift independently.
 | Raw-byte transfer | Fixed extent equals `byte_count` | Compile rejection and canaries |
 | Aligned transfer | Address is aligned to `byte_count` | Checks-enabled negative test |
 | Lane access/replacement | `index < lane_count` | Constraint rejection |
-| Logical shuffle | Exact selector count; each selector in documented input range | Constraint rejection |
+| Logical shuffle | Exactly one selector per output lane; repeated selectors permitted; every selector names a lane in the complete source register; no zero-fill sentinel | Count/range constraint rejection and positive cross-half coverage |
 | Immediate operations | `0 <= imm8 <= 255` | Constraint rejection at `-1` and `256` |
 | Per-lane logical/left shift | Runtime count is nonnegative; count at least lane width yields zero | Negative precondition and boundary tests |
 | Per-lane arithmetic shift | Runtime count is nonnegative; oversized count clamps to `lane_width - 1` | Negative precondition and sign-fill tests |
