@@ -13,7 +13,6 @@ if(SIMDLIB_BUILD_HEADER_PROBES)
     foreach(header_probe IN ITEMS
         Config
         TemplateTools
-        Aliases
         IApi
         IImpl
         IRegister
@@ -34,6 +33,12 @@ if(SIMDLIB_BUILD_HEADER_PROBES)
     endforeach()
 
 	if(SIMDLIB_REGISTER_COMPILER_SUPPORTED)
+		add_library(HeaderAliasesProbe OBJECT
+			tests/headers/AliasesHeaderProbe.cpp)
+		target_link_libraries(HeaderAliasesProbe PRIVATE SimdLib::Register)
+		simdlib_enable_development_warnings(HeaderAliasesProbe)
+		simdlib_enable_register_avx2(HeaderAliasesProbe)
+
 		add_library(HeaderRegisterProbe OBJECT
 			tests/headers/RegisterHeaderProbe.cpp)
 		target_link_libraries(HeaderRegisterProbe PRIVATE SimdLib::Register)

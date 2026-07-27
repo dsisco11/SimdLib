@@ -34,7 +34,7 @@ the rename preserves the complete member API rather than selecting a subset.
 | Explicit-width complete-register value | `SimdLib::Register<element_t, register_width>` |
 | Complete-register predicate value | `SimdLib::RegisterMask<element_t, register_width>` |
 | Fixed logical SIMD value | `SimdLib::SimdVector<element_t, element_count>` |
-| Fixed-width vector aliases | Root `SimdLib::*x*` and `SimdLib::Vector*` aliases |
+| Fixed-width complete-register aliases | C++23 root `SimdLib::*x*` and `SimdLib::Vector*` aliases |
 | Bit manipulation | `SimdLib::Bmi` |
 | Unsigned wide integer | `SimdLib::uint128_t` |
 | Byte-mask resampling | `SimdLib::SimdResample` |

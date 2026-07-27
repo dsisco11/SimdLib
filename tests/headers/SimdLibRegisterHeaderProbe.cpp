@@ -1,5 +1,6 @@
 #include <SimdLib/SimdLib.h>
 
+#include <concepts>
 #include <cstdint>
 
 static_assert(SIMDLIB_REGISTER_INTERFACE_AVAILABLE == 1);
@@ -10,5 +11,6 @@ using UmbrellaNativeRegister = SimdLib::NativeRegister<std::uint32_t>;
 using UmbrellaRegisterMask = typename UmbrellaRegister::mask_type;
 
 static_assert(SimdLib::IRegister::Type<UmbrellaRegister>);
+static_assert(std::same_as<SimdLib::uint32x4, UmbrellaRegister>);
 static_assert(SimdLib::IRegister::Type<UmbrellaNativeRegister>);
 static_assert(SimdLib::IRegisterMask::Type<UmbrellaRegisterMask>);

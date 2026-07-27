@@ -1,4 +1,4 @@
-#include <SimdLib/Aliases.h>
+#include <SimdLib/SimdVector.h>
 
 #include <catch2/catch_test_macros.hpp>
 
@@ -67,11 +67,8 @@ void require_dot_product(const std::array<Element, Count> &lhs, const std::array
 }
 } // namespace
 
-TEST_CASE("SimdVector exposes the complete aliases and storage facade", "[simdlib][vector]")
+TEST_CASE("SimdVector exposes the complete storage facade", "[simdlib][vector]")
 {
-	static_assert(std::same_as<SimdLib::uint8x16, SimdLib::SimdVector<std::uint8_t, 16>>);
-	static_assert(std::same_as<SimdLib::uint64x4, SimdLib::SimdVector<std::uint64_t, 4>>);
-	static_assert(std::same_as<SimdLib::int32x8, SimdLib::SimdVector<std::int32_t, 8>>);
 
 	SimdLib::SimdVector<std::int32_t, 3> value(4, -7, 11);
 	require_lanes(value, std::array<std::int32_t, 3>{4, -7, 11});
@@ -387,7 +384,7 @@ TEST_CASE("SimdVector documentation examples produce their documented results", 
 	REQUIRE(I16x4::simd::to_array(I16x4{30000, -10000, -30000, 10000}.subtract_horizontal_saturated(I16x4{1, 2, 3, 4})) ==
 			std::array<std::int16_t, 8>{32767, -32768, 0, 0, -1, -1, 0, 0});
 	REQUIRE(SimdLib::Api<128, std::int32_t>::to_array(I16x4{1, 2, 3, 4}.multiply_add_adjacent(I16x4{5, 6, 7, 8})) == std::array{17, 53, 0, 0});
-	using U8x16 = SimdLib::uint8x16;
+	using U8x16 = SimdLib::SimdVector<std::uint8_t, 16>;
 	REQUIRE(SimdLib::Api<128, std::int16_t>::to_array(U8x16{2}.multiply_add_unsigned_signed_bytes(U8x16{3})) ==
 			std::array<std::int16_t, 8>{12, 12, 12, 12, 12, 12, 12, 12});
 	REQUIRE(SimdLib::Api<128, std::uint64_t>::to_array(U8x16{9}.sum_absolute_byte_differences(U8x16{4})) == std::array<std::uint64_t, 2>{40, 40});

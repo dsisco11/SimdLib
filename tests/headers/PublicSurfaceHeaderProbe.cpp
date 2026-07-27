@@ -1,12 +1,11 @@
-#include <SimdLib/Aliases.h>
 #include <SimdLib/Api.h>
 #include <SimdLib/Bmi.h>
+#include <SimdLib/SimdVector.h>
 #include <SimdLib/UInt128.h>
 
 #include <concepts>
 #include <cstdint>
 
-static_assert(std::same_as<SimdLib::SimdVector<std::uint32_t, 4>, SimdLib::uint32x4>);
 static_assert(std::same_as<decltype(SimdLib::Bmi::blsi(SimdLib::uint128_t{8})), SimdLib::uint128_t>);
 static_assert(std::same_as<decltype(SimdLib::Bmi::bextr(SimdLib::uint128_t{0xF0}, 4, 4)), SimdLib::uint128_t>);
 
