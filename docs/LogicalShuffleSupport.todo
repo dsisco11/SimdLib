@@ -136,16 +136,25 @@ Logical Shuffle Element-Type Support Plan:
       - Reviewed Clang 22, GCC 13.2, and MSVC 19.36 assembly contains no stack-frame, security-cookie, scalar extraction, or per-lane insertion traffic. Local byte and word patterns use one `vpshufb`; opposite-half patterns use a half exchange plus `vpshufb`; mixed patterns use register-only permutations and blends or two masked `vpshufb` results joined by `vpor`. Wider lanes lower to the corresponding full-register permutation instructions or compiler-selected equivalents.
 
   Phase 4 - Generalize the Public Layers:
-    ☐ Change `Api::shuffle<indices...>()` from a byte-only, group-local integer constraint to the complete full-register arithmetic-type contract.
-    ☐ Rename byte-specific internal comments and helper descriptions to logical lane terminology without weakening exact-count, range, or group validation.
-    ☐ Update `IImpl::IndexedShuffle` to validate the implementation's actual `vector_t` rather than assuming `int_vector_t`.
-    ☐ Keep `IApi::Shuffle` and `IRegister::Shuffle` as the authoritative interface concepts and verify that their results match backend availability for every matrix cell.
-    ☐ Preserve `Register::shuffle<indices...>()` as a one-expression aggregate-wrapper delegation with no new storage, conversion, or temporary-array path.
-    ☐ Audit overload resolution between the logical template-index form and the generic implementation-specific `shuffle(args...)` form for integral and floating types.
-    ☐ Preserve the existing behavior and availability of `shuffle_lo`, `shuffle_hi`, `shuffle_32`, and runtime byte-control shuffles.
-    ☐ Update Doxygen comments for every affected public, interface, backend, and helper declaration.
-    ☐ Run first-and-only header probes for `IImpl.h`, `IApi.h`, `Api.h`, `IRegister.h`, and `Register.h`.
-    ☐ End Phase 4 only when the public concepts, overloads, comments, and Register forwarding expose exactly the backend matrix defined by this plan.
+    ☑ Change `Api::shuffle<indices...>()` from a byte-only, group-local integer constraint to the complete full-register arithmetic-type contract.
+    ☑ Rename byte-specific internal comments and helper descriptions to logical lane terminology while preserving exact-count and complete-register range validation.
+    ☑ Update `IImpl::IndexedShuffle` to validate the implementation's actual `vector_t` rather than assuming `int_vector_t`.
+    ☑ Keep `IApi::Shuffle` and `IRegister::Shuffle` as the authoritative interface concepts and verify that their results match backend availability for every matrix cell.
+    ☑ Preserve `Register::shuffle<indices...>()` as a one-expression aggregate-wrapper delegation with no new storage, conversion, or temporary-array path.
+    ☑ Audit overload resolution between the logical template-index form and the generic implementation-specific `shuffle(args...)` form for integral and floating types.
+    ☑ Preserve the existing behavior and availability of `shuffle_lo`, `shuffle_hi`, `shuffle_32`, and runtime byte-control shuffles.
+    ☑ Update Doxygen comments for every affected public, interface, backend, and helper declaration.
+    ☑ Run first-and-only header probes for `IImpl.h`, `IApi.h`, `Api.h`, `IRegister.h`, and `Register.h`.
+    ☑ End Phase 4 only when the public concepts, overloads, comments, and Register forwarding expose exactly the backend matrix defined by this plan.
+
+    Evidence:
+      - `Api::shuffle<indices...>()` now participates for every supported arithmetic element type when the selector count is exact, every selector is in the complete-register range, and the selected backend exposes the operation. Its selector validator is a consteval fold expression with no temporary selector array or 128-bit-group restriction.
+      - `IImpl::IndexedShuffle` now tests `implementation_t::vector_t` with `std::size_t` selectors and requires a valid mapping. This exposes the floating backends correctly while `IApi::Shuffle` and `IRegister::Shuffle` remain the public availability concepts.
+      - `Register::shuffle<indices...>()` remains a one-expression aggregate construction around the Api result. Public Api and Register oracle suites now exercise local patterns, complete half exchange, mixed local/cross-half selection, and full-register reversal for all ten types at 256 bits, while their 128-bit matrix remains complete.
+      - Compile-time assertions prove the logical selector overload coexists with the dynamic integer-control and implementation-specific floating shuffle overloads. Existing immediate half-shuffle, `shuffle_32`, blend, and byte-control runtime cases remain available and pass their scalar references.
+      - Clang 22 strict-warning builds passed for both Api widths, both Register widths, all four public constexpr probes, and the first-and-only `IImpl.h`, `IApi.h`, `Api.h`, `IRegister.h`, and `Register.h` probes. Nine focused logical and legacy shuffle runtime cases passed.
+      - MSVC Release builds and runtime execution passed for both Api and Register widths, both Api constexpr probes, both Register constexpr probes, and the same five first-header probes. Naming the intermediate constexpr Register values avoids an MSVC frontend ICE caused by the previous nested temporary test expression without weakening the tested contract.
+      - The Api and Register out-of-range and wrong-selector-count probes retain their stable expected diagnostics. Their obsolete cross-half rejection clauses were removed because cross-half selection is now a required positive contract.
 
   Phase 5 - Prove Runtime Code Quality and Compilation Cost:
     ☐ Expand the rearrangement code-generation fixture from byte shuffles to all ten element types at both widths.

@@ -89,7 +89,12 @@ template <class element_t, std::size_t bits> void require_register_shuffle_suite
 	require_register_shuffle<element_t, bits, pair_swap_selectors<element_t, bits>()>();
 	require_register_shuffle<element_t, bits, rotation_selectors<element_t, bits>()>();
 	if constexpr (bits == 256)
+	{
 		require_register_shuffle<element_t, bits, distinct_group_selectors<element_t>()>();
+		require_register_shuffle<element_t, bits, swap_half_selectors<element_t>()>();
+		require_register_shuffle<element_t, bits, mixed_half_selectors<element_t>()>();
+		require_register_shuffle<element_t, bits, full_reverse_selectors<element_t>()>();
+	}
 }
 
 static_assert(register_accepts_identity_shuffle<std::int8_t, 128>());

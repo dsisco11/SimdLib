@@ -46,6 +46,20 @@ template <class api_t, auto selectors, std::size_t... positions>
 }
 
 /**
+ * @brief Reports whether an Api retains its dynamic integer-control shuffle overload.
+ * @tparam api_t Api specialization under test.
+ */
+template <class api_t>
+concept accepts_dynamic_integer_shuffle = requires(typename api_t::vector_t value) { api_t::shuffle(value, value); };
+
+/**
+ * @brief Reports whether an Api retains its implementation-specific floating shuffle overload.
+ * @tparam api_t Api specialization under test.
+ */
+template <class api_t>
+concept accepts_dynamic_floating_shuffle = requires(typename api_t::vector_t value) { api_t::shuffle(value, value, 0); };
+
+/**
  * @brief Reports whether one Api exposes its complete identity logical shuffle.
  * @tparam element_t Logical lane type.
  * @tparam bits Register width in bits.
@@ -88,7 +102,12 @@ template <class element_t, std::size_t bits> void require_api_shuffle_suite() no
 	require_api_shuffle<element_t, bits, pair_swap_selectors<element_t, bits>()>();
 	require_api_shuffle<element_t, bits, rotation_selectors<element_t, bits>()>();
 	if constexpr (bits == 256)
+	{
 		require_api_shuffle<element_t, bits, distinct_group_selectors<element_t>()>();
+		require_api_shuffle<element_t, bits, swap_half_selectors<element_t>()>();
+		require_api_shuffle<element_t, bits, mixed_half_selectors<element_t>()>();
+		require_api_shuffle<element_t, bits, full_reverse_selectors<element_t>()>();
+	}
 }
 
 static_assert(api_accepts_identity_shuffle<std::int8_t, SIMDLIB_LOGICAL_SHUFFLE_TEST_WIDTH>());
@@ -101,6 +120,9 @@ static_assert(api_accepts_identity_shuffle<std::int64_t, SIMDLIB_LOGICAL_SHUFFLE
 static_assert(api_accepts_identity_shuffle<std::uint64_t, SIMDLIB_LOGICAL_SHUFFLE_TEST_WIDTH>());
 static_assert(api_accepts_identity_shuffle<float, SIMDLIB_LOGICAL_SHUFFLE_TEST_WIDTH>());
 static_assert(api_accepts_identity_shuffle<double, SIMDLIB_LOGICAL_SHUFFLE_TEST_WIDTH>());
+static_assert(accepts_dynamic_integer_shuffle<SimdLib::Api<SIMDLIB_LOGICAL_SHUFFLE_TEST_WIDTH, std::int8_t>>);
+static_assert(accepts_dynamic_floating_shuffle<SimdLib::Api<SIMDLIB_LOGICAL_SHUFFLE_TEST_WIDTH, float>>);
+static_assert(accepts_dynamic_floating_shuffle<SimdLib::Api<SIMDLIB_LOGICAL_SHUFFLE_TEST_WIDTH, double>>);
 
 TEST_CASE("Api logical shuffle matches an independent object-representation oracle", "[simdlib][logical-shuffle]")
 {

@@ -246,9 +246,10 @@ template <class implementation_t>
 concept UnpackHigh = Mapping<implementation_t> &&
 					 requires(typename implementation_t::vector_t lhs, typename implementation_t::vector_t rhs) { implementation_t::unpack_hi(lhs, rhs); };
 
-/** @brief Reports whether a backend accepts an immediate shuffle index sequence. */
-template <class implementation_t, int... indices>
-concept IndexedShuffle = requires(typename implementation_t::int_vector_t value) { implementation_t::template shuffle<indices...>(value); };
+/** @brief Reports whether a backend accepts a logical shuffle index sequence for its native vector type. */
+template <class implementation_t, std::size_t... indices>
+concept IndexedShuffle =
+	Mapping<implementation_t> && requires(typename implementation_t::vector_t value) { implementation_t::template shuffle<indices...>(value); };
 
 /** @brief Reports whether a backend accepts the supplied shuffle arguments. */
 template <class implementation_t, class... argument_t>

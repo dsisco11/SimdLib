@@ -53,12 +53,22 @@ template <std::size_t Width, class Element, auto selectors> [[nodiscard]] conste
  * @brief Verifies nonidentity and repeated-selector constexpr logical shuffles.
  * @tparam Width SIMD register width in bits.
  * @tparam Element Logical lane type.
- * @return True when both independent scalar-oracle comparisons succeed.
+ * @return True when every independent scalar-oracle comparison succeeds.
  */
 template <std::size_t Width, class Element> [[nodiscard]] consteval bool logical_shuffle_contract() noexcept
 {
-	return logical_shuffle_case<Width, Element, LogicalShuffle::reverse_selectors<Element, Width>()>() &&
-		   logical_shuffle_case<Width, Element, LogicalShuffle::repeated_selectors<Element, Width>()>();
+	if constexpr (Width == 256)
+	{
+		return logical_shuffle_case<Width, Element, LogicalShuffle::reverse_selectors<Element, Width>()>() &&
+			   logical_shuffle_case<Width, Element, LogicalShuffle::repeated_selectors<Element, Width>()>() &&
+			   logical_shuffle_case<Width, Element, LogicalShuffle::swap_half_selectors<Element>()>() &&
+			   logical_shuffle_case<Width, Element, LogicalShuffle::mixed_half_selectors<Element>()>();
+	}
+	else
+	{
+		return logical_shuffle_case<Width, Element, LogicalShuffle::reverse_selectors<Element, Width>()>() &&
+			   logical_shuffle_case<Width, Element, LogicalShuffle::repeated_selectors<Element, Width>()>();
+	}
 }
 
 /**

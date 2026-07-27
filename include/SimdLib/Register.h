@@ -961,11 +961,11 @@ class Register final
 		return Register{api_type::unpack_hi(lhs.native, rhs.native)};
 	}
 
-	/** @brief Rearranges byte lanes with a complete compile-time logical selector list.
+	/** @brief Rearranges logical lanes with a complete compile-time selector list.
 	 *  @tparam indices One source-lane index for every result lane.
-	 *  @param value Source byte register.
-	 *  @return Register containing the selected bytes in logical output order.
-	 *  @note Every selector must stay in the same 128-bit group as its output lane because the selected intrinsic cannot cross groups.
+	 *  @param value Source register.
+	 *  @return Register containing the selected lanes in logical output order.
+	 *  @note Every selector may name any logical lane in the complete source register.
 	 */
 	template <std::size_t... indices>
 		requires IApi::Shuffle<api_type, indices...>

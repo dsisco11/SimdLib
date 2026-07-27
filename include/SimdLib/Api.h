@@ -1071,15 +1071,15 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 		return impl::unpack_hi(lhs, rhs);
 	}
 
-	/** @brief Rearranges byte lanes with one compile-time logical selector per result lane.
+	/** @brief Rearranges logical lanes with one compile-time selector per result lane.
 	 *  @tparam indices Exact selector sequence in logical result-lane order.
-	 *  @param lhs Source byte register.
-	 *  @return Register containing the selected byte lanes.
-	 *  @note Every selector must name a source lane in the same 128-bit group as its result lane.
+	 *  @param lhs Source register.
+	 *  @return Register containing the selected lanes.
+	 *  @note Every selector may name any logical lane in the complete source register.
 	 */
 	template <std::size_t... indices>
 	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static vector_t VECTORCALL shuffle(const vector_t lhs) noexcept
-		requires(using_int && element_width == 8 && Api::template logical_shuffle_indices_valid<indices...>() && IImpl::IndexedShuffle<impl, indices...>)
+		requires(Api::template logical_shuffle_indices_valid<indices...>() && IImpl::IndexedShuffle<impl, indices...>)
 	{
 		if (std::is_constant_evaluated())
 			return shuffle_constexpr<indices...>(lhs);
@@ -1611,28 +1611,13 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 
 #pragma region Internal
   protected:
-	/** @brief Validates a logical byte-shuffle selector sequence at overload resolution.
-	 *  @tparam indices Logical source-byte indices for every output
-	 * byte.
-	 *  @return `true` when the selector count is exact and every selector stays inside its output's 128-bit source group.
+	/** @brief Validates a logical lane-shuffle selector sequence at overload resolution.
+	 *  @tparam indices Logical source-lane indices for every output lane.
+	 *  @return `true` when the selector count is exact and every selector names a lane in the complete source register.
 	 */
-	template <std::size_t... indices> [[nodiscard]] constexpr static bool logical_shuffle_indices_valid() noexcept
+	template <std::size_t... indices> [[nodiscard]] consteval static bool logical_shuffle_indices_valid() noexcept
 	{
-		if constexpr (sizeof...(indices) != element_count)
-		{
-			return false;
-		}
-		else
-		{
-			constexpr std::array<std::size_t, element_count> selectors{indices...};
-			constexpr std::size_t lanes_per_group = 128 / element_width;
-			for (std::size_t output = 0; output < element_count; ++output)
-			{
-				if (selectors[output] >= element_count || selectors[output] / lanes_per_group != output / lanes_per_group)
-					return false;
-			}
-			return true;
-		}
+		return sizeof...(indices) == element_count && ((indices < element_count) && ...);
 	}
 
 	/** @brief Extracts the low 128-bit lanes during constant evaluation. */
@@ -1669,7 +1654,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 		return construct(result);
 	}
 
-	/** @brief Applies a validated logical byte shuffle during constant evaluation. */
+	/** @brief Applies a validated logical lane shuffle during constant evaluation. */
 	template <std::size_t... indices> [[nodiscard]] constexpr static vector_t shuffle_constexpr(const vector_t value) noexcept
 	{
 		const auto source = to_array(value);

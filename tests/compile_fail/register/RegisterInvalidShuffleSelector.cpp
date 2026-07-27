@@ -16,10 +16,5 @@ concept accepts_out_of_range_dword_selector = requires(value_t value) { value.te
 template <class value_t>
 concept accepts_out_of_range_qword_selector = requires(value_t value) { value.template shuffle<0, 2>(); };
 
-/** @brief Reports whether a floating Register accepts a selector from another 128-bit source group. */
-template <class value_t>
-concept accepts_cross_group_float_selector = requires(value_t value) { value.template shuffle<4, 1, 2, 3, 4, 5, 6, 7>(); };
-
-static_assert(accepts_out_of_range_dword_selector<dword_register> || accepts_out_of_range_qword_selector<qword_register> ||
-				  accepts_cross_group_float_selector<wide_float_register>,
+static_assert(accepts_out_of_range_dword_selector<dword_register> || accepts_out_of_range_qword_selector<qword_register>,
 			  "SIMDLIB_REGISTER_REJECTS_INVALID_SHUFFLE_SELECTOR");

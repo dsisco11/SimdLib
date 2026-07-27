@@ -16,10 +16,4 @@ concept accepts_out_of_range_dword_selector = requires(typename api_t::vector_t 
 template <class api_t>
 concept accepts_out_of_range_qword_selector = requires(typename api_t::vector_t value) { api_t::template shuffle<0, 2>(value); };
 
-/** @brief Reports whether a floating Api accepts a selector from another 128-bit source group. */
-template <class api_t>
-concept accepts_cross_group_float_selector = requires(typename api_t::vector_t value) { api_t::template shuffle<4, 1, 2, 3, 4, 5, 6, 7>(value); };
-
-static_assert(accepts_out_of_range_dword_selector<dword_api> || accepts_out_of_range_qword_selector<qword_api> ||
-				  accepts_cross_group_float_selector<wide_float_api>,
-			  "SIMDLIB_API_REJECTS_INVALID_SHUFFLE_SELECTOR");
+static_assert(accepts_out_of_range_dword_selector<dword_api> || accepts_out_of_range_qword_selector<qword_api>, "SIMDLIB_API_REJECTS_INVALID_SHUFFLE_SELECTOR");

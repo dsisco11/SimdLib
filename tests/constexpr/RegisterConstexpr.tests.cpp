@@ -46,8 +46,9 @@ template <class element_t, std::size_t bits, auto selectors> [[nodiscard]] const
 {
 	using register_t = SimdLib::Register<element_t, bits>;
 	constexpr auto source = SimdLib::Tests::LogicalShuffle::distinct_lanes<element_t, bits>();
-	constexpr auto actual =
-		register_logical_shuffle_value<register_t, selectors>(register_t::from_array(source), std::make_index_sequence<register_t::lane_count>{}).to_array();
+	constexpr register_t source_register = register_t::from_array(source);
+	constexpr register_t shuffled = register_logical_shuffle_value<register_t, selectors>(source_register, std::make_index_sequence<register_t::lane_count>{});
+	constexpr auto actual = shuffled.to_array();
 	constexpr auto expected = SimdLib::Tests::LogicalShuffle::logical_shuffle_oracle<element_t, bits, selectors>(source);
 	return SimdLib::Tests::LogicalShuffle::same_object_representations(actual, expected);
 }
