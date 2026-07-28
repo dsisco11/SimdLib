@@ -57,17 +57,18 @@ SimdLib Method Flags Implementation Plan:
       Evidence: `docs/MethodFlagsContract.md` freezes the five-flag grammar, diagnostics, declaration forms, unsupported categories, register-only audit procedure, compiler-mapping boundary, and extension rule.
 
   Phase 1 - Prove the Macro Grammar Is Implementable:
-    ☐ Prototype a dependency-free variadic preprocessor flag-set parser that recognizes the approved tokens without defining globally visible object-like flag macros.
-    ☐ Prove the parser can detect `In` or `Out` anywhere in the list and coalesce their shared calling-convention expansion.
-    ☐ Prove flag order does not affect the preprocessed declaration.
-    ☐ Prove every supported subset expands each attribute once and only once.
-    ☐ Prove unknown tokens and over-arity lists fail with useful diagnostics on every supported preprocessor.
-    ☐ Evaluate macro-name collisions caused by downstream headers and document any unavoidable token restrictions.
-    ☐ Compare a membership-scanning implementation, a normalized flag-list implementation, and any materially simpler design discovered during the prototype.
-    ☐ Reject an implementation that requires a hand-maintained power set of flag combinations unless no smaller portable implementation satisfies the grammar and diagnostics.
-    ☐ Keep all parsing helpers under a reserved `SIMDLIB_DETAIL_` prefix and prevent them from leaking short macro names.
-    ☐ Add preprocessing-only fixtures that compare the intended expansion with canonical declarations independently of C++ code generation.
-    ☐ End Phase 1 only when the exact public grammar is proven feasible on MSVC, clang-cl, GCC, and GNU-like Clang preprocessors without a new dependency or global short-name pollution.
+    ☒ Prototype a dependency-free variadic preprocessor flag-set parser that recognizes the approved tokens without defining globally visible object-like flag macros.
+    ☒ Prove the parser can detect `In` or `Out` anywhere in the list and coalesce their shared calling-convention expansion.
+    ☒ Prove flag order does not affect the preprocessed declaration.
+    ☒ Prove every supported subset expands each attribute once and only once.
+    ☒ Prove unknown tokens and over-arity lists fail with useful diagnostics on every supported preprocessor.
+    ☒ Evaluate macro-name collisions caused by downstream headers and document any unavoidable token restrictions.
+    ☒ Compare a membership-scanning implementation, a normalized flag-list implementation, and any materially simpler design discovered during the prototype.
+    ☒ Reject an implementation that requires a hand-maintained power set of flag combinations unless no smaller portable implementation satisfies the grammar and diagnostics.
+    ☒ Keep all parsing helpers under a reserved `SIMDLIB_DETAIL_` prefix and prevent them from leaking short macro names.
+    ☒ Add preprocessing-only fixtures that compare the intended expansion with canonical declarations independently of C++ code generation.
+    ☒ End Phase 1 only when the exact public grammar is proven feasible on MSVC, clang-cl, GCC, and GNU-like Clang preprocessors without a new dependency or global short-name pollution.
+      Evidence: `tests/method_flags/MethodFlagsPrototype.h` implements the selected membership scanner, `cmake/VerifyMethodFlagsPreprocessor.cmake` generates and compares all 325 ordered nonempty permutations plus a function-like collision case, the five negative fixtures require focused diagnostics, and `docs/MethodFlagsParserEvaluation.md` records the design comparison and object-like collision restriction. MSVC 19.44.35222 in its default legacy mode, clang-cl 22.1.8, pinned GCC 14.2.0, and pinned GNU-like Clang 22.1.3 each verified 326 canonical expansions and five focused failures. The registered focused MSVC CTest entry passed 1/1.
 
   Phase 2 - Qualify Compiler Placement and Attribute Composition:
     ☐ Compile the canonical prefix placement with MSVC and clang-cl using active `__vectorcall`, force-inline, flatten, and safe-buffer attributes.
@@ -174,7 +175,7 @@ SimdLib Method Flags Implementation Plan:
 
   Execution Evidence:
     ☒ Phase 0 grammar, flag contracts, invalid forms, and audit criteria recorded in `docs/MethodFlagsContract.md`.
-    ☐ Phase 1 dependency-free parser feasibility, diagnostics, order independence, and collision results recorded.
+    ☒ Phase 1 dependency-free parser feasibility, diagnostics, order independence, and collision results recorded in `docs/MethodFlagsParserEvaluation.md` and the Phase 1 evidence ledger above.
     ☐ Phase 2 MSVC, clang-cl, GCC, and GNU-like Clang placement and ABI-composition results recorded.
     ☐ Phase 3 public macro, compiler adapters, caller overrides, and isolated configuration probes recorded.
     ☐ Phase 4 syntax, ABI, stack-protection, inlining, flattening, code-generation, and downstream-consumer tests recorded.

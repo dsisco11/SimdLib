@@ -24,6 +24,17 @@ if(SIMDLIB_BUILD_CONFIGURATION_PROBES)
         target_link_libraries(${config_probe} PRIVATE SimdLib::SimdLib)
         simdlib_enable_development_warnings(${config_probe})
     endforeach()
+
+	add_test(NAME MethodFlagsPreprocessor
+		COMMAND ${CMAKE_COMMAND}
+			"-DSIMDLIB_METHOD_FLAGS_COMPILER=${CMAKE_CXX_COMPILER}"
+			"-DSIMDLIB_METHOD_FLAGS_COMPILER_ID=${CMAKE_CXX_COMPILER_ID}-${CMAKE_CXX_COMPILER_VERSION}"
+			"-DSIMDLIB_METHOD_FLAGS_MSVC_STYLE=${SIMDLIB_MSVC_STYLE_DRIVER}"
+			"-DSIMDLIB_METHOD_FLAGS_SOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}"
+			"-DSIMDLIB_METHOD_FLAGS_BINARY_DIR=${CMAKE_CURRENT_BINARY_DIR}"
+			-P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/VerifyMethodFlagsPreprocessor.cmake)
+	set_tests_properties(MethodFlagsPreprocessor PROPERTIES
+		LABELS "CONFIGURATION;METHOD_FLAGS;PREPROCESSOR")
 endif()
 
 if(SIMDLIB_BUILD_CONSTEXPR_PROBES)
@@ -76,6 +87,13 @@ if(SIMDLIB_BUILD_CONFIGURATION_PROBES)
 	set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
 		${CMAKE_CURRENT_SOURCE_DIR}/include/SimdLib/Config.h
 		${CMAKE_CURRENT_SOURCE_DIR}/include/SimdLib/Register.h
+		${CMAKE_CURRENT_SOURCE_DIR}/cmake/VerifyMethodFlagsPreprocessor.cmake
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/method_flags/MethodFlagsPrototype.h
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/method_flags/InvalidEmpty.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/method_flags/InvalidUnknown.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/method_flags/InvalidDuplicate.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/method_flags/InvalidTooMany.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/method_flags/InvalidObjectMacroCollision.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/RegisterHeaderCxx20.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/RegisterRequirementCxx20.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/RegisterAvailabilityOverride.cpp

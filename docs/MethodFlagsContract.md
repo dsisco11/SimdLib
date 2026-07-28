@@ -165,6 +165,12 @@ it, but must at least expose one of these stable diagnostic identifiers:
 No public object-like macros named `In`, `Out`, `RegisterOnly`, `ForceInline`,
 or `Flatten` may be defined to implement the grammar.
 
+No object-like macro with one of those exact names may be active at a
+`SIMD_FLAGS(...)` invocation. Macro arguments are expanded before a variadic
+forwarding layer can classify them, so such a collision is rejected as
+`SIMDLIB_FLAGS_ERROR_UNKNOWN`. A function-like macro with the same name does not
+expand when passed as a bare flag token and is not a collision.
+
 ### Canonical declaration position
 
 `SIMD_FLAGS(...)` is the last declaration-specifier component before the return
