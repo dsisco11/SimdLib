@@ -7,43 +7,43 @@ SimdLib Method Flags Implementation Plan:
     ☐ Preserve the generated code, calling convention, stack-protection policy, and supported compiler behavior of every migrated declaration.
 
   Controlling Decisions:
-    ☐ Use the public spelling `SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten)`, with one required boundary mode followed by only the modifiers required by a particular declaration.
-    ☐ Specify the return type independently, place `SIMD_FLAGS(...)` after that type and immediately before the function name, and have the macro emit only placement-safe attributes plus the configured calling convention.
-    ☐ Require exactly one first-position boundary mode: `Neither`, `In`, `Out`, or `InOut`.
-    ☐ Treat `In` and `Out` as one-direction SIMD call-boundary modes: `In` means at least one native or SimdLib SIMD register value enters by value, while `Out` means a native or SimdLib SIMD register value is returned by value.
-    ☐ Treat `InOut` as the bidirectional boundary mode and emit the supported vector calling convention exactly once.
-    ☐ Treat `Neither` as an explicit declaration that no native or SimdLib SIMD register value crosses the function boundary by value.
-    ☐ Require optional modifiers in the canonical order `RegisterOnly`, `ForceInline`, `Flatten`, with no duplicates or arbitrary reordering.
-    ☐ Use `RegisterOnly` instead of `NoStack`: the promise concerns authored register/scalar computation and the absence of memory writes, not whether a compiler may spill a register or otherwise use its stack frame.
-    ☐ Define `RegisterOnly` to allow input loads but prohibit authored writes through pointers, references, spans, arrays, addressable local buffers, or callees that perform such writes on behalf of the function.
-    ☐ Map `RegisterOnly` to `__declspec(safebuffers)` only on MSVC-compatible configurations where that mapping is supported and justified; an empty mapping on another compiler does not weaken the source-level promise.
-    ☐ Keep `ForceInline` and `Flatten` distinct: `ForceInline` requests that the annotated function be inlined into its caller, while `Flatten` requests recursive inlining of calls made by the annotated function.
-    ☐ Do not infer `RegisterOnly`, `ForceInline`, or `Flatten` merely from the presence of `In` or `Out`; every promise must be selected independently.
-    ☐ Do not relax or remove an existing register-only declaration during migration without an individual implementation audit and explicit review.
-    ☐ Keep exception specifications, `constexpr`, `consteval`, `static`, `friend`, `[[nodiscard]]`, and other C++ semantic specifiers outside `SIMD_FLAGS(...)`.
-    ☐ Keep the flag vocabulary extensible, but add no flag without a precise source-level promise, a supported compiler mapping or audit purpose, placement proof, and validation coverage.
-    ☐ Because SimdLib has not published a version, do not retain temporary compatibility aliases solely for the old declaration style after migration is complete.
+    ☒ Use the public spelling `SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten)`, with one required boundary mode followed by only the modifiers required by a particular declaration.
+    ☒ Specify the return type independently, place `SIMD_FLAGS(...)` after that type and immediately before the function name, and have the macro emit only placement-safe attributes plus the configured calling convention.
+    ☒ Require exactly one first-position boundary mode: `Neither`, `In`, `Out`, or `InOut`.
+    ☒ Treat `In` and `Out` as one-direction SIMD call-boundary modes: `In` means at least one native or SimdLib SIMD register value enters by value, while `Out` means a native or SimdLib SIMD register value is returned by value.
+    ☒ Treat `InOut` as the bidirectional boundary mode and emit the supported vector calling convention exactly once.
+    ☒ Treat `Neither` as an explicit declaration that no native or SimdLib SIMD register value crosses the function boundary by value.
+    ☒ Require optional modifiers in the canonical order `RegisterOnly`, `ForceInline`, `Flatten`, with no duplicates or arbitrary reordering.
+    ☒ Use `RegisterOnly` instead of `NoStack`: the promise concerns authored register/scalar computation and the absence of memory writes, not whether a compiler may spill a register or otherwise use its stack frame.
+    ☒ Define `RegisterOnly` to allow input loads but prohibit authored writes through pointers, references, spans, arrays, addressable local buffers, or callees that perform such writes on behalf of the function.
+    ☒ Map `RegisterOnly` to `__declspec(safebuffers)` only on MSVC-compatible configurations where that mapping is supported and justified; an empty mapping on another compiler does not weaken the source-level promise.
+    ☒ Keep `ForceInline` and `Flatten` distinct: `ForceInline` requests that the annotated function be inlined into its caller, while `Flatten` requests recursive inlining of calls made by the annotated function.
+    ☒ Do not infer `RegisterOnly`, `ForceInline`, or `Flatten` merely from the presence of `In` or `Out`; every promise must be selected independently.
+    ☒ Do not relax or remove an existing register-only declaration during migration without an individual implementation audit and explicit review.
+    ☒ Keep exception specifications, `constexpr`, `consteval`, `static`, `friend`, `[[nodiscard]]`, and other C++ semantic specifiers outside `SIMD_FLAGS(...)`.
+    ☒ Keep the flag vocabulary extensible, but add no flag without a precise source-level promise, a supported compiler mapping or audit purpose, placement proof, and validation coverage.
+    ☒ Because SimdLib has not published a version, do not retain temporary compatibility aliases solely for the old declaration style after migration is complete.
 
   Flag Contracts:
-    ☐ `Neither`: the function has no by-value native SIMD register, `Register`, or `RegisterMask` input or result.
-    ☐ `In`: the function accepts at least one by-value native SIMD register, `Register`, or `RegisterMask` argument, including an explicit-object parameter.
-    ☐ `Out`: the function returns a native SIMD register, `Register`, or `RegisterMask` by value.
-    ☐ `InOut`: the function satisfies both the `In` and `Out` contracts.
-    ☐ `RegisterOnly`: the function does not intentionally write register data or other results to addressable memory and does not delegate such a write to a callee.
-    ☐ `ForceInline`: failure to inline the function is contrary to the intended optimized code shape, while normal compiler behavior in unoptimized or unsupported configurations remains documented.
-    ☐ `Flatten`: calls within the function are intended to be recursively inlined where the compiler supports a flattening attribute.
-    ☐ Document that these flags describe the function contract but cannot, by themselves, make the C preprocessor verify the C++ parameter types, return type, function body, or transitive behavior of callees.
+    ☒ `Neither`: the function has no by-value native SIMD register, `Register`, or `RegisterMask` input or result.
+    ☒ `In`: the function accepts at least one by-value native SIMD register, `Register`, or `RegisterMask` argument, including an explicit-object parameter.
+    ☒ `Out`: the function returns a native SIMD register, `Register`, or `RegisterMask` by value.
+    ☒ `InOut`: the function satisfies both the `In` and `Out` contracts.
+    ☒ `RegisterOnly`: the function does not intentionally write register data or other results to addressable memory and does not delegate such a write to a callee.
+    ☒ `ForceInline`: failure to inline the function is contrary to the intended optimized code shape, while normal compiler behavior in unoptimized or unsupported configurations remains documented.
+    ☒ `Flatten`: calls within the function are intended to be recursively inlined where the compiler supports a flattening attribute.
+    ☒ Document that these flags describe the function contract but cannot, by themselves, make the C preprocessor verify the C++ parameter types, return type, function body, or transitive behavior of callees.
 
   Non-Goals:
-    ☐ Do not claim that `RegisterOnly` prevents compiler-generated spills, stack frames, unwind metadata, instrumentation, or all possible stack traffic.
-    ☐ Do not use `RegisterOnly` to disable stack protection on stores, transfers, mutating-reference operations, array-return paths, addressable-buffer paths, or other functions that can write memory.
-    ☐ Do not make `SIMD_FLAGS(...)` silently apply every optimization attribute to every function.
-    ☐ Do not encode `noexcept`, `constexpr`, `consteval`, `nodiscard`, visibility, linkage, alignment, or ISA target selection in the initial flag set.
-    ☐ Do not add generic `Read` or `Write` flags whose relationship to SIMD parameters, SIMD results, and memory effects is ambiguous.
-    ☐ Do not introduce public object-like macros named `Neither`, `In`, `Out`, `InOut`, `RegisterOnly`, `ForceInline`, or `Flatten`.
-    ☐ Do not require the preprocessor to sort an unordered modifier set or infer a bidirectional boundary from two independent tokens.
-    ☐ Do not require Boost.Preprocessor or another dependency solely to implement flag parsing.
-    ☐ Do not accept code-generation changes merely because the new declaration is shorter or more readable.
+    ☒ Do not claim that `RegisterOnly` prevents compiler-generated spills, stack frames, unwind metadata, instrumentation, or all possible stack traffic.
+    ☒ Do not use `RegisterOnly` to disable stack protection on stores, transfers, mutating-reference operations, array-return paths, addressable-buffer paths, or other functions that can write memory.
+    ☒ Do not make `SIMD_FLAGS(...)` silently apply every optimization attribute to every function.
+    ☒ Do not encode `noexcept`, `constexpr`, `consteval`, `nodiscard`, visibility, linkage, alignment, or ISA target selection in the initial flag set.
+    ☒ Do not add generic `Read` or `Write` flags whose relationship to SIMD parameters, SIMD results, and memory effects is ambiguous.
+    ☒ Do not introduce public object-like macros named `Neither`, `In`, `Out`, `InOut`, `RegisterOnly`, `ForceInline`, or `Flatten`.
+    ☒ Do not require the preprocessor to sort an unordered modifier set or infer a bidirectional boundary from two independent tokens.
+    ☒ Do not require Boost.Preprocessor or another dependency solely to implement flag parsing.
+    ☒ Do not accept code-generation changes merely because the new declaration is shorter or more readable.
 
   Phase 0 - Freeze the Grammar and Contract:
     ☒ Record the canonical declaration form for free functions, static members, non-static members, C++23 explicit-object members, operators, friend functions, function templates, and constrained functions.
@@ -117,18 +117,19 @@ SimdLib Method Flags Implementation Plan:
       Evidence: `MethodFlagsContractPass.cpp` compiles all 32 public grammar forms, while the public-header preprocessor suite exact-compares the same 32 expansions and rejects seven invalid grammar forms. The placement audit covers every prohibited declaration category, and the cross-translation-unit executable mirrors `In`, `Out`, and `InOut` against their legacy ABI spelling. Paired optimized fixtures cover unary, binary, ternary, scalar-result, register-result, load, store, ForceInline-only, and Flatten-only declarations. Their generated-code gate requires exact instruction parity, verifies register-only symbols contain no security-cookie references, verifies dedicated force-inline and flatten leaves are not called, and records explicit `/GS` or `-fstack-protector-strong` modes. The downstream consumer declares flagged `Register` and native SIMD functions in a header and defines them in a separate translation unit.
 
   Phase 5 - Inventory and Classify Existing Declarations:
-    ☐ Inventory every direct use of `VECTORCALL`, `SIMDLIB_REGISTER_ONLY`, `SIMDLIB_FORCE_INLINE`, and `SIMDLIB_FLATTEN` in production headers, tests, examples, and consumer fixtures.
-    ☐ Classify each function individually by SIMD input, SIMD output, memory-write behavior, required self-inlining, and required recursive flattening.
-    ☐ Do not infer flags from the containing class, namespace, filename, return type family, or neighboring declarations.
-    ☐ Audit every existing `SIMDLIB_REGISTER_ONLY` declaration against its runtime body, constant-evaluation body, and transitive callees.
-    ☐ Preserve `RegisterOnly` during mechanical migration unless the individual audit proves the promise is invalid; stop for explicit review before relaxing an existing declaration.
-    ☐ Identify methods that currently lack `SIMDLIB_REGISTER_ONLY` but satisfy the complete contract and record them for separate review rather than adding the flag mechanically.
-    ☐ Audit all `Api`, implementation, `Register`, and `RegisterMask` methods for `Flatten` based on their actual call structure and generated-code requirement.
-    ☐ Identify declarations where `ForceInline` is used only for ODR/header semantics and decide whether ordinary `inline` ownership must remain separate from the optimization promise.
-    ☐ Separate memory-reading loads from memory-writing stores so `RegisterOnly` is not rejected merely because a function accepts a const span or pointer.
-    ☐ Classify constexpr helper calls and runtime helper calls independently when their bodies or memory effects differ.
-    ☐ Record declarations that cannot use the unified macro and the precise grammar or compiler reason for each exception.
-    ☐ End Phase 5 only when every legacy macro occurrence has an individual target classification or a reviewed exception.
+    ☒ Inventory every direct use of `VECTORCALL`, `SIMDLIB_REGISTER_ONLY`, `SIMDLIB_FORCE_INLINE`, and `SIMDLIB_FLATTEN` in production headers, tests, examples, and consumer fixtures.
+    ☒ Classify each function individually by SIMD input, SIMD output, memory-write behavior, required self-inlining, and required recursive flattening.
+    ☒ Do not infer flags from the containing class, namespace, filename, return type family, or neighboring declarations.
+    ☒ Audit every existing `SIMDLIB_REGISTER_ONLY` declaration against its runtime body, constant-evaluation body, and transitive callees.
+    ☒ Preserve `RegisterOnly` during mechanical migration unless the individual audit proves the promise is invalid; stop for explicit review before relaxing an existing declaration.
+    ☒ Identify methods that currently lack `SIMDLIB_REGISTER_ONLY` but satisfy the complete contract and record them for separate review rather than adding the flag mechanically.
+    ☒ Audit all `Api`, implementation, `Register`, and `RegisterMask` methods for `Flatten` based on their actual call structure and generated-code requirement.
+    ☒ Identify declarations where `ForceInline` is used only for ODR/header semantics and decide whether ordinary `inline` ownership must remain separate from the optimization promise.
+    ☒ Separate memory-reading loads from memory-writing stores so `RegisterOnly` is not rejected merely because a function accepts a const span or pointer.
+    ☒ Classify constexpr helper calls and runtime helper calls independently when their bodies or memory effects differ.
+    ☒ Record declarations that cannot use the unified macro and the precise grammar or compiler reason for each exception.
+    ☒ End Phase 5 only when every legacy macro occurrence has an individual target classification or a reviewed exception.
+      Evidence: `docs/MethodFlagsInventory.csv` records 1,524 declaration-level classifications covering all 4,443 active legacy occurrences, including independent input/output decisions, direct and transitive memory review, constexpr/runtime separation, modifier targets, exact unified-macro spelling, and 64 reviewed exceptions. `docs/MethodFlagsInventory.md` documents the audit rules and retains `RegisterOnly` on 40 declarations pending source repair rather than relaxing the promise mechanically. `tools/Generate-MethodFlagsInventory.ps1 -Verify` rejects missing occurrences and stale inventory output.
 
   Phase 6 - Migrate Implementation and Api Layers:
     ☐ Migrate implementation-layer free functions, helpers, and specialization methods in reviewable operation-family groups.
@@ -185,8 +186,8 @@ SimdLib Method Flags Implementation Plan:
     ☒ Phase 1 dependency-free dispatcher feasibility, diagnostics, traditional-MSVC compatibility, and collision results recorded in `docs/MethodFlagsParserEvaluation.md` and the Phase 1 evidence ledger above.
     ☒ Phase 2 MSVC, clang-cl, GCC, and GNU-like Clang placement and ABI-composition results recorded.
     ☒ Phase 3 public macro, compiler adapters, caller overrides, and isolated configuration probes recorded.
-    ☐ Phase 4 syntax, ABI, stack-protection, inlining, flattening, code-generation, and downstream-consumer tests recorded.
-    ☐ Phase 5 individual declaration inventory, promise classifications, and reviewed exceptions recorded.
+    ☒ Phase 4 syntax, ABI, stack-protection, inlining, flattening, code-generation, and downstream-consumer tests recorded.
+    ☒ Phase 5 individual declaration inventory, promise classifications, and reviewed exceptions recorded.
     ☐ Phase 6 implementation-layer and `Api` migration with focused correctness and code-generation results recorded.
     ☐ Phase 7 Register-facing, remaining public-code, example, and downstream migration results recorded.
     ☐ Phase 8 legacy-surface removal, source audits, installed-header, and inclusion results recorded.
