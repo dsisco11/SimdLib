@@ -1,4 +1,5 @@
 #include "MethodFlagsPrototype.h"
 
-SIMD_FLAGS(In, Out, RegisterOnly, ForceInline, Flatten, In)
+/// Declares a function with too many method-flags arguments.
+SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten, Extra)
 int invalid_too_many();

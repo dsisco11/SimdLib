@@ -7,12 +7,13 @@ SimdLib Method Flags Implementation Plan:
     ☐ Preserve the generated code, calling convention, stack-protection policy, and supported compiler behavior of every migrated declaration.
 
   Controlling Decisions:
-    ☐ Use the public spelling `SIMD_FLAGS(In, Out, RegisterOnly, ForceInline, Flatten)` with only the flags required by a particular declaration.
+    ☐ Use the public spelling `SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten)`, with one required boundary mode followed by only the modifiers required by a particular declaration.
     ☐ Place `SIMD_FLAGS(...)` in the declaration-specifier sequence before the return type, subject to the compiler-placement qualification gate.
-    ☐ Make flag order semantically irrelevant and emit each underlying compiler attribute or calling convention at most once.
-    ☐ Treat `In` and `Out` as SIMD call-boundary declarations: `In` means at least one native or SimdLib SIMD register value enters by value, while `Out` means a native or SimdLib SIMD register value is returned by value.
-    ☐ Have either `In` or `Out` request the supported vector calling convention for the complete function signature; specifying both must still emit only one calling-convention token.
-    ☐ Retain `In` and `Out` as distinct semantic flags even on compilers where both currently map to the same calling-convention token.
+    ☐ Require exactly one first-position boundary mode: `Neither`, `In`, `Out`, or `InOut`.
+    ☐ Treat `In` and `Out` as one-direction SIMD call-boundary modes: `In` means at least one native or SimdLib SIMD register value enters by value, while `Out` means a native or SimdLib SIMD register value is returned by value.
+    ☐ Treat `InOut` as the bidirectional boundary mode and emit the supported vector calling convention exactly once.
+    ☐ Treat `Neither` as an explicit declaration that no native or SimdLib SIMD register value crosses the function boundary by value.
+    ☐ Require optional modifiers in the canonical order `RegisterOnly`, `ForceInline`, `Flatten`, with no duplicates or arbitrary reordering.
     ☐ Use `RegisterOnly` instead of `NoStack`: the promise concerns authored register/scalar computation and the absence of memory writes, not whether a compiler may spill a register or otherwise use its stack frame.
     ☐ Define `RegisterOnly` to allow input loads but prohibit authored writes through pointers, references, spans, arrays, addressable local buffers, or callees that perform such writes on behalf of the function.
     ☐ Map `RegisterOnly` to `__declspec(safebuffers)` only on MSVC-compatible configurations where that mapping is supported and justified; an empty mapping on another compiler does not weaken the source-level promise.
@@ -24,8 +25,10 @@ SimdLib Method Flags Implementation Plan:
     ☐ Because SimdLib has not published a version, do not retain temporary compatibility aliases solely for the old declaration style after migration is complete.
 
   Flag Contracts:
+    ☐ `Neither`: the function has no by-value native SIMD register, `Register`, or `RegisterMask` input or result.
     ☐ `In`: the function accepts at least one by-value native SIMD register, `Register`, or `RegisterMask` argument, including an explicit-object parameter.
     ☐ `Out`: the function returns a native SIMD register, `Register`, or `RegisterMask` by value.
+    ☐ `InOut`: the function satisfies both the `In` and `Out` contracts.
     ☐ `RegisterOnly`: the function does not intentionally write register data or other results to addressable memory and does not delegate such a write to a callee.
     ☐ `ForceInline`: failure to inline the function is contrary to the intended optimized code shape, while normal compiler behavior in unoptimized or unsupported configurations remains documented.
     ☐ `Flatten`: calls within the function are intended to be recursively inlined where the compiler supports a flattening attribute.
@@ -37,38 +40,39 @@ SimdLib Method Flags Implementation Plan:
     ☐ Do not make `SIMD_FLAGS(...)` silently apply every optimization attribute to every function.
     ☐ Do not encode `noexcept`, `constexpr`, `consteval`, `nodiscard`, visibility, linkage, alignment, or ISA target selection in the initial flag set.
     ☐ Do not add generic `Read` or `Write` flags whose relationship to SIMD parameters, SIMD results, and memory effects is ambiguous.
-    ☐ Do not introduce public object-like macros named `In`, `Out`, `RegisterOnly`, `ForceInline`, or `Flatten`.
+    ☐ Do not introduce public object-like macros named `Neither`, `In`, `Out`, `InOut`, `RegisterOnly`, `ForceInline`, or `Flatten`.
+    ☐ Do not require the preprocessor to sort an unordered modifier set or infer a bidirectional boundary from two independent tokens.
     ☐ Do not require Boost.Preprocessor or another dependency solely to implement flag parsing.
     ☐ Do not accept code-generation changes merely because the new declaration is shorter or more readable.
 
   Phase 0 - Freeze the Grammar and Contract:
     ☒ Record the canonical declaration form for free functions, static members, non-static members, C++23 explicit-object members, operators, friend functions, function templates, and constrained functions.
-    ☒ Decide the supported maximum flag count and require a focused diagnostic when it is exceeded.
-    ☒ Decide whether duplicate flags are rejected or treated idempotently; in either case, guarantee that no compiler token is emitted twice.
-    ☒ Require unknown, misspelled, or unsupported flags to fail compilation at the declaration rather than being silently ignored.
-    ☒ Define whether `SIMD_FLAGS()` with no arguments is rejected or expands to nothing, and document the selected behavior.
+    ☒ Define the required first-position boundary mode and its `Neither`, `In`, `Out`, and `InOut` alternatives.
+    ☒ Decide the supported maximum argument count and require over-arity input to fail at the declaration.
+    ☒ Require modifiers to appear in canonical order without duplicates, and require noncanonical lists to fail at the declaration or an enforced source audit.
+    ☒ Require unknown, misspelled, or unsupported modes and modifiers to fail at the declaration rather than being silently ignored.
+    ☒ Define `SIMD_FLAGS()` as invalid and document that modifier-only invocations must use the `Neither` boundary mode.
     ☒ Define the canonical ordering between `[[nodiscard]]`, `static`, `friend`, `constexpr`, `consteval`, `SIMD_FLAGS(...)`, the return type, the declarator, `noexcept`, and `requires`.
     ☒ Define how constructor, conversion-operator, deduction-guide, lambda, virtual-function, and function-pointer declarations are handled when no ordinary return-type position exists.
     ☒ Reject unsupported declaration categories explicitly rather than claiming the macro is universal.
-    ☒ Record that `In` plus `Out` describes one bidirectional SIMD call boundary and must not produce duplicate `__vectorcall` tokens.
+    ☒ Record that `InOut` describes one bidirectional SIMD call boundary and produces exactly one `__vectorcall` token where supported.
     ☒ Record `RegisterOnly` audit criteria for direct stores, output spans, non-const references, pointer writes, local arrays, `memcpy` destinations, calls with writable memory, volatile access, inline assembly, and compiler intrinsics with memory side effects.
     ☒ Record the distinction between a semantic flag and its current compiler expansion so future compilers can implement the contract differently without changing call sites.
-    ☒ End Phase 0 only when every initial flag, declaration position, invalid form, and audit responsibility has an unambiguous written contract.
-      Evidence: `docs/MethodFlagsContract.md` freezes the five-flag grammar, diagnostics, declaration forms, unsupported categories, register-only audit procedure, compiler-mapping boundary, and extension rule.
+    ☒ End Phase 0 only when every initial boundary mode, modifier, declaration position, invalid form, and audit responsibility has an unambiguous written contract.
+      Evidence: `docs/MethodFlagsContract.md` freezes the required boundary mode, canonical modifier sequence, four-argument limit, invalid forms, declaration shapes, register-only audit procedure, compiler-mapping boundary, and extension rule.
 
   Phase 1 - Prove the Macro Grammar Is Implementable:
-    ☒ Prototype a dependency-free variadic preprocessor flag-set parser that recognizes the approved tokens without defining globally visible object-like flag macros.
-    ☒ Prove the parser can detect `In` or `Out` anywhere in the list and coalesce their shared calling-convention expansion.
-    ☒ Prove flag order does not affect the preprocessed declaration.
-    ☒ Prove every supported subset expands each attribute once and only once.
-    ☒ Prove unknown tokens and over-arity lists fail with useful diagnostics on every supported preprocessor.
+    ☒ Prototype a dependency-free fixed-position dispatcher that recognizes the approved boundary modes and canonical modifier sequences without defining globally visible object-like flag macros.
+    ☒ Prove `Neither` emits no calling-convention token and `In`, `Out`, and `InOut` each emit exactly one calling-convention token.
+    ☒ Prove all eight canonical modifier subsets emit each selected attribute exactly once.
+    ☒ Prove empty, unknown, duplicate, noncanonical-order, and over-arity inputs fail rather than being silently accepted.
     ☒ Evaluate macro-name collisions caused by downstream headers and document any unavoidable token restrictions.
-    ☒ Compare a membership-scanning implementation, a normalized flag-list implementation, and any materially simpler design discovered during the prototype.
-    ☒ Reject an implementation that requires a hand-maintained power set of flag combinations unless no smaller portable implementation satisfies the grammar and diagnostics.
+    ☒ Retain only the small rescan indirection required by MSVC's traditional preprocessor; do not retain membership scans, Boolean folds, pair comparisons, or canonical sorting.
+    ☒ Compare the replacement prototype's source size and preprocessing work with the rejected unordered-set prototype.
     ☒ Keep all parsing helpers under a reserved `SIMDLIB_DETAIL_` prefix and prevent them from leaking short macro names.
-    ☒ Add preprocessing-only fixtures that compare the intended expansion with canonical declarations independently of C++ code generation.
-    ☒ End Phase 1 only when the exact public grammar is proven feasible on MSVC, clang-cl, GCC, and GNU-like Clang preprocessors without a new dependency or global short-name pollution.
-      Evidence: `tests/method_flags/MethodFlagsPrototype.h` implements the selected membership scanner, `cmake/VerifyMethodFlagsPreprocessor.cmake` generates and compares all 325 ordered nonempty permutations plus a function-like collision case, the five negative fixtures require focused diagnostics, and `docs/MethodFlagsParserEvaluation.md` records the design comparison and object-like collision restriction. MSVC 19.44.35222 in its default legacy mode, clang-cl 22.1.8, pinned GCC 14.2.0, and pinned GNU-like Clang 22.1.3 each verified 326 canonical expansions and five focused failures. The registered focused MSVC CTest entry passed 1/1.
+    ☒ Add preprocessing-only fixtures that compare every canonical invocation with its exact declaration-token expansion independently of C++ code generation.
+    ☒ End Phase 1 only when the exact public grammar is proven feasible on traditional and conforming MSVC, clang-cl, GCC, and GNU-like Clang preprocessors without a new dependency or global short-name pollution.
+      Evidence: `tests/method_flags/MethodFlagsPrototype.h` implements four boundary mappings, eight canonical modifier forms, and bounded arity dispatch in 4,011 bytes and 37 macro definitions, down from 19,151 bytes and 114 definitions. `cmake/VerifyMethodFlagsPreprocessor.cmake` exact-compares all 32 canonical forms plus a function-like collision case and verifies seven invalid expansions before requiring compilation failure. MSVC 19.44.35222 in both traditional and `/Zc:preprocessor` modes, clang-cl 22.1.8, pinned GCC 14.2.0, and pinned GNU-like Clang 22.1.3 each verified 33 expansions and seven focused failures. The registered focused MSVC CTest entry passed 1/1.
 
   Phase 2 - Qualify Compiler Placement and Attribute Composition:
     ☐ Compile the canonical prefix placement with MSVC and clang-cl using active `__vectorcall`, force-inline, flatten, and safe-buffer attributes.
@@ -84,22 +88,22 @@ SimdLib Method Flags Implementation Plan:
 
   Phase 3 - Implement the Public Macro and Compiler Adapters:
     ☐ Add `SIMD_FLAGS(...)` to the public configuration boundary with Doxygen documentation for its syntax, contracts, limitations, and supported declaration categories.
-    ☐ Implement flag recognition, membership folding, attribute coalescing, invalid-token handling, and maximum-arity diagnostics in focused preprocessor helpers.
+    ☐ Implement boundary-mode dispatch, canonical modifier-sequence dispatch, invalid-token handling, and maximum-arity diagnostics in focused preprocessor helpers.
     ☐ Route each emitted property through one compiler-adapter definition rather than embedding compiler tests throughout the parser.
     ☐ Preserve caller configurability for supported custom toolchains without requiring downstream users to redefine the complete `SIMD_FLAGS(...)` parser.
     ☐ Define explicit adapter capability macros for vector calling convention, safe-buffer suppression, force-inline, and flatten behavior.
     ☐ Keep empty compiler mappings syntactically valid while retaining the semantic flag for source audits and documentation.
-    ☐ Ensure `Out`-only loads, `In`-only stores or reductions, and `In`/`Out` transforms all receive exactly one vector calling convention where supported.
-    ☐ Ensure `RegisterOnly` never becomes active merely because a function uses `In`, `Out`, `ForceInline`, or `Flatten`.
+    ☐ Ensure `Out` loads, `In` stores or reductions, and `InOut` transforms all receive exactly one vector calling convention where supported.
+    ☐ Ensure `RegisterOnly` never becomes active merely because a function uses a SIMD boundary mode, `ForceInline`, or `Flatten`.
     ☐ Retain the existing low-level compiler macros only as implementation adapters while migration is in progress.
     ☐ Add isolated configuration probes for defaults, caller overrides, disabled vectorcall, unsupported targets, and every compiler mapping.
     ☐ End Phase 3 only when the new macro can express every currently approved declaration shape and all adapter overrides are isolated and tested.
 
   Phase 4 - Establish Contract and Code-Generation Tests:
-    ☐ Add compile-pass fixtures for every individual flag and representative multi-flag combinations.
+    ☐ Add compile-pass fixtures for every boundary mode and all canonical modifier subsets.
     ☐ Add compile-failure fixtures for unknown flags, invalid arity, prohibited declaration categories, and any contradictory combination defined by the contract.
-    ☐ Add preprocessor expansion tests proving order independence and single emission of shared attributes.
-    ☐ Add Windows ABI mirrors proving `In`, `Out`, and `In` plus `Out` retain the expected vector calling convention under MSVC and clang-cl.
+    ☐ Add preprocessor expansion tests proving canonical ordering and single emission of every selected attribute.
+    ☐ Add Windows ABI mirrors proving `In`, `Out`, and `InOut` retain the expected vector calling convention under MSVC and clang-cl.
     ☐ Add GCC and GNU-like Clang ABI/code-generation mirrors proving empty vectorcall mappings do not disturb their platform calling conventions.
     ☐ Compile GNU-like code-generation fixtures with the project's required stack-protection flags.
     ☐ Add paired legacy-declaration and `SIMD_FLAGS(...)` fixtures for register-only unary, binary, ternary, scalar-result, register-result, load, and store signatures.
@@ -159,7 +163,7 @@ SimdLib Method Flags Implementation Plan:
     ☐ End Phase 8 only when one supported declaration style remains and automated audits prevent the old boilerplate from returning.
 
   Phase 9 - Document, Qualify, and Close Out:
-    ☐ Add README and reference examples for `In`, `Out`, `In` plus `Out`, `RegisterOnly`, `ForceInline`, and `Flatten`.
+    ☐ Add README and reference examples for `Neither`, `In`, `Out`, `InOut`, `RegisterOnly`, `ForceInline`, and `Flatten`.
     ☐ Document that declaration and definition must use ABI-compatible flags and that all translation units must agree on vectorcall configuration.
     ☐ Document that `Out` currently affects the calling convention but does not independently force a return-register ABI where the platform ABI uses hidden return storage.
     ☐ Document that `RegisterOnly` is a strong developer promise used to justify MSVC stack-protection suppression, not a compiler-verified no-spill guarantee.
@@ -174,8 +178,8 @@ SimdLib Method Flags Implementation Plan:
     ☐ End Phase 9 only when SimdLib and a downstream consumer can use one documented flag-based declaration system with unchanged behavior and complete compiler evidence.
 
   Execution Evidence:
-    ☒ Phase 0 grammar, flag contracts, invalid forms, and audit criteria recorded in `docs/MethodFlagsContract.md`.
-    ☒ Phase 1 dependency-free parser feasibility, diagnostics, order independence, and collision results recorded in `docs/MethodFlagsParserEvaluation.md` and the Phase 1 evidence ledger above.
+    ☒ Phase 0 boundary-mode grammar, modifier contracts, invalid forms, and audit criteria recorded in `docs/MethodFlagsContract.md`.
+    ☒ Phase 1 dependency-free dispatcher feasibility, diagnostics, traditional-MSVC compatibility, and collision results recorded in `docs/MethodFlagsParserEvaluation.md` and the Phase 1 evidence ledger above.
     ☐ Phase 2 MSVC, clang-cl, GCC, and GNU-like Clang placement and ABI-composition results recorded.
     ☐ Phase 3 public macro, compiler adapters, caller overrides, and isolated configuration probes recorded.
     ☐ Phase 4 syntax, ABI, stack-protection, inlining, flattening, code-generation, and downstream-consumer tests recorded.

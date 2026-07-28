@@ -43,8 +43,10 @@ set_property(GLOBAL PROPERTY SIMDLIB_METHOD_FLAGS_CASE_COUNT 0)
 set_property(GLOBAL PROPERTY SIMDLIB_METHOD_FLAGS_PROBE_LINES "")
 set_property(GLOBAL PROPERTY SIMDLIB_METHOD_FLAGS_EXPECTED_LINES "")
 
-function(simdlib_add_method_flags_case)
-    set(case_flags ${ARGN})
+# Adds one canonical boundary-and-modifier expansion to the generated fixture.
+function(simdlib_add_method_flags_case boundary)
+    set(case_modifiers ${ARGN})
+    set(case_flags ${boundary} ${case_modifiers})
     get_property(case_count GLOBAL PROPERTY SIMDLIB_METHOD_FLAGS_CASE_COUNT)
     math(EXPR case_count "${case_count} + 1")
     set_property(GLOBAL PROPERTY SIMDLIB_METHOD_FLAGS_CASE_COUNT "${case_count}")
@@ -54,20 +56,18 @@ function(simdlib_add_method_flags_case)
     set(probe_line "${case_name} SIMD_FLAGS(${invocation})")
     set(expected_line "${case_name}")
 
-    list(FIND case_flags In in_index)
-    list(FIND case_flags Out out_index)
-    if(NOT in_index EQUAL -1 OR NOT out_index EQUAL -1)
+    if(NOT boundary STREQUAL "Neither")
         string(APPEND expected_line " SIMDLIB_PP_VECTORCALL")
     endif()
-    list(FIND case_flags RegisterOnly register_only_index)
+    list(FIND case_modifiers RegisterOnly register_only_index)
     if(NOT register_only_index EQUAL -1)
         string(APPEND expected_line " SIMDLIB_PP_REGISTER_ONLY")
     endif()
-    list(FIND case_flags ForceInline force_inline_index)
+    list(FIND case_modifiers ForceInline force_inline_index)
     if(NOT force_inline_index EQUAL -1)
         string(APPEND expected_line " SIMDLIB_PP_FORCE_INLINE")
     endif()
-    list(FIND case_flags Flatten flatten_index)
+    list(FIND case_modifiers Flatten flatten_index)
     if(NOT flatten_index EQUAL -1)
         string(APPEND expected_line " SIMDLIB_PP_FLATTEN")
     endif()
@@ -76,48 +76,31 @@ function(simdlib_add_method_flags_case)
     set_property(GLOBAL APPEND PROPERTY SIMDLIB_METHOD_FLAGS_EXPECTED_LINES "${expected_line}")
 endfunction()
 
-set(method_flags In Out RegisterOnly ForceInline Flatten)
-foreach(a IN LISTS method_flags)
-    simdlib_add_method_flags_case(${a})
-    foreach(b IN LISTS method_flags)
-        if(b STREQUAL a)
-            continue()
-        endif()
-        simdlib_add_method_flags_case(${a} ${b})
-        foreach(c IN LISTS method_flags)
-            if(c STREQUAL a OR c STREQUAL b)
-                continue()
-            endif()
-            simdlib_add_method_flags_case(${a} ${b} ${c})
-            foreach(d IN LISTS method_flags)
-                if(d STREQUAL a OR d STREQUAL b OR d STREQUAL c)
-                    continue()
-                endif()
-                simdlib_add_method_flags_case(${a} ${b} ${c} ${d})
-                foreach(e IN LISTS method_flags)
-                    if(e STREQUAL a OR e STREQUAL b OR e STREQUAL c OR e STREQUAL d)
-                        continue()
-                    endif()
-                    simdlib_add_method_flags_case(${a} ${b} ${c} ${d} ${e})
-                endforeach()
-            endforeach()
-        endforeach()
-    endforeach()
+set(boundary_modes Neither In Out InOut)
+foreach(boundary IN LISTS boundary_modes)
+    simdlib_add_method_flags_case(${boundary})
+    simdlib_add_method_flags_case(${boundary} RegisterOnly)
+    simdlib_add_method_flags_case(${boundary} ForceInline)
+    simdlib_add_method_flags_case(${boundary} Flatten)
+    simdlib_add_method_flags_case(${boundary} RegisterOnly ForceInline)
+    simdlib_add_method_flags_case(${boundary} RegisterOnly Flatten)
+    simdlib_add_method_flags_case(${boundary} ForceInline Flatten)
+    simdlib_add_method_flags_case(${boundary} RegisterOnly ForceInline Flatten)
 endforeach()
 
 # A function-like macro is not expanded when its name is passed as a bare flag.
 # This case proves that only object-like collisions impose a caller restriction.
 set_property(GLOBAL APPEND PROPERTY SIMDLIB_METHOD_FLAGS_PROBE_LINES
-    "#define In(...) downstream_function_macro"
-    "SIMDLIB_PP_CASE_FUNCTION_MACRO SIMD_FLAGS(In)"
-    "#undef In")
+    "#define InOut(...) downstream_function_macro"
+    "SIMDLIB_PP_CASE_FUNCTION_MACRO SIMD_FLAGS(InOut, Flatten)"
+    "#undef InOut")
 set_property(GLOBAL APPEND PROPERTY SIMDLIB_METHOD_FLAGS_EXPECTED_LINES
-    "SIMDLIB_PP_CASE_FUNCTION_MACRO SIMDLIB_PP_VECTORCALL")
+    "SIMDLIB_PP_CASE_FUNCTION_MACRO SIMDLIB_PP_VECTORCALL SIMDLIB_PP_FLATTEN")
 
 get_property(case_count GLOBAL PROPERTY SIMDLIB_METHOD_FLAGS_CASE_COUNT)
-if(NOT case_count EQUAL 325)
+if(NOT case_count EQUAL 32)
     message(FATAL_ERROR
-        "Expected 325 ordered nonempty flag-set cases, generated ${case_count}")
+        "Expected 32 canonical boundary-and-modifier cases, generated ${case_count}")
 endif()
 
 get_property(probe_lines GLOBAL PROPERTY SIMDLIB_METHOD_FLAGS_PROBE_LINES)
@@ -126,8 +109,12 @@ list(JOIN probe_lines "\n" probe_body)
 list(JOIN expected_lines "\n" expected_body)
 
 file(WRITE "${probe_source}"
+    "#define SIMDLIB_DETAIL_FLAGS_VECTORCALL SIMDLIB_PP_VECTORCALL\n"
+    "#define SIMDLIB_DETAIL_FLAGS_REGISTER_ONLY SIMDLIB_PP_REGISTER_ONLY\n"
+    "#define SIMDLIB_DETAIL_FLAGS_FORCE_INLINE SIMDLIB_PP_FORCE_INLINE\n"
+    "#define SIMDLIB_DETAIL_FLAGS_FLATTEN SIMDLIB_PP_FLATTEN\n"
     "#include \"MethodFlagsPrototype.h\"\n"
-    "#if defined(In) || defined(Out) || defined(RegisterOnly) || defined(ForceInline) || defined(Flatten)\n"
+    "#if defined(Neither) || defined(In) || defined(Out) || defined(InOut) || defined(RegisterOnly) || defined(ForceInline) || defined(Flatten)\n"
     "#error SIMDLIB_FLAGS_SHORT_MACRO_LEAK\n"
     "#endif\n"
     "${probe_body}\n")
@@ -137,6 +124,7 @@ if(SIMDLIB_METHOD_FLAGS_MSVC_STYLE)
     set(preprocess_arguments
         /nologo
         /std:c++20
+        ${SIMDLIB_METHOD_FLAGS_COMPILER_OPTIONS}
         /EP
         /TP
         "/I${SIMDLIB_METHOD_FLAGS_SOURCE_DIR}/tests/method_flags"
@@ -144,6 +132,7 @@ if(SIMDLIB_METHOD_FLAGS_MSVC_STYLE)
 else()
     set(preprocess_arguments
         -std=c++20
+        ${SIMDLIB_METHOD_FLAGS_COMPILER_OPTIONS}
         -E
         -P
         -x c++
@@ -194,40 +183,78 @@ set(negative_sources
     InvalidUnknown.cpp
     InvalidDuplicate.cpp
     InvalidTooMany.cpp
-    InvalidObjectMacroCollision.cpp)
-set(negative_diagnostics
+    InvalidObjectMacroCollision.cpp
+    InvalidMissingBoundary.cpp
+    InvalidModifierOrder.cpp)
+set(negative_expansions
     SIMDLIB_FLAGS_ERROR_EMPTY
-    SIMDLIB_FLAGS_ERROR_UNKNOWN
-    SIMDLIB_FLAGS_ERROR_DUPLICATE
+    SIMDLIB_DETAIL_FLAGS_MODIFIERS_1_Unknown
+    SIMDLIB_DETAIL_FLAGS_MODIFIERS_2_RegisterOnly_RegisterOnly
     SIMDLIB_FLAGS_ERROR_TOO_MANY
-    SIMDLIB_FLAGS_ERROR_UNKNOWN)
+    SIMDLIB_DETAIL_FLAGS_BOUNDARY_downstream_object_macro
+    SIMDLIB_DETAIL_FLAGS_BOUNDARY_RegisterOnly
+    SIMDLIB_DETAIL_FLAGS_MODIFIERS_2_Flatten_ForceInline)
 
 list(LENGTH negative_sources negative_count)
 math(EXPR negative_final_index "${negative_count} - 1")
 foreach(index RANGE 0 ${negative_final_index})
     list(GET negative_sources ${index} negative_source_name)
-    list(GET negative_diagnostics ${index} expected_diagnostic)
+    list(GET negative_expansions ${index} expected_expansion)
     set(negative_source
         "${SIMDLIB_METHOD_FLAGS_SOURCE_DIR}/tests/method_flags/${negative_source_name}")
     set(negative_log "${probe_directory}/${negative_source_name}.log")
     set(negative_object "${probe_directory}/${negative_source_name}.obj")
 
     if(SIMDLIB_METHOD_FLAGS_MSVC_STYLE)
+        set(negative_preprocess_arguments
+            /nologo
+            /std:c++20
+            ${SIMDLIB_METHOD_FLAGS_COMPILER_OPTIONS}
+            /EP
+            /TP
+            "/I${SIMDLIB_METHOD_FLAGS_SOURCE_DIR}/tests/method_flags"
+            "${negative_source}")
         set(negative_arguments
             /nologo
             /std:c++20
+            ${SIMDLIB_METHOD_FLAGS_COMPILER_OPTIONS}
             /TP
             /c
             "/I${SIMDLIB_METHOD_FLAGS_SOURCE_DIR}/tests/method_flags"
             "/Fo${negative_object}"
             "${negative_source}")
     else()
+        set(negative_preprocess_arguments
+            -std=c++20
+            ${SIMDLIB_METHOD_FLAGS_COMPILER_OPTIONS}
+            -E
+            -P
+            -x c++
+            "-I${SIMDLIB_METHOD_FLAGS_SOURCE_DIR}/tests/method_flags"
+            "${negative_source}")
         set(negative_arguments
             -std=c++20
+            ${SIMDLIB_METHOD_FLAGS_COMPILER_OPTIONS}
             -fsyntax-only
             -x c++
             "-I${SIMDLIB_METHOD_FLAGS_SOURCE_DIR}/tests/method_flags"
             "${negative_source}")
+    endif()
+
+    execute_process(
+        COMMAND "${SIMDLIB_METHOD_FLAGS_COMPILER}" ${negative_preprocess_arguments}
+        RESULT_VARIABLE negative_preprocess_result
+        OUTPUT_VARIABLE negative_preprocess_stdout
+        ERROR_VARIABLE negative_preprocess_stderr)
+    if(NOT negative_preprocess_result EQUAL 0)
+        message(FATAL_ERROR
+            "${SIMDLIB_METHOD_FLAGS_COMPILER_ID} could not preprocess "
+            "${negative_source_name}:\n${negative_preprocess_stderr}")
+    endif()
+    if(NOT negative_preprocess_stdout MATCHES "${expected_expansion}")
+        message(FATAL_ERROR
+            "${SIMDLIB_METHOD_FLAGS_COMPILER_ID} did not preserve "
+            "${expected_expansion} in ${negative_source_name}")
     endif()
 
     execute_process(
@@ -240,11 +267,6 @@ foreach(index RANGE 0 ${negative_final_index})
     if(negative_result EQUAL 0)
         message(FATAL_ERROR
             "${SIMDLIB_METHOD_FLAGS_COMPILER_ID} unexpectedly accepted ${negative_source_name}")
-    endif()
-    if(NOT negative_output MATCHES "${expected_diagnostic}")
-        message(FATAL_ERROR
-            "${SIMDLIB_METHOD_FLAGS_COMPILER_ID} did not emit ${expected_diagnostic} "
-            "for ${negative_source_name}; see ${negative_log}")
     endif()
 endforeach()
 

@@ -2,143 +2,133 @@
 
 ## Decision
 
-The `SIMD_FLAGS(...)` prototype uses a fixed-vocabulary membership scan with
-arity-specific validation. This is the smallest evaluated design that satisfies
-all of the frozen grammar:
+`SIMD_FLAGS(...)` uses a fixed-position grammar:
 
-- one to five flags;
-- arbitrary flag order;
-- unknown-token rejection;
-- duplicate rejection;
-- one coalesced calling-convention emission for `In`, `Out`, or both;
-- canonical property emission order;
-- no object-like definitions for the short flag tokens;
-- no preprocessing dependency.
+```cpp
+SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten)
+```
 
-The prototype remains isolated in
-`tests/method_flags/MethodFlagsPrototype.h`. Moving the selected machinery into
-the public configuration boundary belongs to the public-macro implementation
-work.
+The first argument is exactly one boundary mode: `Neither`, `In`, `Out`, or
+`InOut`. Zero to three modifiers follow as an ordered subsequence of
+`RegisterOnly`, `ForceInline`, `Flatten`.
+
+This grammar replaces the rejected unordered five-token set and removes the
+need for membership scans, pairwise duplicate comparisons, Boolean folds,
+canonical sorting, and special coalescing of separate `In` and `Out` flags.
 
 ## Selected design
 
-The parser performs four bounded operations:
+The dependency-free prototype in
+`tests/method_flags/MethodFlagsPrototype.h` consists of:
 
-1. Classify invocation arity. A zero-token invocation is represented by the
-   preprocessor's single empty argument and diagnosed separately; arities above
-   five select the over-arity diagnostic.
-2. Validate every supplied token against the five-token vocabulary.
-3. Compare every supplied token pair and reject a duplicate.
-4. Scan the valid set once for each emitted property and emit properties in the
-   fixed order: vector calling convention, register-only mapping, force-inline,
-   then flatten.
+1. four boundary-mode mappings;
+2. eight canonical modifier-subset mappings;
+3. arity dispatch for one through four arguments;
+4. one over-arity path;
+5. the small expansion indirection required by MSVC's traditional
+   preprocessor.
 
-`In` and `Out` are separate membership predicates. Their Boolean union controls
-one calling-convention emission, so the parser cannot emit duplicate
-`__vectorcall` tokens.
+`Neither` maps to no calling-convention token. `In`, `Out`, and `InOut` each map
+to exactly one calling-convention adapter.
 
-For five supplied flags, the bounded work is five validity probes, ten
-pair-equality probes, and four five-element property folds. This is fixed
-preprocessing work rather than a combinatorial set of declaration mappings.
+Canonical modifier mappings are defined directly:
 
-All implementation helpers use the `SIMDLIB_DETAIL_FLAGS_` prefix. The only
-short public macro produced by the prototype is `SIMD_FLAGS`.
+```text
+none
+RegisterOnly
+ForceInline
+Flatten
+RegisterOnly, ForceInline
+RegisterOnly, Flatten
+ForceInline, Flatten
+RegisterOnly, ForceInline, Flatten
+```
+
+An unknown boundary mode leaves an unresolved
+`SIMDLIB_DETAIL_FLAGS_BOUNDARY_...` token. An unknown, duplicate, or
+noncanonical modifier sequence leaves an unresolved
+`SIMDLIB_DETAIL_FLAGS_MODIFIERS_...` token. Compilation therefore fails at the
+declaration without a general-purpose token classifier.
+
+Empty and over-arity invocations retain explicit
+`SIMDLIB_FLAGS_ERROR_EMPTY` and `SIMDLIB_FLAGS_ERROR_TOO_MANY` diagnostic
+identifiers.
+
+## Complexity comparison
+
+| Measure | Rejected unordered prototype | Fixed-position prototype |
+|---|---:|---:|
+| Header size | 19,151 bytes | 4,011 bytes |
+| Macro definitions | 114 | 37 |
+| Valid canonical invocation forms | 325 ordered permutations | 32 boundary-and-modifier forms |
+
+The replacement removes 15,140 bytes and 77 macro definitions from the
+prototype. The eight modifier mappings represent the complete three-modifier
+grammar rather than a power set that grows with arbitrary input order.
 
 ## MSVC preprocessing behavior
 
-The design does not require `/Zc:preprocessor`.
+The design supports both MSVC preprocessors without requiring a
+compiler-specific parser branch.
 
-MSVC's legacy preprocessor does not automatically rescan commas introduced by
-an expanded probe macro or a forwarded variadic arity list. The prototype uses
-parenthesized tuple-rescan helpers for both operations. The same helpers are
-accepted by conforming MSVC, clang-cl, GNU-like Clang, and GCC preprocessors, so
-there is no compiler-specific parser branch.
+MSVC's traditional preprocessor does not consistently rescan a forwarded
+variadic arity result before token pasting. The prototype retains two bounded
+compatibility helpers:
 
-Boolean folds use complete `00`, `01`, `10`, and `11` value tables rather than
-returning an unevaluated macro argument from a short-circuit helper. This avoids
-another legacy-MSVC rescan ambiguity while preserving the same Boolean result.
+- a parenthesized tuple rescan for the arity list;
+- two-step token concatenation before selecting the arity handler.
 
-## Evaluated alternatives
+No probe-generated commas, Boolean tables, short-circuit folds, or pairwise
+token comparisons remain. The same helpers are accepted by conforming MSVC,
+clang-cl, GNU-like Clang, and GCC.
 
-| Design | Benefit | Rejection reason |
-|---|---|---|
-| Direct variadic `FOR_EACH` | Smallest token emitter | Emits in caller order, cannot naturally reject duplicates, and emits the shared calling convention twice for `In, Out`. |
-| Normalized flag list | Could map one canonical sequence | Sorting arbitrary identifiers in the C preprocessor requires substantially more machinery and makes unknown-token diagnostics indirect. |
-| Numeric bit mask | Compact membership representation | Requires public object-like flag macros or a second syntax, and a numeric preprocessor result cannot conditionally emit declaration tokens without another dispatch layer. |
-| Named bundles | Very small implementation | Replaces the requested composable promise vocabulary with a growing set of combinations and obscures individual intent. |
-| Power-set mapping | Simple expansion after exact match | Requires at least 31 subset mappings before accounting for input order; accepting all permutations grows to 325 mappings. |
-
-The power-set design is specifically rejected. The selected scanner tests the
-same 325 ordered, nonempty permutations with one bounded implementation.
-
-### Normalized-list implementation comparison
-
-The normalized-list spike was decomposed into the concrete preprocessing
-stages it requires:
-
-1. perform the same arity, validity, and duplicate checks as the selected
-   scanner;
-2. test membership for each of the five vocabulary tokens;
-3. construct a new comma-separated list in canonical order while handling
-   every empty/nonempty boundary between optional tokens;
-4. count and dispatch that generated list again;
-5. run a direct emitter over the normalized list.
-
-The first two stages are the selected membership scanner. The remaining stages
-add list construction, comma management, and a second dispatch without removing
-any validation or property test. Retaining that implementation would therefore
-be strictly larger than emitting the four canonical properties directly from
-the membership results. It was rejected before duplicating the shared scanner
-into a second permanent prototype header.
-
-The direct `FOR_EACH` emitter is the only materially smaller implementation
-found. It fails the frozen behavior because `In, Out` emits the shared calling
-convention twice, caller order becomes output order, and duplicate rejection
-requires adding the membership machinery back. Named bundles and a numeric bit
-mask are smaller only by changing the accepted public grammar.
+SimdLib can enable `/Zc:preprocessor` in its own MSVC builds while retaining
+this small compatibility path for downstream projects that use MSVC's default
+traditional preprocessor.
 
 ## Collision evaluation
 
-The parser does not define `In`, `Out`, `RegisterOnly`, `ForceInline`, or
-`Flatten`. Function-like macros with one of those names do not expand when the
-bare token is supplied as a flag and therefore do not conflict.
+The implementation does not define object-like macros named `Neither`, `In`,
+`Out`, `InOut`, `RegisterOnly`, `ForceInline`, or `Flatten`. A function-like
+macro with one of those names is not invoked when its bare name is supplied and
+does not conflict.
 
-An object-like macro with one of the five exact names is an unavoidable
-collision at the invocation site. The C preprocessor expands an object-like
-macro argument before a variadic forwarding layer can classify it. The result
-is rejected as an unknown flag rather than silently acquiring another meaning.
+An active object-like macro with one of those exact names expands before the
+variadic forwarding layer can dispatch it. The invocation then fails through
+the expanded boundary or modifier mapping. This is an unavoidable restriction
+of the chosen bare-token call syntax and must be included in the eventual
+public documentation.
 
-Downstream code must therefore ensure that no object-like macro with an exact
-flag spelling is active where `SIMD_FLAGS(...)` is invoked. This restriction is
-preferable to globally defining the short names, adopting longer prefixed flag
-tokens, or changing the accepted call syntax. It must appear in the eventual
-public macro documentation.
+`Neither` was selected instead of the more collision-prone `None` spelling.
+The general object-like macro restriction still applies to every boundary mode
+and modifier token.
 
 ## Verification fixture
 
 `cmake/VerifyMethodFlagsPreprocessor.cmake` generates a preprocessing-only
 translation unit in the build tree. It covers:
 
-- all 325 ordered permutations without repeated flags;
-- all 31 nonempty flag subsets as a consequence of that permutation set;
+- four boundary modes combined with all eight modifier subsets;
+- exact declaration-token comparison for all 32 canonical invocations;
 - one function-like macro collision case;
-- exact canonical output-token comparison for every case;
 - absence of leaked short flag macros;
 - absence of prototype header dependencies;
 - rejection of any non-`SIMDLIB_DETAIL_` helper definition;
-- focused failures for empty, unknown, duplicate, over-arity, and object-like
-  collision inputs.
+- focused invalid cases for empty input, an unknown modifier, a duplicate
+  modifier, over-arity input, an object-like collision, a missing boundary
+  mode, and noncanonical modifier order.
 
-The verifier invokes the configured compiler directly in preprocessing mode and
-then invokes its syntax checker for the negative fixtures. It is registered as
-the `MethodFlagsPreprocessor` CTest entry when configuration probes are enabled.
+For every invalid case, the verifier first checks the preprocessed failure
+token and then requires syntax compilation to fail. This avoids depending on
+compiler-specific diagnostic prose.
+
+The verifier accepts an optional focused compiler-option list, allowing the
+same script to exercise traditional MSVC and `/Zc:preprocessor` explicitly.
+It is also registered as the `MethodFlagsPreprocessor` CTest entry when
+configuration probes are enabled.
 
 The focused command for a configured build tree is:
 
 ```text
 ctest --test-dir <build-directory> -R ^MethodFlagsPreprocessor$ --output-on-failure
 ```
-
-The same CMake verifier can be called directly with a compiler path, driver
-style, source directory, and writable binary directory. This keeps the Linux
-container checks identical to the native Windows checks.

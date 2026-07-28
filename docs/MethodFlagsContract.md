@@ -6,22 +6,37 @@
 optimization promises of an ordinary function. It is intended for both SimdLib
 and downstream code.
 
-The initial flag vocabulary is:
+The initial declaration form is:
 
 ```cpp
-SIMD_FLAGS(In, Out, RegisterOnly, ForceInline, Flatten)
+SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten)
 ```
 
-A declaration lists only the promises that apply to that function. Flag order
-does not affect meaning. The preferred review order is `In`, `Out`,
-`RegisterOnly`, `ForceInline`, then `Flatten`.
+Every invocation starts with exactly one SIMD boundary mode: `Neither`, `In`,
+`Out`, or `InOut`. It is followed by only the modifiers that apply to that
+function, in the canonical order `RegisterOnly`, `ForceInline`, then `Flatten`.
+The fixed order is part of the grammar rather than a formatting preference.
 
 The macro records developer intent. The preprocessor can validate the flag
 grammar, but it cannot inspect C++ parameter types, return types, function
 bodies, template instantiations, or transitive callees. Correct flag selection
 therefore remains a source-review responsibility.
 
-## Flag semantics
+## Boundary-mode semantics
+
+### `Neither`
+
+`Neither` promises that no native SIMD value, `Register`, or `RegisterMask`
+crosses the function boundary by value as either an input or result.
+
+- Pointers, references, spans, and arrays do not themselves violate `Neither`.
+- An ordinary implicit `this` pointer does not violate `Neither`.
+- A scalar input or result does not violate `Neither`.
+- For dependent parameter or return types, every supported instantiation
+  described by the declaration must satisfy the promise.
+
+`Neither` emits no vector calling convention. It makes no memory-effect or
+optimization promise; those properties remain explicit modifiers.
 
 ### `In`
 
@@ -51,12 +66,16 @@ register allocation.
 It does not independently guarantee that a platform ABI will avoid hidden
 return storage.
 
-### `In` and `Out` together
+### `InOut`
 
-`In` and `Out` describe one bidirectional SIMD call boundary. They are distinct
-semantic promises but share one calling-convention property in the initial
-compiler mappings. The macro must emit that calling convention exactly once
-when either or both flags are present.
+`InOut` promises that the function satisfies both the `In` and `Out` contracts.
+It describes one bidirectional SIMD call boundary and emits the configured
+vector calling convention exactly once where one is supported.
+
+`In, Out` is not an alternate spelling. A declaration that satisfies both
+directions uses the single `InOut` boundary mode.
+
+## Modifier semantics
 
 ### `RegisterOnly`
 
@@ -125,51 +144,65 @@ its caller. A declaration that requires both behaviors specifies both
 
 ## Grammar
 
-### Accepted flags and arity
+### Accepted boundary modes, modifiers, and arity
 
-The initial grammar accepts between one and five comma-separated flags:
+The initial grammar accepts one boundary mode and zero to three modifiers:
 
 ```text
-SIMD_FLAGS(flag [, flag ...])
+SIMD_FLAGS(boundary-mode [, modifier ...])
 
-flag:
+boundary-mode:
+  Neither
   In
   Out
+  InOut
+
+modifier sequence:
+  [RegisterOnly] [ForceInline] [Flatten]
+
+modifier:
   RegisterOnly
   ForceInline
   Flatten
 ```
 
-Five is the initial maximum because the vocabulary contains five distinct
-flags. Adding a future flag requires an explicit contract and a corresponding
-arity revision.
+Four is the initial maximum argument count. Modifier omission is allowed, but
+the selected modifiers remain an ordered subsequence of `RegisterOnly`,
+`ForceInline`, `Flatten`.
 
 The following rules are mandatory:
 
 - `SIMD_FLAGS()` is invalid.
-- More than five arguments is invalid.
+- A modifier-only invocation is invalid; use `Neither` as the boundary mode.
+- More than four arguments is invalid.
 - An unknown or misspelled token is invalid.
-- A duplicate flag is invalid.
+- A boundary mode in a modifier position is invalid.
+- A modifier in the boundary-mode position is invalid.
+- A duplicate modifier is invalid.
+- A noncanonical modifier order is invalid.
 - No invalid token may be silently ignored.
 - No underlying attribute or calling convention may be emitted more than once.
 
-Diagnostics must identify the failure category at the declaration. The
-implementation may include the offending token when the preprocessor permits
-it, but must at least expose one of these stable diagnostic identifiers:
+Invalid input must fail at the declaration. Empty and over-arity invocations
+use these stable diagnostic identifiers:
 
 - `SIMDLIB_FLAGS_ERROR_EMPTY`
 - `SIMDLIB_FLAGS_ERROR_TOO_MANY`
-- `SIMDLIB_FLAGS_ERROR_UNKNOWN`
-- `SIMDLIB_FLAGS_ERROR_DUPLICATE`
 
-No public object-like macros named `In`, `Out`, `RegisterOnly`, `ForceInline`,
-or `Flatten` may be defined to implement the grammar.
+Other invalid tokens or token sequences fail through an unresolved
+`SIMDLIB_DETAIL_FLAGS_BOUNDARY_...` or
+`SIMDLIB_DETAIL_FLAGS_MODIFIERS_...` mapping. This deliberately avoids a
+general-purpose membership parser solely to improve diagnostic spelling.
+
+No public object-like macros named `Neither`, `In`, `Out`, `InOut`,
+`RegisterOnly`, `ForceInline`, or `Flatten` may be defined to implement the
+grammar.
 
 No object-like macro with one of those exact names may be active at a
 `SIMD_FLAGS(...)` invocation. Macro arguments are expanded before a variadic
-forwarding layer can classify them, so such a collision is rejected as
-`SIMDLIB_FLAGS_ERROR_UNKNOWN`. A function-like macro with the same name does not
-expand when passed as a bare flag token and is not a collision.
+forwarding layer can classify them, so such a collision makes the invocation
+invalid. A function-like macro with the same name does not expand when passed
+as a bare token and is not a collision.
 
 ### Canonical declaration position
 
@@ -205,7 +238,7 @@ substitute for accepted placement.
 
 ```cpp
 [[nodiscard]] constexpr
-SIMD_FLAGS(In, Out, RegisterOnly, ForceInline, Flatten)
+SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten)
 Result transform(Input lhs) noexcept;
 ```
 
@@ -223,7 +256,7 @@ An implicit object does not itself satisfy `In`.
 
 ```cpp
 [[nodiscard]] constexpr
-SIMD_FLAGS(In, Out, RegisterOnly, ForceInline)
+SIMD_FLAGS(InOut, RegisterOnly, ForceInline)
 Register combine(Register rhs) const noexcept;
 ```
 
@@ -233,7 +266,7 @@ A by-value explicit object satisfies `In`.
 
 ```cpp
 [[nodiscard]] constexpr
-SIMD_FLAGS(In, Out, RegisterOnly, ForceInline, Flatten)
+SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten)
 Register combine(this Register lhs, Register rhs) noexcept;
 ```
 
@@ -243,7 +276,7 @@ Operators with an ordinary return type use the same position.
 
 ```cpp
 [[nodiscard]] friend constexpr
-SIMD_FLAGS(In, Out, RegisterOnly, ForceInline, Flatten)
+SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten)
 Register operator+(Register lhs, Register rhs) noexcept;
 ```
 
@@ -256,7 +289,7 @@ adding `friend`.
 template<class Target>
     requires RegisterTarget<Target>
 [[nodiscard]] static constexpr
-SIMD_FLAGS(In, Out, RegisterOnly, ForceInline, Flatten)
+SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten)
 Target convert(native_type value) noexcept;
 ```
 
@@ -268,7 +301,7 @@ constraints.
 ```cpp
 template<class Target>
 [[nodiscard]] static constexpr
-SIMD_FLAGS(In, Out, RegisterOnly, ForceInline, Flatten)
+SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten)
 auto convert(native_type value) noexcept -> Target
     requires RegisterTarget<Target>;
 ```
@@ -282,7 +315,7 @@ A friend definition follows the same flag rules as a namespace function.
 
 ```cpp
 [[nodiscard]] friend constexpr
-SIMD_FLAGS(In, Out, RegisterOnly, ForceInline)
+SIMD_FLAGS(InOut, RegisterOnly, ForceInline)
 Register select(RegisterMask mask, Register yes, Register no) noexcept;
 ```
 
@@ -349,9 +382,10 @@ presented for review before `RegisterOnly` is added.
 The source contract is stable even when a compiler mapping is empty. The
 initial mapping baseline is:
 
-| Flag | Microsoft C++ | clang-cl | GNU-like Clang | GCC |
+| Mode or modifier | Microsoft C++ | clang-cl | GNU-like Clang | GCC |
 |---|---|---|---|---|
-| `In` or `Out` | configured `__vectorcall` on supported Windows x86 targets | configured `__vectorcall` on supported Windows x86 targets | no vector-calling-convention token | no vector-calling-convention token |
+| `Neither` | no emitted token | no emitted token | no emitted token | no emitted token |
+| `In`, `Out`, or `InOut` | configured `__vectorcall` on supported Windows x86 targets | configured `__vectorcall` on supported Windows x86 targets | no vector-calling-convention token | no vector-calling-convention token |
 | `RegisterOnly` | `__declspec(safebuffers)` after audit | no emitted token | no emitted token | no emitted token |
 | `ForceInline` | `[[msvc::forceinline]] inline` | `[[clang::always_inline]] inline` | `[[clang::always_inline]] inline` | `[[gnu::always_inline]] inline` |
 | `Flatten` | `[[msvc::flatten]]` | `[[gnu::flatten]]` | `[[gnu::flatten]]` | `[[gnu::flatten]]` |
@@ -363,18 +397,19 @@ correctly classified function declarations.
 
 ## Extension rule
 
-A future flag is admitted only after all of the following are recorded:
+A future boundary mode or modifier is admitted only after all of the following
+are recorded:
 
 1. one precise source-level promise;
 2. valid and invalid usage categories;
-3. interaction with every existing flag;
+3. interaction with every existing boundary mode and modifier;
 4. canonical placement;
 5. supported and empty compiler mappings;
 6. configuration and downstream override behavior;
 7. compile-pass and compile-failure coverage;
 8. ABI or generated-code evidence when the flag can affect either.
 
-Generic `Read` and `Write` flags are not part of the initial vocabulary because
-they do not distinguish SIMD call direction from memory effects. `In` and
-`Out` describe SIMD values crossing the call boundary; `RegisterOnly` describes
-the absence of authored runtime writes.
+Generic `Read` and `Write` modifiers are not part of the initial vocabulary
+because they do not distinguish SIMD call direction from memory effects. `In`,
+`Out`, and `InOut` describe SIMD values crossing the call boundary;
+`RegisterOnly` describes the absence of authored runtime writes.

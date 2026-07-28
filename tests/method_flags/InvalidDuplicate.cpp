@@ -1,4 +1,5 @@
 #include "MethodFlagsPrototype.h"
 
-SIMD_FLAGS(In, Out, In)
+/// Declares a function with a duplicate method-flags modifier.
+SIMD_FLAGS(InOut, RegisterOnly, RegisterOnly)
 int invalid_duplicate();
