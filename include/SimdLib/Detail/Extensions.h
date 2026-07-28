@@ -20,14 +20,19 @@ namespace SimdLib::Detail
 // This file contains SIMD extensions for 128-bit and 256-bit integer and floating-point types.
 // SEE: http://www.alfredklomp.com/programming/sse-intrinsics/
 
-/** Portable lane access for compiler-native x86 register types.
- * MSVC exposes intrinsic registers as unions with named arrays, while Clang
- * models them as
- * vector types. Keep that compiler difference inside Detail.
+/**
+ * @brief Reads one lane through the portable constant-evaluation representation.
+ * @tparam Element Scalar lane type.
+ * @tparam Vector Compiler-native register type.
+ * @param value Source register represented during constant evaluation.
+ * @param index Selected lane index.
+ * @return Selected scalar lane.
+ * @note This remains `constexpr`, rather than `consteval`, because C++20
+ * runtime-callable `constexpr` wrappers pass their parameters through it.
  */
 template <class Element, class Vector>
 	requires std::is_arithmetic_v<Element> && (sizeof(Vector) % sizeof(Element) == 0)
-SIMDLIB_FORCE_INLINE constexpr Element register_get(const Vector value, const std::size_t index) noexcept
+SIMDLIB_FORCE_INLINE constexpr Element register_get_constexpr(const Vector value, const std::size_t index) noexcept
 {
 #if SIMDLIB_COMPILER_MSVC
 	if constexpr (sizeof(Vector) == 16)
@@ -81,9 +86,19 @@ SIMDLIB_FORCE_INLINE constexpr Element register_get(const Vector value, const st
 #endif
 }
 
+/**
+ * @brief Replaces one lane through the portable constant-evaluation representation.
+ * @tparam Element Scalar lane type.
+ * @tparam Vector Compiler-native register type.
+ * @param value Register represented during constant evaluation.
+ * @param index Selected lane index.
+ * @param lane Replacement scalar lane.
+ * @note This remains `constexpr`, rather than `consteval`, because C++20
+ * runtime-callable `constexpr` wrappers pass their parameters through it.
+ */
 template <class Element, class Vector>
 	requires std::is_arithmetic_v<Element> && (sizeof(Vector) % sizeof(Element) == 0)
-SIMDLIB_FORCE_INLINE constexpr void register_set(Vector &value, const std::size_t index, const Element lane) noexcept
+SIMDLIB_FORCE_INLINE constexpr void register_set_constexpr(Vector &value, const std::size_t index, const Element lane) noexcept
 {
 #if SIMDLIB_COMPILER_MSVC
 	if constexpr (sizeof(Vector) == 16)
@@ -146,7 +161,7 @@ SIMDLIB_FORCE_INLINE constexpr Vector register_from_array(const std::array<Eleme
 	Vector result{};
 	for (std::size_t index = 0; index < Count; ++index)
 	{
-		register_set<Element>(result, index, lanes[index]);
+		register_set_constexpr<Element>(result, index, lanes[index]);
 	}
 	return result;
 }
@@ -178,7 +193,7 @@ template <class Element, class Vector> SIMDLIB_FORCE_INLINE constexpr auto regis
 	std::array<Element, sizeof(Vector) / sizeof(Element)> result{};
 	for (std::size_t index = 0; index < result.size(); ++index)
 	{
-		result[index] = register_get<Element>(value, index);
+		result[index] = register_get_constexpr<Element>(value, index);
 	}
 	return result;
 }
@@ -193,10 +208,22 @@ template <class Element, class Vector> SIMDLIB_FORCE_INLINE const Element *regis
 	return reinterpret_cast<const Element *>(&value);
 }
 
+/**
+ * @brief Returns a register with one lane replaced through the portable constant-evaluation representation.
+ * @tparam Element Scalar lane type.
+ * @tparam Vector Compiler-native register type.
+ * @tparam Value Replacement value type.
+ * @param value Source register represented during constant evaluation.
+ * @param lane Replacement lane value.
+ * @param index Selected lane index.
+ * @return Register with the selected lane replaced.
+ * @note This remains `constexpr`, rather than `consteval`, because C++20
+ * runtime-callable `constexpr` wrappers pass their parameters through it.
+ */
 template <class Element, class Vector, class Value>
-SIMDLIB_FORCE_INLINE constexpr Vector register_insert(Vector value, const Value lane, const std::size_t index) noexcept
+SIMDLIB_FORCE_INLINE constexpr Vector register_insert_constexpr(Vector value, const Value lane, const std::size_t index) noexcept
 {
-	register_set<Element>(value, index, static_cast<Element>(lane));
+	register_set_constexpr<Element>(value, index, static_cast<Element>(lane));
 	return value;
 }
 
@@ -206,7 +233,7 @@ template <class Element, class Vector> SIMDLIB_FORCE_INLINE constexpr Vector reg
 	for (std::size_t index = 0; index < count; ++index)
 	{
 		if ((mask & (1u << (index % 8))) != 0)
-			register_set<Element>(lhs, index, register_get<Element>(rhs, index));
+			register_set_constexpr<Element>(lhs, index, register_get_constexpr<Element>(rhs, index));
 	}
 	return lhs;
 }
@@ -216,8 +243,8 @@ template <class Vector> SIMDLIB_FORCE_INLINE constexpr Vector register_blend_byt
 	constexpr std::size_t count = sizeof(Vector);
 	for (std::size_t index = 0; index < count; ++index)
 	{
-		if ((register_get<std::uint8_t>(mask, index) & 0x80u) != 0)
-			register_set<std::uint8_t>(lhs, index, register_get<std::uint8_t>(rhs, index));
+		if ((register_get_constexpr<std::uint8_t>(mask, index) & 0x80u) != 0)
+			register_set_constexpr<std::uint8_t>(lhs, index, register_get_constexpr<std::uint8_t>(rhs, index));
 	}
 	return lhs;
 }
@@ -324,7 +351,7 @@ SIMDLIB_FORCE_INLINE constexpr Vector register_transform_binary(const Vector lhs
 	constexpr std::size_t count = sizeof(Vector) / sizeof(Element);
 	std::array<Element, count> result{};
 	for (std::size_t index = 0; index < count; ++index)
-		result[index] = static_cast<Element>(operation(register_get<Element>(lhs, index), register_get<Element>(rhs, index)));
+		result[index] = static_cast<Element>(operation(register_get_constexpr<Element>(lhs, index), register_get_constexpr<Element>(rhs, index)));
 	return register_from_array<Vector>(result);
 }
 

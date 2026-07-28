@@ -1888,7 +1888,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 */
 	constexpr static element_t get_element_constexpr(const vector_t lhs, const int index) noexcept
 	{
-		return Detail::register_get<element_t>(lhs, static_cast<std::size_t>(index));
+		return Detail::register_get_constexpr<element_t>(lhs, static_cast<std::size_t>(index));
 	}
 
 	/**
@@ -1900,7 +1900,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 */
 	constexpr static vector_t set_element_constexpr(const vector_t lhs, const int index, const element_t value) noexcept
 	{
-		return Detail::register_insert<element_t>(lhs, value, static_cast<std::size_t>(index));
+		return Detail::register_insert_constexpr<element_t>(lhs, value, static_cast<std::size_t>(index));
 	}
 
 	/** @brief Computes the byte-granular movemask during constant evaluation.

@@ -379,7 +379,7 @@ The exhaustive build and test operations collectively cover the complete
 Linux-supported C++20/C++23 suite, not a platform-independent subset. Portable
 header repairs guard the Windows-only `<intrin.h>` boundary, include x86
 intrinsics only on x86, disable `VECTORCALL` for GNU-like Linux Clang, and
-value-initialize the temporary used by `register_set`. Native Windows jobs
+value-initialize the temporary used by `register_set_constexpr`. Native Windows jobs
 remain authoritative for MSVC, clang-cl, Windows ABI, and calling-convention
 evidence.
 

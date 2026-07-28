@@ -454,12 +454,12 @@ template <> struct SimdImpl128<int8_t>
 	}
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL extract(auto lhs, auto rhs) noexcept
 	{
-		return register_get<int8_t>(lhs, static_cast<std::size_t>(rhs));
+		return register_get_constexpr<int8_t>(lhs, static_cast<std::size_t>(rhs));
 	}
 	/** @brief Replaces the compile-time-selected signed 8-bit lane during constant evaluation. */
 	template <int index> [[nodiscard]] constexpr static auto insert_constexpr(auto lhs, const int8_t rhs) noexcept
 	{
-		return register_insert<int8_t>(lhs, rhs, static_cast<std::size_t>(index));
+		return register_insert_constexpr<int8_t>(lhs, rhs, static_cast<std::size_t>(index));
 	}
 	/** @brief Replaces the compile-time-selected signed 8-bit lane. */
 	template <int index> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL insert(auto lhs, const int8_t rhs) noexcept
@@ -468,7 +468,7 @@ template <> struct SimdImpl128<int8_t>
 	}
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, auto rhs, const int index) noexcept
 	{
-		return register_insert<std::int8_t>(lhs, rhs, static_cast<std::size_t>(index));
+		return register_insert_constexpr<std::int8_t>(lhs, rhs, static_cast<std::size_t>(index));
 	}
 
 	// unpack / pack
@@ -754,12 +754,12 @@ template <> struct SimdImpl128<uint8_t>
 	}
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL extract(auto lhs, auto rhs) noexcept
 	{
-		return register_get<uint8_t>(lhs, static_cast<std::size_t>(rhs));
+		return register_get_constexpr<uint8_t>(lhs, static_cast<std::size_t>(rhs));
 	}
 	/** @brief Replaces the compile-time-selected unsigned 8-bit lane during constant evaluation. */
 	template <int index> [[nodiscard]] constexpr static auto insert_constexpr(auto lhs, const uint8_t rhs) noexcept
 	{
-		return register_insert<uint8_t>(lhs, rhs, static_cast<std::size_t>(index));
+		return register_insert_constexpr<uint8_t>(lhs, rhs, static_cast<std::size_t>(index));
 	}
 	/** @brief Replaces the compile-time-selected unsigned 8-bit lane. */
 	template <int index> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL insert(auto lhs, const uint8_t rhs) noexcept
@@ -768,7 +768,7 @@ template <> struct SimdImpl128<uint8_t>
 	}
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, auto rhs, const int index) noexcept
 	{
-		return register_insert<std::uint8_t>(lhs, rhs, static_cast<std::size_t>(index));
+		return register_insert_constexpr<std::uint8_t>(lhs, rhs, static_cast<std::size_t>(index));
 	}
 
 	// unpack / pack
@@ -1064,12 +1064,12 @@ template <> struct SimdImpl128<int16_t>
 	}
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL extract(auto lhs, auto rhs) noexcept
 	{
-		return register_get<int16_t>(lhs, static_cast<std::size_t>(rhs));
+		return register_get_constexpr<int16_t>(lhs, static_cast<std::size_t>(rhs));
 	}
 	/** @brief Replaces the compile-time-selected signed 16-bit lane during constant evaluation. */
 	template <int index> [[nodiscard]] constexpr static auto insert_constexpr(auto lhs, const int16_t rhs) noexcept
 	{
-		return register_insert<int16_t>(lhs, rhs, static_cast<std::size_t>(index));
+		return register_insert_constexpr<int16_t>(lhs, rhs, static_cast<std::size_t>(index));
 	}
 	/** @brief Replaces the compile-time-selected signed 16-bit lane. */
 	template <int index> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL insert(auto lhs, const int16_t rhs) noexcept
@@ -1078,7 +1078,7 @@ template <> struct SimdImpl128<int16_t>
 	}
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, auto rhs, const int index) noexcept
 	{
-		return register_insert<std::int16_t>(lhs, rhs, static_cast<std::size_t>(index));
+		return register_insert_constexpr<std::int16_t>(lhs, rhs, static_cast<std::size_t>(index));
 	}
 
 	// unpack / pack
@@ -1393,12 +1393,12 @@ template <> struct SimdImpl128<uint16_t>
 	}
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL extract(auto lhs, auto rhs) noexcept
 	{
-		return register_get<uint16_t>(lhs, static_cast<std::size_t>(rhs));
+		return register_get_constexpr<uint16_t>(lhs, static_cast<std::size_t>(rhs));
 	}
 	/** @brief Replaces the compile-time-selected unsigned 16-bit lane during constant evaluation. */
 	template <int index> [[nodiscard]] constexpr static auto insert_constexpr(auto lhs, const uint16_t rhs) noexcept
 	{
-		return register_insert<uint16_t>(lhs, rhs, static_cast<std::size_t>(index));
+		return register_insert_constexpr<uint16_t>(lhs, rhs, static_cast<std::size_t>(index));
 	}
 	/** @brief Replaces the compile-time-selected unsigned 16-bit lane. */
 	template <int index> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL insert(auto lhs, const uint16_t rhs) noexcept
@@ -1407,7 +1407,7 @@ template <> struct SimdImpl128<uint16_t>
 	}
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, auto rhs, const int index) noexcept
 	{
-		return register_insert<std::int16_t>(lhs, rhs, static_cast<std::size_t>(index));
+		return register_insert_constexpr<std::int16_t>(lhs, rhs, static_cast<std::size_t>(index));
 	}
 
 	// unpack / pack
@@ -1674,12 +1674,12 @@ template <> struct SimdImpl128<int32_t>
 	}
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL extract(auto lhs, auto rhs) noexcept
 	{
-		return register_get<int32_t>(lhs, static_cast<std::size_t>(rhs));
+		return register_get_constexpr<int32_t>(lhs, static_cast<std::size_t>(rhs));
 	}
 	/** @brief Replaces the compile-time-selected signed 32-bit lane during constant evaluation. */
 	template <int index> [[nodiscard]] constexpr static auto insert_constexpr(auto lhs, const int32_t rhs) noexcept
 	{
-		return register_insert<int32_t>(lhs, rhs, static_cast<std::size_t>(index));
+		return register_insert_constexpr<int32_t>(lhs, rhs, static_cast<std::size_t>(index));
 	}
 	/** @brief Replaces the compile-time-selected signed 32-bit lane. */
 	template <int index> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL insert(auto lhs, const int32_t rhs) noexcept
@@ -1688,7 +1688,7 @@ template <> struct SimdImpl128<int32_t>
 	}
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, auto rhs, const int index) noexcept
 	{
-		return register_insert<std::int32_t>(lhs, rhs, static_cast<std::size_t>(index));
+		return register_insert_constexpr<std::int32_t>(lhs, rhs, static_cast<std::size_t>(index));
 	}
 
 	// unpack / pack
@@ -1962,12 +1962,12 @@ template <> struct SimdImpl128<uint32_t>
 	}
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL extract(auto lhs, auto rhs) noexcept
 	{
-		return register_get<uint32_t>(lhs, static_cast<std::size_t>(rhs));
+		return register_get_constexpr<uint32_t>(lhs, static_cast<std::size_t>(rhs));
 	}
 	/** @brief Replaces the compile-time-selected unsigned 32-bit lane during constant evaluation. */
 	template <int index> [[nodiscard]] constexpr static auto insert_constexpr(auto lhs, const uint32_t rhs) noexcept
 	{
-		return register_insert<uint32_t>(lhs, rhs, static_cast<std::size_t>(index));
+		return register_insert_constexpr<uint32_t>(lhs, rhs, static_cast<std::size_t>(index));
 	}
 	/** @brief Replaces the compile-time-selected unsigned 32-bit lane. */
 	template <int index> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL insert(auto lhs, const uint32_t rhs) noexcept
@@ -1976,7 +1976,7 @@ template <> struct SimdImpl128<uint32_t>
 	}
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, auto rhs, const int index) noexcept
 	{
-		return register_insert<std::int32_t>(lhs, rhs, static_cast<std::size_t>(index));
+		return register_insert_constexpr<std::int32_t>(lhs, rhs, static_cast<std::size_t>(index));
 	}
 
 	// unpack / pack
@@ -2213,12 +2213,12 @@ template <> struct SimdImpl128<int64_t>
 	}
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL extract(auto lhs, auto rhs) noexcept
 	{
-		return register_get<int64_t>(lhs, static_cast<std::size_t>(rhs));
+		return register_get_constexpr<int64_t>(lhs, static_cast<std::size_t>(rhs));
 	}
 	/** @brief Replaces the compile-time-selected signed 64-bit lane during constant evaluation. */
 	template <int index> [[nodiscard]] constexpr static auto insert_constexpr(auto lhs, const int64_t rhs) noexcept
 	{
-		return register_insert<int64_t>(lhs, rhs, static_cast<std::size_t>(index));
+		return register_insert_constexpr<int64_t>(lhs, rhs, static_cast<std::size_t>(index));
 	}
 	/** @brief Replaces the compile-time-selected signed 64-bit lane. */
 	template <int index> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL insert(auto lhs, const int64_t rhs) noexcept
@@ -2227,7 +2227,7 @@ template <> struct SimdImpl128<int64_t>
 	}
 	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL insert(auto lhs, auto rhs, int index) noexcept
 	{
-		return register_insert<std::int64_t>(lhs, rhs, static_cast<std::size_t>(index));
+		return register_insert_constexpr<std::int64_t>(lhs, rhs, static_cast<std::size_t>(index));
 	}
 
 	// unpack / pack
@@ -2439,12 +2439,12 @@ template <> struct SimdImpl128<uint64_t>
 	}
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL extract(auto lhs, auto rhs) noexcept
 	{
-		return register_get<uint64_t>(lhs, static_cast<std::size_t>(rhs));
+		return register_get_constexpr<uint64_t>(lhs, static_cast<std::size_t>(rhs));
 	}
 	/** @brief Replaces the compile-time-selected unsigned 64-bit lane during constant evaluation. */
 	template <int index> [[nodiscard]] constexpr static auto insert_constexpr(auto lhs, const uint64_t rhs) noexcept
 	{
-		return register_insert<uint64_t>(lhs, rhs, static_cast<std::size_t>(index));
+		return register_insert_constexpr<uint64_t>(lhs, rhs, static_cast<std::size_t>(index));
 	}
 	/** @brief Replaces the compile-time-selected unsigned 64-bit lane. */
 	template <int index> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL insert(auto lhs, const uint64_t rhs) noexcept
@@ -2453,7 +2453,7 @@ template <> struct SimdImpl128<uint64_t>
 	}
 	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL insert(auto lhs, auto rhs, int index) noexcept
 	{
-		return register_insert<std::int64_t>(lhs, rhs, static_cast<std::size_t>(index));
+		return register_insert_constexpr<std::int64_t>(lhs, rhs, static_cast<std::size_t>(index));
 	}
 
 	// unpack / pack
@@ -2601,12 +2601,12 @@ template <> struct SimdImpl128<float>
 
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL extract(auto lhs, auto rhs) noexcept
 	{
-		return register_get<float>(lhs, static_cast<std::size_t>(rhs));
+		return register_get_constexpr<float>(lhs, static_cast<std::size_t>(rhs));
 	}
 	/** @brief Replaces the compile-time-selected 32-bit floating-point lane during constant evaluation. */
 	template <int index> [[nodiscard]] constexpr static auto insert_constexpr(auto lhs, const float rhs) noexcept
 	{
-		return register_insert<float>(lhs, rhs, static_cast<std::size_t>(index));
+		return register_insert_constexpr<float>(lhs, rhs, static_cast<std::size_t>(index));
 	}
 	/** @brief Replaces the compile-time-selected 32-bit floating-point lane. */
 	template <int index> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL insert(auto lhs, const float rhs) noexcept
@@ -2785,12 +2785,12 @@ template <> struct SimdImpl128<double>
 	}
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL extract(auto lhs, auto rhs) noexcept
 	{
-		return register_get<double>(lhs, static_cast<std::size_t>(rhs));
+		return register_get_constexpr<double>(lhs, static_cast<std::size_t>(rhs));
 	}
 	/** @brief Replaces the compile-time-selected 64-bit floating-point lane during constant evaluation. */
 	template <int index> [[nodiscard]] constexpr static auto insert_constexpr(auto lhs, const double rhs) noexcept
 	{
-		return register_insert<double>(lhs, rhs, static_cast<std::size_t>(index));
+		return register_insert_constexpr<double>(lhs, rhs, static_cast<std::size_t>(index));
 	}
 	/** @brief Replaces the compile-time-selected 64-bit floating-point lane. */
 	template <int index> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL insert(auto lhs, const double rhs) noexcept
@@ -2803,7 +2803,7 @@ template <> struct SimdImpl128<double>
 	}
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, auto rhs, const int index) noexcept
 	{
-		return register_insert<double>(lhs, register_get<double>(rhs, (static_cast<unsigned int>(index) >> 1) & 1u), static_cast<unsigned int>(index) & 1u);
+		return register_insert_constexpr<double>(lhs, register_get_constexpr<double>(rhs, (static_cast<unsigned int>(index) >> 1) & 1u), static_cast<unsigned int>(index) & 1u);
 	}
 
 	// unpack / pack
@@ -2965,13 +2965,13 @@ template <class element_t> struct SimdMappings<128, element_t> : public SimdImpl
 
 	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr static vector_t VECTORCALL set_element(vector_t vec, int index, element_t value) noexcept
 	{
-		register_set<element_t>(vec, static_cast<std::size_t>(index), value);
+		register_set_constexpr<element_t>(vec, static_cast<std::size_t>(index), value);
 		return vec;
 	}
 
 	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr static element_t VECTORCALL get_element(vector_t vec, int index) noexcept
 	{
-		return register_get<element_t>(vec, static_cast<std::size_t>(index));
+		return register_get_constexpr<element_t>(vec, static_cast<std::size_t>(index));
 	}
 
 	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE static std::span<element_t, element_count> VECTORCALL view_data(vector_t &vec) noexcept
@@ -3322,12 +3322,12 @@ template <class element_t> struct SimdMappings<128, element_t> : public SimdImpl
 			if (i < elem_count)
 			{
 				// Select the MSB byte of each element, packing them into the low bytes.
-				register_set<std::uint8_t>(seq, i, static_cast<std::uint8_t>((i * elem_size) + (elem_size - 1)));
+				register_set_constexpr<std::uint8_t>(seq, i, static_cast<std::uint8_t>((i * elem_size) + (elem_size - 1)));
 			}
 			else
 			{
 				// Zero out the rest (PSHUFB: high bit set => 0).
-				register_set<std::uint8_t>(seq, i, 0x80);
+				register_set_constexpr<std::uint8_t>(seq, i, 0x80);
 			}
 		}
 		return seq;
@@ -3639,12 +3639,12 @@ template <> struct SimdImpl256<int8_t>
 	}
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL extract(auto lhs, auto rhs) noexcept
 	{
-		return register_get<int8_t>(lhs, static_cast<std::size_t>(rhs));
+		return register_get_constexpr<int8_t>(lhs, static_cast<std::size_t>(rhs));
 	}
 	/** @brief Replaces the compile-time-selected signed 8-bit lane during constant evaluation. */
 	template <int index> [[nodiscard]] constexpr static auto insert_constexpr(auto lhs, const int8_t rhs) noexcept
 	{
-		return register_insert<int8_t>(lhs, rhs, static_cast<std::size_t>(index));
+		return register_insert_constexpr<int8_t>(lhs, rhs, static_cast<std::size_t>(index));
 	}
 	/** @brief Replaces the compile-time-selected signed 8-bit lane. */
 	template <int index> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL insert(auto lhs, const int8_t rhs) noexcept
@@ -3653,7 +3653,7 @@ template <> struct SimdImpl256<int8_t>
 	}
 	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL insert(auto lhs, auto rhs, const int imm8) noexcept
 	{
-		return register_insert<std::int8_t>(lhs, rhs, static_cast<std::size_t>(imm8));
+		return register_insert_constexpr<std::int8_t>(lhs, rhs, static_cast<std::size_t>(imm8));
 	}
 
 	// unpack / pack
@@ -3908,12 +3908,12 @@ template <> struct SimdImpl256<uint8_t>
 	}
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL extract(auto lhs, auto rhs) noexcept
 	{
-		return register_get<uint8_t>(lhs, static_cast<std::size_t>(rhs));
+		return register_get_constexpr<uint8_t>(lhs, static_cast<std::size_t>(rhs));
 	}
 	/** @brief Replaces the compile-time-selected unsigned 8-bit lane during constant evaluation. */
 	template <int index> [[nodiscard]] constexpr static auto insert_constexpr(auto lhs, const uint8_t rhs) noexcept
 	{
-		return register_insert<uint8_t>(lhs, rhs, static_cast<std::size_t>(index));
+		return register_insert_constexpr<uint8_t>(lhs, rhs, static_cast<std::size_t>(index));
 	}
 	/** @brief Replaces the compile-time-selected unsigned 8-bit lane. */
 	template <int index> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL insert(auto lhs, const uint8_t rhs) noexcept
@@ -3922,7 +3922,7 @@ template <> struct SimdImpl256<uint8_t>
 	}
 	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL insert(auto lhs, auto rhs, const int imm8) noexcept
 	{
-		return register_insert<std::int8_t>(lhs, rhs, static_cast<std::size_t>(imm8));
+		return register_insert_constexpr<std::int8_t>(lhs, rhs, static_cast<std::size_t>(imm8));
 	}
 
 	// unpack / pack
@@ -4199,12 +4199,12 @@ template <> struct SimdImpl256<int16_t>
 	}
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL extract(auto lhs, auto rhs) noexcept
 	{
-		return register_get<int16_t>(lhs, static_cast<std::size_t>(rhs));
+		return register_get_constexpr<int16_t>(lhs, static_cast<std::size_t>(rhs));
 	}
 	/** @brief Replaces the compile-time-selected signed 16-bit lane during constant evaluation. */
 	template <int index> [[nodiscard]] constexpr static auto insert_constexpr(auto lhs, const int16_t rhs) noexcept
 	{
-		return register_insert<int16_t>(lhs, rhs, static_cast<std::size_t>(index));
+		return register_insert_constexpr<int16_t>(lhs, rhs, static_cast<std::size_t>(index));
 	}
 	/** @brief Replaces the compile-time-selected signed 16-bit lane. */
 	template <int index> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL insert(auto lhs, const int16_t rhs) noexcept
@@ -4213,7 +4213,7 @@ template <> struct SimdImpl256<int16_t>
 	}
 	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL insert(auto lhs, auto rhs, const int imm8) noexcept
 	{
-		return register_insert<std::int16_t>(lhs, rhs, static_cast<std::size_t>(imm8));
+		return register_insert_constexpr<std::int16_t>(lhs, rhs, static_cast<std::size_t>(imm8));
 	}
 
 	// unpack / pack
@@ -4520,12 +4520,12 @@ template <> struct SimdImpl256<uint16_t>
 	}
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL extract(auto lhs, auto rhs) noexcept
 	{
-		return register_get<uint16_t>(lhs, static_cast<std::size_t>(rhs));
+		return register_get_constexpr<uint16_t>(lhs, static_cast<std::size_t>(rhs));
 	}
 	/** @brief Replaces the compile-time-selected unsigned 16-bit lane during constant evaluation. */
 	template <int index> [[nodiscard]] constexpr static auto insert_constexpr(auto lhs, const uint16_t rhs) noexcept
 	{
-		return register_insert<uint16_t>(lhs, rhs, static_cast<std::size_t>(index));
+		return register_insert_constexpr<uint16_t>(lhs, rhs, static_cast<std::size_t>(index));
 	}
 	/** @brief Replaces the compile-time-selected unsigned 16-bit lane. */
 	template <int index> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL insert(auto lhs, const uint16_t rhs) noexcept
@@ -4534,7 +4534,7 @@ template <> struct SimdImpl256<uint16_t>
 	}
 	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL insert(auto lhs, auto rhs, const int imm8) noexcept
 	{
-		return register_insert<std::int16_t>(lhs, rhs, static_cast<std::size_t>(imm8));
+		return register_insert_constexpr<std::int16_t>(lhs, rhs, static_cast<std::size_t>(imm8));
 	}
 
 	// unpack / pack
@@ -4768,12 +4768,12 @@ template <> struct SimdImpl256<int32_t>
 	}
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL extract(auto lhs, auto rhs) noexcept
 	{
-		return register_get<int32_t>(lhs, static_cast<std::size_t>(rhs));
+		return register_get_constexpr<int32_t>(lhs, static_cast<std::size_t>(rhs));
 	}
 	/** @brief Replaces the compile-time-selected signed 32-bit lane during constant evaluation. */
 	template <int index> [[nodiscard]] constexpr static auto insert_constexpr(auto lhs, const int32_t rhs) noexcept
 	{
-		return register_insert<int32_t>(lhs, rhs, static_cast<std::size_t>(index));
+		return register_insert_constexpr<int32_t>(lhs, rhs, static_cast<std::size_t>(index));
 	}
 	/** @brief Replaces the compile-time-selected signed 32-bit lane. */
 	template <int index> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL insert(auto lhs, const int32_t rhs) noexcept
@@ -4782,7 +4782,7 @@ template <> struct SimdImpl256<int32_t>
 	}
 	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL insert(auto lhs, auto rhs, const int imm8) noexcept
 	{
-		return register_insert<std::int32_t>(lhs, rhs, static_cast<std::size_t>(imm8));
+		return register_insert_constexpr<std::int32_t>(lhs, rhs, static_cast<std::size_t>(imm8));
 	}
 
 	// unpack / pack
@@ -5021,12 +5021,12 @@ template <> struct SimdImpl256<uint32_t>
 	}
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL extract(auto lhs, auto rhs) noexcept
 	{
-		return register_get<uint32_t>(lhs, static_cast<std::size_t>(rhs));
+		return register_get_constexpr<uint32_t>(lhs, static_cast<std::size_t>(rhs));
 	}
 	/** @brief Replaces the compile-time-selected unsigned 32-bit lane during constant evaluation. */
 	template <int index> [[nodiscard]] constexpr static auto insert_constexpr(auto lhs, const uint32_t rhs) noexcept
 	{
-		return register_insert<uint32_t>(lhs, rhs, static_cast<std::size_t>(index));
+		return register_insert_constexpr<uint32_t>(lhs, rhs, static_cast<std::size_t>(index));
 	}
 	/** @brief Replaces the compile-time-selected unsigned 32-bit lane. */
 	template <int index> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL insert(auto lhs, const uint32_t rhs) noexcept
@@ -5035,7 +5035,7 @@ template <> struct SimdImpl256<uint32_t>
 	}
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, auto rhs, const int index) noexcept
 	{
-		return register_insert<std::int32_t>(lhs, rhs, static_cast<std::size_t>(index));
+		return register_insert_constexpr<std::int32_t>(lhs, rhs, static_cast<std::size_t>(index));
 	}
 
 	// unpack / pack
@@ -5241,12 +5241,12 @@ template <> struct SimdImpl256<int64_t>
 	}
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL extract(auto lhs, auto rhs) noexcept
 	{
-		return register_get<int64_t>(lhs, static_cast<std::size_t>(rhs));
+		return register_get_constexpr<int64_t>(lhs, static_cast<std::size_t>(rhs));
 	}
 	/** @brief Replaces the compile-time-selected signed 64-bit lane during constant evaluation. */
 	template <int index> [[nodiscard]] constexpr static auto insert_constexpr(auto lhs, const int64_t rhs) noexcept
 	{
-		return register_insert<int64_t>(lhs, rhs, static_cast<std::size_t>(index));
+		return register_insert_constexpr<int64_t>(lhs, rhs, static_cast<std::size_t>(index));
 	}
 	/** @brief Replaces the compile-time-selected signed 64-bit lane. */
 	template <int index> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL insert(auto lhs, const int64_t rhs) noexcept
@@ -5255,7 +5255,7 @@ template <> struct SimdImpl256<int64_t>
 	}
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, auto rhs, const int index) noexcept
 	{
-		return register_insert<std::int64_t>(lhs, rhs, static_cast<std::size_t>(index));
+		return register_insert_constexpr<std::int64_t>(lhs, rhs, static_cast<std::size_t>(index));
 	}
 
 	// unpack / pack
@@ -5442,12 +5442,12 @@ template <> struct SimdImpl256<uint64_t>
 	}
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL extract(auto lhs, auto rhs) noexcept
 	{
-		return register_get<uint64_t>(lhs, static_cast<std::size_t>(rhs));
+		return register_get_constexpr<uint64_t>(lhs, static_cast<std::size_t>(rhs));
 	}
 	/** @brief Replaces the compile-time-selected unsigned 64-bit lane during constant evaluation. */
 	template <int index> [[nodiscard]] constexpr static auto insert_constexpr(auto lhs, const uint64_t rhs) noexcept
 	{
-		return register_insert<uint64_t>(lhs, rhs, static_cast<std::size_t>(index));
+		return register_insert_constexpr<uint64_t>(lhs, rhs, static_cast<std::size_t>(index));
 	}
 	/** @brief Replaces the compile-time-selected unsigned 64-bit lane. */
 	template <int index> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL insert(auto lhs, const uint64_t rhs) noexcept
@@ -5456,7 +5456,7 @@ template <> struct SimdImpl256<uint64_t>
 	}
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, auto rhs, const int index) noexcept
 	{
-		return register_insert<std::int64_t>(lhs, rhs, static_cast<std::size_t>(index));
+		return register_insert_constexpr<std::int64_t>(lhs, rhs, static_cast<std::size_t>(index));
 	}
 
 	// unpack / pack
@@ -5623,12 +5623,12 @@ template <> struct SimdImpl256<float>
 
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL extract(auto lhs, auto rhs) noexcept
 	{
-		return register_get<float>(lhs, static_cast<std::size_t>(rhs));
+		return register_get_constexpr<float>(lhs, static_cast<std::size_t>(rhs));
 	}
 	/** @brief Replaces the compile-time-selected 32-bit floating-point lane during constant evaluation. */
 	template <int index> [[nodiscard]] constexpr static auto insert_constexpr(auto lhs, const float rhs) noexcept
 	{
-		return register_insert<float>(lhs, rhs, static_cast<std::size_t>(index));
+		return register_insert_constexpr<float>(lhs, rhs, static_cast<std::size_t>(index));
 	}
 	/** @brief Replaces the compile-time-selected 32-bit floating-point lane. */
 	template <int index> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL insert(auto lhs, const float rhs) noexcept
@@ -5831,12 +5831,12 @@ template <> struct SimdImpl256<double>
 
 	SIMDLIB_FORCE_INLINE static auto VECTORCALL extract(auto lhs, auto rhs) noexcept
 	{
-		return register_get<double>(lhs, static_cast<std::size_t>(rhs));
+		return register_get_constexpr<double>(lhs, static_cast<std::size_t>(rhs));
 	}
 	/** @brief Replaces the compile-time-selected 64-bit floating-point lane during constant evaluation. */
 	template <int index> [[nodiscard]] constexpr static auto insert_constexpr(auto lhs, const double rhs) noexcept
 	{
-		return register_insert<double>(lhs, rhs, static_cast<std::size_t>(index));
+		return register_insert_constexpr<double>(lhs, rhs, static_cast<std::size_t>(index));
 	}
 	/** @brief Replaces the compile-time-selected 64-bit floating-point lane. */
 	template <int index> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL insert(auto lhs, const double rhs) noexcept
@@ -6021,13 +6021,13 @@ template <class element_t> struct SimdMappings<256, element_t> : public SimdImpl
 
 	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr static vector_t VECTORCALL set_element(vector_t vec, int index, element_t value) noexcept
 	{
-		register_set<element_t>(vec, static_cast<std::size_t>(index), value);
+		register_set_constexpr<element_t>(vec, static_cast<std::size_t>(index), value);
 		return vec;
 	}
 
 	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr static element_t VECTORCALL get_element(vector_t vec, int index) noexcept
 	{
-		return register_get<element_t>(vec, static_cast<std::size_t>(index));
+		return register_get_constexpr<element_t>(vec, static_cast<std::size_t>(index));
 	}
 
 	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE static std::span<element_t, element_count> VECTORCALL view_data(vector_t &vec) noexcept
@@ -6369,12 +6369,12 @@ template <class element_t> struct SimdMappings<256, element_t> : public SimdImpl
 				if (i < elems_per_lane)
 				{
 					// Select the MSB byte of each element within the 128-bit lane.
-					register_set<std::uint8_t>(seq, lane_base + i, static_cast<std::uint8_t>((i * elem_size) + (elem_size - 1)));
+					register_set_constexpr<std::uint8_t>(seq, lane_base + i, static_cast<std::uint8_t>((i * elem_size) + (elem_size - 1)));
 				}
 				else
 				{
 					// Zero out the rest (PSHUFB: high bit set => 0).
-					register_set<std::uint8_t>(seq, lane_base + i, 0x80);
+					register_set_constexpr<std::uint8_t>(seq, lane_base + i, 0x80);
 				}
 			}
 		}

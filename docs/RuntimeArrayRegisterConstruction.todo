@@ -14,9 +14,9 @@ Runtime Register-Storage Removal:
     ☐ Keep public API compatibility decisions separate from implementation-layer naming cleanup.
 
   Explicitly Deferred Scope:
-    ☐ Do not modify `blend`, `blend_bytes`, `shuffle`, `shuffle_lo`, `shuffle_hi`, or `shuffle_32` in this task list.
+    ☐ Do not implement runtime replacements for `blend`, `blend_bytes`, `shuffle`, `shuffle_lo`, `shuffle_hi`, or `shuffle_32` in this task list.
     ☐ Do not design runtime replacements for operations whose native instruction requires a compile-time immediate control mask.
-    ☐ Leave those operations and their method-flag classifications to the dedicated immediate-control-mask plans.
+    ☐ Limit Task 15 to public-overload evaluation and immediate-blend constant-evaluation delegation; leave runtime algorithms and method-flag classifications to the dedicated immediate-control-mask plans.
 
   Task 1 - Restore a Focused Compilable Baseline:
     ☒ Compile the currently touched SSE4.2 headers and tests with MSVC.
@@ -25,14 +25,20 @@ Runtime Register-Storage Removal:
     ☒ Record unrelated pre-existing failures separately; do not expand this task to fix them.
 
   Task 2 - Constant-Evaluation Helper Boundary:
-    ☐ Rename the portable `register_get` helper so its name explicitly identifies it as constant-evaluation-only.
-    ☐ Rename the portable `register_set` and `register_insert` helpers so their names explicitly identify them as constant-evaluation-only.
-    ☐ Remove runtime dispatch branches from those portable helpers.
-    ☐ Remove `register_get_runtime`, `register_set_runtime`, and `RegisterLaneAccess128` from `Extensions.h`.
-    ☐ Inventory every `_constexpr` method in `Api` and the implementation layer.
-    ☐ Convert a helper to `consteval` only when all supported C++20 call sites can legally invoke an immediate function.
-    ☐ Keep a helper `constexpr` when it receives parameters from a runtime-callable C++20 `constexpr` wrapper; do not use a misleading `consteval` declaration that makes the wrapper ill-formed.
-    ☐ Add compile-time probes that prove the intended helper boundary.
+    ☒ Rename the portable `register_get` helper so its name explicitly identifies it as constant-evaluation-only.
+    ☒ Rename the portable `register_set` and `register_insert` helpers so their names explicitly identify them as constant-evaluation-only.
+    ☒ Remove runtime dispatch branches from those portable helpers.
+    ☒ Remove `register_get_runtime`, `register_set_runtime`, and `RegisterLaneAccess128` from `Extensions.h`.
+    ☒ Inventory every `_constexpr` method in `Api` and the implementation layer.
+    ☒ Convert a helper to `consteval` only when all supported C++20 call sites can legally invoke an immediate function.
+    ☒ Keep a helper `constexpr` when it receives parameters from a runtime-callable C++20 `constexpr` wrapper; do not use a misleading `consteval` declaration that makes the wrapper ill-formed.
+    ☒ Add compile-time probes that prove the intended helper boundary.
+
+  Task 2 Audit:
+    ☒ `Api` contains 32 `_constexpr` method declarations: `lower_half_constexpr`, `unpack_constexpr`, `shuffle_constexpr`, `shuffle_half_constexpr`, `blend_constexpr`, `bit_cast_constexpr`, `widen_constexpr`, `convert_to_float_constexpr`, `convert_to_int_constexpr`, `bitwise_and_constexpr`, `bitwise_or_constexpr`, `bitwise_xor_constexpr`, `bitwise_andnot_constexpr`, `bitwise_not_constexpr`, `select_constexpr`, `to_array_constexpr`, `get_element_constexpr`, `set_element_constexpr`, `movemask_constexpr`, `min_position_constexpr`, `max_position_constexpr`, `movemask_slim_constexpr`, `compare_equal_constexpr`, `compare_greater_constexpr`, `compare_greater_equal_constexpr`, `compare_less_constexpr`, `compare_less_equal_constexpr`, `shift_left_constexpr`, `shift_right_constexpr`, `shift_right_arithmetic_constexpr`, `byte_shift_left_constexpr`, and `byte_shift_right_constexpr`.
+    ☒ The implementation layer contains 24 `_constexpr` method declarations: 20 element-specialized `insert_constexpr` methods and two width-specialized pairs of `set1_constexpr` and `setr_constexpr` methods.
+    ☒ Every inventoried method accepts ordinary parameters originating in a runtime-callable C++20 `constexpr` wrapper.
+    ☒ No inventoried method can legally become `consteval` without making at least one supported wrapper ill-formed, so all 56 remain `constexpr`.
 
   Task 3 - Unconditional API Delegation:
     ☐ Keep the constant-evaluation branch in `Api::get_element` and delegate every runtime call unconditionally to `impl::extract(lhs, index)`.
@@ -128,13 +134,26 @@ Runtime Register-Storage Removal:
     ☐ Preserve the separate constant-evaluation construction path.
     ☐ Run focused signed and unsigned lane-order tests.
 
-  Task 15 - Method-Flag Inventory Reconciliation:
-    ☐ Regenerate the method-flags inventory after Tasks 1-14 are independently verified.
+  Task 15 - Immediate-Control API Surface Evaluation:
+    ☐ Inventory every variadic forwarding overload in `Api` that coexists with a compile-time-indexed or immediate-control overload, including `blend(Args &&...args)`, `shuffle(Args &&...args)`, `shuffle_lo(Args &&...args)`, `shuffle_hi(Args &&...args)`, and `insert(Args &&...args)`.
+    ☐ Identify downstream-facing use cases, implementation-specific semantics, overload-resolution effects, and type-safety differences for every inventoried overload.
+    ☐ Decide whether to retain or remove each overload independently; do not infer one family’s disposition from another family.
+    ☐ For every retained overload, define its distinct public contract and add availability, overload-resolution, correctness, and generated-code coverage.
+    ☐ For every removed overload, migrate internal callers and update `IApi`, tests, compile-failure probes, and documentation without adding compatibility aliases.
+    ☐ Establish an implementation-layer immediate `blend<imm8>` entry point that is valid during constant evaluation while preserving the intrinsic-backed runtime path.
+    ☐ Change the constant-evaluation branch of `Api::blend<imm8>` to delegate to the implementation-layer `blend<imm8>` operation instead of evaluating blend semantics in `Api`.
+    ☐ Remove `Api::blend_constexpr` only after confirming that the implementation-layer delegation leaves no callers.
+    ☐ Verify immediate blend during constant evaluation for every supported element type and register width.
+    ☐ Confirm optimized runtime code remains identical to direct use of the corresponding blend intrinsic.
+    ☐ Do not select or implement runtime-variable immediate-mask algorithms in this task.
+
+  Task 16 - Method-Flag Inventory Reconciliation:
+    ☐ Regenerate the method-flags inventory after Tasks 1-15 are independently verified.
     ☐ Review each newly eligible `RegisterOnly` candidate individually.
     ☐ Keep all deferred immediate-control-mask operations pending.
     ☐ Update inventory explanations without recording transient test-pass claims as enduring documentation.
 
-  Task 16 - Cross-Compiler Integration:
+  Task 17 - Cross-Compiler Integration:
     ☐ Run focused optimized generated-code checks with MSVC and clang-cl.
     ☐ Run focused optimized generated-code checks with GCC and Clang using stack-protection flags.
     ☐ Run the relevant focused correctness and constexpr suites for SSE4.2 and AVX2.

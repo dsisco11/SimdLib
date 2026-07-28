@@ -87,6 +87,33 @@ template <std::size_t Width, class Element> [[nodiscard]] constexpr auto lane_va
 }
 
 /**
+ * @brief Verifies the explicitly named portable lane helpers during constant evaluation.
+ * @tparam Width SIMD register width in bits.
+ * @tparam Element SIMD lane type.
+ * @return True when get, set, and value-returning insertion preserve the expected lanes.
+ */
+template <std::size_t Width, class Element> [[nodiscard]] consteval bool detail_lane_helper_contract() noexcept
+{
+	using simd = Api<Width, Element>;
+	constexpr auto values = lane_values<Width, Element>();
+	auto value = Detail::register_from_array<typename simd::vector_t>(values);
+
+	for (std::size_t index = 0; index < simd::element_count; ++index)
+	{
+		if (Detail::register_get_constexpr<Element>(value, index) != values[index])
+			return false;
+	}
+
+	constexpr std::size_t last = simd::element_count - 1;
+	value = Detail::register_insert_constexpr<Element>(value, values[0], last);
+	if (Detail::register_get_constexpr<Element>(value, last) != values[0])
+		return false;
+
+	Detail::register_set_constexpr<Element>(value, 0, values[last]);
+	return Detail::register_get_constexpr<Element>(value, 0) == values[last];
+}
+
+/**
  * @brief Verifies constexpr construction, transfer, broadcast, and element access.
  * @tparam Width SIMD register width in bits.
  * @tparam Element SIMD lane type.
