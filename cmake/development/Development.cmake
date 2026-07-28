@@ -17,6 +17,7 @@ set(simdlib_development_modules
     SourceAudits
     Dependencies
     ConfigurationProbes
+	MethodFlagsCodegen
     ConstexprProbes
     HeaderProbes
     RegisterCodegen

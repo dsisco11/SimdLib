@@ -1,5 +1,5 @@
-#include "MethodFlagsPrototype.h"
+#define SIMDLIB_PRECONDITION(condition, message)
+#include <SimdLib/Config.h>
 
 /// Declares a function whose invocation omits the required boundary mode.
-SIMD_FLAGS(RegisterOnly)
-int invalid_missing_boundary();
+int SIMD_FLAGS(RegisterOnly) invalid_missing_boundary();

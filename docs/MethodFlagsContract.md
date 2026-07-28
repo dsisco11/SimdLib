@@ -6,10 +6,10 @@
 optimization promises of an ordinary function. It is intended for both SimdLib
 and downstream code.
 
-The initial declaration form is:
+The initial declaration form keeps the return type independent:
 
 ```cpp
-SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten)
+Result SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) transform(Input value);
 ```
 
 Every invocation starts with exactly one SIMD boundary mode: `Neither`, `In`,

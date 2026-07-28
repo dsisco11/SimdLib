@@ -101,7 +101,10 @@ option(SIMDLIB_BUILD_REGISTER_CONSUMER
 	"Build the opt-in C++23 Register consumer smoke test"
 	${simdlib_register_compiler_supported})
 if(SIMDLIB_BUILD_REGISTER_CONSUMER)
-	add_executable(RegisterConsumerSmoke register.cpp)
+	add_executable(RegisterConsumerSmoke
+		register.cpp
+		register_api.cpp
+		register_api.h)
 	target_link_libraries(RegisterConsumerSmoke PRIVATE SimdLib::Register)
 	target_compile_definitions(RegisterConsumerSmoke PRIVATE
 		SIMDLIB_HAS_SSE=1 SIMDLIB_HAS_SSE2=1 SIMDLIB_HAS_SSE3=1

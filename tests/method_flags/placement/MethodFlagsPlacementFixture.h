@@ -74,17 +74,37 @@ struct VectorBox final
 	}
 };
 
-/// Declares the canonical pre-name spelling for cross-TU ABI verification.
+/// Declares the canonical InOut spelling for cross-TU ABI verification.
 [[nodiscard]] vector_type SIMD_FLAGS(InOut, RegisterOnly) flagged_abi(vector_type value) noexcept;
 
-/// Declares the legacy calling-convention position for type comparison.
+/// Declares the legacy InOut calling-convention position for type comparison.
 [[nodiscard]] SIMDLIB_REGISTER_ONLY vector_type VECTORCALL legacy_abi(vector_type value) noexcept;
+
+/// Declares the canonical In spelling for cross-TU ABI verification.
+[[nodiscard]] int SIMD_FLAGS(In, RegisterOnly) flagged_in_abi(vector_type value) noexcept;
+
+/// Declares the legacy In calling-convention position for type comparison.
+[[nodiscard]] SIMDLIB_REGISTER_ONLY int VECTORCALL legacy_in_abi(vector_type value) noexcept;
+
+/// Declares the canonical Out spelling for cross-TU ABI verification.
+[[nodiscard]] vector_type SIMD_FLAGS(Out, RegisterOnly) flagged_out_abi(float value) noexcept;
+
+/// Declares the legacy Out calling-convention position for type comparison.
+[[nodiscard]] SIMDLIB_REGISTER_ONLY vector_type VECTORCALL legacy_out_abi(float value) noexcept;
 
 using flagged_callback = decltype(&flagged_abi);
 using legacy_callback = decltype(&legacy_abi);
+using flagged_in_callback = decltype(&flagged_in_abi);
+using legacy_in_callback = decltype(&legacy_in_abi);
+using flagged_out_callback = decltype(&flagged_out_abi);
+using legacy_out_callback = decltype(&legacy_out_abi);
 
 inline constexpr flagged_callback flagged_address = &flagged_abi;
 inline constexpr legacy_callback legacy_address = &legacy_abi;
 /// Proves the flagged declaration is directly assignable to the legacy callback type.
 inline constexpr legacy_callback compatible_flagged_address = flagged_address;
+/// Proves the flagged In declaration is directly assignable to the legacy callback type.
+inline constexpr legacy_in_callback compatible_flagged_in_address = &flagged_in_abi;
+/// Proves the flagged Out declaration is directly assignable to the legacy callback type.
+inline constexpr legacy_out_callback compatible_flagged_out_address = &flagged_out_abi;
 } // namespace SimdLibMethodFlagsPlacement

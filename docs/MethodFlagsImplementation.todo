@@ -102,18 +102,19 @@ SimdLib Method Flags Implementation Plan:
       Evidence: `include/SimdLib/Config.h` now owns the documented public parser, four caller-overridable placement-safe adapters, and four corresponding capability macros. The parser references only those adapters; compiler selection remains isolated in their definitions. `tests/config/MethodFlagsConfigDefaultProbe.cpp` covers Out loads, In stores and reductions, InOut transforms, Neither, RegisterOnly independence, and default capabilities. Separate override, disabled-vectorcall, and unsupported-target probes prove caller configuration and syntactically valid empty mappings. `cmake/VerifyMethodFlagsConfiguration.cmake` exact-compares 12 public capability, boundary, modifier, independence, and full-composition markers. The public C++20/C++23 placement and cross-translation-unit ABI suite consumes `Config.h` directly. Focused MSVC 19.44, clang-cl 22.1.8, pinned GCC 14.2.0, and pinned Clang 22.1.3 builds completed, and each compiler passed `MethodFlagsPreprocessor`, `MethodFlagsConfiguration`, and `MethodFlagsPlacementAbi` 3/3. The public adapter verifier also passed under MSVC's conforming preprocessor mode.
 
   Phase 4 - Establish Contract and Code-Generation Tests:
-    ☐ Add compile-pass fixtures for every boundary mode and all canonical modifier subsets.
-    ☐ Add compile-failure fixtures for unknown flags, invalid arity, prohibited declaration categories, and any contradictory combination defined by the contract.
-    ☐ Add preprocessor expansion tests proving canonical ordering and single emission of every selected attribute.
-    ☐ Add Windows ABI mirrors proving `In`, `Out`, and `InOut` retain the expected vector calling convention under MSVC and clang-cl.
-    ☐ Add GCC and GNU-like Clang ABI/code-generation mirrors proving empty vectorcall mappings do not disturb their platform calling conventions.
-    ☐ Compile GNU-like code-generation fixtures with the project's required stack-protection flags.
-    ☐ Add paired legacy-declaration and `SIMD_FLAGS(...)` fixtures for register-only unary, binary, ternary, scalar-result, register-result, load, and store signatures.
-    ☐ Require exact generated-instruction parity between each legacy declaration and its flag-based equivalent under supported optimized profiles.
-    ☐ Verify MSVC register-only fixtures remain free of wrapper-induced security-cookie code and memory-writing fixtures retain normal stack protection.
-    ☐ Verify `ForceInline` and `Flatten` separately so the test suite cannot pass merely because one attribute hides a broken mapping for the other.
-    ☐ Add a public external-consumer fixture that declares and defines downstream functions accepting and returning `Register` and native SIMD values with `SIMD_FLAGS(...)`.
-    ☐ End Phase 4 only when syntax, ABI, stack-protection, inlining, flattening, configuration, and downstream-use behavior are independently tested.
+    ☒ Add compile-pass fixtures for every boundary mode and all canonical modifier subsets.
+    ☒ Add compile-failure fixtures for unknown flags, invalid arity, prohibited declaration categories, and any contradictory combination defined by the contract.
+    ☒ Add preprocessor expansion tests proving canonical ordering and single emission of every selected attribute.
+    ☒ Add Windows ABI mirrors proving `In`, `Out`, and `InOut` retain the expected vector calling convention under MSVC and clang-cl.
+    ☒ Add GCC and GNU-like Clang ABI/code-generation mirrors proving empty vectorcall mappings do not disturb their platform calling conventions.
+    ☒ Compile GNU-like code-generation fixtures with the project's required stack-protection flags.
+    ☒ Add paired legacy-declaration and `SIMD_FLAGS(...)` fixtures for register-only unary, binary, ternary, scalar-result, register-result, load, and store signatures.
+    ☒ Require exact generated-instruction parity between each legacy declaration and its flag-based equivalent under supported optimized profiles.
+    ☒ Verify MSVC register-only fixtures remain free of wrapper-induced security-cookie code and memory-writing fixtures retain normal stack protection.
+    ☒ Verify `ForceInline` and `Flatten` separately so the test suite cannot pass merely because one attribute hides a broken mapping for the other.
+    ☒ Add a public external-consumer fixture that declares and defines downstream functions accepting and returning `Register` and native SIMD values with `SIMD_FLAGS(...)`.
+    ☒ End Phase 4 only when syntax, ABI, stack-protection, inlining, flattening, configuration, and downstream-use behavior are independently tested.
+      Evidence: `MethodFlagsContractPass.cpp` compiles all 32 public grammar forms, while the public-header preprocessor suite exact-compares the same 32 expansions and rejects seven invalid grammar forms. The placement audit covers every prohibited declaration category, and the cross-translation-unit executable mirrors `In`, `Out`, and `InOut` against their legacy ABI spelling. Paired optimized fixtures cover unary, binary, ternary, scalar-result, register-result, load, store, ForceInline-only, and Flatten-only declarations. Their generated-code gate requires exact instruction parity, verifies register-only symbols contain no security-cookie references, verifies dedicated force-inline and flatten leaves are not called, and records explicit `/GS` or `-fstack-protector-strong` modes. The downstream consumer declares flagged `Register` and native SIMD functions in a header and defines them in a separate translation unit.
 
   Phase 5 - Inventory and Classify Existing Declarations:
     ☐ Inventory every direct use of `VECTORCALL`, `SIMDLIB_REGISTER_ONLY`, `SIMDLIB_FORCE_INLINE`, and `SIMDLIB_FLATTEN` in production headers, tests, examples, and consumer fixtures.

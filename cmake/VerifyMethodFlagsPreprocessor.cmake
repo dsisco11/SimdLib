@@ -11,28 +11,6 @@ foreach(required_variable IN ITEMS
     endif()
 endforeach()
 
-set(prototype_header
-    "${SIMDLIB_METHOD_FLAGS_SOURCE_DIR}/tests/method_flags/MethodFlagsPrototype.h")
-if(NOT EXISTS "${prototype_header}")
-    message(FATAL_ERROR "Method-flags prototype header is missing: ${prototype_header}")
-endif()
-
-file(READ "${prototype_header}" prototype_source)
-if(prototype_source MATCHES "#[ \t]*include")
-    message(FATAL_ERROR "Method-flags preprocessing prototype must remain dependency-free")
-endif()
-
-string(REGEX MATCHALL "#define[ \t]+[A-Za-z_][A-Za-z0-9_]*" prototype_definitions
-    "${prototype_source}")
-foreach(definition IN LISTS prototype_definitions)
-    string(REGEX REPLACE "^#define[ \t]+" "" macro_name "${definition}")
-    if(NOT macro_name STREQUAL "SIMD_FLAGS"
-        AND NOT macro_name MATCHES "^SIMDLIB_DETAIL_")
-        message(FATAL_ERROR
-            "Method-flags prototype leaks a non-detail helper macro: ${macro_name}")
-    endif()
-endforeach()
-
 set(probe_directory "${SIMDLIB_METHOD_FLAGS_BINARY_DIR}/method-flags-preprocessor")
 file(MAKE_DIRECTORY "${probe_directory}")
 set(probe_source "${probe_directory}/MethodFlagsPreprocessorProbe.cpp")
@@ -109,11 +87,16 @@ list(JOIN probe_lines "\n" probe_body)
 list(JOIN expected_lines "\n" expected_body)
 
 file(WRITE "${probe_source}"
-    "#define SIMDLIB_DETAIL_FLAGS_VECTORCALL SIMDLIB_PP_VECTORCALL\n"
-    "#define SIMDLIB_DETAIL_FLAGS_REGISTER_ONLY SIMDLIB_PP_REGISTER_ONLY\n"
-    "#define SIMDLIB_DETAIL_FLAGS_FORCE_INLINE SIMDLIB_PP_FORCE_INLINE\n"
-    "#define SIMDLIB_DETAIL_FLAGS_FLATTEN SIMDLIB_PP_FLATTEN\n"
-    "#include \"MethodFlagsPrototype.h\"\n"
+    "#define SIMDLIB_METHOD_FLAGS_HAS_VECTORCALL 1\n"
+    "#define SIMDLIB_METHOD_FLAGS_HAS_SAFE_BUFFERS 1\n"
+    "#define SIMDLIB_METHOD_FLAGS_HAS_FORCE_INLINE 1\n"
+    "#define SIMDLIB_METHOD_FLAGS_HAS_FLATTEN 1\n"
+    "#define SIMDLIB_METHOD_FLAGS_VECTORCALL SIMDLIB_PP_VECTORCALL\n"
+    "#define SIMDLIB_METHOD_FLAGS_SAFE_BUFFERS SIMDLIB_PP_REGISTER_ONLY\n"
+    "#define SIMDLIB_METHOD_FLAGS_FORCE_INLINE SIMDLIB_PP_FORCE_INLINE\n"
+    "#define SIMDLIB_METHOD_FLAGS_FLATTEN SIMDLIB_PP_FLATTEN\n"
+    "#define SIMDLIB_PRECONDITION(condition, message)\n"
+    "#include <SimdLib/Config.h>\n"
     "#if defined(Neither) || defined(In) || defined(Out) || defined(InOut) || defined(RegisterOnly) || defined(ForceInline) || defined(Flatten)\n"
     "#error SIMDLIB_FLAGS_SHORT_MACRO_LEAK\n"
     "#endif\n"
@@ -127,7 +110,7 @@ if(SIMDLIB_METHOD_FLAGS_MSVC_STYLE)
         ${SIMDLIB_METHOD_FLAGS_COMPILER_OPTIONS}
         /EP
         /TP
-        "/I${SIMDLIB_METHOD_FLAGS_SOURCE_DIR}/tests/method_flags"
+        "/I${SIMDLIB_METHOD_FLAGS_SOURCE_DIR}/include"
         "${probe_source}")
 else()
     set(preprocess_arguments
@@ -136,7 +119,7 @@ else()
         -E
         -P
         -x c++
-        "-I${SIMDLIB_METHOD_FLAGS_SOURCE_DIR}/tests/method_flags"
+        "-I${SIMDLIB_METHOD_FLAGS_SOURCE_DIR}/include"
         "${probe_source}")
 endif()
 
@@ -212,7 +195,7 @@ foreach(index RANGE 0 ${negative_final_index})
             ${SIMDLIB_METHOD_FLAGS_COMPILER_OPTIONS}
             /EP
             /TP
-            "/I${SIMDLIB_METHOD_FLAGS_SOURCE_DIR}/tests/method_flags"
+            "/I${SIMDLIB_METHOD_FLAGS_SOURCE_DIR}/include"
             "${negative_source}")
         set(negative_arguments
             /nologo
@@ -220,7 +203,7 @@ foreach(index RANGE 0 ${negative_final_index})
             ${SIMDLIB_METHOD_FLAGS_COMPILER_OPTIONS}
             /TP
             /c
-            "/I${SIMDLIB_METHOD_FLAGS_SOURCE_DIR}/tests/method_flags"
+            "/I${SIMDLIB_METHOD_FLAGS_SOURCE_DIR}/include"
             "/Fo${negative_object}"
             "${negative_source}")
     else()
@@ -230,14 +213,14 @@ foreach(index RANGE 0 ${negative_final_index})
             -E
             -P
             -x c++
-            "-I${SIMDLIB_METHOD_FLAGS_SOURCE_DIR}/tests/method_flags"
+            "-I${SIMDLIB_METHOD_FLAGS_SOURCE_DIR}/include"
             "${negative_source}")
         set(negative_arguments
             -std=c++20
             ${SIMDLIB_METHOD_FLAGS_COMPILER_OPTIONS}
             -fsyntax-only
             -x c++
-            "-I${SIMDLIB_METHOD_FLAGS_SOURCE_DIR}/tests/method_flags"
+            "-I${SIMDLIB_METHOD_FLAGS_SOURCE_DIR}/include"
             "${negative_source}")
     endif()
 

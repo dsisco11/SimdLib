@@ -5,6 +5,16 @@ endif()
 file(READ "${SOURCE_FILE}" source_text)
 string(REGEX REPLACE "[ \t\r\n]+" " " normalized_source "${source_text}")
 
+if(normalized_source MATCHES "SIMD_FLAGS\\([^)]*\\)[ ]*~[A-Za-z_][A-Za-z0-9_]*[ ]*\\(")
+	message(FATAL_ERROR
+		"SIMDLIB_METHOD_FLAGS_PROHIBITED_DESTRUCTOR: ${SOURCE_FILE}")
+endif()
+
+if(normalized_source MATCHES "SIMD_FLAGS\\([^)]*\\)[ ]*[A-Za-z_][A-Za-z0-9_]*[ ]*\\([^;{}]*\\)[ ]*->[ ]*[A-Za-z_]")
+	message(FATAL_ERROR
+		"SIMDLIB_METHOD_FLAGS_PROHIBITED_DEDUCTION_GUIDE: ${SOURCE_FILE}")
+endif()
+
 string(REGEX MATCHALL "(class|struct)[ ]+[A-Za-z_][A-Za-z0-9_]*" declared_types
 	"${normalized_source}")
 foreach(declared_type IN LISTS declared_types)

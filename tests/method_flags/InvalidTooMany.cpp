@@ -1,5 +1,5 @@
-#include "MethodFlagsPrototype.h"
+#define SIMDLIB_PRECONDITION(condition, message)
+#include <SimdLib/Config.h>
 
 /// Declares a function with too many method-flags arguments.
-SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten, Extra)
-int invalid_too_many();
+int SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten, Extra) invalid_too_many();
