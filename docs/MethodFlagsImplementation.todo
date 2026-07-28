@@ -88,17 +88,18 @@ SimdLib Method Flags Implementation Plan:
       Evidence: `tests/method_flags/placement` qualifies the independently specified return-type form under strict warnings-as-errors in C++20 and C++23. It covers free, static, non-static, explicit-object, operator, friend, template, constrained, `constexpr`, inline, `[[nodiscard]]`, `noexcept`, independently specified trailing-return, and `requires` declarations. `cmake/VerifyMethodFlagsPlacementSource.cmake` rejects prohibited constructors, conversion operators, lambdas, `consteval`, and explicit function-pointer placement. Cross-translation-unit definitions deliberately swap the flagged and legacy spellings; direct callback assignment, linking, and execution prove compatible calling-convention types and decorated names. MSVC 19.44.35222, clang-cl 22.1.8, pinned GCC 14.2.0, and pinned Clang 22.1.3 built the focused suite without diagnostic suppression, and each ABI test passed 1/1. The exact preprocessor matrix verified 33 canonical expansions and seven grammar failures in traditional MSVC, conforming MSVC, clang-cl, GCC, and Clang modes without a macro-owned return token. The integrated MSVC target built and its registered preprocessor and ABI tests passed 2/2.
 
   Phase 3 - Implement the Public Macro and Compiler Adapters:
-    ☐ Add `SIMD_FLAGS(...)` to the public configuration boundary with Doxygen documentation for its syntax, contracts, limitations, and supported declaration categories.
-    ☐ Implement boundary-mode dispatch, canonical modifier-sequence dispatch, invalid-token handling, and maximum-arity diagnostics in focused preprocessor helpers.
-    ☐ Route each emitted property through one compiler-adapter definition rather than embedding compiler tests throughout the parser.
-    ☐ Preserve caller configurability for supported custom toolchains without requiring downstream users to redefine the complete `SIMD_FLAGS(...)` parser.
-    ☐ Define explicit adapter capability macros for vector calling convention, safe-buffer suppression, force-inline, and flatten behavior.
-    ☐ Keep empty compiler mappings syntactically valid while retaining the semantic flag for source audits and documentation.
-    ☐ Ensure `Out` loads, `In` stores or reductions, and `InOut` transforms all receive exactly one vector calling convention where supported.
-    ☐ Ensure `RegisterOnly` never becomes active merely because a function uses a SIMD boundary mode, `ForceInline`, or `Flatten`.
-    ☐ Retain the existing low-level compiler macros only as implementation adapters while migration is in progress.
-    ☐ Add isolated configuration probes for defaults, caller overrides, disabled vectorcall, unsupported targets, and every compiler mapping.
-    ☐ End Phase 3 only when the new macro can express every currently approved declaration shape and all adapter overrides are isolated and tested.
+    ☒ Add `SIMD_FLAGS(...)` to the public configuration boundary with Doxygen documentation for its syntax, contracts, limitations, and supported declaration categories.
+    ☒ Implement boundary-mode dispatch, canonical modifier-sequence dispatch, invalid-token handling, and maximum-arity diagnostics in focused preprocessor helpers.
+    ☒ Route each emitted property through one compiler-adapter definition rather than embedding compiler tests throughout the parser.
+    ☒ Preserve caller configurability for supported custom toolchains without requiring downstream users to redefine the complete `SIMD_FLAGS(...)` parser.
+    ☒ Define explicit adapter capability macros for vector calling convention, safe-buffer suppression, force-inline, and flatten behavior.
+    ☒ Keep empty compiler mappings syntactically valid while retaining the semantic flag for source audits and documentation.
+    ☒ Ensure `Out` loads, `In` stores or reductions, and `InOut` transforms all receive exactly one vector calling convention where supported.
+    ☒ Ensure `RegisterOnly` never becomes active merely because a function uses a SIMD boundary mode, `ForceInline`, or `Flatten`.
+    ☒ Retain the existing low-level compiler macros only as implementation adapters while migration is in progress.
+    ☒ Add isolated configuration probes for defaults, caller overrides, disabled vectorcall, unsupported targets, and every compiler mapping.
+    ☒ End Phase 3 only when the new macro can express every currently approved declaration shape and all adapter overrides are isolated and tested.
+      Evidence: `include/SimdLib/Config.h` now owns the documented public parser, four caller-overridable placement-safe adapters, and four corresponding capability macros. The parser references only those adapters; compiler selection remains isolated in their definitions. `tests/config/MethodFlagsConfigDefaultProbe.cpp` covers Out loads, In stores and reductions, InOut transforms, Neither, RegisterOnly independence, and default capabilities. Separate override, disabled-vectorcall, and unsupported-target probes prove caller configuration and syntactically valid empty mappings. `cmake/VerifyMethodFlagsConfiguration.cmake` exact-compares 12 public capability, boundary, modifier, independence, and full-composition markers. The public C++20/C++23 placement and cross-translation-unit ABI suite consumes `Config.h` directly. Focused MSVC 19.44, clang-cl 22.1.8, pinned GCC 14.2.0, and pinned Clang 22.1.3 builds completed, and each compiler passed `MethodFlagsPreprocessor`, `MethodFlagsConfiguration`, and `MethodFlagsPlacementAbi` 3/3. The public adapter verifier also passed under MSVC's conforming preprocessor mode.
 
   Phase 4 - Establish Contract and Code-Generation Tests:
     ☐ Add compile-pass fixtures for every boundary mode and all canonical modifier subsets.
@@ -182,7 +183,7 @@ SimdLib Method Flags Implementation Plan:
     ☒ Phase 0 boundary-mode grammar, modifier contracts, invalid forms, and audit criteria recorded in `docs/MethodFlagsContract.md`.
     ☒ Phase 1 dependency-free dispatcher feasibility, diagnostics, traditional-MSVC compatibility, and collision results recorded in `docs/MethodFlagsParserEvaluation.md` and the Phase 1 evidence ledger above.
     ☒ Phase 2 MSVC, clang-cl, GCC, and GNU-like Clang placement and ABI-composition results recorded.
-    ☐ Phase 3 public macro, compiler adapters, caller overrides, and isolated configuration probes recorded.
+    ☒ Phase 3 public macro, compiler adapters, caller overrides, and isolated configuration probes recorded.
     ☐ Phase 4 syntax, ABI, stack-protection, inlining, flattening, code-generation, and downstream-consumer tests recorded.
     ☐ Phase 5 individual declaration inventory, promise classifications, and reviewed exceptions recorded.
     ☐ Phase 6 implementation-layer and `Api` migration with focused correctness and code-generation results recorded.

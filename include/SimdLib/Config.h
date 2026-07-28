@@ -1,7 +1,5 @@
 #pragma once
 
-#include <cassert>
-
 // Configuration macros are caller-overridable except
 // SIMDLIB_REGISTER_INTERFACE_AVAILABLE, which reports a language capability
 // computed by SimdLib. Instruction-family values describe compiler-enabled
@@ -217,7 +215,169 @@
 #endif
 #endif
 
+/**
+ * @def SIMDLIB_METHOD_FLAGS_HAS_VECTORCALL
+ * @brief Reports whether the method-flags vector calling-convention adapter is active.
+ * @details A custom toolchain may override this capability together with
+ * SIMDLIB_METHOD_FLAGS_VECTORCALL before including this header.
+ */
+#ifndef SIMDLIB_METHOD_FLAGS_HAS_VECTORCALL
+#define SIMDLIB_METHOD_FLAGS_HAS_VECTORCALL SIMDLIB_VECTORCALL_ENABLED
+#endif
+
+/**
+ * @def SIMDLIB_METHOD_FLAGS_HAS_SAFE_BUFFERS
+ * @brief Reports whether RegisterOnly can suppress compiler stack-cookie instrumentation.
+ * @details A custom toolchain may override this capability together with
+ * SIMDLIB_METHOD_FLAGS_SAFE_BUFFERS before including this header.
+ */
+#ifndef SIMDLIB_METHOD_FLAGS_HAS_SAFE_BUFFERS
+#define SIMDLIB_METHOD_FLAGS_HAS_SAFE_BUFFERS SIMDLIB_COMPILER_MSVC
+#endif
+
+/**
+ * @def SIMDLIB_METHOD_FLAGS_HAS_FORCE_INLINE
+ * @brief Reports whether ForceInline has an active compiler enforcement attribute.
+ * @details The adapter retains ordinary inline semantics when this capability is zero.
+ * A custom toolchain may override this capability together with
+ * SIMDLIB_METHOD_FLAGS_FORCE_INLINE before including this header.
+ */
+#ifndef SIMDLIB_METHOD_FLAGS_HAS_FORCE_INLINE
+#if SIMDLIB_COMPILER_MSVC || SIMDLIB_COMPILER_CLANG || SIMDLIB_COMPILER_GCC
+#define SIMDLIB_METHOD_FLAGS_HAS_FORCE_INLINE 1
+#else
+#define SIMDLIB_METHOD_FLAGS_HAS_FORCE_INLINE 0
+#endif
+#endif
+
+/**
+ * @def SIMDLIB_METHOD_FLAGS_HAS_FLATTEN
+ * @brief Reports whether Flatten has an active recursive-inlining attribute.
+ * @details A custom toolchain may override this capability together with
+ * SIMDLIB_METHOD_FLAGS_FLATTEN before including this header.
+ */
+#ifndef SIMDLIB_METHOD_FLAGS_HAS_FLATTEN
+#if SIMDLIB_COMPILER_MSVC || SIMDLIB_COMPILER_CLANG || SIMDLIB_COMPILER_GCC
+#define SIMDLIB_METHOD_FLAGS_HAS_FLATTEN 1
+#else
+#define SIMDLIB_METHOD_FLAGS_HAS_FLATTEN 0
+#endif
+#endif
+
+/**
+ * @def SIMDLIB_METHOD_FLAGS_VECTORCALL
+ * @brief Placement-safe vector calling-convention adapter used by SIMD_FLAGS.
+ */
+#ifndef SIMDLIB_METHOD_FLAGS_VECTORCALL
+#if SIMDLIB_METHOD_FLAGS_HAS_VECTORCALL
+#define SIMDLIB_METHOD_FLAGS_VECTORCALL VECTORCALL
+#else
+#define SIMDLIB_METHOD_FLAGS_VECTORCALL
+#endif
+#endif
+
+/**
+ * @def SIMDLIB_METHOD_FLAGS_SAFE_BUFFERS
+ * @brief Placement-safe safe-buffer adapter used by the RegisterOnly flag.
+ */
+#ifndef SIMDLIB_METHOD_FLAGS_SAFE_BUFFERS
+#if SIMDLIB_METHOD_FLAGS_HAS_SAFE_BUFFERS
+#define SIMDLIB_METHOD_FLAGS_SAFE_BUFFERS SIMDLIB_REGISTER_ONLY
+#else
+#define SIMDLIB_METHOD_FLAGS_SAFE_BUFFERS
+#endif
+#endif
+
+/**
+ * @def SIMDLIB_METHOD_FLAGS_FORCE_INLINE
+ * @brief Placement-safe force-inline adapter used by the ForceInline flag.
+ */
+#ifndef SIMDLIB_METHOD_FLAGS_FORCE_INLINE
+#if !SIMDLIB_METHOD_FLAGS_HAS_FORCE_INLINE
+#define SIMDLIB_METHOD_FLAGS_FORCE_INLINE inline
+#elif SIMDLIB_COMPILER_MSVC
+#define SIMDLIB_METHOD_FLAGS_FORCE_INLINE __forceinline
+#elif SIMDLIB_COMPILER_CLANG || SIMDLIB_COMPILER_GCC
+#define SIMDLIB_METHOD_FLAGS_FORCE_INLINE inline __attribute__((always_inline))
+#else
+#define SIMDLIB_METHOD_FLAGS_FORCE_INLINE SIMDLIB_FORCE_INLINE
+#endif
+#endif
+
+/**
+ * @def SIMDLIB_METHOD_FLAGS_FLATTEN
+ * @brief Placement-safe recursive-inlining adapter used by the Flatten flag.
+ */
+#ifndef SIMDLIB_METHOD_FLAGS_FLATTEN
+#if !SIMDLIB_METHOD_FLAGS_HAS_FLATTEN
+#define SIMDLIB_METHOD_FLAGS_FLATTEN
+#elif SIMDLIB_COMPILER_MSVC
+#define SIMDLIB_METHOD_FLAGS_FLATTEN [[msvc::flatten]]
+#elif SIMDLIB_COMPILER_CLANG || SIMDLIB_COMPILER_GCC
+#define SIMDLIB_METHOD_FLAGS_FLATTEN __attribute__((flatten))
+#else
+#define SIMDLIB_METHOD_FLAGS_FLATTEN SIMDLIB_FLATTEN
+#endif
+#endif
+
+#define SIMDLIB_DETAIL_FLAGS_CAT_RAW(left, right) left##right
+#define SIMDLIB_DETAIL_FLAGS_CAT(left, right) SIMDLIB_DETAIL_FLAGS_CAT_RAW(left, right)
+
+#define SIMDLIB_DETAIL_FLAGS_BOUNDARY_ static_assert(false, "SIMDLIB_FLAGS_ERROR_EMPTY");
+#define SIMDLIB_DETAIL_FLAGS_BOUNDARY_Neither
+#define SIMDLIB_DETAIL_FLAGS_BOUNDARY_In SIMDLIB_METHOD_FLAGS_VECTORCALL
+#define SIMDLIB_DETAIL_FLAGS_BOUNDARY_Out SIMDLIB_METHOD_FLAGS_VECTORCALL
+#define SIMDLIB_DETAIL_FLAGS_BOUNDARY_InOut SIMDLIB_METHOD_FLAGS_VECTORCALL
+
+#define SIMDLIB_DETAIL_FLAGS_MODIFIERS_1_RegisterOnly SIMDLIB_METHOD_FLAGS_SAFE_BUFFERS
+#define SIMDLIB_DETAIL_FLAGS_MODIFIERS_1_ForceInline SIMDLIB_METHOD_FLAGS_FORCE_INLINE
+#define SIMDLIB_DETAIL_FLAGS_MODIFIERS_1_Flatten SIMDLIB_METHOD_FLAGS_FLATTEN
+#define SIMDLIB_DETAIL_FLAGS_MODIFIERS_2_RegisterOnly_ForceInline SIMDLIB_METHOD_FLAGS_FORCE_INLINE SIMDLIB_METHOD_FLAGS_SAFE_BUFFERS
+#define SIMDLIB_DETAIL_FLAGS_MODIFIERS_2_RegisterOnly_Flatten SIMDLIB_METHOD_FLAGS_FLATTEN SIMDLIB_METHOD_FLAGS_SAFE_BUFFERS
+#define SIMDLIB_DETAIL_FLAGS_MODIFIERS_2_ForceInline_Flatten SIMDLIB_METHOD_FLAGS_FLATTEN SIMDLIB_METHOD_FLAGS_FORCE_INLINE
+#define SIMDLIB_DETAIL_FLAGS_MODIFIERS_3_RegisterOnly_ForceInline_Flatten                                                                                      \
+	SIMDLIB_METHOD_FLAGS_FLATTEN SIMDLIB_METHOD_FLAGS_FORCE_INLINE SIMDLIB_METHOD_FLAGS_SAFE_BUFFERS
+
+#define SIMDLIB_DETAIL_FLAGS_BOUNDARY_RAW(mode) SIMDLIB_DETAIL_FLAGS_BOUNDARY_##mode
+#define SIMDLIB_DETAIL_FLAGS_BOUNDARY(mode) SIMDLIB_DETAIL_FLAGS_BOUNDARY_RAW(mode)
+#define SIMDLIB_DETAIL_FLAGS_MODIFIERS_1_RAW(a) SIMDLIB_DETAIL_FLAGS_MODIFIERS_1_##a
+#define SIMDLIB_DETAIL_FLAGS_MODIFIERS_1(a) SIMDLIB_DETAIL_FLAGS_MODIFIERS_1_RAW(a)
+#define SIMDLIB_DETAIL_FLAGS_MODIFIERS_2_RAW(a, b) SIMDLIB_DETAIL_FLAGS_MODIFIERS_2_##a##_##b
+#define SIMDLIB_DETAIL_FLAGS_MODIFIERS_2(a, b) SIMDLIB_DETAIL_FLAGS_MODIFIERS_2_RAW(a, b)
+#define SIMDLIB_DETAIL_FLAGS_MODIFIERS_3_RAW(a, b, c) SIMDLIB_DETAIL_FLAGS_MODIFIERS_3_##a##_##b##_##c
+#define SIMDLIB_DETAIL_FLAGS_MODIFIERS_3(a, b, c) SIMDLIB_DETAIL_FLAGS_MODIFIERS_3_RAW(a, b, c)
+
+#define SIMDLIB_DETAIL_FLAGS_1(boundary) SIMDLIB_DETAIL_FLAGS_BOUNDARY(boundary)
+#define SIMDLIB_DETAIL_FLAGS_2(boundary, a) SIMDLIB_DETAIL_FLAGS_MODIFIERS_1(a) SIMDLIB_DETAIL_FLAGS_BOUNDARY(boundary)
+#define SIMDLIB_DETAIL_FLAGS_3(boundary, a, b) SIMDLIB_DETAIL_FLAGS_MODIFIERS_2(a, b) SIMDLIB_DETAIL_FLAGS_BOUNDARY(boundary)
+#define SIMDLIB_DETAIL_FLAGS_4(boundary, a, b, c) SIMDLIB_DETAIL_FLAGS_MODIFIERS_3(a, b, c) SIMDLIB_DETAIL_FLAGS_BOUNDARY(boundary)
+#define SIMDLIB_DETAIL_FLAGS_5(...) static_assert(false, "SIMDLIB_FLAGS_ERROR_TOO_MANY");
+
+#define SIMDLIB_DETAIL_FLAGS_ARITY_IMPL(_1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, count, ...) count
+#define SIMDLIB_DETAIL_FLAGS_ARITY_EXPAND(arguments) SIMDLIB_DETAIL_FLAGS_ARITY_IMPL arguments
+#define SIMDLIB_DETAIL_FLAGS_ARITY(...) SIMDLIB_DETAIL_FLAGS_ARITY_EXPAND((__VA_ARGS__, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 4, 3, 2, 1))
+
+#define SIMDLIB_DETAIL_FLAGS_DISPATCH(count) SIMDLIB_DETAIL_FLAGS_CAT(SIMDLIB_DETAIL_FLAGS_, count)
+#define SIMDLIB_DETAIL_FLAGS_EXPAND(...) __VA_ARGS__
+
+/**
+ * @def SIMD_FLAGS
+ * @brief Declares a function's SIMD boundary and optimization promises.
+ * @param ... One required boundary mode followed by zero to three modifiers.
+ * @details The boundary is one of Neither, In, Out, or InOut. Modifiers are an
+ * ordered subsequence of RegisterOnly, ForceInline, and Flatten. Place the macro
+ * after the independently specified return type and immediately before the
+ * function name. Constructors, destructors, conversion operators, deduction
+ * guides, lambdas, virtual functions, explicit function-pointer types,
+ * coroutines, C-style variadic functions, extern-C functions, allocation
+ * functions, defaulted or deleted functions, and consteval functions are not
+ * supported. The macro records developer intent; it cannot inspect function
+ * signatures, bodies, template instantiations, or transitive callees.
+ */
+#define SIMD_FLAGS(...) SIMDLIB_DETAIL_FLAGS_EXPAND(SIMDLIB_DETAIL_FLAGS_DISPATCH(SIMDLIB_DETAIL_FLAGS_ARITY(__VA_ARGS__))(__VA_ARGS__))
+
 #ifndef SIMDLIB_PRECONDITION
+#include <cassert>
 #define SIMDLIB_PRECONDITION(condition, message) assert((condition) && (message))
 #endif
 
@@ -241,6 +401,10 @@ inline constexpr bool compiler_gcc = SIMDLIB_COMPILER_GCC != 0;
 inline constexpr bool target_x86 = SIMDLIB_TARGET_X86 != 0;
 inline constexpr bool target_x64 = SIMDLIB_TARGET_X64 != 0;
 inline constexpr bool vectorcall_enabled = SIMDLIB_VECTORCALL_ENABLED != 0;
+inline constexpr bool method_flags_has_vectorcall = SIMDLIB_METHOD_FLAGS_HAS_VECTORCALL != 0;
+inline constexpr bool method_flags_has_safe_buffers = SIMDLIB_METHOD_FLAGS_HAS_SAFE_BUFFERS != 0;
+inline constexpr bool method_flags_has_force_inline = SIMDLIB_METHOD_FLAGS_HAS_FORCE_INLINE != 0;
+inline constexpr bool method_flags_has_flatten = SIMDLIB_METHOD_FLAGS_HAS_FLATTEN != 0;
 
 inline constexpr bool has_sse = SIMDLIB_HAS_SSE != 0;
 inline constexpr bool has_sse2 = SIMDLIB_HAS_SSE2 != 0;

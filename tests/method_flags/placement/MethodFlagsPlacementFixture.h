@@ -6,20 +6,6 @@
 #include <immintrin.h>
 #include <type_traits>
 
-#define SIMDLIB_DETAIL_FLAGS_VECTORCALL VECTORCALL
-#define SIMDLIB_DETAIL_FLAGS_REGISTER_ONLY SIMDLIB_REGISTER_ONLY
-#if defined(_MSC_VER) && !defined(__clang__)
-#define SIMDLIB_DETAIL_FLAGS_FORCE_INLINE __forceinline
-#define SIMDLIB_DETAIL_FLAGS_FLATTEN [[msvc::flatten]]
-#elif defined(__clang__) || defined(__GNUC__)
-#define SIMDLIB_DETAIL_FLAGS_FORCE_INLINE inline __attribute__((always_inline))
-#define SIMDLIB_DETAIL_FLAGS_FLATTEN __attribute__((flatten))
-#else
-#define SIMDLIB_DETAIL_FLAGS_FORCE_INLINE SIMDLIB_FORCE_INLINE
-#define SIMDLIB_DETAIL_FLAGS_FLATTEN SIMDLIB_FLATTEN
-#endif
-#include "../MethodFlagsPrototype.h"
-
 namespace SimdLibMethodFlagsPlacement
 {
 using vector_type = __m128;

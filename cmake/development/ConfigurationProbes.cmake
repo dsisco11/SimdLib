@@ -10,6 +10,12 @@ endif()
 block(SCOPE_FOR VARIABLES)
 
 if(SIMDLIB_BUILD_CONFIGURATION_PROBES)
+	if(SIMDLIB_MSVC_STYLE_DRIVER)
+		set(simdlib_method_flags_msvc_style 1)
+	else()
+		set(simdlib_method_flags_msvc_style 0)
+	endif()
+
     foreach(config_probe IN ITEMS
         ConfigDefaultProbe
         ConfigOverrideVectorcallProbe
@@ -19,7 +25,11 @@ if(SIMDLIB_BUILD_CONFIGURATION_PROBES)
         ConfigDisabledInstructionsProbe
         ConfigDisabledPublicHeadersProbe
         ConfigClangUnsupportedTargetProbe
-        ConfigVendorAttributeProbe)
+        ConfigVendorAttributeProbe
+        MethodFlagsConfigDefaultProbe
+        MethodFlagsConfigOverrideProbe
+        MethodFlagsConfigDisabledVectorcallProbe
+        MethodFlagsConfigUnsupportedTargetProbe)
         add_library(${config_probe} OBJECT tests/config/${config_probe}.cpp)
         target_link_libraries(${config_probe} PRIVATE SimdLib::SimdLib)
         simdlib_enable_development_warnings(${config_probe})
@@ -29,12 +39,24 @@ if(SIMDLIB_BUILD_CONFIGURATION_PROBES)
 		COMMAND ${CMAKE_COMMAND}
 			"-DSIMDLIB_METHOD_FLAGS_COMPILER=${CMAKE_CXX_COMPILER}"
 			"-DSIMDLIB_METHOD_FLAGS_COMPILER_ID=${CMAKE_CXX_COMPILER_ID}-${CMAKE_CXX_COMPILER_VERSION}"
-			"-DSIMDLIB_METHOD_FLAGS_MSVC_STYLE=${SIMDLIB_MSVC_STYLE_DRIVER}"
+			"-DSIMDLIB_METHOD_FLAGS_MSVC_STYLE=${simdlib_method_flags_msvc_style}"
 			"-DSIMDLIB_METHOD_FLAGS_SOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}"
 			"-DSIMDLIB_METHOD_FLAGS_BINARY_DIR=${CMAKE_CURRENT_BINARY_DIR}"
 			-P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/VerifyMethodFlagsPreprocessor.cmake)
 	set_tests_properties(MethodFlagsPreprocessor PROPERTIES
 		LABELS "CONFIGURATION;METHOD_FLAGS;PREPROCESSOR")
+
+	add_test(NAME MethodFlagsConfiguration
+		COMMAND ${CMAKE_COMMAND}
+			"-DSIMDLIB_METHOD_FLAGS_COMPILER=${CMAKE_CXX_COMPILER}"
+			"-DSIMDLIB_METHOD_FLAGS_COMPILER_ID=${CMAKE_CXX_COMPILER_ID}-${CMAKE_CXX_COMPILER_VERSION}"
+			"-DSIMDLIB_METHOD_FLAGS_MSVC_STYLE=${simdlib_method_flags_msvc_style}"
+			"-DSIMDLIB_METHOD_FLAGS_COMPILER_OPTIONS=${CMAKE_CXX_FLAGS}"
+			"-DSIMDLIB_METHOD_FLAGS_SOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}"
+			"-DSIMDLIB_METHOD_FLAGS_BINARY_DIR=${CMAKE_CURRENT_BINARY_DIR}"
+			-P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/VerifyMethodFlagsConfiguration.cmake)
+	set_tests_properties(MethodFlagsConfiguration PROPERTIES
+		LABELS "CONFIGURATION;METHOD_FLAGS;ADAPTERS;PREPROCESSOR")
 
 	add_subdirectory(
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/method_flags/placement
@@ -91,6 +113,7 @@ if(SIMDLIB_BUILD_CONFIGURATION_PROBES)
 	set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
 		${CMAKE_CURRENT_SOURCE_DIR}/include/SimdLib/Config.h
 		${CMAKE_CURRENT_SOURCE_DIR}/include/SimdLib/Register.h
+		${CMAKE_CURRENT_SOURCE_DIR}/cmake/VerifyMethodFlagsConfiguration.cmake
 		${CMAKE_CURRENT_SOURCE_DIR}/cmake/VerifyMethodFlagsPreprocessor.cmake
 		${CMAKE_CURRENT_SOURCE_DIR}/cmake/VerifyMethodFlagsPlacementSource.cmake
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/method_flags/MethodFlagsPrototype.h
@@ -112,6 +135,10 @@ if(SIMDLIB_BUILD_CONFIGURATION_PROBES)
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/method_flags/placement/InvalidLambda.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/method_flags/placement/InvalidConsteval.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/method_flags/placement/InvalidFunctionPointer.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/config/MethodFlagsConfigDefaultProbe.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/config/MethodFlagsConfigOverrideProbe.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/config/MethodFlagsConfigDisabledVectorcallProbe.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/config/MethodFlagsConfigUnsupportedTargetProbe.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/RegisterHeaderCxx20.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/RegisterRequirementCxx20.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/RegisterAvailabilityOverride.cpp

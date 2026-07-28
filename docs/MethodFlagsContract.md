@@ -419,6 +419,24 @@ C++11-style force-inline attributes are not accepted after every semantic
 specifier by MSVC and clang-cl, while the keyword or GNU attribute spellings
 above are accepted in the canonical declaration position without warnings.
 
+### Compiler-adapter configuration
+
+Each compiler property has a caller-overridable capability and token adapter:
+
+| Property | Capability macro | Token adapter |
+|---|---|---|
+| vector calling convention | `SIMDLIB_METHOD_FLAGS_HAS_VECTORCALL` | `SIMDLIB_METHOD_FLAGS_VECTORCALL` |
+| safe-buffer suppression | `SIMDLIB_METHOD_FLAGS_HAS_SAFE_BUFFERS` | `SIMDLIB_METHOD_FLAGS_SAFE_BUFFERS` |
+| forced inlining | `SIMDLIB_METHOD_FLAGS_HAS_FORCE_INLINE` | `SIMDLIB_METHOD_FLAGS_FORCE_INLINE` |
+| recursive flattening | `SIMDLIB_METHOD_FLAGS_HAS_FLATTEN` | `SIMDLIB_METHOD_FLAGS_FLATTEN` |
+
+A custom toolchain defines the relevant capability and token-adapter pair before
+the first inclusion of `SimdLib/Config.h`. It does not redefine `SIMD_FLAGS(...)`
+or any `SIMDLIB_DETAIL_...` parsing helper. A zero capability may produce an
+empty adapter; `ForceInline` retains ordinary `inline` semantics when compiler
+enforcement is unavailable. All translation units that exchange flagged
+functions must agree on the ABI-affecting vectorcall configuration.
+
 ## Extension rule
 
 A future boundary mode or modifier is admitted only after all of the following
