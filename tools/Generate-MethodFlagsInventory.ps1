@@ -474,6 +474,8 @@ Whether the declaration already carries the audited promise.
 function Get-MemoryClassification {
     param(
         [Parameter(Mandatory)][string]$Header,
+        [Parameter(Mandatory)][string]$Symbol,
+        [Parameter(Mandatory)][AllowEmptyString()][string]$Context,
         [Parameter(Mandatory)][AllowEmptyString()][string]$Parameters,
         [Parameter(Mandatory)][AllowEmptyString()][string]$Body,
         [Parameter(Mandatory)][bool]$HasRegisterOnly,
@@ -490,15 +492,23 @@ function Get-MemoryClassification {
     $hasByValueArrayParameter =
         $Parameters -match '(?:const\s+)?std::array\s*<[^;{}()]*>\s+(?![&*])'
     $dependentWriterPath =
-        $Body -match '\b(?:impl|api_type)::(?:construct|setr|min_position|max_position)\s*(?:<[^;{}()]*>)?\s*\(' -or
         $Body -match '\bimpl::(?:blend|shuffle|shuffle_lo|shuffle_hi)\s*\('
+    $runtimeBody = [regex]::Replace(
+        $Body,
+        '\bconstexpr\b[^;{}]*\bregister_from_values\b[^;{}]*;',
+        '')
     $runtimeStorageHelpers = @($Calls | Where-Object {
             $_ -match '^register_(?:get|set|from_array|from_values|' +
                 'from_repeated_value|to_array|data|insert|blend|blend_bytes|' +
                 'insert_float|shuffle_float|shuffle_double|shuffle_32|' +
                 'shuffle_half_16|byte_shift_left|byte_shift_right|' +
-                'transform_binary)$'
+                'transform_binary)$' -and
+            $runtimeBody -match "\b$([regex]::Escape($_))\b"
         })
+    if ($constexprIsolation -and
+        $Symbol -match '^_ext128_shift_(?:left|right)_bits_dynamic$') {
+        $runtimeStorageHelpers = @()
+    }
     $compileTimeArrayOnly =
         $Body -match '(<\s*std::array\s*\{|constexpr[^;{}]*\bstd::array\b)' -or
         $constexprIsolation
@@ -568,6 +578,28 @@ function Get-DeclarationDisposition {
 
 <#
 .SYNOPSIS
+Returns the nearest implementation or mapping type containing a declaration.
+.PARAMETER Text
+Comment-free source text.
+.PARAMETER Position
+Character position where the declaration begins.
+#>
+function Get-ContainingImplementationType {
+    param(
+        [Parameter(Mandatory)][string]$Text,
+        [Parameter(Mandatory)][int]$Position
+    )
+
+    $prefix = $Text.Substring(0, $Position)
+    $matches = [regex]::Matches(
+        $prefix,
+        'struct\s+(Simd(?:Impl128|Impl256|Mappings)(?:\s*<[^>{}\r\n]+>)?)')
+    if ($matches.Count -eq 0) { return '' }
+    return ($matches[$matches.Count - 1].Groups[1].Value -replace '\s+', ' ').Trim()
+}
+
+<#
+.SYNOPSIS
 Creates one exhaustive inventory record.
 .PARAMETER Path
 Repository-relative source path.
@@ -591,6 +623,7 @@ function New-InventoryRecord {
     }
     $header = ($header -replace '\s+', ' ').Trim()
     $symbol = Get-DeclarationSymbol -Header $header
+    $context = Get-ContainingImplementationType -Text $CleanText -Position $Extent.Start
     $disposition = Get-DeclarationDisposition -Path $Path -Header $header -Symbol $symbol
     $kind, $target, $reason = $disposition
     $hasVectorcall = $header -match '\bVECTORCALL\b'
@@ -625,7 +658,7 @@ function New-InventoryRecord {
     }
     $calls = @(Get-BodyCalls -Body $body)
     $memory = if ($target -eq 'Migrate') {
-        Get-MemoryClassification -Header $header -Body $body `
+        Get-MemoryClassification -Header $header -Symbol $symbol -Context $context -Body $body `
             -Parameters $parameters -HasRegisterOnly $hasRegisterOnly -Calls $calls
     } else {
         'Exception'
@@ -702,6 +735,7 @@ function New-InventoryRecord {
         Path = $Path
         Line = Get-SourceLine -Text $CleanText -Position $Extent.Start
         Symbol = $symbol
+        Context = $context
         Kind = $kind
         Existing = $existing -join '+'
         LegacyOccurrenceCount = $legacyOccurrences

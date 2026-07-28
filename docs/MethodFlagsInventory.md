@@ -54,31 +54,40 @@ by value; scalar, array, pointer, and reference results do not make it `Out`.
 
 ## Modifier decisions
 
-`RegisterOnlyTarget` records 836 existing promises to keep, 201 omissions, and
-383 separately reviewable additions. Candidate status never adds the promise
+`RegisterOnlyTarget` records 933 resolved existing promises, 12 existing
+promises pending source repair, 117 omissions, 398 separately reviewable
+additions, and 64 declaration-form exceptions. Candidate status never adds the promise
 during mechanical migration. It means that the declaration has no authored
 direct write, no known runtime-storage helper, and no unresolved transitive
 callee in the reviewed source. Generated-code evidence and a separate approval
 are still required before adding `RegisterOnly` because its Microsoft mapping
 can suppress `/GS` instrumentation.
 
-Forty existing declarations are classified `KeepPendingSourceRepair`. Their
+Twelve existing declarations are classified `KeepPendingSourceRepair`. Their
 target spelling retains `RegisterOnly`; the inventory does not silently relax
 an existing promise. Their runtime call paths presently reach one of these
 authored storage forms:
 
-- `register_from_values`, which constructs a runtime `std::array`;
-- `register_insert`, `register_blend`, `register_blend_bytes`, or
-  `register_shuffle_32`, which reach reference-writing lane helpers and use a
-  runtime array representation on non-MSVC compilers;
-- by-value array construction or dependent `construct`, `setr`,
-  `min_position`, `max_position`, generic shuffle, or generic blend paths that
-  reach those helpers.
+- `register_blend` and `register_blend_bytes`, which reach reference-writing
+  lane helpers and use a runtime array representation on non-MSVC compilers;
+- `register_shuffle_32` and dependent generic shuffle or blend paths that reach
+  array-backed control-mask helpers for at least one supported instantiation.
 
 The affected operation families are recorded individually in the CSV across
 `Api`, `Implementations`, `Register`, and their code-generation fixture. They
 require register/scalar source repairs before migration, or explicit approval
 before any `RegisterOnly` promise is relaxed.
+
+The complete implementation-layer investigation is recorded in
+`RuntimeArrayRegisterConstruction.todo`. It records the original 81 runtime
+methods and the 38 deferred blend/shuffle methods that still reconstruct
+registers through array-backed helpers, including methods that do not currently
+claim `RegisterOnly`. `min_position` index-vector
+initializers and the array-conversion branches of `construct` are excluded from
+that runtime list because their relevant helper calls are evaluated only during
+constant evaluation. Both `construct` implementations now accept their input
+arrays by const reference, so their runtime intrinsic-load paths no longer
+create by-value array parameters.
 
 `ForceInlineTarget` retains 1,346 current optimized-code-shape promises and
 omits the modifier from 114 declarations. No retained use is classified as
@@ -113,7 +122,8 @@ and `Reason`.
 
 ## CSV fields
 
-- `Path`, `Line`, `Symbol`, and `Kind` identify the declaration or exception.
+- `Path`, `Line`, `Symbol`, `Context`, and `Kind` identify the declaration,
+  containing implementation specialization where applicable, or exception.
 - `Existing` and `LegacyOccurrenceCount` record the present legacy surface.
 - `SimdInput`, `SimdOutput`, and `Boundary` record the call-boundary contract.
 - `Memory`, `ConstexprAudit`, `DirectCalls`, and `TransitiveAudit` record the

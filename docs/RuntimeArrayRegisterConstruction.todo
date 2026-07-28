@@ -2,7 +2,7 @@ Runtime Register-Storage Removal:
 
   Purpose:
     ☐ Remove runtime implementation paths that materialize SIMD registers through arrays, compiler register-array members, or addressable temporary storage.
-    ☐ Preserve portable array or compiler-union logic when it is reachable only during constant evaluation.
+    ☐ Preserve portable register-representation logic only within explicitly named constant-evaluation helpers.
     ☐ Treat every operation family as an independent implementation and validation task.
 
   Execution Rules:
@@ -19,36 +19,42 @@ Runtime Register-Storage Removal:
     ☐ Leave those operations and their method-flag classifications to the dedicated immediate-control-mask plans.
 
   Task 1 - Restore a Focused Compilable Baseline:
-    ☐ Compile the currently touched SSE4.2 headers and tests with MSVC.
-    ☐ Compile the currently touched AVX2 headers and tests with MSVC.
-    ☐ Correct only syntax, template-formation, and constant-evaluation regressions already introduced by the current edits.
-    ☐ Record unrelated pre-existing failures separately; do not expand this task to fix them.
+    ☒ Compile the currently touched SSE4.2 headers and tests with MSVC.
+    ☒ Compile the currently touched AVX2 headers and tests with MSVC.
+    ☒ Correct only syntax, template-formation, and constant-evaluation regressions already introduced by the current edits.
+    ☒ Record unrelated pre-existing failures separately; do not expand this task to fix them.
 
-  Task 2 - 128-Bit Runtime Lane Extraction Utility:
-    ☐ Implement intrinsic-backed runtime extraction for every supported scalar element type from a 128-bit register.
-    ☐ Dispatch a runtime index to compile-time-indexed intrinsic calls without arrays or addressable register storage.
-    ☐ Preserve the existing portable constant-evaluation path.
+  Task 2 - Constant-Evaluation Helper Boundary:
+    ☐ Rename the portable `register_get` helper so its name explicitly identifies it as constant-evaluation-only.
+    ☐ Rename the portable `register_set` and `register_insert` helpers so their names explicitly identify them as constant-evaluation-only.
+    ☐ Remove runtime dispatch branches from those portable helpers.
+    ☐ Remove `register_get_runtime`, `register_set_runtime`, and `RegisterLaneAccess128` from `Extensions.h`.
+    ☐ Inventory every `_constexpr` method in `Api` and the implementation layer.
+    ☐ Convert a helper to `consteval` only when all supported C++20 call sites can legally invoke an immediate function.
+    ☐ Keep a helper `constexpr` when it receives parameters from a runtime-callable C++20 `constexpr` wrapper; do not use a misleading `consteval` declaration that makes the wrapper ill-formed.
+    ☐ Add compile-time probes that prove the intended helper boundary.
+
+  Task 3 - Unconditional API Delegation:
+    ☐ Keep the constant-evaluation branch in `Api::get_element` and delegate every runtime call unconditionally to `impl::extract(lhs, index)`.
+    ☐ Keep the constant-evaluation branch in `Api::set_element` and delegate every runtime call unconditionally to `impl::insert(lhs, value, index)`.
+    ☐ Remove register-width branching from both API methods.
+    ☐ Remove `SIMDLIB_HAS_AVX2` branching from both API methods.
+    ☐ Confirm that implementation availability constraints remain the only feature gate.
+    ☐ Compile focused SSE4.2 and AVX2 API probes.
+
+  Task 4 - Specialized 128-Bit Runtime Extraction:
+    ☐ Implement runtime `extract(lhs, index)` independently in every `SimdImpl128<element_t>` specialization.
+    ☐ Dispatch runtime indices to that specialization's existing compile-time-indexed `extract<index>` intrinsic methods.
+    ☐ Do not place element-specific extraction methods or element-type switching in `Extensions.h`.
+    ☐ Do not use arrays, compiler register-array members, or addressable register storage.
     ☐ Add focused correctness coverage for every lane of every supported 128-bit element type.
     ☐ Inspect optimized code generation for stack references and security-cookie calls.
 
-  Task 3 - 256-Bit Runtime Lane Extraction Utility:
-    ☐ Implement intrinsic-backed runtime extraction for every supported scalar element type from a 256-bit register.
-    ☐ Handle selection of the lower or upper 128-bit half without array conversion.
-    ☐ Reuse the verified 128-bit lane extraction utility where appropriate.
-    ☐ Add focused correctness coverage for every lane of every supported 256-bit element type.
-    ☐ Inspect optimized code generation for stack references and security-cookie calls.
-
-  Task 4 - 128-Bit Runtime Lane Insertion Utility:
-    ☐ Implement intrinsic-backed runtime insertion for every supported scalar element type into a 128-bit register.
-    ☐ Dispatch a runtime index to compile-time-indexed intrinsic calls without arrays or addressable register storage.
-    ☐ Preserve the existing portable constant-evaluation path.
-    ☐ Add focused correctness coverage for every lane of every supported 128-bit element type.
-    ☐ Inspect optimized code generation for stack references and security-cookie calls.
-
-  Task 5 - 256-Bit Runtime Lane Insertion Utility:
-    ☐ Implement intrinsic-backed runtime insertion for every supported scalar element type into a 256-bit register.
-    ☐ Modify and replace only the selected 128-bit half without array conversion.
-    ☐ Reuse the verified 128-bit lane insertion utility where appropriate.
+  Task 5 - Specialized 256-Bit Runtime Extraction:
+    ☐ Implement runtime `extract(lhs, index)` independently in every `SimdImpl256<element_t>` specialization.
+    ☐ Select the lower or upper 128-bit half with intrinsics and delegate to the matching 128-bit element specialization where appropriate.
+    ☐ Do not place element-specific extraction methods or element-type switching in `Extensions.h`.
+    ☐ Do not use arrays, compiler register-array members, or addressable register storage.
     ☐ Add focused correctness coverage for every lane of every supported 256-bit element type.
     ☐ Inspect optimized code generation for stack references and security-cookie calls.
 
@@ -60,7 +66,23 @@ Runtime Register-Storage Removal:
     ☐ Retain the public `Api::get_element` name unless a separate public API change is approved.
     ☐ Run focused compile-time-index and runtime-index extraction tests.
 
-  Task 7 - Implementation Insertion Naming Consolidation:
+  Task 7 - Specialized 128-Bit Runtime Insertion:
+    ☐ Implement runtime `insert(lhs, value, index)` independently in every `SimdImpl128<element_t>` specialization.
+    ☐ Dispatch runtime indices to that specialization's existing compile-time-indexed `insert<index>` intrinsic methods.
+    ☐ Do not place element-specific insertion methods or element-type switching in `Extensions.h`.
+    ☐ Do not use arrays, compiler register-array members, or addressable register storage.
+    ☐ Add focused correctness coverage for every lane of every supported 128-bit element type.
+    ☐ Inspect optimized code generation for stack references and security-cookie calls.
+
+  Task 8 - Specialized 256-Bit Runtime Insertion:
+    ☐ Implement runtime `insert(lhs, value, index)` independently in every `SimdImpl256<element_t>` specialization.
+    ☐ Modify and replace only the selected 128-bit half, delegating to the matching 128-bit element specialization where appropriate.
+    ☐ Do not place element-specific insertion methods or element-type switching in `Extensions.h`.
+    ☐ Do not use arrays, compiler register-array members, or addressable register storage.
+    ☐ Add focused correctness coverage for every lane of every supported 256-bit element type.
+    ☐ Inspect optimized code generation for stack references and security-cookie calls.
+
+  Task 9 - Implementation Insertion Naming Consolidation:
     ☐ Inventory every implementation-layer `set_element` declaration and call site.
     ☐ Compare its semantics, element coverage, width coverage, and index constraints with `insert`.
     ☐ Migrate implementation-layer callers to `insert` only where the contracts are equivalent.
@@ -68,46 +90,51 @@ Runtime Register-Storage Removal:
     ☐ Retain the public `Api::set_element` name unless a separate public API change is approved.
     ☐ Run focused compile-time-index and runtime-index insertion tests.
 
-  Task 8 - 128-Bit Integer Modulus:
-    ☐ Replace array-backed runtime modulus for each supported integer width and signedness.
-    ☐ Preserve scalar integer remainder semantics, including signed operands.
-    ☐ Verify all 128-bit integer modulus variants with focused unit tests.
+  Task 10 - Specialized 128-Bit Integer Remainder Extensions:
+    ☐ Restore the removed signed and unsigned 64-bit remainder extensions with the width-qualified names `_ext128_rem_epi64` and `_ext128_rem_epu64`.
+    ☐ Add `_ext128_rem_epi8`, `_ext128_rem_epu8`, `_ext128_rem_epi16`, `_ext128_rem_epu16`, `_ext128_rem_epi32`, and `_ext128_rem_epu32`.
+    ☐ Follow the existing `_ext128_div_epi*` and `_ext128_div_epu*` structure: use constant-index intrinsic extraction, the scalar `%` operation, and constant-index intrinsic insertion.
+    ☐ Do not implement remainder as `lhs - multiply(divide(lhs, rhs), rhs)`.
+    ☐ Preserve scalar signed-remainder semantics and integer-division preconditions.
+    ☐ Compare optimized instructions with equivalent independently written scalar remainder code for every element width.
+    ☐ Add focused correctness coverage before routing `SimdImpl128<element_t>::modulus` to the new extensions.
+
+  Task 11 - Specialized 256-Bit Integer Remainder Extensions:
+    ☐ Add width-qualified `_ext256_rem_epi*` and `_ext256_rem_epu*` methods for every supported integer element width.
+    ☐ Delegate through the verified 128-bit remainder extensions when splitting into 128-bit halves produces the best generated code.
+    ☐ Do not implement remainder as `lhs - multiply(divide(lhs, rhs), rhs)`.
+    ☐ Preserve scalar signed-remainder semantics and integer-division preconditions.
+    ☐ Compare optimized instructions with equivalent independently written scalar remainder code for every element width.
+    ☐ Add focused correctness coverage before routing `SimdImpl256<element_t>::modulus` to the new extensions.
+
+  Task 12 - Complete-Register Runtime Byte Shifts:
+    ☐ Retain the fact that `PSLLDQ` and `PSRLDQ` accept only an immediate count; do not pass a runtime integer directly to `_mm_slli_si128` or `_mm_srli_si128`.
+    ☐ Compare switch dispatch against branchless variable-count register-only algorithms.
+    ☐ Select the implementation from optimized generated code and focused measurements rather than assuming dispatch is best.
+    ☐ Implement and test left and right shifts for zero, in-range, negative, and out-of-range counts.
     ☐ Inspect optimized code generation before changing method flags.
 
-  Task 9 - 256-Bit Integer Modulus:
-    ☐ Replace array-backed runtime modulus for each supported integer width and signedness.
-    ☐ Preserve scalar integer remainder semantics, including signed operands.
-    ☐ Verify all 256-bit integer modulus variants with focused unit tests.
-    ☐ Inspect optimized code generation before changing method flags.
-
-  Task 10 - Complete-Register Byte Shifts:
-    ☐ Implement intrinsic-only runtime left byte shift for a 128-bit register.
-    ☐ Implement intrinsic-only runtime right byte shift for a 128-bit register.
-    ☐ Define and test behavior for zero, in-range, negative, and out-of-range counts.
-    ☐ Inspect optimized code generation before changing method flags.
-
-  Task 11 - Complete-Register Bit Shifts:
-    ☐ Implement intrinsic-only runtime left bit shift for a complete 128-bit register.
-    ☐ Implement intrinsic-only runtime right bit shift for a complete 128-bit register.
+  Task 13 - Complete-Register Bit Shifts:
+    ☐ Implement intrinsic-only runtime left and right bit shifts for a complete 128-bit register.
     ☐ Keep immediate-count and runtime-count paths distinct where their optimal instruction sequences differ.
-    ☐ Preserve constant-evaluation behavior without allowing its array path into runtime code.
+    ☐ Preserve constant-evaluation behavior without allowing its portable representation into runtime code.
     ☐ Test boundary counts around 0, 64, and 128 bits.
     ☐ Inspect optimized code generation before changing method flags.
 
-  Task 12 - 128-Bit 64-Bit-Lane `setr`:
+  Task 14 - 128-Bit 64-Bit-Lane `setr`:
     ☐ Replace signed 64-bit runtime construction with the appropriate intrinsic.
     ☐ Replace unsigned 64-bit runtime construction while preserving lane bit patterns.
     ☐ Confirm the generic 128-bit dispatcher reaches the intrinsic runtime path.
     ☐ Preserve the separate constant-evaluation construction path.
     ☐ Run focused signed and unsigned lane-order tests.
 
-  Task 13 - Method-Flag Inventory Reconciliation:
-    ☐ Regenerate the method-flags inventory after Tasks 1-12 are independently verified.
+  Task 15 - Method-Flag Inventory Reconciliation:
+    ☐ Regenerate the method-flags inventory after Tasks 1-14 are independently verified.
     ☐ Review each newly eligible `RegisterOnly` candidate individually.
     ☐ Keep all deferred immediate-control-mask operations pending.
     ☐ Update inventory explanations without recording transient test-pass claims as enduring documentation.
 
-  Task 14 - Cross-Compiler Integration:
+  Task 16 - Cross-Compiler Integration:
     ☐ Run focused optimized generated-code checks with MSVC and clang-cl.
     ☐ Run focused optimized generated-code checks with GCC and Clang using stack-protection flags.
     ☐ Run the relevant focused correctness and constexpr suites for SSE4.2 and AVX2.
