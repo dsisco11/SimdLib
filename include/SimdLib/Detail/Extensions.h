@@ -87,6 +87,71 @@ SIMDLIB_FORCE_INLINE constexpr Element register_get_constexpr(const Vector value
 }
 
 /**
+ * @brief Reads one runtime lane through the portable native-register representation.
+ * @tparam Element Scalar lane type.
+ * @tparam Vector Compiler-native register type.
+ * @param value Source register.
+ * @param index Selected lane index.
+ * @return Selected scalar lane.
+ * @note This fallback may materialize addressable storage and must not be used by register-only operation paths.
+ */
+template <class Element, class Vector>
+	requires std::is_arithmetic_v<Element> && (sizeof(Vector) % sizeof(Element) == 0)
+SIMDLIB_FORCE_INLINE Element register_get(const Vector value, const std::size_t index) noexcept
+{
+#if SIMDLIB_COMPILER_MSVC
+	if constexpr (sizeof(Vector) == 16)
+	{
+		if constexpr (std::is_integral_v<Element> && sizeof(Element) == 1 && std::is_unsigned_v<Element>)
+			return value.m128i_u8[index];
+		else if constexpr (std::is_integral_v<Element> && sizeof(Element) == 1)
+			return value.m128i_i8[index];
+		else if constexpr (std::is_integral_v<Element> && sizeof(Element) == 2 && std::is_unsigned_v<Element>)
+			return value.m128i_u16[index];
+		else if constexpr (std::is_integral_v<Element> && sizeof(Element) == 2)
+			return value.m128i_i16[index];
+		else if constexpr (std::is_integral_v<Element> && sizeof(Element) == 4 && std::is_unsigned_v<Element>)
+			return value.m128i_u32[index];
+		else if constexpr (std::is_integral_v<Element> && sizeof(Element) == 4)
+			return value.m128i_i32[index];
+		else if constexpr (std::is_integral_v<Element> && sizeof(Element) == 8 && std::is_unsigned_v<Element>)
+			return value.m128i_u64[index];
+		else if constexpr (std::is_integral_v<Element> && sizeof(Element) == 8)
+			return value.m128i_i64[index];
+		else if constexpr (std::same_as<Element, float>)
+			return value.m128_f32[index];
+		else
+			return value.m128d_f64[index];
+	}
+	else
+	{
+		if constexpr (std::is_integral_v<Element> && sizeof(Element) == 1 && std::is_unsigned_v<Element>)
+			return value.m256i_u8[index];
+		else if constexpr (std::is_integral_v<Element> && sizeof(Element) == 1)
+			return value.m256i_i8[index];
+		else if constexpr (std::is_integral_v<Element> && sizeof(Element) == 2 && std::is_unsigned_v<Element>)
+			return value.m256i_u16[index];
+		else if constexpr (std::is_integral_v<Element> && sizeof(Element) == 2)
+			return value.m256i_i16[index];
+		else if constexpr (std::is_integral_v<Element> && sizeof(Element) == 4 && std::is_unsigned_v<Element>)
+			return value.m256i_u32[index];
+		else if constexpr (std::is_integral_v<Element> && sizeof(Element) == 4)
+			return value.m256i_i32[index];
+		else if constexpr (std::is_integral_v<Element> && sizeof(Element) == 8 && std::is_unsigned_v<Element>)
+			return value.m256i_u64[index];
+		else if constexpr (std::is_integral_v<Element> && sizeof(Element) == 8)
+			return value.m256i_i64[index];
+		else if constexpr (std::same_as<Element, float>)
+			return value.m256_f32[index];
+		else
+			return value.m256d_f64[index];
+	}
+#else
+	return std::bit_cast<std::array<Element, sizeof(Vector) / sizeof(Element)>>(value)[index];
+#endif
+}
+
+/**
  * @brief Replaces one lane through the portable constant-evaluation representation.
  * @tparam Element Scalar lane type.
  * @tparam Vector Compiler-native register type.

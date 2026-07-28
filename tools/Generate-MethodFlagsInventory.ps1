@@ -401,7 +401,7 @@ function Test-SimdOutput {
     $scalarAutoSymbols = @(
         'all', 'any', 'area', 'bits', 'dot_product', 'extract', 'getTuple',
         'lane', 'max_position', 'min_position', 'movemask', 'movemask_slim',
-        'none', 'register_data', 'register_get', 'register_to_array',
+        'none', 'register_data', 'register_get_constexpr', 'register_to_array',
         'scalar_result', 'toArray', 'to_array')
     if ($Symbol -match '^(all|any)_' -or $Symbol -match '^cmp_') { return $false }
     if ($prefix -match '\bauto\s*$') {
@@ -484,7 +484,7 @@ function Get-MemoryClassification {
 
     $constexprIsolation = $Body -match '\b(if\s+consteval|is_constant_evaluated\s*\()'
     $prohibitedRuntimePattern =
-        '\b(memcpy|memmove|register_set)\s*\(|_mm(?:128|256)?_[A-Za-z0-9_]*store|' +
+        '\b(memcpy|memmove|register_set_constexpr)\s*\(|_mm(?:128|256)?_[A-Za-z0-9_]*store|' +
         '\b(destination|write)\b|\bstd::span\s*<\s*(?!const\b)|\b[A-Za-z_][A-Za-z0-9_:<>]*\s*&\s*(hi|out_[A-Za-z0-9_]*)\b'
     $addressableStoragePattern = '\b(std::array|register_to_array|to_array)\b'
     $hasRuntimeWrite = $Header -match $prohibitedRuntimePattern -or $Body -match $prohibitedRuntimePattern

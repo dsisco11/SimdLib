@@ -41,12 +41,12 @@ Runtime Register-Storage Removal:
     ☒ No inventoried method can legally become `consteval` without making at least one supported wrapper ill-formed, so all 56 remain `constexpr`.
 
   Task 3 - Unconditional API Delegation:
-    ☐ Keep the constant-evaluation branch in `Api::get_element` and delegate every runtime call unconditionally to `impl::extract(lhs, index)`.
-    ☐ Keep the constant-evaluation branch in `Api::set_element` and delegate every runtime call unconditionally to `impl::insert(lhs, value, index)`.
-    ☐ Remove register-width branching from both API methods.
-    ☐ Remove `SIMDLIB_HAS_AVX2` branching from both API methods.
-    ☐ Confirm that implementation availability constraints remain the only feature gate.
-    ☐ Compile focused SSE4.2 and AVX2 API probes.
+    ☒ Keep the constant-evaluation branch in `Api::get_element` and delegate every runtime call unconditionally to `impl::extract(lhs, index)`.
+    ☒ Keep the constant-evaluation branch in `Api::set_element` and delegate every runtime call unconditionally to `impl::insert(lhs, value, index)`.
+    ☒ Remove register-width branching from both API methods.
+    ☒ Remove `SIMDLIB_HAS_AVX2` branching from both API methods.
+    ☒ Confirm that implementation availability constraints remain the only feature gate.
+    ☒ Compile focused SSE4.2 and AVX2 API probes.
 
   Task 4 - Specialized 128-Bit Runtime Extraction:
     ☐ Implement runtime `extract(lhs, index)` independently in every `SimdImpl128<element_t>` specialization.

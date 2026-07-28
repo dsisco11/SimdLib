@@ -2613,9 +2613,16 @@ template <> struct SimdImpl128<float>
 	{
 		return _mm_insert_ps(lhs, _mm_set_ss(rhs), index << 4);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, auto rhs, const int index) noexcept
+	/**
+	 * @brief Replaces one runtime-selected 32-bit floating-point lane.
+	 * @param lhs Source register.
+	 * @param rhs Replacement scalar lane.
+	 * @param index Selected lane index.
+	 * @return Register with the selected lane replaced.
+	 */
+	SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, const float rhs, const int index) noexcept
 	{
-		return register_insert_float(lhs, rhs, static_cast<unsigned int>(index));
+		return register_insert_constexpr<float>(lhs, rhs, static_cast<std::size_t>(index));
 	}
 
 	// unpack / pack
@@ -2801,9 +2808,16 @@ template <> struct SimdImpl128<double>
 		else
 			return _mm_unpacklo_pd(lhs, replacement);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, auto rhs, const int index) noexcept
+	/**
+	 * @brief Replaces one runtime-selected 64-bit floating-point lane.
+	 * @param lhs Source register.
+	 * @param rhs Replacement scalar lane.
+	 * @param index Selected lane index.
+	 * @return Register with the selected lane replaced.
+	 */
+	SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, const double rhs, const int index) noexcept
 	{
-		return register_insert_constexpr<double>(lhs, register_get_constexpr<double>(rhs, (static_cast<unsigned int>(index) >> 1) & 1u), static_cast<unsigned int>(index) & 1u);
+		return register_insert_constexpr<double>(lhs, rhs, static_cast<std::size_t>(index));
 	}
 
 	// unpack / pack
@@ -2963,15 +2977,36 @@ template <class element_t> struct SimdMappings<128, element_t> : public SimdImpl
 		return _mm256_broadcastsi128_si256(v);
 	}
 
+	/**
+	 * @brief Replaces one lane through constant-evaluation storage or the runtime implementation.
+	 * @param vec Source register.
+	 * @param index Runtime-selected lane index.
+	 * @param value Replacement scalar lane.
+	 * @return Register with the selected lane replaced.
+	 */
 	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr static vector_t VECTORCALL set_element(vector_t vec, int index, element_t value) noexcept
+		requires requires(vector_t source, element_t replacement, int selected) { impl::insert(source, replacement, selected); }
 	{
-		register_set_constexpr<element_t>(vec, static_cast<std::size_t>(index), value);
-		return vec;
+		if (std::is_constant_evaluated())
+		{
+			register_set_constexpr<element_t>(vec, static_cast<std::size_t>(index), value);
+			return vec;
+		}
+		return impl::insert(vec, value, index);
 	}
 
+	/**
+	 * @brief Reads one lane through constant-evaluation storage or the runtime implementation.
+	 * @param vec Source register.
+	 * @param index Runtime-selected lane index.
+	 * @return Selected scalar lane.
+	 */
 	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr static element_t VECTORCALL get_element(vector_t vec, int index) noexcept
+		requires requires(vector_t source, int selected) { impl::extract(source, selected); }
 	{
-		return register_get_constexpr<element_t>(vec, static_cast<std::size_t>(index));
+		if (std::is_constant_evaluated())
+			return register_get_constexpr<element_t>(vec, static_cast<std::size_t>(index));
+		return impl::extract(vec, index);
 	}
 
 	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE static std::span<element_t, element_count> VECTORCALL view_data(vector_t &vec) noexcept
@@ -5643,9 +5678,16 @@ template <> struct SimdImpl256<float>
 		half = _mm_insert_ps(half, _mm_set_ss(rhs), lane_index << 4);
 		return _mm256_insertf128_ps(lhs, half, half_index);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, auto rhs, const int index) noexcept
+	/**
+	 * @brief Replaces one runtime-selected 32-bit floating-point lane.
+	 * @param lhs Source register.
+	 * @param rhs Replacement scalar lane.
+	 * @param index Selected lane index.
+	 * @return Register with the selected lane replaced.
+	 */
+	SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, const float rhs, const int index) noexcept
 	{
-		return _ext256_insert_ps(lhs, rhs, index);
+		return register_insert_constexpr<float>(lhs, rhs, static_cast<std::size_t>(index));
 	}
 
 	// unpack / pack
@@ -5855,9 +5897,16 @@ template <> struct SimdImpl256<double>
 			half = _mm_unpacklo_pd(half, replacement);
 		return _mm256_insertf128_pd(lhs, half, half_index);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, auto rhs, const int index) noexcept
+	/**
+	 * @brief Replaces one runtime-selected 64-bit floating-point lane.
+	 * @param lhs Source register.
+	 * @param rhs Replacement scalar lane.
+	 * @param index Selected lane index.
+	 * @return Register with the selected lane replaced.
+	 */
+	SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, const double rhs, const int index) noexcept
 	{
-		return _ext256_insert_pd(lhs, rhs, index);
+		return register_insert_constexpr<double>(lhs, rhs, static_cast<std::size_t>(index));
 	}
 
 	// unpack / pack
@@ -6019,15 +6068,36 @@ template <class element_t> struct SimdMappings<256, element_t> : public SimdImpl
 			return impl::add(impl::multiply(lhs, rhs), addend);
 	}
 
+	/**
+	 * @brief Replaces one lane through constant-evaluation storage or the runtime implementation.
+	 * @param vec Source register.
+	 * @param index Runtime-selected lane index.
+	 * @param value Replacement scalar lane.
+	 * @return Register with the selected lane replaced.
+	 */
 	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr static vector_t VECTORCALL set_element(vector_t vec, int index, element_t value) noexcept
+		requires requires(vector_t source, element_t replacement, int selected) { impl::insert(source, replacement, selected); }
 	{
-		register_set_constexpr<element_t>(vec, static_cast<std::size_t>(index), value);
-		return vec;
+		if (std::is_constant_evaluated())
+		{
+			register_set_constexpr<element_t>(vec, static_cast<std::size_t>(index), value);
+			return vec;
+		}
+		return impl::insert(vec, value, index);
 	}
 
+	/**
+	 * @brief Reads one lane through constant-evaluation storage or the runtime implementation.
+	 * @param vec Source register.
+	 * @param index Runtime-selected lane index.
+	 * @return Selected scalar lane.
+	 */
 	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr static element_t VECTORCALL get_element(vector_t vec, int index) noexcept
+		requires requires(vector_t source, int selected) { impl::extract(source, selected); }
 	{
-		return register_get_constexpr<element_t>(vec, static_cast<std::size_t>(index));
+		if (std::is_constant_evaluated())
+			return register_get_constexpr<element_t>(vec, static_cast<std::size_t>(index));
+		return impl::extract(vec, index);
 	}
 
 	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE static std::span<element_t, element_count> VECTORCALL view_data(vector_t &vec) noexcept
