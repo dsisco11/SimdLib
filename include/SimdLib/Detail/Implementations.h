@@ -2910,7 +2910,7 @@ template <class element_t> struct SimdMappings<128, element_t> : public SimdImpl
 		}
 	}
 
-	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr static vector_t VECTORCALL construct(const std::array<element_t, element_count> data) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr static vector_t VECTORCALL construct(const std::array<element_t, element_count> &data) noexcept
 	{
 		if (std::is_constant_evaluated())
 		{
@@ -5974,7 +5974,7 @@ template <class element_t> struct SimdMappings<256, element_t> : public SimdImpl
 		}
 	}
 
-	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr static vector_t VECTORCALL construct(std::array<element_t, element_count> data) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr static vector_t VECTORCALL construct(const std::array<element_t, element_count> &data) noexcept
 	{
 		if (std::is_constant_evaluated())
 		{
