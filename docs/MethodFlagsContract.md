@@ -206,8 +206,9 @@ as a bare token and is not a collision.
 
 ### Canonical declaration position
 
-`SIMD_FLAGS(...)` is the last declaration-specifier component before the return
-type or placeholder return type.
+`SIMD_FLAGS(...)` follows the independently specified return type and immediately
+precedes the function name. The macro never selects, replaces, or deduces the
+return type.
 
 The canonical order is:
 
@@ -215,20 +216,29 @@ The canonical order is:
 2. standard declaration attributes such as `[[nodiscard]]`;
 3. `friend`, `static`, ordinary `inline`, and then `constexpr`, when
    applicable; `consteval` declarations are rejected by the initial contract;
-4. `SIMD_FLAGS(...)`;
-5. return type or placeholder return type;
+4. independently specified return type, including `auto` when selected by the
+   declaration;
+5. `SIMD_FLAGS(...)`;
 6. function name and parameter list;
 7. member cv/ref qualifiers;
 8. exception specification;
-9. trailing return type;
+9. an independently specified trailing return type, when applicable;
 10. trailing `requires` clause.
+
+The macro emits placement-safe optimization attributes followed by the
+configured vector calling convention. This order and position are required
+because MSVC accepts `__vectorcall` after the return type and immediately before
+the function name, but rejects it before the return type. GNU-style compilers
+accept their corresponding function attributes in the same pre-name position.
+An ordinary return type, a deduced `auto` return, and `auto` with an explicit
+trailing return remain normal C++ syntax outside the macro.
 
 `ForceInline` already supplies the header-definition `inline` specifier.
 Ordinary `inline` is therefore omitted when `ForceInline` is present.
 Declarations and out-of-line definitions repeat the same complete flag list.
 Every overload is classified independently.
 
-Phase 2 compiler qualification must prove this prefix placement before the
+Compiler qualification must prove this pre-name placement before the
 public macro is implemented. A compiler-specific warning suppression is not a
 substitute for accepted placement.
 
@@ -238,16 +248,18 @@ substitute for accepted placement.
 
 ```cpp
 [[nodiscard]] constexpr
+Result
 SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten)
-Result transform(Input lhs) noexcept;
+transform(Input lhs) noexcept;
 ```
 
 ### Static member
 
 ```cpp
 [[nodiscard]] static constexpr
+Register
 SIMD_FLAGS(Out, RegisterOnly, ForceInline, Flatten)
-Register zero() noexcept;
+zero() noexcept;
 ```
 
 ### Non-static member
@@ -256,8 +268,9 @@ An implicit object does not itself satisfy `In`.
 
 ```cpp
 [[nodiscard]] constexpr
+Register
 SIMD_FLAGS(InOut, RegisterOnly, ForceInline)
-Register combine(Register rhs) const noexcept;
+combine(Register rhs) const noexcept;
 ```
 
 ### Explicit-object member
@@ -266,18 +279,20 @@ A by-value explicit object satisfies `In`.
 
 ```cpp
 [[nodiscard]] constexpr
+Register
 SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten)
-Register combine(this Register lhs, Register rhs) noexcept;
+combine(this Register lhs, Register rhs) noexcept;
 ```
 
 ### Operator
 
-Operators with an ordinary return type use the same position.
+Operators use the same independently specified return-type form.
 
 ```cpp
 [[nodiscard]] friend constexpr
+Register
 SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten)
-Register operator+(Register lhs, Register rhs) noexcept;
+operator+(Register lhs, Register rhs) noexcept;
 ```
 
 An explicit-object operator uses the explicit-object member form rather than
@@ -289,8 +304,9 @@ adding `friend`.
 template<class Target>
     requires RegisterTarget<Target>
 [[nodiscard]] static constexpr
+Target
 SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten)
-Target convert(native_type value) noexcept;
+convert(native_type value) noexcept;
 ```
 
 The promises apply to every supported specialization selected by the
@@ -301,13 +317,14 @@ constraints.
 ```cpp
 template<class Target>
 [[nodiscard]] static constexpr
+auto
 SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten)
-auto convert(native_type value) noexcept -> Target
+convert(native_type value) noexcept -> Target
     requires RegisterTarget<Target>;
 ```
 
-The placeholder `auto` is the return-type position for macro placement. `Out`
-describes the resolved trailing return type.
+The declaration supplies both `auto` and the resolved trailing return type.
+`SIMD_FLAGS(...)` supplies neither. `Out` describes the resolved return type.
 
 ### Friend function
 
@@ -315,14 +332,15 @@ A friend definition follows the same flag rules as a namespace function.
 
 ```cpp
 [[nodiscard]] friend constexpr
+Register
 SIMD_FLAGS(InOut, RegisterOnly, ForceInline)
-Register select(RegisterMask mask, Register yes, Register no) noexcept;
+select(RegisterMask mask, Register yes, Register no) noexcept;
 ```
 
 ## Unsupported declaration categories
 
 The initial `SIMD_FLAGS(...)` surface deliberately excludes categories that
-lack the canonical return-type position or have incompatible ABI and
+lack an ordinary return type before the function name or have incompatible ABI and
 optimization rules:
 
 - constructors and destructors;
@@ -348,8 +366,8 @@ calling-convention type is preserved instead of placing `SIMD_FLAGS(...)`
 inside a pointer declarator.
 
 Unsupported categories must not be accepted accidentally as a documented
-extension. Later implementation phases provide compile-failure probes or source
-audits for categories that a preprocessor macro cannot diagnose directly.
+extension. Compile-failure probes or source audits cover categories that a
+preprocessor macro cannot diagnose directly.
 
 ## Register-only audit procedure
 
@@ -384,16 +402,22 @@ initial mapping baseline is:
 
 | Mode or modifier | Microsoft C++ | clang-cl | GNU-like Clang | GCC |
 |---|---|---|---|---|
-| `Neither` | no emitted token | no emitted token | no emitted token | no emitted token |
+| `Neither` | no boundary token | no boundary token | no boundary token | no boundary token |
 | `In`, `Out`, or `InOut` | configured `__vectorcall` on supported Windows x86 targets | configured `__vectorcall` on supported Windows x86 targets | no vector-calling-convention token | no vector-calling-convention token |
 | `RegisterOnly` | `__declspec(safebuffers)` after audit | no emitted token | no emitted token | no emitted token |
-| `ForceInline` | `[[msvc::forceinline]] inline` | `[[clang::always_inline]] inline` | `[[clang::always_inline]] inline` | `[[gnu::always_inline]] inline` |
-| `Flatten` | `[[msvc::flatten]]` | `[[gnu::flatten]]` | `[[gnu::flatten]]` | `[[gnu::flatten]]` |
+| `ForceInline` | `__forceinline` | `inline __attribute__((always_inline))` | `inline __attribute__((always_inline))` | `inline __attribute__((always_inline))` |
+| `Flatten` | `[[msvc::flatten]]` | `__attribute__((flatten))` | `__attribute__((flatten))` | `__attribute__((flatten))` |
 
 These are adapter mappings, not definitions of the flags. A new compiler may
 map the same promise differently. Changing a compiler mapping requires focused
 syntax, ABI, and generated-code evidence; it does not require rewriting
 correctly classified function declarations.
+
+The placement-safe method-flags adapters may use a different spelling from a
+legacy low-level adapter with the same semantic effect. In particular, the
+C++11-style force-inline attributes are not accepted after every semantic
+specifier by MSVC and clang-cl, while the keyword or GNU attribute spellings
+above are accepted in the canonical declaration position without warnings.
 
 ## Extension rule
 

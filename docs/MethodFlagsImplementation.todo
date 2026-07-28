@@ -8,7 +8,7 @@ SimdLib Method Flags Implementation Plan:
 
   Controlling Decisions:
     ☐ Use the public spelling `SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten)`, with one required boundary mode followed by only the modifiers required by a particular declaration.
-    ☐ Place `SIMD_FLAGS(...)` in the declaration-specifier sequence before the return type, subject to the compiler-placement qualification gate.
+    ☐ Specify the return type independently, place `SIMD_FLAGS(...)` after that type and immediately before the function name, and have the macro emit only placement-safe attributes plus the configured calling convention.
     ☐ Require exactly one first-position boundary mode: `Neither`, `In`, `Out`, or `InOut`.
     ☐ Treat `In` and `Out` as one-direction SIMD call-boundary modes: `In` means at least one native or SimdLib SIMD register value enters by value, while `Out` means a native or SimdLib SIMD register value is returned by value.
     ☐ Treat `InOut` as the bidirectional boundary mode and emit the supported vector calling convention exactly once.
@@ -52,8 +52,8 @@ SimdLib Method Flags Implementation Plan:
     ☒ Require modifiers to appear in canonical order without duplicates, and require noncanonical lists to fail at the declaration or an enforced source audit.
     ☒ Require unknown, misspelled, or unsupported modes and modifiers to fail at the declaration rather than being silently ignored.
     ☒ Define `SIMD_FLAGS()` as invalid and document that modifier-only invocations must use the `Neither` boundary mode.
-    ☒ Define the canonical ordering between `[[nodiscard]]`, `static`, `friend`, `constexpr`, `consteval`, `SIMD_FLAGS(...)`, the return type, the declarator, `noexcept`, and `requires`.
-    ☒ Define how constructor, conversion-operator, deduction-guide, lambda, virtual-function, and function-pointer declarations are handled when no ordinary return-type position exists.
+    ☒ Define the canonical ordering between `[[nodiscard]]`, `static`, `friend`, `constexpr`, `consteval`, the independent return type, `SIMD_FLAGS(...)`, the declarator, `noexcept`, and `requires`.
+    ☒ Define how constructor, conversion-operator, deduction-guide, lambda, virtual-function, and function-pointer declarations are handled when the required pre-name position is unavailable or unsupported.
     ☒ Reject unsupported declaration categories explicitly rather than claiming the macro is universal.
     ☒ Record that `InOut` describes one bidirectional SIMD call boundary and produces exactly one `__vectorcall` token where supported.
     ☒ Record `RegisterOnly` audit criteria for direct stores, output spans, non-const references, pointer writes, local arrays, `memcpy` destinations, calls with writable memory, volatile access, inline assembly, and compiler intrinsics with memory side effects.
@@ -72,19 +72,20 @@ SimdLib Method Flags Implementation Plan:
     ☒ Keep all parsing helpers under a reserved `SIMDLIB_DETAIL_` prefix and prevent them from leaking short macro names.
     ☒ Add preprocessing-only fixtures that compare every canonical invocation with its exact declaration-token expansion independently of C++ code generation.
     ☒ End Phase 1 only when the exact public grammar is proven feasible on traditional and conforming MSVC, clang-cl, GCC, and GNU-like Clang preprocessors without a new dependency or global short-name pollution.
-      Evidence: `tests/method_flags/MethodFlagsPrototype.h` implements four boundary mappings, eight canonical modifier forms, and bounded arity dispatch in 4,011 bytes and 37 macro definitions, down from 19,151 bytes and 114 definitions. `cmake/VerifyMethodFlagsPreprocessor.cmake` exact-compares all 32 canonical forms plus a function-like collision case and verifies seven invalid expansions before requiring compilation failure. MSVC 19.44.35222 in both traditional and `/Zc:preprocessor` modes, clang-cl 22.1.8, pinned GCC 14.2.0, and pinned GNU-like Clang 22.1.3 each verified 33 expansions and seven focused failures. The registered focused MSVC CTest entry passed 1/1.
+      Evidence: `tests/method_flags/MethodFlagsPrototype.h` implements four boundary mappings, eight canonical modifier forms, and bounded arity dispatch in 4,011 bytes and 37 macro definitions, down from 19,151 bytes and 114 definitions. The macro emits only the selected attribute and calling-convention adapters; return types remain independent. `cmake/VerifyMethodFlagsPreprocessor.cmake` exact-compares all 32 canonical forms plus a function-like collision case and verifies seven invalid expansions before requiring compilation failure. MSVC 19.44.35222 in both traditional and `/Zc:preprocessor` modes, clang-cl 22.1.8, pinned GCC 14.2.0, and pinned GNU-like Clang 22.1.3 each verified 33 expansions and seven focused failures. The registered focused MSVC CTest entry passed 1/1.
 
   Phase 2 - Qualify Compiler Placement and Attribute Composition:
-    ☐ Compile the canonical prefix placement with MSVC and clang-cl using active `__vectorcall`, force-inline, flatten, and safe-buffer attributes.
-    ☐ Compile the same source form with GCC and GNU-like Clang using their active force-inline and flatten mappings while the unsupported vector calling convention remains empty.
-    ☐ Verify the declaration form under the supported C++20 core and C++23 Register language modes.
-    ☐ Cover free functions, static members, explicit-object members, operators, friend definitions, templates, constrained overloads, supported `constexpr` forms, and prohibited `consteval` forms.
-    ☐ Verify positive composition with `[[nodiscard]]`, `static`, `friend`, `inline`, `constexpr`, `noexcept`, trailing return types, and `requires`, plus negative handling of `consteval`.
-    ☐ Verify declaration and definition spellings agree across translation units and produce compatible function types and mangled names.
-    ☐ Verify that taking the address of a flagged function and deriving a callback type with `decltype` retains the intended calling convention, while explicit function-pointer flag placement remains rejected.
-    ☐ Add negative probes for declaration categories or placements the contract explicitly does not support.
-    ☐ Treat a warning accepted only through diagnostic suppression as a failed placement unless the warning is documented as a compiler defect with no correct alternative.
-    ☐ End Phase 2 only when each supported compiler accepts one consistent source form and ABI probes prove that moving the calling-convention token before the return type does not change the intended boundary.
+    ☒ Compile the canonical return-type-then-flags placement with MSVC and clang-cl using active `__vectorcall`, force-inline, flatten, and the safe-buffer mapping where supported.
+    ☒ Compile the same source form with GCC and GNU-like Clang using their active force-inline and flatten mappings while the unsupported vector calling convention remains empty.
+    ☒ Verify the declaration form under the supported C++20 core and C++23 Register language modes.
+    ☒ Cover free functions, static members, explicit-object members, operators, friend definitions, templates, constrained overloads, supported `constexpr` forms, and prohibited `consteval` forms.
+    ☒ Verify positive composition with `[[nodiscard]]`, `static`, `friend`, `inline`, `constexpr`, `noexcept`, trailing return types, and `requires`, plus negative handling of `consteval`.
+    ☒ Verify declaration and definition spellings agree across translation units and produce compatible function types and mangled names.
+    ☒ Verify that taking the address of a flagged function and deriving a callback type with `decltype` retains the intended calling convention, while explicit function-pointer flag placement remains rejected.
+    ☒ Add negative probes for declaration categories or placements the contract explicitly does not support.
+    ☒ Treat a warning accepted only through diagnostic suppression as a failed placement unless the warning is documented as a compiler defect with no correct alternative.
+    ☒ End Phase 2 only when each supported compiler accepts one consistent source form and cross-spelling ABI probes prove that the macro and legacy declarations preserve the same intended boundary.
+      Evidence: `tests/method_flags/placement` qualifies the independently specified return-type form under strict warnings-as-errors in C++20 and C++23. It covers free, static, non-static, explicit-object, operator, friend, template, constrained, `constexpr`, inline, `[[nodiscard]]`, `noexcept`, independently specified trailing-return, and `requires` declarations. `cmake/VerifyMethodFlagsPlacementSource.cmake` rejects prohibited constructors, conversion operators, lambdas, `consteval`, and explicit function-pointer placement. Cross-translation-unit definitions deliberately swap the flagged and legacy spellings; direct callback assignment, linking, and execution prove compatible calling-convention types and decorated names. MSVC 19.44.35222, clang-cl 22.1.8, pinned GCC 14.2.0, and pinned Clang 22.1.3 built the focused suite without diagnostic suppression, and each ABI test passed 1/1. The exact preprocessor matrix verified 33 canonical expansions and seven grammar failures in traditional MSVC, conforming MSVC, clang-cl, GCC, and Clang modes without a macro-owned return token. The integrated MSVC target built and its registered preprocessor and ABI tests passed 2/2.
 
   Phase 3 - Implement the Public Macro and Compiler Adapters:
     ☐ Add `SIMD_FLAGS(...)` to the public configuration boundary with Doxygen documentation for its syntax, contracts, limitations, and supported declaration categories.
@@ -180,7 +181,7 @@ SimdLib Method Flags Implementation Plan:
   Execution Evidence:
     ☒ Phase 0 boundary-mode grammar, modifier contracts, invalid forms, and audit criteria recorded in `docs/MethodFlagsContract.md`.
     ☒ Phase 1 dependency-free dispatcher feasibility, diagnostics, traditional-MSVC compatibility, and collision results recorded in `docs/MethodFlagsParserEvaluation.md` and the Phase 1 evidence ledger above.
-    ☐ Phase 2 MSVC, clang-cl, GCC, and GNU-like Clang placement and ABI-composition results recorded.
+    ☒ Phase 2 MSVC, clang-cl, GCC, and GNU-like Clang placement and ABI-composition results recorded.
     ☐ Phase 3 public macro, compiler adapters, caller overrides, and isolated configuration probes recorded.
     ☐ Phase 4 syntax, ABI, stack-protection, inlining, flattening, code-generation, and downstream-consumer tests recorded.
     ☐ Phase 5 individual declaration inventory, promise classifications, and reviewed exceptions recorded.

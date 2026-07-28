@@ -29,7 +29,9 @@ The dependency-free prototype in
    preprocessor.
 
 `Neither` maps to no calling-convention token. `In`, `Out`, and `InOut` each map
-to exactly one calling-convention adapter.
+to exactly one calling-convention adapter. The parser emits only the selected
+compiler attributes and calling convention; the declaration provides its return
+type independently before `SIMD_FLAGS(...)`.
 
 Canonical modifier mappings are defined directly:
 

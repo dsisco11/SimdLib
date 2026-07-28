@@ -35,6 +35,10 @@ if(SIMDLIB_BUILD_CONFIGURATION_PROBES)
 			-P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/VerifyMethodFlagsPreprocessor.cmake)
 	set_tests_properties(MethodFlagsPreprocessor PROPERTIES
 		LABELS "CONFIGURATION;METHOD_FLAGS;PREPROCESSOR")
+
+	add_subdirectory(
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/method_flags/placement
+		${CMAKE_CURRENT_BINARY_DIR}/method-flags-placement)
 endif()
 
 if(SIMDLIB_BUILD_CONSTEXPR_PROBES)
@@ -88,12 +92,26 @@ if(SIMDLIB_BUILD_CONFIGURATION_PROBES)
 		${CMAKE_CURRENT_SOURCE_DIR}/include/SimdLib/Config.h
 		${CMAKE_CURRENT_SOURCE_DIR}/include/SimdLib/Register.h
 		${CMAKE_CURRENT_SOURCE_DIR}/cmake/VerifyMethodFlagsPreprocessor.cmake
+		${CMAKE_CURRENT_SOURCE_DIR}/cmake/VerifyMethodFlagsPlacementSource.cmake
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/method_flags/MethodFlagsPrototype.h
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/method_flags/InvalidEmpty.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/method_flags/InvalidUnknown.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/method_flags/InvalidDuplicate.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/method_flags/InvalidTooMany.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/method_flags/InvalidObjectMacroCollision.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/method_flags/InvalidMissingBoundary.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/method_flags/InvalidModifierOrder.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/method_flags/placement/CMakeLists.txt
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/method_flags/placement/MethodFlagsPlacementFixture.h
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/method_flags/placement/MethodFlagsPlacementCxx20.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/method_flags/placement/MethodFlagsPlacementCxx23.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/method_flags/placement/MethodFlagsPlacementAbiDefinition.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/method_flags/placement/MethodFlagsPlacementAbiConsumer.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/method_flags/placement/InvalidConstructor.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/method_flags/placement/InvalidConversionOperator.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/method_flags/placement/InvalidLambda.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/method_flags/placement/InvalidConsteval.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/method_flags/placement/InvalidFunctionPointer.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/RegisterHeaderCxx20.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/RegisterRequirementCxx20.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/RegisterAvailabilityOverride.cpp
