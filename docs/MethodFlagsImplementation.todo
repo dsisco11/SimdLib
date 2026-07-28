@@ -42,18 +42,19 @@ SimdLib Method Flags Implementation Plan:
     ☐ Do not accept code-generation changes merely because the new declaration is shorter or more readable.
 
   Phase 0 - Freeze the Grammar and Contract:
-    ☐ Record the canonical declaration form for free functions, static members, non-static members, C++23 explicit-object members, operators, friend functions, function templates, and constrained functions.
-    ☐ Decide the supported maximum flag count and require a focused diagnostic when it is exceeded.
-    ☐ Decide whether duplicate flags are rejected or treated idempotently; in either case, guarantee that no compiler token is emitted twice.
-    ☐ Require unknown, misspelled, or unsupported flags to fail compilation at the declaration rather than being silently ignored.
-    ☐ Define whether `SIMD_FLAGS()` with no arguments is rejected or expands to nothing, and document the selected behavior.
-    ☐ Define the canonical ordering between `[[nodiscard]]`, `static`, `friend`, `constexpr`, `consteval`, `SIMD_FLAGS(...)`, the return type, the declarator, `noexcept`, and `requires`.
-    ☐ Define how constructor, conversion-operator, deduction-guide, lambda, virtual-function, and function-pointer declarations are handled when no ordinary return-type position exists.
-    ☐ Reject unsupported declaration categories explicitly rather than claiming the macro is universal.
-    ☐ Record that `In` plus `Out` describes one bidirectional SIMD call boundary and must not produce duplicate `__vectorcall` tokens.
-    ☐ Record `RegisterOnly` audit criteria for direct stores, output spans, non-const references, pointer writes, local arrays, `memcpy` destinations, calls with writable memory, volatile access, inline assembly, and compiler intrinsics with memory side effects.
-    ☐ Record the distinction between a semantic flag and its current compiler expansion so future compilers can implement the contract differently without changing call sites.
-    ☐ End Phase 0 only when every initial flag, declaration position, invalid form, and audit responsibility has an unambiguous written contract.
+    ☒ Record the canonical declaration form for free functions, static members, non-static members, C++23 explicit-object members, operators, friend functions, function templates, and constrained functions.
+    ☒ Decide the supported maximum flag count and require a focused diagnostic when it is exceeded.
+    ☒ Decide whether duplicate flags are rejected or treated idempotently; in either case, guarantee that no compiler token is emitted twice.
+    ☒ Require unknown, misspelled, or unsupported flags to fail compilation at the declaration rather than being silently ignored.
+    ☒ Define whether `SIMD_FLAGS()` with no arguments is rejected or expands to nothing, and document the selected behavior.
+    ☒ Define the canonical ordering between `[[nodiscard]]`, `static`, `friend`, `constexpr`, `consteval`, `SIMD_FLAGS(...)`, the return type, the declarator, `noexcept`, and `requires`.
+    ☒ Define how constructor, conversion-operator, deduction-guide, lambda, virtual-function, and function-pointer declarations are handled when no ordinary return-type position exists.
+    ☒ Reject unsupported declaration categories explicitly rather than claiming the macro is universal.
+    ☒ Record that `In` plus `Out` describes one bidirectional SIMD call boundary and must not produce duplicate `__vectorcall` tokens.
+    ☒ Record `RegisterOnly` audit criteria for direct stores, output spans, non-const references, pointer writes, local arrays, `memcpy` destinations, calls with writable memory, volatile access, inline assembly, and compiler intrinsics with memory side effects.
+    ☒ Record the distinction between a semantic flag and its current compiler expansion so future compilers can implement the contract differently without changing call sites.
+    ☒ End Phase 0 only when every initial flag, declaration position, invalid form, and audit responsibility has an unambiguous written contract.
+      Evidence: `docs/MethodFlagsContract.md` freezes the five-flag grammar, diagnostics, declaration forms, unsupported categories, register-only audit procedure, compiler-mapping boundary, and extension rule.
 
   Phase 1 - Prove the Macro Grammar Is Implementable:
     ☐ Prototype a dependency-free variadic preprocessor flag-set parser that recognizes the approved tokens without defining globally visible object-like flag macros.
@@ -72,10 +73,10 @@ SimdLib Method Flags Implementation Plan:
     ☐ Compile the canonical prefix placement with MSVC and clang-cl using active `__vectorcall`, force-inline, flatten, and safe-buffer attributes.
     ☐ Compile the same source form with GCC and GNU-like Clang using their active force-inline and flatten mappings while the unsupported vector calling convention remains empty.
     ☐ Verify the declaration form under the supported C++20 core and C++23 Register language modes.
-    ☐ Cover free functions, static members, explicit-object members, operators, friend definitions, templates, constrained overloads, and `constexpr`/`consteval` combinations.
-    ☐ Verify composition with `[[nodiscard]]`, `static`, `friend`, `inline`, `constexpr`, `consteval`, `noexcept`, trailing return types, and `requires`.
+    ☐ Cover free functions, static members, explicit-object members, operators, friend definitions, templates, constrained overloads, supported `constexpr` forms, and prohibited `consteval` forms.
+    ☐ Verify positive composition with `[[nodiscard]]`, `static`, `friend`, `inline`, `constexpr`, `noexcept`, trailing return types, and `requires`, plus negative handling of `consteval`.
     ☐ Verify declaration and definition spellings agree across translation units and produce compatible function types and mangled names.
-    ☐ Verify function-pointer and callback declarations retain the intended calling convention where the compiler represents it in the function type.
+    ☐ Verify that taking the address of a flagged function and deriving a callback type with `decltype` retains the intended calling convention, while explicit function-pointer flag placement remains rejected.
     ☐ Add negative probes for declaration categories or placements the contract explicitly does not support.
     ☐ Treat a warning accepted only through diagnostic suppression as a failed placement unless the warning is documented as a compiler defect with no correct alternative.
     ☐ End Phase 2 only when each supported compiler accepts one consistent source form and ABI probes prove that moving the calling-convention token before the return type does not change the intended boundary.
@@ -172,7 +173,7 @@ SimdLib Method Flags Implementation Plan:
     ☐ End Phase 9 only when SimdLib and a downstream consumer can use one documented flag-based declaration system with unchanged behavior and complete compiler evidence.
 
   Execution Evidence:
-    ☐ Phase 0 grammar, flag contracts, invalid forms, and audit criteria recorded.
+    ☒ Phase 0 grammar, flag contracts, invalid forms, and audit criteria recorded in `docs/MethodFlagsContract.md`.
     ☐ Phase 1 dependency-free parser feasibility, diagnostics, order independence, and collision results recorded.
     ☐ Phase 2 MSVC, clang-cl, GCC, and GNU-like Clang placement and ABI-composition results recorded.
     ☐ Phase 3 public macro, compiler adapters, caller overrides, and isolated configuration probes recorded.
