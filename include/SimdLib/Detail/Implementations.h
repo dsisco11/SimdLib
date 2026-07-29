@@ -509,9 +509,19 @@ template <> struct SimdImpl128<int8_t>
 	{
 		return _mm_insert_epi8(lhs, static_cast<int>(rhs), index);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, auto rhs, const int index) noexcept
+	/**
+	 * @brief Replaces one runtime-selected signed 8-bit lane.
+	 * @param lhs Source register.
+	 * @param rhs Replacement scalar lane.
+	 * @param index Selected lane in the range `[0, 16)`.
+	 * @return Register with the selected lane replaced.
+	 */
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m128i VECTORCALL insert(const __m128i lhs, const int8_t rhs, const int index) noexcept
 	{
-		return register_insert_constexpr<std::int8_t>(lhs, rhs, static_cast<std::size_t>(index));
+		SIMDLIB_PRECONDITION(index >= 0 && index < 16, "Signed 8-bit insertion requires a valid 128-bit lane index");
+		const __m128i lane_indices = _mm_setr_epi8(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15);
+		const __m128i selected_lane = _mm_cmpeq_epi8(lane_indices, _mm_set1_epi8(static_cast<char>(index)));
+		return _mm_blendv_epi8(lhs, _mm_set1_epi8(rhs), selected_lane);
 	}
 
 	// unpack / pack
@@ -852,9 +862,19 @@ template <> struct SimdImpl128<uint8_t>
 	{
 		return _mm_insert_epi8(lhs, static_cast<int>(rhs), index);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, auto rhs, const int index) noexcept
+	/**
+	 * @brief Replaces one runtime-selected unsigned 8-bit lane.
+	 * @param lhs Source register.
+	 * @param rhs Replacement scalar lane.
+	 * @param index Selected lane in the range `[0, 16)`.
+	 * @return Register with the selected lane replaced.
+	 */
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m128i VECTORCALL insert(const __m128i lhs, const uint8_t rhs, const int index) noexcept
 	{
-		return register_insert_constexpr<std::uint8_t>(lhs, rhs, static_cast<std::size_t>(index));
+		SIMDLIB_PRECONDITION(index >= 0 && index < 16, "Unsigned 8-bit insertion requires a valid 128-bit lane index");
+		const __m128i lane_indices = _mm_setr_epi8(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15);
+		const __m128i selected_lane = _mm_cmpeq_epi8(lane_indices, _mm_set1_epi8(static_cast<char>(index)));
+		return _mm_blendv_epi8(lhs, _mm_set1_epi8(std::bit_cast<int8_t>(rhs)), selected_lane);
 	}
 
 	// unpack / pack
@@ -1189,9 +1209,19 @@ template <> struct SimdImpl128<int16_t>
 	{
 		return _mm_insert_epi16(lhs, static_cast<int>(rhs), index);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, auto rhs, const int index) noexcept
+	/**
+	 * @brief Replaces one runtime-selected signed 16-bit lane.
+	 * @param lhs Source register.
+	 * @param rhs Replacement scalar lane.
+	 * @param index Selected lane in the range `[0, 8)`.
+	 * @return Register with the selected lane replaced.
+	 */
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m128i VECTORCALL insert(const __m128i lhs, const int16_t rhs, const int index) noexcept
 	{
-		return register_insert_constexpr<std::int16_t>(lhs, rhs, static_cast<std::size_t>(index));
+		SIMDLIB_PRECONDITION(index >= 0 && index < 8, "Signed 16-bit insertion requires a valid 128-bit lane index");
+		const __m128i lane_indices = _mm_setr_epi16(0, 1, 2, 3, 4, 5, 6, 7);
+		const __m128i selected_lane = _mm_cmpeq_epi16(lane_indices, _mm_set1_epi16(static_cast<int16_t>(index)));
+		return _mm_blendv_epi8(lhs, _mm_set1_epi16(rhs), selected_lane);
 	}
 
 	// unpack / pack
@@ -1545,9 +1575,19 @@ template <> struct SimdImpl128<uint16_t>
 	{
 		return _mm_insert_epi16(lhs, static_cast<int>(rhs), index);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, auto rhs, const int index) noexcept
+	/**
+	 * @brief Replaces one runtime-selected unsigned 16-bit lane.
+	 * @param lhs Source register.
+	 * @param rhs Replacement scalar lane.
+	 * @param index Selected lane in the range `[0, 8)`.
+	 * @return Register with the selected lane replaced.
+	 */
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m128i VECTORCALL insert(const __m128i lhs, const uint16_t rhs, const int index) noexcept
 	{
-		return register_insert_constexpr<std::int16_t>(lhs, rhs, static_cast<std::size_t>(index));
+		SIMDLIB_PRECONDITION(index >= 0 && index < 8, "Unsigned 16-bit insertion requires a valid 128-bit lane index");
+		const __m128i lane_indices = _mm_setr_epi16(0, 1, 2, 3, 4, 5, 6, 7);
+		const __m128i selected_lane = _mm_cmpeq_epi16(lane_indices, _mm_set1_epi16(static_cast<int16_t>(index)));
+		return _mm_blendv_epi8(lhs, _mm_set1_epi16(std::bit_cast<int16_t>(rhs)), selected_lane);
 	}
 
 	// unpack / pack
@@ -1845,9 +1885,19 @@ template <> struct SimdImpl128<int32_t>
 	{
 		return _mm_insert_epi32(lhs, rhs, index);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, auto rhs, const int index) noexcept
+	/**
+	 * @brief Replaces one runtime-selected signed 32-bit lane.
+	 * @param lhs Source register.
+	 * @param rhs Replacement scalar lane.
+	 * @param index Selected lane in the range `[0, 4)`.
+	 * @return Register with the selected lane replaced.
+	 */
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m128i VECTORCALL insert(const __m128i lhs, const int32_t rhs, const int index) noexcept
 	{
-		return register_insert_constexpr<std::int32_t>(lhs, rhs, static_cast<std::size_t>(index));
+		SIMDLIB_PRECONDITION(index >= 0 && index < 4, "Signed 32-bit insertion requires a valid 128-bit lane index");
+		const __m128i lane_indices = _mm_setr_epi32(0, 1, 2, 3);
+		const __m128i selected_lane = _mm_cmpeq_epi32(lane_indices, _mm_set1_epi32(index));
+		return _mm_blendv_epi8(lhs, _mm_set1_epi32(rhs), selected_lane);
 	}
 
 	// unpack / pack
@@ -2152,9 +2202,19 @@ template <> struct SimdImpl128<uint32_t>
 	{
 		return _mm_insert_epi32(lhs, std::bit_cast<int32_t>(rhs), index);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, auto rhs, const int index) noexcept
+	/**
+	 * @brief Replaces one runtime-selected unsigned 32-bit lane.
+	 * @param lhs Source register.
+	 * @param rhs Replacement scalar lane.
+	 * @param index Selected lane in the range `[0, 4)`.
+	 * @return Register with the selected lane replaced.
+	 */
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m128i VECTORCALL insert(const __m128i lhs, const uint32_t rhs, const int index) noexcept
 	{
-		return register_insert_constexpr<std::int32_t>(lhs, rhs, static_cast<std::size_t>(index));
+		SIMDLIB_PRECONDITION(index >= 0 && index < 4, "Unsigned 32-bit insertion requires a valid 128-bit lane index");
+		const __m128i lane_indices = _mm_setr_epi32(0, 1, 2, 3);
+		const __m128i selected_lane = _mm_cmpeq_epi32(lane_indices, _mm_set1_epi32(index));
+		return _mm_blendv_epi8(lhs, _mm_set1_epi32(std::bit_cast<int32_t>(rhs)), selected_lane);
 	}
 
 	// unpack / pack
@@ -2418,9 +2478,19 @@ template <> struct SimdImpl128<int64_t>
 	{
 		return _mm_insert_epi64(lhs, rhs, index);
 	}
-	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL insert(auto lhs, auto rhs, int index) noexcept
+	/**
+	 * @brief Replaces one runtime-selected signed 64-bit lane.
+	 * @param lhs Source register.
+	 * @param rhs Replacement scalar lane.
+	 * @param index Selected lane in the range `[0, 2)`.
+	 * @return Register with the selected lane replaced.
+	 */
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m128i VECTORCALL insert(const __m128i lhs, const int64_t rhs, const int index) noexcept
 	{
-		return register_insert_constexpr<std::int64_t>(lhs, rhs, static_cast<std::size_t>(index));
+		SIMDLIB_PRECONDITION(index >= 0 && index < 2, "Signed 64-bit insertion requires a valid 128-bit lane index");
+		const __m128i lane_indices = _mm_set_epi64x(1, 0);
+		const __m128i selected_lane = _mm_cmpeq_epi64(lane_indices, _mm_set1_epi64x(index));
+		return _mm_blendv_epi8(lhs, _mm_set1_epi64x(rhs), selected_lane);
 	}
 
 	// unpack / pack
@@ -2659,9 +2729,19 @@ template <> struct SimdImpl128<uint64_t>
 	{
 		return _mm_insert_epi64(lhs, std::bit_cast<int64_t>(rhs), index);
 	}
-	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL insert(auto lhs, auto rhs, int index) noexcept
+	/**
+	 * @brief Replaces one runtime-selected unsigned 64-bit lane.
+	 * @param lhs Source register.
+	 * @param rhs Replacement scalar lane.
+	 * @param index Selected lane in the range `[0, 2)`.
+	 * @return Register with the selected lane replaced.
+	 */
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m128i VECTORCALL insert(const __m128i lhs, const uint64_t rhs, const int index) noexcept
 	{
-		return register_insert_constexpr<std::int64_t>(lhs, rhs, static_cast<std::size_t>(index));
+		SIMDLIB_PRECONDITION(index >= 0 && index < 2, "Unsigned 64-bit insertion requires a valid 128-bit lane index");
+		const __m128i lane_indices = _mm_set_epi64x(1, 0);
+		const __m128i selected_lane = _mm_cmpeq_epi64(lane_indices, _mm_set1_epi64x(index));
+		return _mm_blendv_epi8(lhs, _mm_set1_epi64x(std::bit_cast<int64_t>(rhs)), selected_lane);
 	}
 
 	// unpack / pack
@@ -2847,9 +2927,20 @@ template <> struct SimdImpl128<float>
 	 * @param index Selected lane index.
 	 * @return Register with the selected lane replaced.
 	 */
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, const float rhs, const int index) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m128 VECTORCALL insert(const __m128 lhs, const float rhs, const int index) noexcept
 	{
-		return register_insert_constexpr<float>(lhs, rhs, static_cast<std::size_t>(index));
+		SIMDLIB_PRECONDITION(index >= 0 && index < 4, "32-bit floating-point insertion requires a valid 128-bit lane index");
+		switch (index)
+		{
+		case 1:
+			return insert<1>(lhs, rhs);
+		case 2:
+			return insert<2>(lhs, rhs);
+		case 3:
+			return insert<3>(lhs, rhs);
+		default:
+			return insert<0>(lhs, rhs);
+		}
 	}
 
 	// unpack / pack
@@ -3057,9 +3148,16 @@ template <> struct SimdImpl128<double>
 	 * @param index Selected lane index.
 	 * @return Register with the selected lane replaced.
 	 */
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, const double rhs, const int index) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m128d VECTORCALL insert(const __m128d lhs, const double rhs, const int index) noexcept
 	{
-		return register_insert_constexpr<double>(lhs, rhs, static_cast<std::size_t>(index));
+		SIMDLIB_PRECONDITION(index >= 0 && index < 2, "64-bit floating-point insertion requires a valid 128-bit lane index");
+		switch (index)
+		{
+		case 1:
+			return insert<1>(lhs, rhs);
+		default:
+			return insert<0>(lhs, rhs);
+		}
 	}
 
 	// unpack / pack

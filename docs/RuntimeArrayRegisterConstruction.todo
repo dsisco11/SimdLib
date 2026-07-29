@@ -75,12 +75,12 @@ Runtime Register-Storage Removal:
     ☒ Run focused compile-time-index and runtime-index extraction tests.
 
   Task 7 - Specialized 128-Bit Runtime Insertion:
-    ☐ Implement runtime `insert(lhs, value, index)` independently in every `SimdImpl128<element_t>` specialization.
-    ☐ Dispatch runtime indices to that specialization's existing compile-time-indexed `insert<index>` intrinsic methods.
-    ☐ Do not place element-specific insertion methods or element-type switching in `Extensions.h`.
-    ☐ Do not use arrays, compiler register-array members, or addressable register storage.
-    ☐ Add focused correctness coverage for every lane of every supported 128-bit element type.
-    ☐ Inspect optimized code generation for stack references and security-cookie calls.
+    ☒ Implement runtime `insert(lhs, value, index)` independently in every `SimdImpl128<element_t>` specialization.
+    ☒ Use compile-time-indexed `insert<index>` dispatch where optimized code remains register-only; otherwise use a type-specialized intrinsic algorithm that prevents compiler-generated addressable register storage.
+    ☒ Do not place element-specific insertion methods or element-type switching in `Extensions.h`.
+    ☒ Do not use arrays, compiler register-array members, or addressable register storage.
+    ☒ Add focused correctness coverage for every lane of every supported 128-bit element type.
+    ☒ Inspect optimized code generation for stack references and security-cookie calls.
 
   Task 8 - Specialized 256-Bit Runtime Insertion:
     ☐ Implement runtime `insert(lhs, value, index)` independently in every `SimdImpl256<element_t>` specialization.

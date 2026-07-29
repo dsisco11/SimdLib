@@ -36,6 +36,22 @@ enum class comparison_operation
 	unordered,
 };
 
+/** @brief Reports whether an argument pack is a runtime scalar-lane insertion signature. */
+template <class vector_t, class element_t, class... argument_t> struct is_runtime_lane_insert : std::false_type
+{
+};
+
+/** @brief Recognizes `(vector, scalar, index)` runtime scalar-lane insertion arguments. */
+template <class vector_t, class element_t, class lhs_t, class rhs_t, class index_t>
+struct is_runtime_lane_insert<vector_t, element_t, lhs_t, rhs_t, index_t>
+	: std::bool_constant<std::same_as<std::remove_cvref_t<lhs_t>, vector_t> && std::convertible_to<rhs_t, element_t> && std::convertible_to<index_t, int>>
+{
+};
+
+/** @brief Exposes runtime scalar-lane insertion argument recognition as a Boolean constant. */
+template <class vector_t, class element_t, class... argument_t>
+inline constexpr bool is_runtime_lane_insert_v = is_runtime_lane_insert<vector_t, element_t, argument_t...>::value;
+
 } // namespace Detail
 
 /**
@@ -1058,7 +1074,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 */
 	template <class... Args>
 	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(Args &&...args) noexcept
-		requires IImpl::Insert<impl, Args...>
+		requires(IImpl::Insert<impl, Args...> && !Detail::is_runtime_lane_insert_v<vector_t, element_t, Args...>)
 	{
 		return impl::insert(std::forward<Args>(args)...);
 	}

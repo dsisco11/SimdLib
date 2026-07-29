@@ -89,6 +89,59 @@ inline void require_runtime_extraction_matrix_128()
 	require_runtime_extraction_contract<128, double>();
 }
 
+/**
+ * @brief Verifies runtime-selected insertion into every lane of one register specialization.
+ * @tparam Width Register width in bits.
+ * @tparam Element Scalar lane type.
+ */
+template <std::size_t Width, class Element> void require_runtime_insertion_contract()
+{
+	using simd = Api<Width, Element>;
+	std::array<Element, simd::element_count> source{};
+	for (std::size_t index = 0; index < source.size(); ++index)
+	{
+		if constexpr (std::is_floating_point_v<Element>)
+			source[index] = static_cast<Element>(index) + static_cast<Element>(0.25);
+		else if constexpr (std::is_signed_v<Element>)
+			source[index] = static_cast<Element>(static_cast<int>(index) - 8);
+		else
+			source[index] = static_cast<Element>(index * 7 + 3);
+	}
+
+	const auto value = simd::construct(source);
+	for (std::size_t index = 0; index < source.size(); ++index)
+	{
+		const Element replacement = [&]() constexpr
+		{
+			if constexpr (std::is_floating_point_v<Element>)
+				return static_cast<Element>(-static_cast<double>(index) - 0.75);
+			else if constexpr (std::is_signed_v<Element>)
+				return static_cast<Element>(-static_cast<int>(index) - 11);
+			else
+				return static_cast<Element>(std::numeric_limits<Element>::max() - static_cast<Element>(index));
+		}();
+		auto expected = source;
+		expected[index] = replacement;
+		const volatile int runtime_index = static_cast<int>(index);
+		REQUIRE(simd::to_array(simd::insert(value, replacement, runtime_index)) == expected);
+	}
+}
+
+/** @brief Verifies runtime-selected insertion for every lane of every supported 128-bit element type. */
+inline void require_runtime_insertion_matrix_128()
+{
+	require_runtime_insertion_contract<128, std::int8_t>();
+	require_runtime_insertion_contract<128, std::uint8_t>();
+	require_runtime_insertion_contract<128, std::int16_t>();
+	require_runtime_insertion_contract<128, std::uint16_t>();
+	require_runtime_insertion_contract<128, std::int32_t>();
+	require_runtime_insertion_contract<128, std::uint32_t>();
+	require_runtime_insertion_contract<128, std::int64_t>();
+	require_runtime_insertion_contract<128, std::uint64_t>();
+	require_runtime_insertion_contract<128, float>();
+	require_runtime_insertion_contract<128, double>();
+}
+
 #if SIMDLIB_HAS_AVX2
 /** @brief Verifies runtime-selected extraction for every lane of every supported 256-bit element type. */
 inline void require_runtime_extraction_matrix_256()

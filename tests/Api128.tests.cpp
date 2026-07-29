@@ -25,6 +25,11 @@ TEST_CASE("128-bit runtime extraction covers every lane and element type", "[sim
 	require_runtime_extraction_matrix_128();
 }
 
+TEST_CASE("128-bit runtime insertion covers every lane and element type", "[simdlib][sse42][insert][runtime]")
+{
+	require_runtime_insertion_matrix_128();
+}
+
 TEST_CASE("128-bit aligned and unaligned transfer matrix", "[simdlib][sse42][transfer]")
 {
 	require_supported_transfer_matrix<128>();
