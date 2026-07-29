@@ -159,10 +159,10 @@ Runtime Register-Storage Removal:
     ☒ Do not select or implement new runtime-variable immediate-mask algorithms in this task.
 
   Task 16 - Method-Flag Inventory Reconciliation:
-    ☐ Regenerate the method-flags inventory after Tasks 1-15 are independently verified.
-    ☐ Review each newly eligible `RegisterOnly` candidate individually.
-    ☐ Keep all deferred immediate-control-mask operations pending.
-    ☐ Update inventory explanations without recording transient test-pass claims as enduring documentation.
+    ☒ Regenerate the method-flags inventory after Tasks 1-15 are independently verified.
+    ☒ Review each newly eligible `RegisterOnly` candidate individually.
+    ☒ Keep all deferred immediate-control-mask operations pending.
+    ☒ Update inventory explanations without recording transient test-pass claims as enduring documentation.
 
   Task 17 - Focused Cross-Compiler Validation:
     ☐ Run focused optimized generated-code checks with MSVC and clang-cl.

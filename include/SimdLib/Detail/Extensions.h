@@ -425,7 +425,7 @@ SIMDLIB_FORCE_INLINE constexpr Vector register_transform_binary(const Vector lhs
  * @param count Runtime byte count.
  * @return A count in the inclusive range zero through sixteen.
  */
-SIMDLIB_FORCE_INLINE constexpr int _ext128_clamp_byte_shift_count(const int count) noexcept
+SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr int _ext128_clamp_byte_shift_count(const int count) noexcept
 {
 	const int nonnegative = count < 0 ? 0 : count;
 	return nonnegative > 16 ? 16 : nonnegative;

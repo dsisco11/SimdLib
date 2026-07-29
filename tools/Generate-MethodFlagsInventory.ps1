@@ -238,7 +238,9 @@ function Get-DeclarationSymbol {
     $excluded = @(
         'alignas', 'decltype', 'for', 'if', 'noexcept', 'requires',
         'sizeof', 'static_assert', 'switch', 'while')
-    $matches = [regex]::Matches($withoutLegacy, '(~?[A-Za-z_][A-Za-z0-9_]*)\s*\(')
+    $matches = [regex]::Matches(
+        $withoutLegacy,
+        '(~?[A-Za-z_][A-Za-z0-9_]*)(?:\s*<[^<>]*(?:<[^<>]*>[^<>]*)*>)?\s*\(')
     foreach ($match in $matches) {
         $candidate = $match.Groups[1].Value
         if ($candidate -notin $excluded) { return $candidate }
@@ -263,7 +265,9 @@ function Get-ParameterText {
     $symbolIndex = if ($Symbol.StartsWith('operator')) {
         $Header.IndexOf('operator', [StringComparison]::Ordinal)
     } else {
-        $matches = [regex]::Matches($Header, "(?<![A-Za-z0-9_])$([regex]::Escape($Symbol))\s*\(")
+        $matches = [regex]::Matches(
+            $Header,
+            "(?<![A-Za-z0-9_])$([regex]::Escape($Symbol))(?:\s*<[^<>]*(?:<[^<>]*>[^<>]*)*>)?\s*\(")
         if ($matches.Count -eq 0) { -1 } else { $matches[0].Index }
     }
     if ($symbolIndex -lt 0) { return '' }
@@ -307,7 +311,7 @@ function Get-ReturnText {
     } else {
         $match = [regex]::Match(
             $Header,
-            "(?<![A-Za-z0-9_])$([regex]::Escape($Symbol))\s*\(")
+            "(?<![A-Za-z0-9_])$([regex]::Escape($Symbol))(?:\s*<[^<>]*(?:<[^<>]*>[^<>]*)*>)?\s*\(")
         if ($match.Success) { $match.Index } else { -1 }
     }
     if ($symbolOffset -lt 0) { return '' }
