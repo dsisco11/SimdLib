@@ -165,10 +165,10 @@ Runtime Register-Storage Removal:
     ☒ Update inventory explanations without recording transient test-pass claims as enduring documentation.
 
   Task 17 - Focused Cross-Compiler Validation:
-    ☐ Run focused optimized generated-code checks with MSVC and clang-cl.
-    ☐ Run focused optimized generated-code checks with GCC and Clang using stack-protection flags.
-    ☐ Run the relevant focused correctness and constexpr suites for SSE4.2 and AVX2.
-    ☐ Report focused, generated-code, and cross-compiler evidence separately.
+    ☒ Run focused optimized generated-code checks with MSVC and clang-cl.
+    ☒ Run focused optimized generated-code checks with GCC and Clang using stack-protection flags.
+    ☒ Run the relevant focused correctness and constexpr suites for SSE4.2 and AVX2.
+    ☒ Report focused, generated-code, and cross-compiler evidence separately.
 
   Task 18 - Branchless 256-Bit Runtime Extraction Evaluation:
     ☐ Implement branchless experimental extraction paths that use AVX2 variable 32-bit-lane permutation to move the containing dword to lane zero.

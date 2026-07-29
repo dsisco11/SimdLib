@@ -452,7 +452,9 @@ template <vector_operation operation, class element_t>
 #if SIMDLIB_REGISTER_TEST_WIDTH == 128
 		return scalar_remainder_reference<element_t>(lhs, rhs);
 #else
-		return api_type::modulus(lhs, rhs);
+		const register_type left{lhs};
+		const register_type right{rhs};
+		return api_type::modulus(left.native, right.native);
 #endif
 	}
 	else if constexpr (operation == vector_operation::negate && SimdLib::IRegister::Negate<register_type>)
