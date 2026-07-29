@@ -20,9 +20,6 @@
 #include <type_traits>
 #include <utility>
 
-// This file contains SIMD implementations for 128-bit and 256-bit integer and floating-point types.
-// REFERENCE: http://www.alfredklomp.com/programming/sse-intrinsics/
-
 namespace SimdLib
 {
 

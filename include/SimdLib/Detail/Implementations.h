@@ -13,6 +13,12 @@
 #include <span>
 #include <utility>
 
+/*
+ * This file contains SIMD operation abstractions for 128-bit & 256-bit register types across all integer and floating-point numeric types.
+ * SEE: http://www.alfredklomp.com/programming/sse-intrinsics/
+ * SEE: https://agner.org/optimize/optimizing_assembly.pdf
+ * SEE: https://software.intel.com/sites/landingpage/IntrinsicsGuide/
+ */
 namespace SimdLib::Detail
 {
 /// <summary> Provides a common interface of standard SIMD method alias names for different integer types. </summary>
