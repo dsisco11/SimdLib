@@ -48,12 +48,13 @@ template <std::size_t Width> void require_supported_addition_matrix()
 }
 
 /**
- * @brief Verifies runtime-selected extraction from every lane of one 128-bit element specialization.
+ * @brief Verifies runtime-selected extraction from every lane of one register specialization.
+ * @tparam Width Register width in bits.
  * @tparam Element Scalar lane type.
  */
-template <class Element> void require_runtime_extraction_contract_128()
+template <std::size_t Width, class Element> void require_runtime_extraction_contract()
 {
-	using simd = Api<128, Element>;
+	using simd = Api<Width, Element>;
 	std::array<Element, simd::element_count> expected{};
 	for (std::size_t index = 0; index < expected.size(); ++index)
 	{
@@ -76,16 +77,31 @@ template <class Element> void require_runtime_extraction_contract_128()
 /** @brief Verifies runtime-selected extraction for every lane of every supported 128-bit element type. */
 inline void require_runtime_extraction_matrix_128()
 {
-	require_runtime_extraction_contract_128<std::int8_t>();
-	require_runtime_extraction_contract_128<std::uint8_t>();
-	require_runtime_extraction_contract_128<std::int16_t>();
-	require_runtime_extraction_contract_128<std::uint16_t>();
-	require_runtime_extraction_contract_128<std::int32_t>();
-	require_runtime_extraction_contract_128<std::uint32_t>();
-	require_runtime_extraction_contract_128<std::int64_t>();
-	require_runtime_extraction_contract_128<std::uint64_t>();
-	require_runtime_extraction_contract_128<float>();
-	require_runtime_extraction_contract_128<double>();
+	require_runtime_extraction_contract<128, std::int8_t>();
+	require_runtime_extraction_contract<128, std::uint8_t>();
+	require_runtime_extraction_contract<128, std::int16_t>();
+	require_runtime_extraction_contract<128, std::uint16_t>();
+	require_runtime_extraction_contract<128, std::int32_t>();
+	require_runtime_extraction_contract<128, std::uint32_t>();
+	require_runtime_extraction_contract<128, std::int64_t>();
+	require_runtime_extraction_contract<128, std::uint64_t>();
+	require_runtime_extraction_contract<128, float>();
+	require_runtime_extraction_contract<128, double>();
+}
+
+/** @brief Verifies runtime-selected extraction for every lane of every supported 256-bit element type. */
+inline void require_runtime_extraction_matrix_256()
+{
+	require_runtime_extraction_contract<256, std::int8_t>();
+	require_runtime_extraction_contract<256, std::uint8_t>();
+	require_runtime_extraction_contract<256, std::int16_t>();
+	require_runtime_extraction_contract<256, std::uint16_t>();
+	require_runtime_extraction_contract<256, std::int32_t>();
+	require_runtime_extraction_contract<256, std::uint32_t>();
+	require_runtime_extraction_contract<256, std::int64_t>();
+	require_runtime_extraction_contract<256, std::uint64_t>();
+	require_runtime_extraction_contract<256, float>();
+	require_runtime_extraction_contract<256, double>();
 }
 
 template <std::size_t Width, class Element> void require_transfer_contracts()

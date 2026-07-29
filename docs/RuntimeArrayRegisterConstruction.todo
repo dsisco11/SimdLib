@@ -59,12 +59,12 @@ Runtime Register-Storage Removal:
     ☒ Inspect optimized code generation for stack references and security-cookie calls.
 
   Task 5 - Specialized 256-Bit Runtime Extraction:
-    ☐ Implement runtime `extract(lhs, index)` independently in every `SimdImpl256<element_t>` specialization.
-    ☐ Select the lower or upper 128-bit half with intrinsics and delegate to the matching 128-bit element specialization where appropriate.
-    ☐ Do not place element-specific extraction methods or element-type switching in `Extensions.h`.
-    ☐ Do not use arrays, compiler register-array members, or addressable register storage.
-    ☐ Add focused correctness coverage for every lane of every supported 256-bit element type.
-    ☐ Inspect optimized code generation for stack references and security-cookie calls.
+    ☒ Implement runtime `extract(lhs, index)` independently in every `SimdImpl256<element_t>` specialization.
+    ☒ Select the lower or upper 128-bit half with intrinsics and delegate to the matching 128-bit element specialization where appropriate.
+    ☒ Do not place element-specific extraction methods or element-type switching in `Extensions.h`.
+    ☒ Do not use arrays, compiler register-array members, or addressable register storage.
+    ☒ Add focused correctness coverage for every lane of every supported 256-bit element type.
+    ☒ Inspect optimized code generation for stack references and security-cookie calls.
 
   Task 6 - Implementation Extraction Naming Consolidation:
     ☐ Inventory every implementation-layer `get_element` declaration and call site.

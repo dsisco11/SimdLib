@@ -18,6 +18,11 @@ TEST_CASE("256-bit Api specialization matrix", "[simdlib][avx2][availability]")
 	require_supported_addition_matrix<256>();
 }
 
+TEST_CASE("256-bit runtime extraction covers every lane and element type", "[simdlib][avx2][extract][runtime]")
+{
+	require_runtime_extraction_matrix_256();
+}
+
 TEST_CASE("256-bit aligned and unaligned transfer matrix", "[simdlib][avx2][transfer]")
 {
 	require_supported_transfer_matrix<256>();
