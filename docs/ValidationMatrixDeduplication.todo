@@ -1,0 +1,188 @@
+SimdLib Validation Matrix Deduplication Plan:
+
+  Purpose:
+    ☐ Reduce default build and test latency by assigning every validation artifact to the smallest compiler, configuration, and instrumentation scope that can prove its contract.
+    ☐ Preserve optimized correctness, compiler compatibility, generated-code, ABI, Debug-contract, sanitizer, coverage, and downstream-consumer evidence without rebuilding configuration-independent targets in every tree.
+    ☐ Keep the unified `Build` and `Run-Tests` workflow: `Build` produces every artifact required by the default validation matrix once, and `Run-Tests` consumes the matching build receipt without rebuilding targets.
+    ☐ Preserve separate, explicitly requested workflows for diagnostic evidence that remains useful but does not belong in every default build.
+    ☐ Measure the effect of each matrix change so reduced wall time is supported by target, test, and critical-path evidence rather than target counts alone.
+
+  Proposed Matrix Contract:
+    ☐ Run the complete optimized Release correctness suite on every supported compiler and supported instruction-set profile.
+    ☐ Enforce optimized Register generated-code and ABI gates in Release on every Register-capable compiler.
+    ☐ Use MSVC as the representative ordinary Debug runtime configuration for default-check behavior, unoptimized Windows behavior, and Debug runtime consumption.
+    ☐ Use Clang ASan+UBSan as the default Linux Debug instrumentation configuration.
+    ☐ Remove ordinary clang-cl, GCC 13, GCC 14, and Clang Debug cells from the default matrix after focused replacement evidence proves they own no unique contract.
+    ☐ Keep compiler-front-end contracts such as header isolation, configuration adapters, availability, language constraints, negative compilation, and method-flags preprocessing once per compiler, independent of Debug/Release runtime duplication.
+    ☐ Run repository-text audits once per source revision rather than once per compiler or configuration.
+    ☐ Keep constexpr qualification once per required compiler and feature profile, without duplicating it in ordinary Debug, sanitizer, or coverage configurations solely because those trees exist.
+    ☐ Keep benchmark builds and execution Release-only and separate from the default correctness build.
+    ☐ Keep Debug and sanitizer generated-code differential recording available through an explicit diagnostic operation while excluding it from default sanitizer and ordinary Debug builds.
+    ☐ Retain separate configure trees for configurations that remain in the matrix; do not merge MSVC Debug and Release into one multi-config validation identity.
+    ☐ Require any future matrix expansion to identify the unique contract owned by the new cell and prohibit adding a full target inventory merely because a compiler/configuration combination is available.
+
+  Non-Goals:
+    ☐ Do not weaken the optimized Release compiler or instruction-set support matrix.
+    ☐ Do not use one compiler's Release result as evidence for another compiler's optimizer, intrinsic mapping, ABI, or generated code.
+    ☐ Do not treat sanitizer instrumentation as generated-code or performance qualification.
+    ☐ Do not treat coverage execution as a replacement for independent correctness, constexpr, constraint, ABI, or generated-code validation.
+    ☐ Do not delete Debug generated-code diagnostics merely to reduce build time; separate their ownership and invocation first.
+    ☐ Do not remove a register-only or code-generation gate because its current implementation is expensive without auditing the contract it protects.
+    ☐ Do not count moving Catch2 discovery from build time to test time as an end-to-end performance improvement unless the complete `Build` plus `Run-Tests` workflow becomes faster.
+    ☐ Do not rely only on CTest elapsed time when compiler work, post-build discovery, disassembly, comparison scripts, configuration probes, container startup, or external-consumer builds dominate the pipeline.
+    ☐ Do not add temporary compatibility aliases for retired presets or user-facing options solely because the repository previously exposed them; SimdLib has not published a version.
+    ☐ Do not run a complete clean compiler matrix after every phase; use focused validation until the final integration and acceptance phases.
+
+  Phase 0 - Freeze Validation Ownership and Baseline the Pipeline:
+    ☐ Inventory every current native, container, coverage, sanitizer, benchmark, and external-consumer cell produced by `Build`.
+    ☐ Record each cell's compiler, driver style, language mode, instruction-set profile, configuration, instrumentation, target aggregate, test inventory, consumer behavior, and generated-code mode.
+    ☐ Classify every development target as one of: repository audit, compiler-front-end contract, compile-time contract, runtime correctness, checks/preconditions, smoke/ODR/example, external consumer, optimized codegen/ABI, optional diagnostic codegen, sanitizer, coverage, or benchmark.
+    ☐ Record which targets are configuration-independent, which depend on `NDEBUG` or `SIMDLIB_ENABLE_CHECKS`, which require optimization, and which are intentionally unoptimized.
+    ☐ Record Debug/Release target-set intersections and test-name intersections for each compiler family.
+    ☐ Capture clean and cached wall time for configure, main build, consumer build, test discovery, test execution, codegen comparison, coverage processing, and container orchestration.
+    ☐ Parse Ninja and MSBuild evidence sufficiently to identify critical-path outputs rather than inferring cost from file size or target count.
+    ☐ Record compiler work separately from CTest execution so repeated compilation remains visible even when tests run quickly.
+    ☐ Identify every current requirement in planning and qualification documents that mandates Debug or sanitizer codegen, full Debug compiler coverage, or configuration-specific consumer testing.
+    ☐ Resolve conflicts between the desired default matrix and any existing requirement by assigning the evidence to either the default workflow or an explicit diagnostic workflow.
+    ☐ Define the exact default and optional matrix before changing presets or aggregates.
+    ☐ End Phase 0 only when every existing target and test has one documented owner and every retained Debug cell has a unique stated contract.
+
+  Phase 1 - Replace the Monolithic Artifact Sweep with Scoped Aggregates:
+    ☐ Stop deriving the default exhaustive build solely by sweeping every non-interface development target in the directory.
+    ☐ Define explicit, scoped aggregates for repository audits, compiler contracts, constexpr contracts, runtime validation, optimized codegen/ABI, Debug diagnostics, sanitizer validation, coverage support, examples/smoke/ODR, external consumers, and benchmarks where separate aggregates improve ownership.
+    ☐ Keep aggregate names globally unique where they can coexist in a downstream CMake target graph.
+    ☐ Ensure `ExhaustiveArtifacts` or its approved replacement composes only the aggregates required by the selected validation profile.
+    ☐ Keep `BenchmarkArtifacts` isolated so the default build does not acquire benchmark dependencies indirectly.
+    ☐ Prevent sanitizer and coverage aggregates from inheriting codegen or compile-only targets merely because they inherit common development options.
+    ☐ Generate a deterministic development-target inventory for each configured profile and record the owning aggregate for every target.
+    ☐ Fail configuration when a target is unowned, multiply owned without justification, or present in a profile that excludes its category.
+    ☐ Update exhaustive-target validation so it checks the correct profile-specific contract instead of requiring one universal target set.
+    ☐ Add focused CMake tests that prove each aggregate contains its required targets and excludes forbidden categories.
+    ☐ End Phase 1 only when profile membership is explicit, mechanically audited, and no default aggregate can silently absorb a newly declared development target.
+
+  Phase 2 - Deduplicate Repository and Compiler-Front-End Contracts:
+    ☐ Move the production-header static-assert audit and public-consumer implementation-detail scan into a repository-level validation operation that runs once per source revision.
+    ☐ Eliminate the duplicate execution of the same public-header assertion script as both an unconditional build dependency and a CTest entry in every cell.
+    ☐ Preserve a machine-readable audit result in the unified build receipt so `Run-Tests` can verify that the source revision was audited.
+    ☐ Group header-isolation probes under a compiler-contract aggregate and build them once per supported compiler/language/feature profile.
+    ☐ Group configuration, attribute-adapter, availability, language-availability, Register representation, and immediate-control surface probes under the compiler-contract aggregate.
+    ☐ Run the negative `try_compile` suite once per compiler and language/feature profile instead of repeating it for Debug, Release, sanitizer, and coverage trees.
+    ☐ Verify that no front-end probe relies on `NDEBUG`, optimization level, sanitizer instrumentation, coverage instrumentation, Debug runtime libraries, or a configuration-specific generated expression.
+    ☐ Split any genuinely configuration-dependent probe into a narrow named contract rather than retaining the entire compiler-contract suite in both configurations.
+    ☐ Add explicit probes for the default `SIMDLIB_ENABLE_CHECKS` state in Debug and Release so removing duplicate Debug suites does not leave the `NDEBUG` mapping implicit.
+    ☐ Run method-flags preprocessing, placement, configuration, compile-failure, and ABI-declaration compatibility once per compiler.
+    ☐ Run method-flags generated-code comparison only in its approved optimized profile when its own target options already normalize the optimization level.
+    ☐ End Phase 2 only when compiler-contract evidence remains complete and changing a runtime configuration no longer recompiles configuration-independent probe families.
+
+  Phase 3 - Separate Optimized Codegen Gates from Diagnostic Codegen:
+    ☐ Preserve the optimized Release Register wrapper/raw comparison as a mandatory gate for each supported compiler, width, ISA profile, FMA mode, operation family, ABI boundary, and retained documented exception.
+    ☐ Keep strong stack protection enabled for GNU-like optimized codegen qualification and preserve the MSVC security-cookie exception policy.
+    ☐ Define a separate optional Debug codegen diagnostic operation with an explicit compiler and cell selector.
+    ☐ Decide whether Debug diagnostics must cover every Register-capable compiler or only the compilers associated with an active codegen investigation.
+    ☐ Define a separate optional sanitizer differential diagnostic only if sanitizer-instrumented wrapper/raw comparison has a concrete correctness purpose that runtime sanitizer tests cannot provide.
+    ☐ Disable Register generated-code targets in the default ASan+UBSan profile.
+    ☐ Prevent record-only codegen targets from entering ordinary Debug runtime aggregates.
+    ☐ Preserve diagnostic records, compiler flags, stack-protector mode, disassembly tools, and source revision in dedicated provenance output.
+    ☐ Make it impossible for record-only results to satisfy an enforced Release generated-code gate.
+    ☐ Audit the type-matrix, specialized-operation, rearrangement, FMA, ABI, default-ABI, consumer-ABI, and expression fixtures for retained permanent value before carrying them into the optional diagnostic workflow.
+    ☐ Measure disassembly and comparison time independently from compilation and identify pathological unoptimized or instrumented records.
+    ☐ Add a focused regression that proves the default sanitizer and Debug runtime builds contain no Register codegen target, object, record, or disassembly step.
+    ☐ Add a focused regression that proves the explicit diagnostic command still produces the selected records without rebuilding unrelated runtime suites.
+    ☐ Update any planning or qualification requirement that currently describes Debug/sanitizer codegen evidence as mandatory in the default workflow.
+    ☐ End Phase 3 only when Release codegen remains mandatory, diagnostic codegen remains available, and sanitizer/runtime builds contain no accidental codegen workload.
+
+  Phase 4 - Reduce the Ordinary Debug Compiler Matrix:
+    ☐ Treat the full optimized Release suite as the cross-compiler correctness and optimizer matrix.
+    ☐ Keep one ordinary MSVC Debug runtime cell as the representative unoptimized Windows and default-check configuration.
+    ☐ Keep Clang ASan+UBSan Debug as the representative instrumented Linux Debug configuration.
+    ☐ Remove the ordinary clang-cl Debug cell from the default matrix after proving clang-cl Release plus MSVC Debug owns its language, Windows ABI, and Debug-configuration contracts.
+    ☐ Remove the ordinary GCC 13 Debug cell from the default matrix after proving the GCC 13 core-only Release cell owns its compatibility-floor contract.
+    ☐ Remove the ordinary GCC 14 Debug cell from the default matrix after proving GCC 14 Release plus the representative Debug/sanitizer cells cover all non-optimizer Debug contracts.
+    ☐ Remove the ordinary Clang 22 Debug cell from the default matrix after proving the Clang 22 sanitizer cell owns its Debug runtime contracts.
+    ☐ Preserve direct selection of an ordinary Debug compiler cell as an opt-in troubleshooting operation when useful.
+    ☐ Verify the representative Debug cells compile without `NDEBUG` and exercise the intended default checks configuration.
+    ☐ Verify `VectorChecksTests`, `PreconditionTests`, and other explicit checks-enabled targets remain checks-enabled independent of Release/Debug selection.
+    ☐ Audit Register precondition tests and any failure-process tests to ensure their intended configuration is explicit rather than accidentally inherited.
+    ☐ Retain a narrow clang-cl Debug consumer build only if it exposes a Debug CRT, ABI, or calling-convention contract not covered elsewhere.
+    ☐ Record the removed cells and the exact replacement evidence in the matrix documentation.
+    ☐ End Phase 4 only when every removed ordinary Debug cell has no unowned contract and remains available only where an explicit troubleshooting use is justified.
+
+  Phase 5 - Slim Runtime, Sanitizer, and Coverage Target Sets:
+    ☐ Define the runtime correctness aggregate independently from header, configuration, constexpr, codegen, source-audit, example, and benchmark aggregates.
+    ☐ Keep the complete runtime correctness suite in every supported Release compiler cell.
+    ☐ Decide whether examples, smoke tests, and ODR tests are runtime contracts or public-surface contracts, and assign each to only the necessary cells.
+    ☐ Restrict the default ASan+UBSan cell to runtime targets, required runtime dependencies, and any explicitly justified sanitizer consumer smoke test.
+    ☐ Exclude repository audits, header probes, configuration probes, negative compilation probes, constexpr-only probes, codegen fixtures, and benchmarks from the sanitizer build.
+    ☐ Restrict the coverage cell to targets that can contribute meaningful executed production paths or are required to interpret coverage provenance.
+    ☐ Exclude compile-only constexpr probes from coverage unless native-Clang constant-evaluation qualification is intentionally assigned to the coverage compiler identity.
+    ☐ Exclude header and configuration probes from coverage when they produce no runtime coverage evidence.
+    ☐ Verify mutually exclusive runtime feature profiles still produce compatible isolated coverage data and are never merged across incompatible macro configurations.
+    ☐ Keep constexpr evidence separate from runtime coverage percentages and preserve its compiler/feature provenance.
+    ☐ Compare Catch2 `POST_BUILD` and `PRE_TEST` discovery using complete `Build` plus `Run-Tests` timing, generated test inventories, and receipt reuse.
+    ☐ Change discovery mode only if it improves the intended user workflow or cleanly separates build from test execution without causing hidden rebuilds or stale inventories.
+    ☐ End Phase 5 only when sanitizer and coverage profiles build only evidence-producing targets and the complete runtime inventory remains unchanged where required.
+
+  Phase 6 - Deduplicate Examples, ODR, Smoke, and External Consumers:
+    ☐ Classify `ApiExamples`, `RegisterExamples`, `HeaderOnlySmoke`, `FormatOdr`, and `RegisterOdr` by their exact public-surface, linking, runtime, and configuration contracts.
+    ☐ Run examples once per compiler in the profile that best represents supported downstream use, normally Release.
+    ☐ Run header-only and ODR checks once per compiler unless a Debug runtime-library distinction is demonstrated.
+    ☐ Keep the external consumer's `add_subdirectory`, option-isolation, target-isolation, language-standard, and usage-requirement checks once per compiler.
+    ☐ Retain one MSVC Debug external consumer only if it proves Debug CRT or configuration behavior not covered by the Release consumer.
+    ☐ Decide whether the sanitizer consumer smoke test provides unique downstream evidence; keep it only if sanitizer propagation through the public targets is part of the contract.
+    ☐ Avoid compiling the external consumer in both Debug and Release for header-only structural checks.
+    ☐ Preserve separate core-only and Register-capable consumer inventories according to compiler support.
+    ☐ Keep consumer tests out of downstream `add_subdirectory` builds and ensure no SimdLib development options or targets leak into consumer projects.
+    ☐ Record consumer artifacts and test inventories in the same build receipt as their owning compiler cell.
+    ☐ End Phase 6 only when every public consumption contract remains covered and no consumer tree is duplicated solely because a second build configuration exists.
+
+  Phase 7 - Refactor Presets and Unified Pipeline Orchestration:
+    ☐ Replace misleading Release/Debug preset inheritance with profile-specific option bundles that express owned validation categories directly.
+    ☐ Ensure sanitizer and coverage profiles do not inherit unrelated Debug diagnostic targets.
+    ☐ Remove retired ordinary Debug presets from the default `Build` cell list while retaining only approved explicit diagnostic entry points.
+    ☐ Remove obsolete presets and options rather than keeping temporary compatibility aliases.
+    ☐ Update `tools/Build.ps1`, `tools/Run-NativeMatrix.ps1`, and `tools/Run-ContainerMatrix.ps1` to construct the approved default and optional cell sets.
+    ☐ Keep `Build` and `Run-Tests` as the user-facing full-pipeline commands.
+    ☐ Keep benchmark operations separate and Release-only.
+    ☐ Add explicit operations for compiler contracts, Debug codegen diagnostics, and any retained ordinary Debug troubleshooting cells when independent invocation is useful.
+    ☐ Keep source/configuration fingerprints distinct for every profile whose target inventory or compiler flags differ.
+    ☐ Include the scoped aggregate, target inventory, test inventory, configuration, instrumentation, generated-code mode, consumer scope, and source-audit receipt in provenance.
+    ☐ Reject `Run-Tests` when the build receipt does not cover the exact required test inventories, but do not rebuild automatically.
+    ☐ Preserve deterministic readable build directories with their existing short fingerprint suffix policy.
+    ☐ Validate that removed cells cannot reappear through `All`, default parameter expansion, preset inheritance, Compose service defaults, or aggregate dependencies.
+    ☐ Update Docker Compose orchestration so the reduced compiler matrix does not launch services or cells with no owned work.
+    ☐ End Phase 7 only when the public commands produce exactly the approved matrix and all optional diagnostics remain discoverable without contaminating the default receipt.
+
+  Phase 8 - Add Matrix-Ownership and No-Rebuild Regression Coverage:
+    ☐ Add a machine-readable expected cell matrix covering default build, default tests, coverage, sanitizer, benchmarks, compiler contracts, and optional diagnostics.
+    ☐ Add tests that compare every generated target inventory with the allowed categories for its profile.
+    ☐ Add tests that compare every CTest inventory with the tests owned by its profile.
+    ☐ Assert that ordinary Debug test inventories are not accidentally restored for clang-cl, GCC 13, GCC 14, or Clang.
+    ☐ Assert that sanitizer and coverage inventories exclude generated-code gates and other forbidden categories.
+    ☐ Assert that repository audits execute once per source revision and are represented in provenance.
+    ☐ Assert that compiler-front-end contracts execute once per compiler identity rather than once per runtime configuration.
+    ☐ Assert that optimized Release codegen remains enforced for every Register-capable compiler and cannot be satisfied by record-only diagnostic output.
+    ☐ Assert that `Run-Tests` consumes the completed matching build receipt without invoking CMake build commands.
+    ☐ Assert that benchmark operations reuse the matching Release tree without entering the default build.
+    ☐ Add negative tests for stale, incomplete, mismatched, or category-incompatible receipts.
+    ☐ Add a matrix audit command that reports duplicate targets/tests, unowned contracts, and unexpected profile membership.
+    ☐ End Phase 8 only when accidental target creep or configuration duplication causes a focused automated failure.
+
+  Phase 9 - Measure, Qualify, Document, and Clean Up:
+    ☐ Run focused configuration and inventory tests after each relevant refactor without running the complete compiler matrix after every phase.
+    ☐ Run one final clean default `Build` across all retained native and container cells.
+    ☐ Run `Run-Tests` against the final build receipt and verify that it performs no rebuild.
+    ☐ Run the final coverage, sanitizer, compiler-contract, optimized-codegen, external-consumer, and benchmark workflows according to their new ownership.
+    ☐ Run at least one selected Debug codegen diagnostic operation and verify its records remain available outside the default build.
+    ☐ Compare clean configure, build, discovery, test, and total pipeline times against the Phase 0 baseline.
+    ☐ Compare cached incremental build and build-free test times against the baseline.
+    ☐ Report target counts, test counts, compiler-process work, critical-path outputs, container time, and consumer time separately.
+    ☐ Confirm that any observed reduction comes from removed work rather than a warm cache, missing target, skipped test, or failed service.
+    ☐ Update build, validation, support-matrix, coverage, codegen, sanitizer, and contributor documentation with the enduring ownership rules and user-facing commands.
+    ☐ Remove stale statements that imply every supported compiler must run a complete ordinary Debug suite.
+    ☐ Reconcile `docs/project.todo`, Register qualification requirements, and any other planning documents with the final default-versus-diagnostic codegen policy.
+    ☐ Avoid recording transient claims such as tests presently passing in enduring documentation; keep execution results in completion evidence.
+    ☐ Remove temporary measurement scripts, generated reports, scratch build trees, and superseded planning artifacts that have no permanent maintenance value.
+    ☐ Run formatting and `git diff --check` on all modified source, CMake, script, and documentation files.
+    ☐ Review the final diff for accidental compatibility aliases, stale preset names, unreferenced options, duplicate aggregates, and unrelated changes.
+    ☐ End Phase 9 only when the reduced matrix preserves every approved contract, the default pipeline is measurably faster, optional diagnostics remain usable, and no implementation or documentation cleanup remains.
+
