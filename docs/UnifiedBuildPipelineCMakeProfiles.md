@@ -94,22 +94,22 @@ are recorded separately because they cannot be build dependencies. External
 consumer targets likewise remain in their own project and are listed in
 `external-consumer-targets.txt`.
 
-The generated `development-targets.txt` excludes CTest dashboard utilities and
-contains the canonical per-fingerprint target inventory. For MSVC Release it
-contains 130 targets. The 137-entry frozen union reconciles as follows:
+The generated `development-targets.txt` is the canonical per-fingerprint target
+inventory and excludes CTest dashboard utilities. Its codegen portion contains
+one common specialized wrapper/raw pair per profile, isolated enabled/disabled
+FMA pairs, canonical type-matrix pairs, separate common non-modulus and
+integer-modulus comparison records, rearrangement pairs, primary pairs, ABI
+pairs, and build-only expression and consumer-ABI aggregates. Retired
+logical-shuffle intrinsic targets and specialized-matrix-per-FMA duplicates do
+not appear.
 
-- two names are CMake aliases and never independent build targets;
-- two Catch2 targets are dependency-owned in a child directory;
-- two consumer targets are external-project targets;
-- two coverage targets exist only in the coverage fingerprint;
-- the clang-cl fallback probe is replaced by the mutually exclusive MSVC
-  fallback probe in the MSVC fingerprint; and
-- `ExhaustiveArtifacts` and `BenchmarkArtifacts` are the two new aggregates.
-
-The 251-entry frozen CTest union also reconciles exactly: MSVC Release owns 246
-main-project tests, the external consumer owns two tests, and the three
-`compiler-native unsigned 128-bit arithmetic` cases are conditionally present
-only when the compiler defines `__SIZEOF_INT128__`.
+The CTest inventory contains one `RegisterCodegen.<profile>` validation for each
+of SSE4.2/128, AVX2/128, and AVX2/256. The expression and consumer-ABI aggregate
+targets do not create CTests, so each generated comparison record has one
+validation owner. The frozen unions in `UnifiedBuildPipelineExpectedTargets.txt`
+and `UnifiedBuildPipelineExpectedTests.txt` remain evidence of the pre-refactor
+baseline identified by `UnifiedBuildPipelineBaseline.md`; they are not current
+target manifests.
 
 ## Execution evidence
 

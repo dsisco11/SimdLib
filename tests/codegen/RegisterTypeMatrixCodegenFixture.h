@@ -3,8 +3,6 @@
 #include <SimdLib/Register.h>
 
 #include <array>
-#include <bit>
-#include <concepts>
 #include <cstddef>
 #include <cstdint>
 #include <limits>
@@ -46,133 +44,6 @@ template <class element_t> [[nodiscard]] consteval typename api_t<element_t>::ma
 		return static_cast<mask_t>((mask_t{1} << register_t<element_t>::lane_count) - 1);
 }
 
-/**
- * @brief Emits every register-only common-operation result for one element type.
- * @param lhs First opaque native operand.
- * @param rhs Second opaque native operand.
- * @param third Third opaque native operand used by selection.
- * @param replacement Runtime lane replacement value.
- * @param count Runtime shift count.
- * @param vectors Opaque vector-result destination.
- * @param scalars Opaque scalar-result destination.
- */
-template <class element_t>
-SIMDLIB_FORCE_INLINE void VECTORCALL evaluate(native_t<element_t> lhs, native_t<element_t> rhs, native_t<element_t> third, element_t replacement, int count,
-											  native_t<element_t> *vectors, typename api_t<element_t>::mask_t *scalars) noexcept
-{
-	using api_type [[maybe_unused]] = api_t<element_t>;
-	using register_type [[maybe_unused]] = register_t<element_t>;
-	using mask_bits_t = typename api_type::mask_t;
-	std::size_t vector_index = 0;
-	std::size_t scalar_index = 0;
-#if SIMDLIB_CODEGEN_USE_WRAPPER
-	const register_type left{lhs};
-	const register_type right{rhs};
-	const register_type other{third};
-	vectors[vector_index++] = register_type::zero().native;
-	vectors[vector_index++] = register_type::broadcast(replacement).native;
-	if constexpr (SimdLib::IRegister::Add<register_type>)
-		vectors[vector_index++] = (left + right).native;
-	if constexpr (SimdLib::IRegister::Subtract<register_type>)
-		vectors[vector_index++] = (left - right).native;
-	if constexpr (SimdLib::IRegister::Multiply<register_type>)
-		vectors[vector_index++] = (left * right).native;
-	if constexpr (SimdLib::IRegister::Divide<register_type>)
-		vectors[vector_index++] = (left / right).native;
-	if constexpr (SimdLib::IRegister::Modulus<register_type>)
-		vectors[vector_index++] = (left % right).native;
-	if constexpr (SimdLib::IRegister::Negate<register_type>)
-		vectors[vector_index++] = (-left).native;
-	vectors[vector_index++] = (left & right).native;
-	vectors[vector_index++] = (left | right).native;
-	vectors[vector_index++] = (left ^ right).native;
-	vectors[vector_index++] = (~left).native;
-	vectors[vector_index++] = left.andnot(right).native;
-	const auto equal = left.compare_equal(right);
-	const auto greater = left.compare_greater(right);
-	const auto greater_equal = left.compare_greater_equal(right);
-	const auto less = left.compare_less(right);
-	const auto less_equal = left.compare_less_equal(right);
-	vectors[vector_index++] = equal.native;
-	vectors[vector_index++] = greater.native;
-	vectors[vector_index++] = greater_equal.native;
-	vectors[vector_index++] = less.native;
-	vectors[vector_index++] = less_equal.native;
-	vectors[vector_index++] = ((equal & greater) | (equal ^ ~greater)).native;
-	vectors[vector_index++] = greater.select(left, other).native;
-	scalars[scalar_index++] = left.movemask();
-	scalars[scalar_index++] = left.lane_sign_bits();
-	scalars[scalar_index++] = equal.bits();
-	scalars[scalar_index++] = static_cast<mask_bits_t>(equal.any());
-	scalars[scalar_index++] = static_cast<mask_bits_t>(equal.all());
-	scalars[scalar_index++] = static_cast<mask_bits_t>(equal.none());
-	scalars[scalar_index++] = static_cast<mask_bits_t>(left == right);
-	scalars[scalar_index++] = static_cast<mask_bits_t>(left != right);
-	scalars[scalar_index++] = static_cast<mask_bits_t>(left.template lane<0>());
-	vectors[vector_index++] = left.template with_lane<register_type::lane_count - 1>(replacement).native;
-	if constexpr (SimdLib::IRegister::ShiftLeft<register_type>)
-		vectors[vector_index++] = (left << count).native;
-	if constexpr (SimdLib::IRegister::LogicalShiftRight<register_type>)
-		vectors[vector_index++] = left.logical_shift_right(count).native;
-	if constexpr (SimdLib::IRegister::ShiftRight<register_type>)
-		vectors[vector_index++] = (left >> count).native;
-#else
-	vectors[vector_index++] = api_type::setzero();
-	vectors[vector_index++] = api_type::set1(replacement);
-	if constexpr (SimdLib::IRegister::Add<register_type>)
-		vectors[vector_index++] = api_type::add(lhs, rhs);
-	if constexpr (SimdLib::IRegister::Subtract<register_type>)
-		vectors[vector_index++] = api_type::subtract(lhs, rhs);
-	if constexpr (SimdLib::IRegister::Multiply<register_type>)
-		vectors[vector_index++] = api_type::multiply(lhs, rhs);
-	if constexpr (SimdLib::IRegister::Divide<register_type>)
-		vectors[vector_index++] = api_type::divide(lhs, rhs);
-	if constexpr (SimdLib::IRegister::Modulus<register_type>)
-		vectors[vector_index++] = api_type::modulus(lhs, rhs);
-	if constexpr (SimdLib::IRegister::Negate<register_type>)
-		vectors[vector_index++] = api_type::negate(lhs);
-	vectors[vector_index++] = api_type::bitwise_and(lhs, rhs);
-	vectors[vector_index++] = api_type::bitwise_or(lhs, rhs);
-	vectors[vector_index++] = api_type::bitwise_xor(lhs, rhs);
-	vectors[vector_index++] = api_type::bitwise_not(lhs);
-	vectors[vector_index++] = api_type::bitwise_andnot(lhs, rhs);
-	const auto equal = api_type::compare_equal(lhs, rhs);
-	const auto greater = api_type::compare_greater(lhs, rhs);
-	const auto greater_equal = api_type::compare_greater_equal(lhs, rhs);
-	const auto less = api_type::compare_less(lhs, rhs);
-	const auto less_equal = api_type::compare_less_equal(lhs, rhs);
-	vectors[vector_index++] = equal;
-	vectors[vector_index++] = greater;
-	vectors[vector_index++] = greater_equal;
-	vectors[vector_index++] = less;
-	vectors[vector_index++] = less_equal;
-	vectors[vector_index++] = api_type::bitwise_or(api_type::bitwise_and(equal, greater), api_type::bitwise_xor(equal, api_type::bitwise_not(greater)));
-	vectors[vector_index++] = api_type::select(greater, lhs, third);
-	scalars[scalar_index++] = api_type::movemask(lhs);
-	scalars[scalar_index++] = api_type::movemask_slim(lhs);
-	const auto equal_bits = api_type::movemask_slim(equal);
-	scalars[scalar_index++] = equal_bits;
-	scalars[scalar_index++] = static_cast<mask_bits_t>(equal_bits != 0);
-	scalars[scalar_index++] = static_cast<mask_bits_t>(equal_bits == all_lane_bits<element_t>());
-	scalars[scalar_index++] = static_cast<mask_bits_t>(equal_bits == 0);
-	scalars[scalar_index++] = static_cast<mask_bits_t>(equal_bits == all_lane_bits<element_t>());
-	scalars[scalar_index++] = static_cast<mask_bits_t>(equal_bits != all_lane_bits<element_t>());
-	scalars[scalar_index++] = static_cast<mask_bits_t>(api_type::template extract<0>(lhs));
-	vectors[vector_index++] = api_type::template insert<register_type::lane_count - 1>(lhs, replacement);
-	if constexpr (SimdLib::IRegister::ShiftLeft<register_type>)
-		vectors[vector_index++] = api_type::shift_left(lhs, count);
-	if constexpr (SimdLib::IRegister::LogicalShiftRight<register_type>)
-		vectors[vector_index++] = api_type::shift_right(lhs, count);
-	if constexpr (SimdLib::IRegister::ShiftRight<register_type>)
-	{
-		if constexpr (std::is_signed_v<element_t>)
-			vectors[vector_index++] = api_type::shift_right_arithmetic(lhs, count);
-		else
-			vectors[vector_index++] = api_type::shift_right(lhs, count);
-	}
-#endif
-}
-
 /** @brief Identifies one isolated native-result operation in the type matrix. */
 enum class vector_operation
 {
@@ -205,157 +76,6 @@ enum class vector_operation
 	shift_right,
 };
 
-#if !SIMDLIB_CODEGEN_USE_WRAPPER && SIMDLIB_REGISTER_TEST_WIDTH == 128
-/**
- * @brief Independently computes one 128-bit integer remainder result for code-generation comparison.
- * @tparam element_t Integer lane type.
- * @param lhs Dividend lanes.
- * @param rhs Divisor lanes satisfying scalar integer-remainder preconditions.
- * @return Scalar remainder of every lane reconstructed with immediate insertion.
- */
-template <std::integral element_t>
-[[nodiscard]] SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY native_t<element_t> VECTORCALL scalar_remainder_reference(native_t<element_t> lhs,
-																												   native_t<element_t> rhs) noexcept;
-
-/** @brief Independently computes signed 8-bit scalar remainders for code-generation comparison. */
-template <>
-[[nodiscard]] SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY native_t<std::int8_t> VECTORCALL
-scalar_remainder_reference<std::int8_t>(native_t<std::int8_t> lhs, native_t<std::int8_t> rhs) noexcept
-{
-	__m128i result = _mm_setzero_si128();
-	result = _mm_insert_epi8(result, static_cast<std::int8_t>(_mm_extract_epi8(lhs, 0)) % static_cast<std::int8_t>(_mm_extract_epi8(rhs, 0)), 0);
-	result = _mm_insert_epi8(result, static_cast<std::int8_t>(_mm_extract_epi8(lhs, 1)) % static_cast<std::int8_t>(_mm_extract_epi8(rhs, 1)), 1);
-	result = _mm_insert_epi8(result, static_cast<std::int8_t>(_mm_extract_epi8(lhs, 2)) % static_cast<std::int8_t>(_mm_extract_epi8(rhs, 2)), 2);
-	result = _mm_insert_epi8(result, static_cast<std::int8_t>(_mm_extract_epi8(lhs, 3)) % static_cast<std::int8_t>(_mm_extract_epi8(rhs, 3)), 3);
-	result = _mm_insert_epi8(result, static_cast<std::int8_t>(_mm_extract_epi8(lhs, 4)) % static_cast<std::int8_t>(_mm_extract_epi8(rhs, 4)), 4);
-	result = _mm_insert_epi8(result, static_cast<std::int8_t>(_mm_extract_epi8(lhs, 5)) % static_cast<std::int8_t>(_mm_extract_epi8(rhs, 5)), 5);
-	result = _mm_insert_epi8(result, static_cast<std::int8_t>(_mm_extract_epi8(lhs, 6)) % static_cast<std::int8_t>(_mm_extract_epi8(rhs, 6)), 6);
-	result = _mm_insert_epi8(result, static_cast<std::int8_t>(_mm_extract_epi8(lhs, 7)) % static_cast<std::int8_t>(_mm_extract_epi8(rhs, 7)), 7);
-	result = _mm_insert_epi8(result, static_cast<std::int8_t>(_mm_extract_epi8(lhs, 8)) % static_cast<std::int8_t>(_mm_extract_epi8(rhs, 8)), 8);
-	result = _mm_insert_epi8(result, static_cast<std::int8_t>(_mm_extract_epi8(lhs, 9)) % static_cast<std::int8_t>(_mm_extract_epi8(rhs, 9)), 9);
-	result = _mm_insert_epi8(result, static_cast<std::int8_t>(_mm_extract_epi8(lhs, 10)) % static_cast<std::int8_t>(_mm_extract_epi8(rhs, 10)), 10);
-	result = _mm_insert_epi8(result, static_cast<std::int8_t>(_mm_extract_epi8(lhs, 11)) % static_cast<std::int8_t>(_mm_extract_epi8(rhs, 11)), 11);
-	result = _mm_insert_epi8(result, static_cast<std::int8_t>(_mm_extract_epi8(lhs, 12)) % static_cast<std::int8_t>(_mm_extract_epi8(rhs, 12)), 12);
-	result = _mm_insert_epi8(result, static_cast<std::int8_t>(_mm_extract_epi8(lhs, 13)) % static_cast<std::int8_t>(_mm_extract_epi8(rhs, 13)), 13);
-	result = _mm_insert_epi8(result, static_cast<std::int8_t>(_mm_extract_epi8(lhs, 14)) % static_cast<std::int8_t>(_mm_extract_epi8(rhs, 14)), 14);
-	result = _mm_insert_epi8(result, static_cast<std::int8_t>(_mm_extract_epi8(lhs, 15)) % static_cast<std::int8_t>(_mm_extract_epi8(rhs, 15)), 15);
-	return result;
-}
-
-/** @brief Independently computes unsigned 8-bit scalar remainders for code-generation comparison. */
-template <>
-[[nodiscard]] SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY native_t<std::uint8_t> VECTORCALL
-scalar_remainder_reference<std::uint8_t>(native_t<std::uint8_t> lhs, native_t<std::uint8_t> rhs) noexcept
-{
-	__m128i result = _mm_setzero_si128();
-	result = _mm_insert_epi8(result, static_cast<std::uint8_t>(_mm_extract_epi8(lhs, 0)) % static_cast<std::uint8_t>(_mm_extract_epi8(rhs, 0)), 0);
-	result = _mm_insert_epi8(result, static_cast<std::uint8_t>(_mm_extract_epi8(lhs, 1)) % static_cast<std::uint8_t>(_mm_extract_epi8(rhs, 1)), 1);
-	result = _mm_insert_epi8(result, static_cast<std::uint8_t>(_mm_extract_epi8(lhs, 2)) % static_cast<std::uint8_t>(_mm_extract_epi8(rhs, 2)), 2);
-	result = _mm_insert_epi8(result, static_cast<std::uint8_t>(_mm_extract_epi8(lhs, 3)) % static_cast<std::uint8_t>(_mm_extract_epi8(rhs, 3)), 3);
-	result = _mm_insert_epi8(result, static_cast<std::uint8_t>(_mm_extract_epi8(lhs, 4)) % static_cast<std::uint8_t>(_mm_extract_epi8(rhs, 4)), 4);
-	result = _mm_insert_epi8(result, static_cast<std::uint8_t>(_mm_extract_epi8(lhs, 5)) % static_cast<std::uint8_t>(_mm_extract_epi8(rhs, 5)), 5);
-	result = _mm_insert_epi8(result, static_cast<std::uint8_t>(_mm_extract_epi8(lhs, 6)) % static_cast<std::uint8_t>(_mm_extract_epi8(rhs, 6)), 6);
-	result = _mm_insert_epi8(result, static_cast<std::uint8_t>(_mm_extract_epi8(lhs, 7)) % static_cast<std::uint8_t>(_mm_extract_epi8(rhs, 7)), 7);
-	result = _mm_insert_epi8(result, static_cast<std::uint8_t>(_mm_extract_epi8(lhs, 8)) % static_cast<std::uint8_t>(_mm_extract_epi8(rhs, 8)), 8);
-	result = _mm_insert_epi8(result, static_cast<std::uint8_t>(_mm_extract_epi8(lhs, 9)) % static_cast<std::uint8_t>(_mm_extract_epi8(rhs, 9)), 9);
-	result = _mm_insert_epi8(result, static_cast<std::uint8_t>(_mm_extract_epi8(lhs, 10)) % static_cast<std::uint8_t>(_mm_extract_epi8(rhs, 10)), 10);
-	result = _mm_insert_epi8(result, static_cast<std::uint8_t>(_mm_extract_epi8(lhs, 11)) % static_cast<std::uint8_t>(_mm_extract_epi8(rhs, 11)), 11);
-	result = _mm_insert_epi8(result, static_cast<std::uint8_t>(_mm_extract_epi8(lhs, 12)) % static_cast<std::uint8_t>(_mm_extract_epi8(rhs, 12)), 12);
-	result = _mm_insert_epi8(result, static_cast<std::uint8_t>(_mm_extract_epi8(lhs, 13)) % static_cast<std::uint8_t>(_mm_extract_epi8(rhs, 13)), 13);
-	result = _mm_insert_epi8(result, static_cast<std::uint8_t>(_mm_extract_epi8(lhs, 14)) % static_cast<std::uint8_t>(_mm_extract_epi8(rhs, 14)), 14);
-	result = _mm_insert_epi8(result, static_cast<std::uint8_t>(_mm_extract_epi8(lhs, 15)) % static_cast<std::uint8_t>(_mm_extract_epi8(rhs, 15)), 15);
-	return result;
-}
-
-/** @brief Independently computes signed 16-bit scalar remainders for code-generation comparison. */
-template <>
-[[nodiscard]] SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY native_t<std::int16_t> VECTORCALL
-scalar_remainder_reference<std::int16_t>(native_t<std::int16_t> lhs, native_t<std::int16_t> rhs) noexcept
-{
-	__m128i result = _mm_setzero_si128();
-	result = _mm_insert_epi16(result, static_cast<std::int16_t>(_mm_extract_epi16(lhs, 0)) % static_cast<std::int16_t>(_mm_extract_epi16(rhs, 0)), 0);
-	result = _mm_insert_epi16(result, static_cast<std::int16_t>(_mm_extract_epi16(lhs, 1)) % static_cast<std::int16_t>(_mm_extract_epi16(rhs, 1)), 1);
-	result = _mm_insert_epi16(result, static_cast<std::int16_t>(_mm_extract_epi16(lhs, 2)) % static_cast<std::int16_t>(_mm_extract_epi16(rhs, 2)), 2);
-	result = _mm_insert_epi16(result, static_cast<std::int16_t>(_mm_extract_epi16(lhs, 3)) % static_cast<std::int16_t>(_mm_extract_epi16(rhs, 3)), 3);
-	result = _mm_insert_epi16(result, static_cast<std::int16_t>(_mm_extract_epi16(lhs, 4)) % static_cast<std::int16_t>(_mm_extract_epi16(rhs, 4)), 4);
-	result = _mm_insert_epi16(result, static_cast<std::int16_t>(_mm_extract_epi16(lhs, 5)) % static_cast<std::int16_t>(_mm_extract_epi16(rhs, 5)), 5);
-	result = _mm_insert_epi16(result, static_cast<std::int16_t>(_mm_extract_epi16(lhs, 6)) % static_cast<std::int16_t>(_mm_extract_epi16(rhs, 6)), 6);
-	result = _mm_insert_epi16(result, static_cast<std::int16_t>(_mm_extract_epi16(lhs, 7)) % static_cast<std::int16_t>(_mm_extract_epi16(rhs, 7)), 7);
-	return result;
-}
-
-/** @brief Independently computes unsigned 16-bit scalar remainders for code-generation comparison. */
-template <>
-[[nodiscard]] SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY native_t<std::uint16_t> VECTORCALL
-scalar_remainder_reference<std::uint16_t>(native_t<std::uint16_t> lhs, native_t<std::uint16_t> rhs) noexcept
-{
-	__m128i result = _mm_setzero_si128();
-	result = _mm_insert_epi16(result, static_cast<std::uint16_t>(_mm_extract_epi16(lhs, 0)) % static_cast<std::uint16_t>(_mm_extract_epi16(rhs, 0)), 0);
-	result = _mm_insert_epi16(result, static_cast<std::uint16_t>(_mm_extract_epi16(lhs, 1)) % static_cast<std::uint16_t>(_mm_extract_epi16(rhs, 1)), 1);
-	result = _mm_insert_epi16(result, static_cast<std::uint16_t>(_mm_extract_epi16(lhs, 2)) % static_cast<std::uint16_t>(_mm_extract_epi16(rhs, 2)), 2);
-	result = _mm_insert_epi16(result, static_cast<std::uint16_t>(_mm_extract_epi16(lhs, 3)) % static_cast<std::uint16_t>(_mm_extract_epi16(rhs, 3)), 3);
-	result = _mm_insert_epi16(result, static_cast<std::uint16_t>(_mm_extract_epi16(lhs, 4)) % static_cast<std::uint16_t>(_mm_extract_epi16(rhs, 4)), 4);
-	result = _mm_insert_epi16(result, static_cast<std::uint16_t>(_mm_extract_epi16(lhs, 5)) % static_cast<std::uint16_t>(_mm_extract_epi16(rhs, 5)), 5);
-	result = _mm_insert_epi16(result, static_cast<std::uint16_t>(_mm_extract_epi16(lhs, 6)) % static_cast<std::uint16_t>(_mm_extract_epi16(rhs, 6)), 6);
-	result = _mm_insert_epi16(result, static_cast<std::uint16_t>(_mm_extract_epi16(lhs, 7)) % static_cast<std::uint16_t>(_mm_extract_epi16(rhs, 7)), 7);
-	return result;
-}
-
-/** @brief Independently computes signed 32-bit scalar remainders for code-generation comparison. */
-template <>
-[[nodiscard]] SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY native_t<std::int32_t> VECTORCALL
-scalar_remainder_reference<std::int32_t>(native_t<std::int32_t> lhs, native_t<std::int32_t> rhs) noexcept
-{
-	__m128i result = _mm_setzero_si128();
-	result = _mm_insert_epi32(result, static_cast<std::int32_t>(_mm_extract_epi32(lhs, 0)) % static_cast<std::int32_t>(_mm_extract_epi32(rhs, 0)), 0);
-	result = _mm_insert_epi32(result, static_cast<std::int32_t>(_mm_extract_epi32(lhs, 1)) % static_cast<std::int32_t>(_mm_extract_epi32(rhs, 1)), 1);
-	result = _mm_insert_epi32(result, static_cast<std::int32_t>(_mm_extract_epi32(lhs, 2)) % static_cast<std::int32_t>(_mm_extract_epi32(rhs, 2)), 2);
-	result = _mm_insert_epi32(result, static_cast<std::int32_t>(_mm_extract_epi32(lhs, 3)) % static_cast<std::int32_t>(_mm_extract_epi32(rhs, 3)), 3);
-	return result;
-}
-
-/** @brief Independently computes unsigned 32-bit scalar remainders for code-generation comparison. */
-template <>
-[[nodiscard]] SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY native_t<std::uint32_t> VECTORCALL
-scalar_remainder_reference<std::uint32_t>(native_t<std::uint32_t> lhs, native_t<std::uint32_t> rhs) noexcept
-{
-	__m128i result = _mm_setzero_si128();
-	result = _mm_insert_epi32(
-		result, std::bit_cast<std::int32_t>(static_cast<std::uint32_t>(_mm_extract_epi32(lhs, 0)) % static_cast<std::uint32_t>(_mm_extract_epi32(rhs, 0))), 0);
-	result = _mm_insert_epi32(
-		result, std::bit_cast<std::int32_t>(static_cast<std::uint32_t>(_mm_extract_epi32(lhs, 1)) % static_cast<std::uint32_t>(_mm_extract_epi32(rhs, 1))), 1);
-	result = _mm_insert_epi32(
-		result, std::bit_cast<std::int32_t>(static_cast<std::uint32_t>(_mm_extract_epi32(lhs, 2)) % static_cast<std::uint32_t>(_mm_extract_epi32(rhs, 2))), 2);
-	result = _mm_insert_epi32(
-		result, std::bit_cast<std::int32_t>(static_cast<std::uint32_t>(_mm_extract_epi32(lhs, 3)) % static_cast<std::uint32_t>(_mm_extract_epi32(rhs, 3))), 3);
-	return result;
-}
-
-/** @brief Independently computes signed 64-bit scalar remainders for code-generation comparison. */
-template <>
-[[nodiscard]] SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY native_t<std::int64_t> VECTORCALL
-scalar_remainder_reference<std::int64_t>(native_t<std::int64_t> lhs, native_t<std::int64_t> rhs) noexcept
-{
-	__m128i result = _mm_setzero_si128();
-	result = _mm_insert_epi64(result, static_cast<std::int64_t>(_mm_extract_epi64(lhs, 0)) % static_cast<std::int64_t>(_mm_extract_epi64(rhs, 0)), 0);
-	result = _mm_insert_epi64(result, static_cast<std::int64_t>(_mm_extract_epi64(lhs, 1)) % static_cast<std::int64_t>(_mm_extract_epi64(rhs, 1)), 1);
-	return result;
-}
-
-/** @brief Independently computes unsigned 64-bit scalar remainders for code-generation comparison. */
-template <>
-[[nodiscard]] SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY native_t<std::uint64_t> VECTORCALL
-scalar_remainder_reference<std::uint64_t>(native_t<std::uint64_t> lhs, native_t<std::uint64_t> rhs) noexcept
-{
-	__m128i result = _mm_setzero_si128();
-	result = _mm_insert_epi64(
-		result, std::bit_cast<std::int64_t>(static_cast<std::uint64_t>(_mm_extract_epi64(lhs, 0)) % static_cast<std::uint64_t>(_mm_extract_epi64(rhs, 0))), 0);
-	result = _mm_insert_epi64(
-		result, std::bit_cast<std::int64_t>(static_cast<std::uint64_t>(_mm_extract_epi64(lhs, 1)) % static_cast<std::uint64_t>(_mm_extract_epi64(rhs, 1))), 1);
-	return result;
-}
-#endif
-
 /**
  * @brief Emits one isolated native-result operation for exact wrapper/raw comparison.
  * @tparam operation Operation selected at compile time.
@@ -364,12 +84,8 @@ scalar_remainder_reference<std::uint64_t>(native_t<std::uint64_t> lhs, native_t<
  * @param third Third native operand.
  * @param scalar Scalar operand for broadcasts and insertion.
  * @param count Runtime shift count.
- * @return Native result of the selected operation, or `lhs` when unavailable for the element type.
+ * @return Native result of the selected operation.
  */
-#if SIMDLIB_COMPILER_MSVC
-#pragma warning(push)
-#pragma warning(disable : 4702)
-#endif
 template <vector_operation operation, class element_t>
 [[nodiscard]] SIMDLIB_FORCE_INLINE native_t<element_t> VECTORCALL vector_result(native_t<element_t> lhs, native_t<element_t> rhs, native_t<element_t> third,
 																				element_t scalar, int count) noexcept
@@ -448,15 +164,7 @@ template <vector_operation operation, class element_t>
 	else if constexpr (operation == vector_operation::divide && SimdLib::IRegister::Divide<register_type>)
 		return api_type::divide(lhs, rhs);
 	else if constexpr (operation == vector_operation::modulus && SimdLib::IRegister::Modulus<register_type>)
-	{
-#if SIMDLIB_REGISTER_TEST_WIDTH == 128
-		return scalar_remainder_reference<element_t>(lhs, rhs);
-#else
-		const register_type left{lhs};
-		const register_type right{rhs};
-		return api_type::modulus(left.native, right.native);
-#endif
-	}
+		return api_type::modulus(lhs, rhs);
 	else if constexpr (operation == vector_operation::negate && SimdLib::IRegister::Negate<register_type>)
 		return api_type::negate(lhs);
 	else if constexpr (operation == vector_operation::bitwise_and || operation == vector_operation::mask_and)
@@ -495,11 +203,11 @@ template <vector_operation operation, class element_t>
 			return api_type::shift_right(lhs, count);
 	}
 #endif
-	return lhs;
+	else
+	{
+		static_assert(SimdLib::Detail::dependent_false_v<element_t>, "The selected Register operation is unavailable for this element type.");
+	}
 }
-#if SIMDLIB_COMPILER_MSVC
-#pragma warning(pop)
-#endif
 
 /** @brief Identifies one isolated scalar-result operation in the type matrix. */
 enum class scalar_operation
@@ -567,50 +275,6 @@ template <scalar_operation operation, class element_t>
 		return static_cast<mask_bits_t>(api_type::movemask_slim(api_type::compare_equal(lhs, rhs)) != all_lane_bits<element_t>());
 	else
 		return static_cast<mask_bits_t>(api_type::template extract<0>(lhs));
-#endif
-}
-
-/**
- * @brief Extracts one runtime-selected lane through the public Api or its direct implementation reference.
- * @tparam element_t Scalar lane type.
- * @param lhs Source register.
- * @param index Runtime-selected lane index.
- * @return Selected scalar lane.
- */
-template <class element_t>
-[[nodiscard]] SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY element_t VECTORCALL runtime_extract(native_t<element_t> lhs, const int index) noexcept
-{
-#if SIMDLIB_CODEGEN_USE_WRAPPER
-	return api_t<element_t>::extract_slow(lhs, index);
-#else
-#if SIMDLIB_REGISTER_TEST_WIDTH == 128
-	return SimdLib::Detail::SimdImpl128<element_t>::extract_slow(lhs, index);
-#else
-	return SimdLib::Detail::SimdImpl256<element_t>::extract_slow(lhs, index);
-#endif
-#endif
-}
-
-/**
- * @brief Replaces one runtime-selected lane through the public Api or its direct width-specific implementation reference.
- * @tparam element_t Scalar lane type.
- * @param lhs Source register.
- * @param rhs Replacement scalar lane.
- * @param index Runtime-selected lane index.
- * @return Register with the selected lane replaced.
- */
-template <class element_t>
-[[nodiscard]] SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY native_t<element_t> VECTORCALL runtime_insert(native_t<element_t> lhs, const element_t rhs,
-																									   const int index) noexcept
-{
-#if SIMDLIB_CODEGEN_USE_WRAPPER
-	return api_t<element_t>::insert_slow(lhs, rhs, index);
-#else
-#if SIMDLIB_REGISTER_TEST_WIDTH == 128
-	return SimdLib::Detail::SimdImpl128<element_t>::insert_slow(lhs, rhs, index);
-#else
-	return SimdLib::Detail::SimdImpl256<element_t>::insert_slow(lhs, rhs, index);
-#endif
 #endif
 }
 
@@ -705,67 +369,7 @@ SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY native_t<element_t> VECTORCALL from_l
 #endif
 }
 
-/**
- * @brief Emits every fixed-width construction, observation, and transfer shape for one element type.
- * @param source Complete element source.
- * @param destination Complete element destination.
- * @param byte_source Complete raw-byte source.
- * @param byte_destination Complete raw-byte destination.
- * @param observed Fixed-array observation destination.
- * @param vectors Opaque native-result destination.
- */
-template <class element_t>
-SIMDLIB_FORCE_INLINE void VECTORCALL transfer(const array_t<element_t> &source_array, element_t *destination, const std::byte *byte_source,
-											  std::byte *byte_destination, array_t<element_t> &observed, native_t<element_t> *vectors) noexcept
-{
-	using api_type [[maybe_unused]] = api_t<element_t>;
-	using register_type [[maybe_unused]] = register_t<element_t>;
-	const element_t *source = source_array.data();
-#if SIMDLIB_CODEGEN_USE_WRAPPER
-	const auto from_array = register_type::from_array(source_array);
-	vectors[0] = from_array.native;
-	vectors[1] = from_lanes<element_t>(source_array, std::make_index_sequence<register_type::lane_count>{});
-	register_type::load(std::span<const element_t, register_type::lane_count>{source, register_type::lane_count})
-		.store(std::span<element_t, register_type::lane_count>{destination, register_type::lane_count});
-	register_type::load_aligned(std::span<const element_t, register_type::lane_count>{source, register_type::lane_count})
-		.store_aligned(std::span<element_t, register_type::lane_count>{destination, register_type::lane_count});
-	register_type::load_bytes(std::span<const std::byte, register_type::byte_count>{byte_source, register_type::byte_count})
-		.store_bytes(std::span<std::byte, register_type::byte_count>{byte_destination, register_type::byte_count});
-	observed = from_array.to_array();
-#else
-	const auto from_array = api_type::construct(source_array);
-	vectors[0] = from_array;
-	vectors[1] = from_lanes<element_t>(source_array, std::make_index_sequence<register_type::lane_count>{});
-	api_type::store(api_type::load(std::span<const element_t, register_type::lane_count>{source, register_type::lane_count}),
-					std::span<element_t, register_type::lane_count>{destination, register_type::lane_count});
-	api_type::store_aligned(api_type::load_aligned(std::span<const element_t, register_type::lane_count>{source, register_type::lane_count}),
-							std::span<element_t, register_type::lane_count>{destination, register_type::lane_count});
-	api_type::store(api_type::load(std::span<const std::byte, register_type::byte_count>{byte_source, register_type::byte_count}),
-					std::span<std::byte, register_type::byte_count>{byte_destination, register_type::byte_count});
-	observed = api_type::to_array(from_array);
-#endif
-}
-
 } // namespace SimdLibTypeMatrixCodegen
-
-#define SIMDLIB_DEFINE_TYPE_MATRIX_FIXTURES(token, element_type)                                                                                               \
-	/** @brief Compares every register-only common operation for one element type. */                                                                          \
-	SIMDLIB_TYPE_MATRIX_NOINLINE void VECTORCALL simdlib_type_matrix_evaluate_##token(                                                                         \
-		SimdLibTypeMatrixCodegen::native_t<element_type> lhs, SimdLibTypeMatrixCodegen::native_t<element_type> rhs,                                            \
-		SimdLibTypeMatrixCodegen::native_t<element_type> third, element_type replacement, int count,                                                           \
-		SimdLibTypeMatrixCodegen::native_t<element_type> *vectors, typename SimdLibTypeMatrixCodegen::api_t<element_type>::mask_t *scalars) noexcept           \
-	{                                                                                                                                                          \
-		SimdLibTypeMatrixCodegen::evaluate<element_type>(lhs, rhs, third, replacement, count, vectors, scalars);                                               \
-	}                                                                                                                                                          \
-	/** @brief Compares every fixed-width construction, observation, and transfer shape for one element type. */                                               \
-	SIMDLIB_TYPE_MATRIX_NOINLINE void VECTORCALL simdlib_type_matrix_transfer_##token(                                                                         \
-		const SimdLibTypeMatrixCodegen::array_t<element_type> &source, element_type *destination, const std::byte *byte_source, std::byte *byte_destination,   \
-		SimdLibTypeMatrixCodegen::array_t<element_type> &observed, SimdLibTypeMatrixCodegen::native_t<element_type> *vectors) noexcept                         \
-	{                                                                                                                                                          \
-		SimdLibTypeMatrixCodegen::transfer<element_type>(source, destination, byte_source, byte_destination, observed, vectors);                               \
-	}
-
-#undef SIMDLIB_DEFINE_TYPE_MATRIX_FIXTURES
 
 #define SIMDLIB_DEFINE_TYPE_MATRIX_VECTOR(token, element_type, operation)                                                                                      \
 	/** @brief Compares one isolated native-result operation with its raw Api expression. */                                                                   \
@@ -784,30 +388,13 @@ SIMDLIB_FORCE_INLINE void VECTORCALL transfer(const array_t<element_t> &source_a
 		return SimdLibTypeMatrixCodegen::scalar_result<SimdLibTypeMatrixCodegen::scalar_operation::operation, element_type>(lhs, rhs);                         \
 	}
 
-#define SIMDLIB_DEFINE_TYPE_MATRIX_RUNTIME_EXTRACT(token, element_type)                                                                                        \
-	/** @brief Compares runtime-selected extraction with the direct width-specific implementation operation. */                                                \
-	SIMDLIB_REGISTER_ONLY SIMDLIB_TYPE_MATRIX_NOINLINE element_type VECTORCALL simdlib_type_matrix_extract_runtime_##token(                                    \
-		SimdLibTypeMatrixCodegen::native_t<element_type> lhs, const int index) noexcept                                                                        \
-	{                                                                                                                                                          \
-		return SimdLibTypeMatrixCodegen::runtime_extract<element_type>(lhs, index);                                                                            \
-	}
-
-#define SIMDLIB_DEFINE_TYPE_MATRIX_RUNTIME_INSERT(token, element_type)                                                                                         \
-	/** @brief Compares runtime-selected insertion with the direct width-specific implementation operation. */                                                 \
-	SIMDLIB_REGISTER_ONLY SIMDLIB_TYPE_MATRIX_NOINLINE SimdLibTypeMatrixCodegen::native_t<element_type> VECTORCALL simdlib_type_matrix_insert_runtime_##token( \
-		SimdLibTypeMatrixCodegen::native_t<element_type> lhs, const element_type rhs, const int index) noexcept                                                \
-	{                                                                                                                                                          \
-		return SimdLibTypeMatrixCodegen::runtime_insert<element_type>(lhs, rhs, index);                                                                        \
-	}
-
-#define SIMDLIB_DEFINE_TYPE_MATRIX_FIXTURES(token, element_type)                                                                                               \
+#define SIMDLIB_DEFINE_TYPE_MATRIX_COMMON_FIXTURES(token, element_type)                                                                                        \
 	SIMDLIB_DEFINE_TYPE_MATRIX_VECTOR(token, element_type, zero)                                                                                               \
 	SIMDLIB_DEFINE_TYPE_MATRIX_VECTOR(token, element_type, broadcast)                                                                                          \
 	SIMDLIB_DEFINE_TYPE_MATRIX_VECTOR(token, element_type, add)                                                                                                \
 	SIMDLIB_DEFINE_TYPE_MATRIX_VECTOR(token, element_type, subtract)                                                                                           \
 	SIMDLIB_DEFINE_TYPE_MATRIX_VECTOR(token, element_type, multiply)                                                                                           \
 	SIMDLIB_DEFINE_TYPE_MATRIX_VECTOR(token, element_type, divide)                                                                                             \
-	SIMDLIB_DEFINE_TYPE_MATRIX_VECTOR(token, element_type, modulus)                                                                                            \
 	SIMDLIB_DEFINE_TYPE_MATRIX_VECTOR(token, element_type, negate)                                                                                             \
 	SIMDLIB_DEFINE_TYPE_MATRIX_VECTOR(token, element_type, bitwise_and)                                                                                        \
 	SIMDLIB_DEFINE_TYPE_MATRIX_VECTOR(token, element_type, bitwise_or)                                                                                         \
@@ -825,9 +412,6 @@ SIMDLIB_FORCE_INLINE void VECTORCALL transfer(const array_t<element_t> &source_a
 	SIMDLIB_DEFINE_TYPE_MATRIX_VECTOR(token, element_type, mask_not)                                                                                           \
 	SIMDLIB_DEFINE_TYPE_MATRIX_VECTOR(token, element_type, select)                                                                                             \
 	SIMDLIB_DEFINE_TYPE_MATRIX_VECTOR(token, element_type, insert_last)                                                                                        \
-	SIMDLIB_DEFINE_TYPE_MATRIX_VECTOR(token, element_type, shift_left)                                                                                         \
-	SIMDLIB_DEFINE_TYPE_MATRIX_VECTOR(token, element_type, logical_shift_right)                                                                                \
-	SIMDLIB_DEFINE_TYPE_MATRIX_VECTOR(token, element_type, shift_right)                                                                                        \
 	SIMDLIB_DEFINE_TYPE_MATRIX_SCALAR(token, element_type, movemask)                                                                                           \
 	SIMDLIB_DEFINE_TYPE_MATRIX_SCALAR(token, element_type, lane_sign_bits)                                                                                     \
 	SIMDLIB_DEFINE_TYPE_MATRIX_SCALAR(token, element_type, mask_bits)                                                                                          \
@@ -837,8 +421,6 @@ SIMDLIB_FORCE_INLINE void VECTORCALL transfer(const array_t<element_t> &source_a
 	SIMDLIB_DEFINE_TYPE_MATRIX_SCALAR(token, element_type, equal)                                                                                              \
 	SIMDLIB_DEFINE_TYPE_MATRIX_SCALAR(token, element_type, not_equal)                                                                                          \
 	SIMDLIB_DEFINE_TYPE_MATRIX_SCALAR(token, element_type, extract_first)                                                                                      \
-	SIMDLIB_DEFINE_TYPE_MATRIX_RUNTIME_EXTRACT(token, element_type)                                                                                            \
-	SIMDLIB_DEFINE_TYPE_MATRIX_RUNTIME_INSERT(token, element_type)                                                                                             \
 	/** @brief Compares fixed-array construction for one element type. */                                                                                      \
 	SIMDLIB_TYPE_MATRIX_NOINLINE SimdLibTypeMatrixCodegen::native_t<element_type> VECTORCALL simdlib_type_matrix_construct_array_##token(                      \
 		const SimdLibTypeMatrixCodegen::array_t<element_type> &source) noexcept                                                                                \
@@ -895,20 +477,41 @@ SIMDLIB_FORCE_INLINE void VECTORCALL transfer(const array_t<element_t> &source_a
 		SimdLibTypeMatrixCodegen::observe_array<element_type>(value, destination);                                                                             \
 	}
 
-SIMDLIB_DEFINE_TYPE_MATRIX_FIXTURES(i8, std::int8_t)
-SIMDLIB_DEFINE_TYPE_MATRIX_FIXTURES(u8, std::uint8_t)
-SIMDLIB_DEFINE_TYPE_MATRIX_FIXTURES(i16, std::int16_t)
-SIMDLIB_DEFINE_TYPE_MATRIX_FIXTURES(u16, std::uint16_t)
-SIMDLIB_DEFINE_TYPE_MATRIX_FIXTURES(i32, std::int32_t)
-SIMDLIB_DEFINE_TYPE_MATRIX_FIXTURES(u32, std::uint32_t)
-SIMDLIB_DEFINE_TYPE_MATRIX_FIXTURES(i64, std::int64_t)
-SIMDLIB_DEFINE_TYPE_MATRIX_FIXTURES(u64, std::uint64_t)
-SIMDLIB_DEFINE_TYPE_MATRIX_FIXTURES(f32, float)
-SIMDLIB_DEFINE_TYPE_MATRIX_FIXTURES(f64, double)
+#define SIMDLIB_DEFINE_TYPE_MATRIX_INTEGER_FIXTURES(token, element_type)                                                                                       \
+	SIMDLIB_DEFINE_TYPE_MATRIX_VECTOR(token, element_type, modulus)                                                                                            \
+	SIMDLIB_DEFINE_TYPE_MATRIX_VECTOR(token, element_type, shift_left)                                                                                         \
+	SIMDLIB_DEFINE_TYPE_MATRIX_VECTOR(token, element_type, logical_shift_right)                                                                                \
+	SIMDLIB_DEFINE_TYPE_MATRIX_VECTOR(token, element_type, shift_right)
+SIMDLIB_DEFINE_TYPE_MATRIX_COMMON_FIXTURES(i8, std::int8_t)
+SIMDLIB_DEFINE_TYPE_MATRIX_COMMON_FIXTURES(u8, std::uint8_t)
+SIMDLIB_DEFINE_TYPE_MATRIX_COMMON_FIXTURES(i16, std::int16_t)
+SIMDLIB_DEFINE_TYPE_MATRIX_COMMON_FIXTURES(u16, std::uint16_t)
+SIMDLIB_DEFINE_TYPE_MATRIX_COMMON_FIXTURES(i32, std::int32_t)
+SIMDLIB_DEFINE_TYPE_MATRIX_COMMON_FIXTURES(u32, std::uint32_t)
+SIMDLIB_DEFINE_TYPE_MATRIX_COMMON_FIXTURES(i64, std::int64_t)
+SIMDLIB_DEFINE_TYPE_MATRIX_COMMON_FIXTURES(u64, std::uint64_t)
+SIMDLIB_DEFINE_TYPE_MATRIX_COMMON_FIXTURES(f32, float)
+SIMDLIB_DEFINE_TYPE_MATRIX_COMMON_FIXTURES(f64, double)
 
-#undef SIMDLIB_DEFINE_TYPE_MATRIX_FIXTURES
-#undef SIMDLIB_DEFINE_TYPE_MATRIX_RUNTIME_INSERT
-#undef SIMDLIB_DEFINE_TYPE_MATRIX_RUNTIME_EXTRACT
+SIMDLIB_DEFINE_TYPE_MATRIX_INTEGER_FIXTURES(i8, std::int8_t)
+SIMDLIB_DEFINE_TYPE_MATRIX_INTEGER_FIXTURES(u8, std::uint8_t)
+SIMDLIB_DEFINE_TYPE_MATRIX_INTEGER_FIXTURES(i16, std::int16_t)
+SIMDLIB_DEFINE_TYPE_MATRIX_INTEGER_FIXTURES(u16, std::uint16_t)
+SIMDLIB_DEFINE_TYPE_MATRIX_INTEGER_FIXTURES(i32, std::int32_t)
+SIMDLIB_DEFINE_TYPE_MATRIX_INTEGER_FIXTURES(u32, std::uint32_t)
+SIMDLIB_DEFINE_TYPE_MATRIX_INTEGER_FIXTURES(i64, std::int64_t)
+SIMDLIB_DEFINE_TYPE_MATRIX_INTEGER_FIXTURES(u64, std::uint64_t)
+static_assert(!SimdLib::IRegister::Modulus<SimdLibTypeMatrixCodegen::register_t<float>>);
+static_assert(!SimdLib::IRegister::Modulus<SimdLibTypeMatrixCodegen::register_t<double>>);
+static_assert(!SimdLib::IRegister::ShiftLeft<SimdLibTypeMatrixCodegen::register_t<float>>);
+static_assert(!SimdLib::IRegister::ShiftLeft<SimdLibTypeMatrixCodegen::register_t<double>>);
+static_assert(!SimdLib::IRegister::LogicalShiftRight<SimdLibTypeMatrixCodegen::register_t<float>>);
+static_assert(!SimdLib::IRegister::LogicalShiftRight<SimdLibTypeMatrixCodegen::register_t<double>>);
+static_assert(!SimdLib::IRegister::ShiftRight<SimdLibTypeMatrixCodegen::register_t<float>>);
+static_assert(!SimdLib::IRegister::ShiftRight<SimdLibTypeMatrixCodegen::register_t<double>>);
+
+#undef SIMDLIB_DEFINE_TYPE_MATRIX_INTEGER_FIXTURES
+#undef SIMDLIB_DEFINE_TYPE_MATRIX_COMMON_FIXTURES
 #undef SIMDLIB_DEFINE_TYPE_MATRIX_SCALAR
 #undef SIMDLIB_DEFINE_TYPE_MATRIX_VECTOR
 #undef SIMDLIB_TYPE_MATRIX_NOINLINE

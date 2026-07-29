@@ -49,8 +49,9 @@ normalization, except for an exact exception listed below.
   conversions, shifts, rearrangements, and mask paths run in the ordinary test
   corpus and in the Clang ASan+UBSan configuration.
 - `tests/RegisterOperationMatrix.tests.cpp` is the compile-time availability
-  oracle. Unsupported operations do not become supported merely because a
-  code-generation fixture can instantiate a no-op fallback cell.
+  oracle. The generated-code type matrix emits a symbol only when the matching
+  `IRegister` operation is available, so unavailable floating modulus and shift
+  cells cannot be mistaken for supported identity operations.
 
 ## Generated-code and ABI evidence
 
@@ -60,17 +61,37 @@ instruction profiles. Optimized Release comparisons reject wrapper-only
 instructions, moves, spills, reloads, stack traffic, return buffers, branches,
 temporaries, and indirection.
 
-The corpus is divided so one optimization decision cannot hide another:
+The permanent corpus assigns one contract to each fixture and one public raw
+`Api` baseline to each parity comparison:
 
-- `RegisterCodegenFixture.h` covers common expression and overload shapes.
-- `RegisterTypeMatrixCodegenFixture.h` emits an isolated no-inline function for
-  each common Register and RegisterMask operation across all ten element types
-  and every width available in the selected ISA profile. Construction, load,
-  store, byte transfer, and array observation are separate symbols.
-- `RegisterSpecializedCodegenFixture.h` covers specialized arithmetic and both
-  FMA modes across the supported type matrix.
+- `RegisterCodegenFixture.h` retains composed expressions, mask composition and
+  reduction, broadcast reuse, nonzero lane extraction, immediate and complete
+  shifts, memory transfers, mutation, special members, reassignment, register
+  pressure, and opaque-call behavior. Its register-only, reassignment, and
+  memory/composition records use nonoverlapping symbol filters.
+- `RegisterTypeMatrixCodegenFixture.h` is the canonical isolated-operation suite.
+  It emits one no-inline symbol for every available Register and RegisterMask
+  operation across all ten element types and every supported width. Construction,
+  load, store, byte transfer, and array observation are separate symbols; dynamic
+  indexing is excluded because it is not part of the Register surface. Its
+  comparison is partitioned into common non-modulus and integer-modulus records
+  so a compiler-specific scalar-remainder diagnostic cannot weaken unrelated
+  exact gates.
+- `RegisterSpecializedCodegenFixture.h` covers the FMA-independent specialized
+  operation matrix once per width and ISA profile.
+- `RegisterFmaCodegenFixture.h` contains only the single- and double-precision
+  multiply-add symbols and is compiled with FMA explicitly enabled and disabled
+  where the ISA profile permits it.
 - `RegisterRearrangementCodegenFixture.h` covers selectors, rearrangements,
-  conversions, bit casts, and width changes.
+  conversions, bit casts, width changes, and the public `Register::shuffle`
+  versus `Api::shuffle` baseline.
+
+Handwritten intrinsic or scalar mirrors are algorithm-evaluation tools, not
+permanent codegen baselines, unless they protect a documented instruction
+property that the public `Api` baseline cannot express. Behavioral tests and
+benchmarks retain independent scalar oracles where correctness or performance
+requires them.
+
 - `RegisterAbi.cpp` and `RegisterAbiRaw.cpp` mirror Register, RegisterMask,
   native-vector, scalar-result, native-result, store, mutating-reference, and
   downstream-consumer signatures as separately compiled no-inline functions.
@@ -85,10 +106,14 @@ SSE4.2, Debug, and sanitizer builds compile the same wrapper/raw objects with
 identical flags and write disassembly, normalized profiles, provenance, and a
 `recorded-difference` result when the profiles diverge. These configurations
 establish visibility of diagnostic-only differences; optimized Release AVX2
-remains the zero-overhead gate. Every artifact records `isa_profile` in addition
+remains the zero-overhead gate except for the exact diagnostic subsets listed
+below. Every artifact records `isa_profile` in addition
 to the compiler, configuration, width, calling convention, and stack-protector
 mode. Artifacts are separated under `register-codegen/sse42/128`,
-`register-codegen/avx2/128`, and `register-codegen/avx2/256`.
+`register-codegen/avx2/128`, and `register-codegen/avx2/256`. Each profile's
+`RegisterExpressionCodegen` and `RegisterConsumerAbi` targets remain build
+conveniences; the single `RegisterCodegen.<profile>` CTest owns validation of
+every record in that profile exactly once.
 
 ## Exception and exclusion ledger
 
@@ -97,6 +122,7 @@ mode. Artifacts are separated under `register-codegen/sse42/128`,
 | SSE4.2 generated-code corpus | Optimized diagnostic; excluded from the zero-overhead claim | Legacy two-operand SSE can expose aggregate-sensitive instruction selection and register coalescing. The complete 128-bit corpus is retained for compiler-by-compiler inspection without treating a recorded difference as an accepted optimized exception. |
 | MSVC 19.44, 128-bit `Register<double>::from_array` under SSE4.2 and AVX2 | Exact accepted Release exception | MSVC adds one `/GS` cookie prologue/epilogue to the wrapper path. The comparator separately recognizes the exact legacy `movdqu` SSE4.2 sequence and exact `vmovdqu` AVX2 sequence, then requires every remaining instruction to match the raw mirror. |
 | MSVC memory-capable aggregate corpus | Recorded, outside the zero-overhead claim when `/GS` differs | Stores, transfers, array returns, mutating references, and other addressable paths intentionally retain `/GS`; applying `SIMDLIB_REGISTER_ONLY` would suppress protection for functions that can write memory. |
+| MSVC 19.44, AVX2/256 integer modulus | Recorded scheduling diagnostic; excluded from the strict parity claim | The `Register::operator%` and `Api::modulus` paths inline the same scalar lane-remainder algorithm, but MSVC schedules independent extract, divide, and insert operations differently after the aggregate operator boundary. The modulus symbols have their own record so this diagnostic cannot relax any other type-matrix operation. |
 | MSVC constexpr bit-cast value matrix | Frontend evaluation excluded | MSVC 19.44 terminates with an internal compiler error when evaluating the first Register bit-cast cell. MSVC still compiles the complete availability matrix and validates runtime bit-cast values; GCC and both Clang drivers perform the complete constexpr value matrix. |
 | clang-cl Windows platform-default aggregate ABI | Diagnostic only; failing signatures excluded | The platform-default convention may use hidden return storage for aggregate Register results. `VECTORCALL` wrapper/raw parity is the supported clang-cl boundary. |
 | MSVC Windows platform-default aggregate ABI | Diagnostic only; hidden-return signatures excluded | The platform-default convention also returns aggregate Register results through caller-provided storage. The supported non-inline boundary uses `VECTORCALL`; default-convention disassembly remains available without expanding the guarantee. |

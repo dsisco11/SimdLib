@@ -1374,42 +1374,56 @@ The implementation requires evidence in each of these areas:
   Windows x64 uses MSVC 19.44 and clang-cl 22.
   Linux x64 uses Clang 22 and GCC 14 or newer; GCC 13.2 is a required
   unavailable-interface probe for the core matrix.
-- Mandatory generated-code comparisons for chained arithmetic, comparison plus
-  selection, load/operate/store, and explicit broadcast reuse. Benchmarks may
-  supplement these comparisons but never replace them.
-- Automatically generated code probes for the actual forced-inline
-  explicit-object members covering every public operation family, overload
-  shape, supported element type, register width, and ISA profile. The probes
-  include overloaded operators, named arithmetic, comparisons, reductions,
-  conversions, rearrangements, stores, and native observation. Each category
-  compares optimized wrapper chains with equivalent direct-intrinsic chains
-  compiled with identical options and rejects wrapper-only stack traffic,
-  moves, spills, reloads, temporaries, branches, or indirection.
-- Forced-inline probes for aggregate initialization, implicit compiler-generated
-  special members, static factories, and reassignment expressions. The
-  supported performance gate fails if a wrapper is unnecessarily materialized
-  when the equivalent direct operation remains in registers.
-- Test-only, separately compiled, non-inlined ABI mirrors for the explicit-object
-  signature families: unary, binary, ternary, scalar-result, mask-result,
-  native-result, store, and mutating-reference operations. These compare `Register`,
-  `RegisterMask`, `Api::vector_t`, and direct-intrinsic calling conventions for
-  every supported compiler, element type, and register width.
-- Paired consumer-defined function probes using `VECTORCALL` and the platform
+- Mandatory generated-code comparisons retain composed arithmetic, comparison
+  followed by mask composition, selection, or reduction, broadcast reuse,
+  nonzero-index extraction, immediate and complete shifts, load/operate/store,
+  aligned and byte transfers, special members, reassignment, mutation, register
+  pressure, and opaque calls. Benchmarks may supplement these comparisons but
+  never replace them.
+- The type matrix is the canonical isolated-operation suite. It emits an
+  individual no-inline symbol only when the matching `IRegister` concept is
+  available, covers all supported element types, widths, and ISA profiles, and
+  compares `Register` with the equivalent public `Api` expression. Dynamic
+  extract and insert operations are excluded because they are not Register APIs.
+  Common non-modulus symbols and integer-modulus symbols use separate records so
+  a narrowly documented compiler scheduling diagnostic cannot weaken unrelated
+  exact comparisons.
+- The FMA-independent specialized-operation matrix is compiled once per width
+  and ISA profile. A separate fixture containing only `multiply_add_f32` and
+  `multiply_add_f64` is compiled with FMA enabled and disabled so an unrelated
+  fused instruction cannot satisfy the instruction-property check.
+- Handwritten intrinsic and scalar codegen mirrors are temporary
+  algorithm-evaluation tools unless a documented instruction-property contract
+  cannot be expressed through the public `Api` baseline. Selected-algorithm
+  copies do not remain in permanent codegen fixtures.
+- Forced-inline probes retain aggregate initialization, implicit
+  compiler-generated special members, static factories, and reassignment
+  expressions. The supported performance gate fails if a wrapper is
+  unnecessarily materialized when the equivalent direct operation remains in
+  registers.
+- Test-only, separately compiled, non-inlined ABI mirrors cover the
+  explicit-object signature families: unary, binary, ternary, scalar-result,
+  mask-result, native-result, store, and mutating-reference operations. These
+  compare `Register`, `RegisterMask`, `Api::vector_t`, and raw-vector calling
+  conventions for every supported compiler, element type, and register width.
+- Paired consumer-defined function probes use `VECTORCALL` and the platform
   default convention. The vector-convention gate rejects any wrapper-only ABI
   overhead. Default-convention differences are recorded explicitly and remain
   outside the supported call-boundary guarantee unless that compiler and
   signature also pass the raw-vector comparison.
-- Controlled register-pressure and opaque-call probes that distinguish spills
-  required equally by raw values from additional spills introduced by the
-  wrapper.
-- Configuration-provenance records for every code-generation and ABI artifact,
-  including compiler version, architecture, ISA switches, SimdLib configuration,
-  optimization mode, and calling convention. Debug and sanitizer results are
+- Record symbol groups are nonoverlapping. Expression and consumer-ABI
+  aggregates remain build conveniences, while one `RegisterCodegen.<profile>`
+  CTest owns every record in its profile exactly once.
+- Configuration-provenance records accompany every code-generation and ABI
+  artifact, including compiler version, architecture, ISA switches, SimdLib
+  configuration, optimization mode, calling convention, stack-protector mode,
+  exact symbol filter, and raw baseline. Debug and sanitizer results are
   reported separately from optimized Release evidence.
 
-Tests should treat the current `Api` as a parity oracle only while migration is
-underway. Independent scalar references remain necessary for behavioral
-correctness so both surfaces cannot agree on the same defect unnoticed.
+Tests use the current `Api` as the permanent generated-code parity baseline.
+Independent scalar references remain necessary in behavioral tests and
+benchmarks so both public surfaces cannot agree on the same defect unnoticed;
+those references are not retained as duplicate permanent codegen algorithms.
 
 ## Acceptance criteria
 

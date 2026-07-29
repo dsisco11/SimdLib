@@ -268,12 +268,18 @@ operation.
 | Clang `Benchmark` | 37.420 | 2.045 | 96.608 | 38.622 | 159+2 | 4+2 | 0 | 1 | 7.19 |
 | Clang `Sanitizer` | 365.638 | 2.251 | 412.616 | 45.269 | 228+2 | 210+2 | 14 | 0 | 738.54 |
 
-The 14 Linux comparison records are the union of expression, reassignment,
-lane, specialized FMA, rearrangement/conversion, type-matrix, consumer ABI,
-default ABI, and complete ABI checks across SSE4.2/128, AVX2/128, and
-AVX2/256. MSVC has 11 because its accepted security-cookie policy omits the
-three broad wrapper/raw comparison stamps while retaining the register-only
-and ABI-focused gates.
+The 14-record counts above describe the pre-refactor execution baseline. The
+rationalized permanent suite now owns eleven records for SSE4.2/128 and twelve
+records for each AVX2 width: primary composition/memory, register-only,
+reassignment, FMA-independent specialized operations, FMA-disabled
+multiply-add, rearrangement/conversion, canonical common non-modulus type
+matrix, isolated integer-modulus type matrix, consumer ABI, explicit-object ABI,
+and platform-default ABI, plus the isolated FMA-enabled multiply-add record
+under AVX2. The three profiles therefore own 35 records on each
+Register-capable compiler. MSVC retains the same record partition; its exact
+`Register<double>::from_array` security-cookie exception and narrowly scoped
+diagnostic records are expressed by comparator policy rather than by omitting a
+broad record.
 
 ## Duplicate-work findings
 
@@ -333,9 +339,11 @@ boundary and must become build dependencies plus build-free record checks.
 | Current CTest family | Count when enabled | Current command | Build owner after refactor | Build-free validation after refactor |
 | --- | ---: | --- | --- | --- |
 | `SimdLib.ConstexprProbes.Build` | 1 | builds `SimdLibConstexprProbes` | `ExhaustiveArtifacts` depends on the constexpr aggregate and assertion audit | verify the expected object outputs and audit record exist and match the manifest |
-| `SimdLib.RegisterExpressionCodegen.<profile>` | 3 | builds the profile expression target | Release/diagnostic aggregate depends on all expression comparison outputs | validate the machine-readable comparison record and its input/policy hashes |
-| `SimdLib.RegisterConsumerAbi.<profile>` | 3 | builds the profile consumer-ABI target | owning codegen aggregate depends on consumer ABI outputs | validate the consumer-ABI comparison record without `cmake --build` |
-| `SimdLib.RegisterCodegen.<profile>` | 3 | builds the complete profile codegen target | owning aggregate depends on complete profile outputs | validate the complete comparison record set and accepted-exception policy |
+| `RegisterCodegen.<profile>` | 3 | validates the already-built complete profile record index | `RegisterCodegen<profile>` depends on the expression and consumer-ABI aggregate build targets and every comparison output | validate every retained comparison record and accepted-exception policy exactly once |
+
+`RegisterExpressionCodegen<profile>` and `RegisterConsumerAbi<profile>` remain
+build-only convenience targets. They do not register CTests or separate record
+indexes, so they cannot revalidate records owned by `RegisterCodegen.<profile>`.
 
 No other current CTest definition invokes `cmake --build`. The public-header
 audit and result-set comparisons invoke CMake script mode but do not compile;

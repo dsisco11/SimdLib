@@ -23,10 +23,6 @@ template <class element_t> using native_t = typename SimdLib::Api<SIMDLIB_REGIST
 #define SIMDLIB_SPECIALIZED_UNARY_EXPRESSION(type, member, api, value) (SimdLib::Register<type, SIMDLIB_REGISTER_TEST_WIDTH>{value}.member().native)
 #define SIMDLIB_SPECIALIZED_BINARY_EXPRESSION(type, member, api, lhs, rhs)                                                                                     \
 	(SimdLib::Register<type, SIMDLIB_REGISTER_TEST_WIDTH>{lhs}.member(SimdLib::Register<type, SIMDLIB_REGISTER_TEST_WIDTH>{rhs}).native)
-#define SIMDLIB_SPECIALIZED_TERNARY_EXPRESSION(type, member, api, lhs, rhs, addend)                                                                            \
-	(SimdLib::Register<type, SIMDLIB_REGISTER_TEST_WIDTH>{lhs}                                                                                                 \
-		 .member(SimdLib::Register<type, SIMDLIB_REGISTER_TEST_WIDTH>{rhs}, SimdLib::Register<type, SIMDLIB_REGISTER_TEST_WIDTH>{addend})                      \
-		 .native)
 #define SIMDLIB_SPECIALIZED_SCALAR_EXPRESSION(type, member, api, value) (SimdLib::Register<type, SIMDLIB_REGISTER_TEST_WIDTH>{value}.member())
 #define SIMDLIB_SPECIALIZED_PROMOTED_EXPRESSION(type, member, api, lhs, rhs)                                                                                   \
 	(SimdLib::Register<type, SIMDLIB_REGISTER_TEST_WIDTH>{lhs}.member(SimdLib::Register<type, SIMDLIB_REGISTER_TEST_WIDTH>{rhs}).native)
@@ -39,7 +35,6 @@ template <class element_t> using native_t = typename SimdLib::Api<SIMDLIB_REGIST
 #else
 #define SIMDLIB_SPECIALIZED_UNARY_EXPRESSION(type, member, api, value) (SimdLib::Api<SIMDLIB_REGISTER_TEST_WIDTH, type>::api(value))
 #define SIMDLIB_SPECIALIZED_BINARY_EXPRESSION(type, member, api, lhs, rhs) (SimdLib::Api<SIMDLIB_REGISTER_TEST_WIDTH, type>::api(lhs, rhs))
-#define SIMDLIB_SPECIALIZED_TERNARY_EXPRESSION(type, member, api, lhs, rhs, addend) (SimdLib::Api<SIMDLIB_REGISTER_TEST_WIDTH, type>::api(lhs, rhs, addend))
 #define SIMDLIB_SPECIALIZED_SCALAR_EXPRESSION(type, member, api, value) (SimdLib::Api<SIMDLIB_REGISTER_TEST_WIDTH, type>::api(value))
 #define SIMDLIB_SPECIALIZED_PROMOTED_EXPRESSION(type, member, api, lhs, rhs) (SimdLib::Api<SIMDLIB_REGISTER_TEST_WIDTH, type>::api(lhs, rhs))
 #define SIMDLIB_SPECIALIZED_MULTI_SAD_EXPRESSION(type, lhs, rhs)                                                                                               \
@@ -61,15 +56,6 @@ template <class element_t> using native_t = typename SimdLib::Api<SIMDLIB_REGIST
 	simdlib_specialized_codegen_##operation##_##token(SimdLibSpecializedCodegen::native_t<type> lhs, SimdLibSpecializedCodegen::native_t<type> rhs) noexcept   \
 	{                                                                                                                                                          \
 		return SIMDLIB_SPECIALIZED_BINARY_EXPRESSION(type, member, api, lhs, rhs);                                                                             \
-	}
-
-#define SIMDLIB_DEFINE_SPECIALIZED_TERNARY(operation, token, type, member, api)                                                                                \
-	/** @brief Compares one ternary Register specialized operation against its raw Api expression. */                                                          \
-	SIMDLIB_REGISTER_ONLY SIMDLIB_SPECIALIZED_CODEGEN_NOINLINE SimdLibSpecializedCodegen::native_t<type> VECTORCALL                                            \
-	simdlib_specialized_codegen_##operation##_##token(SimdLibSpecializedCodegen::native_t<type> lhs, SimdLibSpecializedCodegen::native_t<type> rhs,            \
-													  SimdLibSpecializedCodegen::native_t<type> addend) noexcept                                               \
-	{                                                                                                                                                          \
-		return SIMDLIB_SPECIALIZED_TERNARY_EXPRESSION(type, member, api, lhs, rhs, addend);                                                                    \
 	}
 
 #define SIMDLIB_DEFINE_SPECIALIZED_SCALAR(operation, token, type, member, api)                                                                                 \
@@ -126,8 +112,6 @@ SIMDLIB_DEFINE_SPECIALIZED_UNARY(normalize, f32, float, normalize, normalize)
 SIMDLIB_DEFINE_SPECIALIZED_UNARY(normalize, f64, double, normalize, normalize)
 SIMDLIB_DEFINE_SPECIALIZED_BINARY(average, u8, std::uint8_t, average, avg)
 SIMDLIB_DEFINE_SPECIALIZED_BINARY(average, u16, std::uint16_t, average, avg)
-SIMDLIB_DEFINE_SPECIALIZED_TERNARY(multiply_add, f32, float, multiply_add, multiply_add)
-SIMDLIB_DEFINE_SPECIALIZED_TERNARY(multiply_add, f64, double, multiply_add, multiply_add)
 
 SIMDLIB_DEFINE_SPECIALIZED_BINARY(horizontal_add, i16, std::int16_t, horizontal_add, add_horizontal)
 SIMDLIB_DEFINE_SPECIALIZED_BINARY(horizontal_add, u16, std::uint16_t, horizontal_add, add_horizontal)
@@ -183,14 +167,12 @@ SIMDLIB_DEFINE_SPECIALIZED_MULTI_SAD(u64, std::uint64_t)
 #undef SIMDLIB_DEFINE_SPECIALIZED_MULTI_SAD
 #undef SIMDLIB_DEFINE_SPECIALIZED_PROMOTED
 #undef SIMDLIB_DEFINE_SPECIALIZED_SCALAR
-#undef SIMDLIB_DEFINE_SPECIALIZED_TERNARY
 #undef SIMDLIB_DEFINE_SPECIALIZED_BINARY
 #undef SIMDLIB_DEFINE_SPECIALIZED_UNARY
 #undef SIMDLIB_SPECIALIZED_DOT_EXPRESSION
 #undef SIMDLIB_SPECIALIZED_MULTI_SAD_EXPRESSION
 #undef SIMDLIB_SPECIALIZED_PROMOTED_EXPRESSION
 #undef SIMDLIB_SPECIALIZED_SCALAR_EXPRESSION
-#undef SIMDLIB_SPECIALIZED_TERNARY_EXPRESSION
 #undef SIMDLIB_SPECIALIZED_BINARY_EXPRESSION
 #undef SIMDLIB_SPECIALIZED_UNARY_EXPRESSION
 #undef SIMDLIB_SPECIALIZED_CODEGEN_NOINLINE

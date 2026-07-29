@@ -11,6 +11,9 @@ endforeach()
 if(NOT DEFINED SYMBOL_PATTERN OR "${SYMBOL_PATTERN}" STREQUAL "")
 	set(SYMBOL_PATTERN "simdlib_codegen_")
 endif()
+if(NOT DEFINED EXCLUDE_SYMBOL_PATTERN)
+	set(EXCLUDE_SYMBOL_PATTERN "")
+endif()
 if(NOT DEFINED CODEGEN_PROFILE OR "${CODEGEN_PROFILE}" STREQUAL "")
 	set(CODEGEN_PROFILE "default")
 endif()
@@ -19,6 +22,9 @@ if(NOT DEFINED FMA_EXPECTATION OR "${FMA_EXPECTATION}" STREQUAL "")
 endif()
 if(NOT DEFINED RECORD_ONLY OR "${RECORD_ONLY}" STREQUAL "")
 	set(RECORD_ONLY OFF)
+endif()
+if(NOT DEFINED RECORDED_DIFFERENCE_REASON OR "${RECORDED_DIFFERENCE_REASON}" STREQUAL "")
+	set(RECORDED_DIFFERENCE_REASON "non-release-differential")
 endif()
 if(NOT DEFINED RECORD_FILE OR "${RECORD_FILE}" STREQUAL "")
 	set(RECORD_FILE "${ARTIFACT_DIRECTORY}/comparison.record.json")
@@ -132,8 +138,12 @@ function(simdlib_normalize_disassembly input_text output_variable)
 	set(in_fixture OFF)
 	foreach(disassembly_line IN LISTS disassembly_lines)
 		if(disassembly_line MATCHES "<[^>]*${SYMBOL_PATTERN}[^>]*>:")
-			set(in_fixture ON)
-			string(APPEND fixture_only "<symbol>:\n")
+			if(EXCLUDE_SYMBOL_PATTERN STREQUAL "" OR NOT disassembly_line MATCHES "<[^>]*${EXCLUDE_SYMBOL_PATTERN}[^>]*>:")
+				set(in_fixture ON)
+				string(APPEND fixture_only "<symbol>:\n")
+			else()
+				set(in_fixture OFF)
+			endif()
 		elseif(disassembly_line MATCHES "^[ \t]*[0-9A-Fa-f]+[ \t]+<[^>]+>:")
 			set(in_fixture OFF)
 		elseif(in_fixture AND NOT disassembly_line MATCHES "^Disassembly of section")
@@ -345,7 +355,7 @@ endif()
 
 if(RECORD_ONLY AND comparison_result STREQUAL "failed")
 	set(comparison_result "recorded-difference")
-	set(accepted_exception "non-release-differential")
+	set(accepted_exception "${RECORDED_DIFFERENCE_REASON}")
 endif()
 
 file(WRITE "${ARTIFACT_DIRECTORY}/wrapper.disassembly.txt" "${wrapper_disassembly}")
@@ -371,6 +381,7 @@ file(WRITE "${ARTIFACT_DIRECTORY}/provenance.txt"
 	"stack_protector_mode=${STACK_PROTECTOR_MODE}\n"
 	"codegen_profile=${CODEGEN_PROFILE}\n"
 	"fma_expectation=${FMA_EXPECTATION}\n"
+	"exclude_symbol_pattern=${EXCLUDE_SYMBOL_PATTERN}\n"
 	"record_only=${RECORD_ONLY}\n"
 	"comparison_result=${comparison_result}\n"
 	"accepted_exception=${accepted_exception}\n"
@@ -402,7 +413,7 @@ endif()
 foreach(json_value IN ITEMS
 	WRAPPER_OBJECT RAW_OBJECT OBJDUMP tool_version COMPILER_ID COMPILER_VERSION
 	COMPILER_PATH SYSTEM_NAME SYSTEM_PROCESSOR CONFIGURATION ISA_PROFILE
-	STACK_PROTECTOR_MODE CODEGEN_PROFILE FMA_EXPECTATION SYMBOL_PATTERN
+	STACK_PROTECTOR_MODE CODEGEN_PROFILE FMA_EXPECTATION SYMBOL_PATTERN EXCLUDE_SYMBOL_PATTERN
 	comparison_result accepted_exception policy_mode)
 	simdlib_escape_json("${${json_value}}" "${json_value}_json")
 endforeach()
@@ -419,7 +430,7 @@ file(WRITE "${record_temporary_file}"
 	"  \"tool\": {\"path\": \"${OBJDUMP_json}\", \"version\": \"${tool_version_json}\", \"sha256\": \"${tool_hash}\"},\n"
 	"  \"policy\": {\"id\": \"register-codegen-comparison-v1\", \"mode\": \"${policy_mode_json}\", "
 		"\"codegen_profile\": \"${CODEGEN_PROFILE_json}\", \"fma_expectation\": \"${FMA_EXPECTATION_json}\", "
-		"\"symbol_pattern\": \"${SYMBOL_PATTERN_json}\"},\n"
+		"\"symbol_pattern\": \"${SYMBOL_PATTERN_json}\", \"exclude_symbol_pattern\": \"${EXCLUDE_SYMBOL_PATTERN_json}\"},\n"
 	"  \"compiler\": {\"id\": \"${COMPILER_ID_json}\", \"version\": \"${COMPILER_VERSION_json}\", "
 		"\"path\": \"${COMPILER_PATH_json}\"},\n"
 	"  \"platform\": {\"system\": \"${SYSTEM_NAME_json}\", \"processor\": \"${SYSTEM_PROCESSOR_json}\"},\n"
@@ -433,7 +444,7 @@ file(RENAME "${record_temporary_file}" "${RECORD_FILE}")
 
 if(comparison_result STREQUAL "recorded-difference")
 	message(STATUS
-		"Recorded a non-Release Register wrapper/raw difference; artifacts: ${ARTIFACT_DIRECTORY}")
+		"Recorded Register wrapper/raw diagnostic ${accepted_exception}; artifacts: ${ARTIFACT_DIRECTORY}")
 elseif(comparison_result STREQUAL "accepted-compiler-exception")
 	message(STATUS
 		"Accepted the exact MSVC /GS security-cookie exception ${accepted_exception}; artifacts: ${ARTIFACT_DIRECTORY}")
