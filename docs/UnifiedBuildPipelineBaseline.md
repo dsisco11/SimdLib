@@ -281,6 +281,13 @@ Register-capable compiler. MSVC retains the same record partition; its exact
 diagnostic records are expressed by comparator policy rather than by omitting a
 broad record.
 
+The retained source corpus contains 810 individually audited symbols. Their
+fixture ownership, profile applicability, raw baseline, record, validation
+owner, and retention rationale are defined in
+`RegisterCodegenSymbolAudit.csv`; the corresponding source, target, script,
+CTest, CI-artifact, and documentation inventory is in
+`RegisterCodegenAudit.md`.
+
 ## Duplicate-work findings
 
 ### Exact duplicates

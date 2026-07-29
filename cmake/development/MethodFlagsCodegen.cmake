@@ -26,7 +26,8 @@ if(SIMDLIB_BUILD_CONFIGURATION_PROBES
 		target_link_libraries(${method_flags_target} PRIVATE SimdLib::SimdLib)
 		simdlib_enable_development_warnings(${method_flags_target})
 		if(SIMDLIB_MSVC_STYLE_DRIVER)
-			target_compile_options(${method_flags_target} PRIVATE /O2 /GS)
+			set_property(TARGET ${method_flags_target} PROPERTY MSVC_RUNTIME_CHECKS "")
+			target_compile_options(${method_flags_target} PRIVATE /O2 /Ob2 /GS)
 		else()
 			target_compile_options(${method_flags_target} PRIVATE
 				-O2 -msse4.2 -fstack-protector-strong)

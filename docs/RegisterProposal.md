@@ -1424,6 +1424,9 @@ Tests use the current `Api` as the permanent generated-code parity baseline.
 Independent scalar references remain necessary in behavioral tests and
 benchmarks so both public surfaces cannot agree on the same defect unnoticed;
 those references are not retained as duplicate permanent codegen algorithms.
+The complete per-symbol retention and ownership decisions are defined by
+`RegisterCodegenSymbolAudit.csv` and summarized with the build and artifact
+inventory in `RegisterCodegenAudit.md`.
 
 ## Acceptance criteria
 

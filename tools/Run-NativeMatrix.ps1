@@ -226,6 +226,39 @@ function Get-OptionalFileHash {
 
 <#
 .SYNOPSIS
+Writes the aggregate generated-code record index from CMake-owned validation indexes.
+.PARAMETER BuildDirectory
+Configured build tree containing the owner indexes.
+.PARAMETER OutputPath
+Pipeline record index to write.
+#>
+function Write-CodegenRecordIndex {
+    param(
+        [Parameter(Mandatory)][string]$BuildDirectory,
+        [Parameter(Mandatory)][string]$OutputPath
+    )
+    $ownerIndexes = @(
+        (Join-Path $BuildDirectory 'method-flags-codegen/all-records.txt'),
+        (Join-Path $BuildDirectory 'register-codegen/sse42/128/all-records.txt'),
+        (Join-Path $BuildDirectory 'register-codegen/avx2/128/all-records.txt'),
+        (Join-Path $BuildDirectory 'register-codegen/avx2/256/all-records.txt')
+    )
+    $records = @(
+        foreach ($ownerIndex in $ownerIndexes) {
+            if (Test-Path -LiteralPath $ownerIndex -PathType Leaf) {
+                Get-Content -LiteralPath $ownerIndex | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+            }
+        }
+    )
+    $records = @($records | Sort-Object -Unique)
+    if (-not $records.Count) {
+        throw "No CMake-owned generated-code records were found under $BuildDirectory"
+    }
+    Set-PipelineTextFile -Path $OutputPath -Content (($records -join [Environment]::NewLine) + [Environment]::NewLine)
+}
+
+<#
+.SYNOPSIS
 Writes an atomic completed-operation manifest for one native cell.
 .PARAMETER Artifact
 Resolved cell artifact.
@@ -345,8 +378,7 @@ function Build-NativeValidationCell {
     } else {
         Set-PipelineTextFile -Path $consumerInventory -Content ''
     }
-    $records = @(Get-ChildItem -LiteralPath $Artifact.Build -Filter '*.record.json' -File -Recurse -ErrorAction SilentlyContinue | Sort-Object FullName | ForEach-Object FullName)
-    Set-PipelineTextFile -Path (Join-Path $Artifact.Provenance 'codegen-records.index') -Content $(if ($records.Count) { ($records -join "`n") + "`n" } else { '' })
+    Write-CodegenRecordIndex -BuildDirectory $Artifact.Build -OutputPath (Join-Path $Artifact.Provenance 'codegen-records.index')
     Write-NativeManifest -Artifact $Artifact -Operation 'build-validation'
 }
 

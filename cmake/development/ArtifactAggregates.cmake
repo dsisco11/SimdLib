@@ -7,6 +7,9 @@ endif()
 block(SCOPE_FOR VARIABLES)
 
 get_property(simdlib_development_targets DIRECTORY PROPERTY BUILDSYSTEM_TARGETS)
+if(TARGET MethodFlagsPlacement)
+    list(APPEND simdlib_development_targets MethodFlagsPlacement)
+endif()
 list(REMOVE_DUPLICATES simdlib_development_targets)
 list(FILTER simdlib_development_targets EXCLUDE
     REGEX "^(Continuous|Experimental|Nightly)")
@@ -78,7 +81,7 @@ if(SIMDLIB_VALIDATE_EXHAUSTIVE_TARGETS)
         ApiSse42Tests ApiAvx2Tests FmaEnabledTests FmaDisabledTests
         BmiPortableTests Bmi1Tests Bmi2Tests Bmi1Bmi2Tests
         VectorAlgorithmsTests ResampleScalarTests ApiExamples Benchmarks
-        PublicHeaderAssertionAudit ConstexprProbes)
+        PublicHeaderAssertionAudit ConstexprProbes MethodFlagsPlacement)
     if(SIMDLIB_REGISTER_COMPILER_SUPPORTED)
         list(APPEND simdlib_required_exhaustive_targets
             RegisterSse42Tests RegisterAvx2Tests RegisterExamples)

@@ -315,6 +315,7 @@ the complete correctness, layout, ABI, and generated-code gates pass.
 | Non-inlined ABI mirrors | `tests/codegen/RegisterAbi.cpp`, `tests/codegen/RegisterAbiRaw.cpp` | ABI records owned by `RegisterCodegen128Sse42`, `RegisterCodegen128Avx2`, and `RegisterCodegen256Avx2` |
 | Register pressure and opaque calls | `tests/codegen/RegisterCodegenFixture.h` | Register code-generation gate |
 | Code-generation comparison | `cmake/CompareRegisterCodegen.cmake` and checked-in allowlisted normalization rules | CTest mandatory performance gate |
+| Permanent generated-code ownership audit | `docs/RegisterCodegenSymbolAudit.csv` and `docs/RegisterCodegenAudit.md` | Per-symbol fixture, baseline, record, validation, and retention traceability |
 | Checks-enabled preconditions | `tests/RegisterPreconditionFailure.tests.cpp` | Existing precondition death-test infrastructure |
 | Sanitizers | Runtime Register and mask sources | Fresh Clang ASan/UBSan configuration |
 | Supplemental benchmarks | `benchmarks/Register.benchmarks.cpp` | `Benchmarks`; never a correctness/codegen substitute |

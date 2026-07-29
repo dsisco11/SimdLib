@@ -64,6 +64,11 @@ temporaries, and indirection.
 The permanent corpus assigns one contract to each fixture and one public raw
 `Api` baseline to each parity comparison:
 
+The per-symbol ownership, category, baseline, validation owner, retention
+decision, and rationale are recorded in
+`RegisterCodegenSymbolAudit.csv`; `RegisterCodegenAudit.md` inventories the
+source, target, record, CTest, CI-artifact, and documentation boundaries.
+
 - `RegisterCodegenFixture.h` retains composed expressions, mask composition and
   reduction, broadcast reuse, nonzero lane extraction, immediate and complete
   shifts, memory transfers, mutation, special members, reassignment, register
@@ -114,6 +119,10 @@ mode. Artifacts are separated under `register-codegen/sse42/128`,
 `RegisterExpressionCodegen` and `RegisterConsumerAbi` targets remain build
 conveniences; the single `RegisterCodegen.<profile>` CTest owns validation of
 every record in that profile exactly once.
+
+Method-attribute records and text evidence live under `method-flags-codegen` and
+are published with the Register artifact roots. Their single validation owner is
+the `MethodFlagsCodegen` CTest.
 
 ## Exception and exclusion ledger
 

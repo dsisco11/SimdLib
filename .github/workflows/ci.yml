@@ -36,6 +36,8 @@ jobs:
             out/pipeline/windows-msvc/**/benchmark-build.manifest
             out/pipeline/windows-msvc/**/build/register-codegen/**/*.json
             out/pipeline/windows-msvc/**/build/register-codegen/**/*.txt
+            out/pipeline/windows-msvc/**/build/method-flags-codegen/**/*.json
+            out/pipeline/windows-msvc/**/build/method-flags-codegen/**/*.txt
             out/pipeline/logs
             out/pipeline/provenance
           if-no-files-found: error
@@ -69,9 +71,13 @@ jobs:
             out/pipeline/windows-clangcl/**/benchmark-build.manifest
             out/pipeline/windows-clangcl/**/build/register-codegen/**/*.json
             out/pipeline/windows-clangcl/**/build/register-codegen/**/*.txt
+            out/pipeline/windows-clangcl/**/build/method-flags-codegen/**/*.json
+            out/pipeline/windows-clangcl/**/build/method-flags-codegen/**/*.txt
             out/pipeline/windows-clang-coverage/**/provenance
             out/pipeline/windows-clang-coverage/**/reports
             out/pipeline/windows-clang-coverage/**/validation-build.manifest
+            out/pipeline/windows-clang-coverage/**/build/method-flags-codegen/**/*.json
+            out/pipeline/windows-clang-coverage/**/build/method-flags-codegen/**/*.txt
             out/pipeline/logs
             out/pipeline/provenance
           if-no-files-found: error
@@ -102,6 +108,8 @@ jobs:
             out/pipeline/linux-*/**/benchmark-build.manifest
             out/pipeline/linux-*/**/build/register-codegen/**/*.json
             out/pipeline/linux-*/**/build/register-codegen/**/*.txt
+            out/pipeline/linux-*/**/build/method-flags-codegen/**/*.json
+            out/pipeline/linux-*/**/build/method-flags-codegen/**/*.txt
             out/pipeline/logs
             out/pipeline/provenance
           if-no-files-found: error

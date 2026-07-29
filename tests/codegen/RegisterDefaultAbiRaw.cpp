@@ -1,4 +1,4 @@
-#include <SimdLib/Register.h>
+#include <SimdLib/Api.h>
 
 #if SIMDLIB_COMPILER_MSVC
 #define SIMDLIB_CODEGEN_NOINLINE __declspec(noinline)

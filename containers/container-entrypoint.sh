@@ -302,6 +302,24 @@ record_test_inventory()
 		-P "$source_directory/cmake/RecordTestInventory.cmake"
 }
 
+## @brief Writes the aggregate generated-code record index from CMake-owned indexes.
+write_codegen_record_index()
+{
+	{
+		for owner_index in \
+			"$build_directory/method-flags-codegen/all-records.txt" \
+			"$build_directory/register-codegen/sse42/128/all-records.txt" \
+			"$build_directory/register-codegen/avx2/128/all-records.txt" \
+			"$build_directory/register-codegen/avx2/256/all-records.txt"; do
+			[ ! -f "$owner_index" ] || cat "$owner_index"
+		done
+	} | sed '/^[[:space:]]*$/d' | LC_ALL=C sort -u >"$codegen_record_index"
+	[ -s "$codegen_record_index" ] || {
+		echo "No CMake-owned generated-code records were found under $build_directory" >&2
+		exit 6
+	}
+}
+
 ## @brief Validates a recorded CTest executable inventory before running tests.
 validate_test_inventory()
 {
@@ -514,8 +532,7 @@ case "$operation" in
 		build_external_consumer
 		record_test_inventory "$build_directory" "$main_inventory"
 		record_test_inventory "$consumer_directory" "$consumer_inventory"
-		find "$build_directory/register-codegen" -type f -name '*.record.json' 2>/dev/null |
-			LC_ALL=C sort >"$codegen_record_index"
+		write_codegen_record_index
 		write_completed_manifest "$validation_manifest" build-validation "$source_digest"
 		;;
 	build-benchmarks)

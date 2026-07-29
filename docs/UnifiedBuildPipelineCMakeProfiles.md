@@ -111,6 +111,10 @@ and `UnifiedBuildPipelineExpectedTests.txt` remain evidence of the pre-refactor
 baseline identified by `UnifiedBuildPipelineBaseline.md`; they are not current
 target manifests.
 
+`RegisterCodegenSymbolAudit.csv` is the canonical per-symbol ownership ledger;
+`RegisterCodegenAudit.md` inventories the corresponding CMake targets, record
+inputs, validation owners, CI publication roots, and enduring documentation.
+
 ## Execution evidence
 
 The following configure and aggregate operations completed with the final

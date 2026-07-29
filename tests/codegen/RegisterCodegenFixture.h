@@ -1,6 +1,10 @@
 #pragma once
 
+#if SIMDLIB_CODEGEN_USE_WRAPPER
 #include <SimdLib/Register.h>
+#else
+#include <SimdLib/Api.h>
+#endif
 
 #include <cstddef>
 #include <cstdint>
@@ -16,12 +20,15 @@ namespace SimdLibCodegen
 {
 
 using api_type = SimdLib::Api<SIMDLIB_REGISTER_TEST_WIDTH, float>;
-using backend_type = SimdLib::Detail::SimdMappings<SIMDLIB_REGISTER_TEST_WIDTH, float>;
 using native_type = typename api_type::vector_t;
+#if SIMDLIB_CODEGEN_USE_WRAPPER
 using register_type = SimdLib::Register<float, SIMDLIB_REGISTER_TEST_WIDTH>;
+#endif
 using uint_api_type = SimdLib::Api<SIMDLIB_REGISTER_TEST_WIDTH, std::uint32_t>;
 using uint_native_type = typename uint_api_type::vector_t;
+#if SIMDLIB_CODEGEN_USE_WRAPPER
 using uint_register_type = SimdLib::Register<std::uint32_t, SIMDLIB_REGISTER_TEST_WIDTH>;
+#endif
 
 #if SIMDLIB_CODEGEN_USE_WRAPPER
 using value_type = register_type;
@@ -75,7 +82,7 @@ SIMDLIB_REGISTER_ONLY SIMDLIB_CODEGEN_NOINLINE native_type VECTORCALL simdlib_co
 	const SimdLibCodegen::register_type right{rhs};
 	return (left.compare_equal(right) | left.compare_greater(right)).native;
 #else
-	return SimdLibCodegen::api_type::bitwise_or(SimdLibCodegen::backend_type::cmpeq(lhs, rhs), SimdLibCodegen::backend_type::cmpgt(lhs, rhs));
+	return SimdLibCodegen::api_type::bitwise_or(SimdLibCodegen::api_type::compare_equal(lhs, rhs), SimdLibCodegen::api_type::compare_greater(lhs, rhs));
 #endif
 }
 
@@ -89,8 +96,8 @@ SIMDLIB_REGISTER_ONLY SIMDLIB_CODEGEN_NOINLINE native_type VECTORCALL simdlib_co
 		.select(SimdLibCodegen::register_type{when_true}, SimdLibCodegen::register_type{when_false})
 		.native;
 #else
-	const native_type condition = SimdLibCodegen::backend_type::cmpgt(lhs, rhs);
-	return SimdLibCodegen::backend_type::select(condition, when_true, when_false);
+	const native_type condition = SimdLibCodegen::api_type::compare_greater(lhs, rhs);
+	return SimdLibCodegen::api_type::select(condition, when_true, when_false);
 #endif
 }
 
@@ -100,7 +107,7 @@ SIMDLIB_REGISTER_ONLY SIMDLIB_CODEGEN_NOINLINE std::uint32_t VECTORCALL simdlib_
 #if SIMDLIB_CODEGEN_USE_WRAPPER
 	return SimdLibCodegen::register_type{lhs}.compare_equal(SimdLibCodegen::register_type{rhs}).bits();
 #else
-	return static_cast<std::uint32_t>(SimdLibCodegen::api_type::movemask_slim(SimdLibCodegen::backend_type::cmpeq(lhs, rhs)));
+	return static_cast<std::uint32_t>(SimdLibCodegen::api_type::movemask_slim(SimdLibCodegen::api_type::compare_equal(lhs, rhs)));
 #endif
 }
 
@@ -110,7 +117,7 @@ SIMDLIB_REGISTER_ONLY SIMDLIB_CODEGEN_NOINLINE bool VECTORCALL simdlib_codegen_m
 #if SIMDLIB_CODEGEN_USE_WRAPPER
 	return SimdLibCodegen::register_type{lhs}.compare_equal(SimdLibCodegen::register_type{rhs}).any();
 #else
-	return SimdLibCodegen::api_type::movemask_slim(SimdLibCodegen::backend_type::cmpeq(lhs, rhs)) != 0;
+	return SimdLibCodegen::api_type::movemask_slim(SimdLibCodegen::api_type::compare_equal(lhs, rhs)) != 0;
 #endif
 }
 
@@ -120,8 +127,8 @@ SIMDLIB_REGISTER_ONLY SIMDLIB_CODEGEN_NOINLINE bool VECTORCALL simdlib_codegen_m
 #if SIMDLIB_CODEGEN_USE_WRAPPER
 	return SimdLibCodegen::register_type{lhs}.compare_equal(SimdLibCodegen::register_type{rhs}).all();
 #else
-	constexpr std::uint32_t all_bits = (std::uint32_t{1} << SimdLibCodegen::register_type::lane_count) - 1;
-	return static_cast<std::uint32_t>(SimdLibCodegen::api_type::movemask_slim(SimdLibCodegen::backend_type::cmpeq(lhs, rhs))) == all_bits;
+	constexpr std::uint32_t all_bits = (std::uint32_t{1} << SimdLibCodegen::api_type::element_count) - 1;
+	return static_cast<std::uint32_t>(SimdLibCodegen::api_type::movemask_slim(SimdLibCodegen::api_type::compare_equal(lhs, rhs))) == all_bits;
 #endif
 }
 
@@ -149,7 +156,7 @@ SIMDLIB_REGISTER_ONLY SIMDLIB_CODEGEN_NOINLINE float VECTORCALL simdlib_codegen_
 #if SIMDLIB_CODEGEN_USE_WRAPPER
 	return SimdLibCodegen::register_type{value}.template lane<SimdLibCodegen::register_type::lane_count - 1>();
 #else
-	return SimdLibCodegen::api_type::template extract<static_cast<int>(SimdLibCodegen::register_type::lane_count - 1)>(value);
+	return SimdLibCodegen::api_type::template extract<static_cast<int>(SimdLibCodegen::api_type::element_count - 1)>(value);
 #endif
 }
 
