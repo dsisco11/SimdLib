@@ -16,7 +16,8 @@
                 "SIMDLIB_BUILD_HEADER_PROBES": "ON",
                 "SIMDLIB_FETCH_TEST_DEPENDENCIES": "ON",
                 "SIMDLIB_STRICT_WARNINGS": "ON",
-                "SIMDLIB_ENABLE_COVERAGE": "OFF"
+                "SIMDLIB_ENABLE_COVERAGE": "OFF",
+                "SIMDLIB_DEFAULT_CHECKS_PROBE": "NONE"
             }
         },
         {
@@ -33,6 +34,7 @@
                 "SIMDLIB_BUILD_BENCHMARKS": "ON",
                 "SIMDLIB_BUILD_EXAMPLES": "ON",
                 "SIMDLIB_BUILD_CONSTEXPR_PROBES": "ON",
+                "SIMDLIB_DEFAULT_CHECKS_PROBE": "RELEASE",
                 "SIMDLIB_BUILD_REGISTER_CODEGEN_GATES": "ON",
                 "SIMDLIB_REGISTER_CODEGEN_MODE": "ENFORCE",
                 "SIMDLIB_VALIDATION_PROFILE": "RELEASE",
@@ -53,6 +55,8 @@
                 "SIMDLIB_BUILD_BENCHMARKS": "OFF",
                 "SIMDLIB_BUILD_EXAMPLES": "ON",
                 "SIMDLIB_BUILD_CONSTEXPR_PROBES": "OFF",
+                "SIMDLIB_BUILD_CONFIGURATION_PROBES": "OFF",
+                "SIMDLIB_BUILD_HEADER_PROBES": "OFF",
                 "SIMDLIB_BUILD_REGISTER_CODEGEN_GATES": "ON",
                 "SIMDLIB_REGISTER_CODEGEN_MODE": "RECORD",
                 "SIMDLIB_VALIDATION_PROFILE": "DEBUG",
@@ -164,7 +168,8 @@
             "description": "Windows x64 Debug correctness and recorded generated-code diagnostics",
             "inherits": ["msvc-common", "debug-diagnostics-options"],
             "cacheVariables": {
-                "CMAKE_CONFIGURATION_TYPES": "Debug"
+                "CMAKE_CONFIGURATION_TYPES": "Debug",
+                "SIMDLIB_DEFAULT_CHECKS_PROBE": "DEBUG"
             }
         },
         {
@@ -256,6 +261,7 @@
                 "SIMDLIB_BUILD_EXAMPLES": "OFF",
                 "SIMDLIB_BUILD_CONSTEXPR_PROBES": "OFF",
                 "SIMDLIB_BUILD_REGISTER_CODEGEN_GATES": "OFF",
+                "SIMDLIB_DEFAULT_CHECKS_PROBE": "RELEASE",
                 "SIMDLIB_VALIDATION_PROFILE": "COMPILER_CONTRACTS"
             }
         }

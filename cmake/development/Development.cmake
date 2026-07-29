@@ -15,9 +15,9 @@ set(simdlib_development_modules
     Options
     TargetConfiguration
     ArtifactOwnership
-    SourceAudits
     Dependencies
     ConfigurationProbes
+	ConfigurationStateProbes
 	MethodFlagsCodegen
     ConstexprProbes
     HeaderProbes

@@ -91,7 +91,6 @@ zero-multiple-owner audit.
 | Current target identity or pattern | Category | Future default owner |
 | --- | --- | --- |
 | `SimdLib`, `SimdLibRegister`, `DevelopmentWarnings`, `ExhaustiveArtifacts`, `SimdLib*Artifacts` | Production/support aggregate | Profile-local build graph |
-| `PublicHeaderAssertionAudit` | Repository audit | Repository audit operation, once per source revision |
 | `Header*Probe` | Compiler-front-end contract | Each supported Release compiler identity |
 | `Config*Probe` | Compiler-front-end contract | Each supported Release compiler identity; a new narrow Debug-state probe belongs to MSVC Debug |
 | `Availability*Probe`, `ImmediateControlSlowPathProbe` | Compiler-front-end contract | Each supported Release compiler identity |
@@ -117,6 +116,12 @@ external-consumer inventories, and rejects unowned targets, duplicate
 assignments, or categories forbidden by the selected validation profile.
 External consumers remain separate configure trees rather than being
 represented by an empty main-tree aggregate.
+
+Repository auditing is intentionally not a development target. The unified
+`Build` command invokes `Run-RepositoryAudit.ps1` once for its source digest
+before starting compiler cells, then binds the machine-readable result into
+the unified receipt. `Run-Tests` rejects a missing, changed, or stale audit
+result.
 
 ## CTest ownership rules
 

@@ -103,6 +103,74 @@ function Read-PipelineManifest {
 
 <#
 .SYNOPSIS
+Creates the unified-receipt entry for a completed repository audit.
+.PARAMETER RepositoryRoot
+Absolute SimdLib source tree.
+.PARAMETER AuditPath
+Machine-readable repository audit result.
+.PARAMETER ExpectedSourceDigest
+Canonical source digest the audit must own.
+#>
+function New-PipelineRepositoryAuditEntry {
+    param(
+        [Parameter(Mandatory)][string]$RepositoryRoot,
+        [Parameter(Mandatory)][string]$AuditPath,
+        [Parameter(Mandatory)][string]$ExpectedSourceDigest
+    )
+    if (-not (Test-Path -LiteralPath $AuditPath -PathType Leaf)) {
+        throw "Repository audit result is missing: $AuditPath"
+    }
+    $audit = Get-Content -LiteralPath $AuditPath -Raw | ConvertFrom-Json
+    if ($audit.schema -ne 'simdlib.repository-audit.v1' -or
+        $audit.status -ne 'complete' -or
+        $audit.sourceDigest -ne $ExpectedSourceDigest) {
+        throw "Repository audit result is stale or incompatible: $AuditPath"
+    }
+    return [ordered]@{
+        path = [System.IO.Path]::GetRelativePath($RepositoryRoot, $AuditPath).Replace('\', '/')
+        sha256 = (Get-FileHash -LiteralPath $AuditPath -Algorithm SHA256).Hash.ToLowerInvariant()
+        sourceDigest = [string]$audit.sourceDigest
+    }
+}
+
+<#
+.SYNOPSIS
+Validates the repository-audit entry bound into a unified build receipt.
+.PARAMETER RepositoryRoot
+Absolute SimdLib source tree.
+.PARAMETER Entry
+Receipt entry containing path, hash, and source digest.
+.PARAMETER ExpectedSourceDigest
+Canonical source digest required by the consuming operation.
+#>
+function Assert-PipelineRepositoryAuditEntry {
+    param(
+        [Parameter(Mandatory)][string]$RepositoryRoot,
+        [Parameter(Mandatory)][object]$Entry,
+        [Parameter(Mandatory)][string]$ExpectedSourceDigest
+    )
+    if (-not $Entry -or $Entry.sourceDigest -ne $ExpectedSourceDigest) {
+        throw 'Unified build receipt does not contain the current repository audit.'
+    }
+    $auditPath = Join-Path $RepositoryRoot ([string]$Entry.path)
+    if (-not (Test-Path -LiteralPath $auditPath -PathType Leaf)) {
+        throw "Receipt repository audit is missing: $auditPath"
+    }
+    $auditHash = (Get-FileHash -LiteralPath $auditPath -Algorithm SHA256).Hash.ToLowerInvariant()
+    if ($auditHash -ne $Entry.sha256) {
+        throw "Receipt repository audit changed after the unified build: $auditPath"
+    }
+    $audit = Get-Content -LiteralPath $auditPath -Raw | ConvertFrom-Json
+    if ($audit.schema -ne 'simdlib.repository-audit.v1' -or
+        $audit.status -ne 'complete' -or
+        $audit.sourceDigest -ne $ExpectedSourceDigest) {
+        throw "Receipt repository audit is incomplete or stale: $auditPath"
+    }
+    return $auditPath
+}
+
+<#
+.SYNOPSIS
 Invokes a command, records its combined output, and preserves its exit code.
 .PARAMETER FilePath
 Executable to invoke.
@@ -220,6 +288,8 @@ Export-ModuleMember -Function @(
     'Get-PipelineTextDigest',
     'Set-PipelineTextFile',
     'Read-PipelineManifest',
+    'New-PipelineRepositoryAuditEntry',
+    'Assert-PipelineRepositoryAuditEntry',
     'Invoke-PipelineCommand',
     'Initialize-PipelineVisualStudioEnvironment',
     'Get-PipelineRevision',

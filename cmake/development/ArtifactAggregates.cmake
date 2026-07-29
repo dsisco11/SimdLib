@@ -46,8 +46,6 @@ function(simdlib_add_category_aggregate aggregate category)
         SIMDLIB_AGGREGATE_CATEGORY ${category})
 endfunction()
 
-set(simdlib_category_aggregate_REPOSITORY_AUDIT
-    SimdLibRepositoryAuditArtifacts)
 set(simdlib_category_aggregate_COMPILER_CONTRACT
     SimdLibCompilerContractArtifacts)
 set(simdlib_category_aggregate_CONSTEXPR_CONTRACT
@@ -69,21 +67,20 @@ set(simdlib_category_aggregate_BENCHMARK
 
 set(simdlib_profile_allowed_CUSTOM ${SIMDLIB_VALIDATION_CATEGORIES})
 set(simdlib_profile_selected_CUSTOM
-    REPOSITORY_AUDIT COMPILER_CONTRACT CONSTEXPR_CONTRACT
+    COMPILER_CONTRACT CONSTEXPR_CONTRACT
     RUNTIME_VALIDATION CHECKS_VALIDATION SMOKE_VALIDATION
     OPTIMIZED_CODEGEN DEBUG_DIAGNOSTIC)
 set(simdlib_profile_allowed_RELEASE
-    REPOSITORY_AUDIT COMPILER_CONTRACT CONSTEXPR_CONTRACT
+    COMPILER_CONTRACT CONSTEXPR_CONTRACT
     RUNTIME_VALIDATION CHECKS_VALIDATION SMOKE_VALIDATION
     OPTIMIZED_CODEGEN BENCHMARK)
 set(simdlib_profile_selected_RELEASE
-    REPOSITORY_AUDIT COMPILER_CONTRACT CONSTEXPR_CONTRACT
+    COMPILER_CONTRACT CONSTEXPR_CONTRACT
     RUNTIME_VALIDATION CHECKS_VALIDATION SMOKE_VALIDATION
     OPTIMIZED_CODEGEN)
 set(simdlib_profile_allowed_DEBUG
-    REPOSITORY_AUDIT COMPILER_CONTRACT RUNTIME_VALIDATION
-    CHECKS_VALIDATION SMOKE_VALIDATION OPTIMIZED_CODEGEN
-    DEBUG_DIAGNOSTIC)
+    COMPILER_CONTRACT RUNTIME_VALIDATION
+    CHECKS_VALIDATION SMOKE_VALIDATION DEBUG_DIAGNOSTIC)
 set(simdlib_profile_selected_DEBUG ${simdlib_profile_allowed_DEBUG})
 set(simdlib_profile_allowed_SANITIZER
     RUNTIME_VALIDATION CHECKS_VALIDATION)
@@ -93,7 +90,7 @@ set(simdlib_profile_allowed_COVERAGE
 set(simdlib_profile_selected_COVERAGE
     RUNTIME_VALIDATION CHECKS_VALIDATION SMOKE_VALIDATION)
 set(simdlib_profile_allowed_COMPILER_CONTRACTS
-    REPOSITORY_AUDIT COMPILER_CONTRACT OPTIMIZED_CODEGEN)
+    COMPILER_CONTRACT OPTIMIZED_CODEGEN)
 set(simdlib_profile_selected_COMPILER_CONTRACTS
     ${simdlib_profile_allowed_COMPILER_CONTRACTS})
 
@@ -105,6 +102,43 @@ if(NOT simdlib_allowed_categories)
     message(FATAL_ERROR
         "No artifact ownership contract exists for profile "
         "${SIMDLIB_VALIDATION_PROFILE}")
+endif()
+
+if(SIMDLIB_VALIDATION_PROFILE STREQUAL "RELEASE")
+    foreach(simdlib_release_contract_option IN ITEMS
+        SIMDLIB_BUILD_CONFIGURATION_PROBES
+        SIMDLIB_BUILD_CONSTEXPR_PROBES
+        SIMDLIB_BUILD_HEADER_PROBES)
+        if(NOT ${simdlib_release_contract_option})
+            message(FATAL_ERROR
+                "Release validation requires ${simdlib_release_contract_option}=ON")
+        endif()
+    endforeach()
+    if(NOT SIMDLIB_DEFAULT_CHECKS_PROBE STREQUAL "RELEASE")
+        message(FATAL_ERROR
+            "Release validation requires SIMDLIB_DEFAULT_CHECKS_PROBE=RELEASE")
+    endif()
+elseif(SIMDLIB_VALIDATION_PROFILE STREQUAL "COMPILER_CONTRACTS")
+    if(NOT SIMDLIB_BUILD_CONFIGURATION_PROBES OR
+            NOT SIMDLIB_BUILD_HEADER_PROBES)
+        message(FATAL_ERROR
+            "Compiler-contract validation requires configuration and header probes")
+    endif()
+    if(NOT SIMDLIB_DEFAULT_CHECKS_PROBE STREQUAL "RELEASE")
+        message(FATAL_ERROR
+            "Compiler-contract validation requires the Release default-checks probe")
+    endif()
+elseif(SIMDLIB_VALIDATION_PROFILE MATCHES "^(DEBUG|SANITIZER|COVERAGE)$")
+    foreach(simdlib_forbidden_contract_option IN ITEMS
+        SIMDLIB_BUILD_CONFIGURATION_PROBES
+        SIMDLIB_BUILD_CONSTEXPR_PROBES
+        SIMDLIB_BUILD_HEADER_PROBES)
+        if(${simdlib_forbidden_contract_option})
+            message(FATAL_ERROR
+                "Validation profile ${SIMDLIB_VALIDATION_PROFILE} excludes "
+                "${simdlib_forbidden_contract_option}")
+        endif()
+    endforeach()
 endif()
 
 simdlib_collect_project_targets("${CMAKE_CURRENT_SOURCE_DIR}"
@@ -219,7 +253,6 @@ list(SORT simdlib_profile_targets)
 
 set(simdlib_aggregate_targets
     ExhaustiveArtifacts
-    SimdLibRepositoryAuditArtifacts
     SimdLibCompilerContractArtifacts
     SimdLibConstexprContractArtifacts
     SimdLibRuntimeValidationArtifacts
@@ -249,6 +282,56 @@ string(REPLACE ";" "\n" simdlib_ownership_inventory
     "${simdlib_ownership_rows}")
 file(WRITE "${CMAKE_BINARY_DIR}/development-target-ownership.tsv"
     "${simdlib_ownership_inventory}\n")
+
+set(simdlib_compiler_contract_rows
+    "target\tcompile_definitions\tcompile_options\tlink_options\tcxx_standard")
+set(simdlib_compiler_contract_source_rows "target\tsource")
+foreach(simdlib_compiler_contract_target IN LISTS simdlib_targets_COMPILER_CONTRACT)
+    set(simdlib_contract_property_row "${simdlib_compiler_contract_target}")
+    foreach(simdlib_contract_property IN ITEMS
+        COMPILE_DEFINITIONS COMPILE_OPTIONS LINK_OPTIONS CXX_STANDARD)
+        get_target_property(simdlib_contract_property_value
+            ${simdlib_compiler_contract_target} ${simdlib_contract_property})
+        if(NOT simdlib_contract_property_value)
+            set(simdlib_contract_property_value "")
+        endif()
+        string(REPLACE ";" "," simdlib_contract_property_value
+            "${simdlib_contract_property_value}")
+        string(REPLACE "\t" " " simdlib_contract_property_value
+            "${simdlib_contract_property_value}")
+        string(APPEND simdlib_contract_property_row
+            "\t${simdlib_contract_property_value}")
+    endforeach()
+    list(APPEND simdlib_compiler_contract_rows
+        "${simdlib_contract_property_row}")
+
+    get_target_property(simdlib_contract_sources
+        ${simdlib_compiler_contract_target} SOURCES)
+    get_target_property(simdlib_contract_source_directory
+        ${simdlib_compiler_contract_target} SOURCE_DIR)
+    if(simdlib_contract_sources)
+        foreach(simdlib_contract_source IN LISTS simdlib_contract_sources)
+            if(simdlib_contract_source MATCHES "^\\$<")
+                message(FATAL_ERROR
+                    "Compiler-contract target ${simdlib_compiler_contract_target} "
+                    "uses a generated source expression")
+            endif()
+            cmake_path(ABSOLUTE_PATH simdlib_contract_source
+                BASE_DIRECTORY "${simdlib_contract_source_directory}"
+                NORMALIZE OUTPUT_VARIABLE simdlib_contract_source_absolute)
+            list(APPEND simdlib_compiler_contract_source_rows
+                "${simdlib_compiler_contract_target}\t${simdlib_contract_source_absolute}")
+        endforeach()
+    endif()
+endforeach()
+string(REPLACE ";" "\n" simdlib_compiler_contract_inventory
+    "${simdlib_compiler_contract_rows}")
+file(WRITE "${CMAKE_BINARY_DIR}/compiler-contract-properties.tsv"
+    "${simdlib_compiler_contract_inventory}\n")
+string(REPLACE ";" "\n" simdlib_compiler_contract_source_inventory
+    "${simdlib_compiler_contract_source_rows}")
+file(WRITE "${CMAKE_BINARY_DIR}/compiler-contract-sources.tsv"
+    "${simdlib_compiler_contract_source_inventory}\n")
 
 set(simdlib_aggregate_rows "")
 foreach(simdlib_category IN LISTS SIMDLIB_VALIDATION_CATEGORIES)
@@ -311,6 +394,18 @@ if(BUILD_TESTING)
             -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/VerifyArtifactAggregateInventory.cmake)
     set_tests_properties(ArtifactAggregates.ProfileMembership PROPERTIES
         LABELS "CONFIGURATION;ARTIFACT_OWNERSHIP")
+
+    if(simdlib_targets_COMPILER_CONTRACT)
+        add_test(NAME ArtifactAggregates.CompilerContractIndependence
+            COMMAND ${CMAKE_COMMAND}
+                "-DPROPERTY_FILE=${CMAKE_BINARY_DIR}/compiler-contract-properties.tsv"
+                "-DSOURCE_FILE=${CMAKE_BINARY_DIR}/compiler-contract-sources.tsv"
+                "-DDEFAULT_CHECKS_PROBE=${SIMDLIB_DEFAULT_CHECKS_PROBE}"
+                -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/VerifyCompilerContractIndependence.cmake)
+        set_tests_properties(
+            ArtifactAggregates.CompilerContractIndependence PROPERTIES
+            LABELS "CONFIGURATION;ARTIFACT_OWNERSHIP;COMPILER_CONTRACT")
+    endif()
 
     foreach(simdlib_failure_case IN ITEMS UNOWNED MULTIPLE EXCLUDED)
         add_test(NAME ArtifactAggregates.Reject${simdlib_failure_case}

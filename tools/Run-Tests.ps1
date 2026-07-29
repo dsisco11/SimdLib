@@ -78,13 +78,17 @@ function Assert-BuildReceipt {
     $receiptPath = Join-Path $pipelineRoot "provenance/build-$selectionId.json"
     if (-not (Test-Path -LiteralPath $receiptPath -PathType Leaf)) { throw "Required unified build receipt is missing: $receiptPath" }
     $receipt = Get-Content -LiteralPath $receiptPath -Raw | ConvertFrom-Json
-    if ($receipt.schema -ne 'simdlib.unified-build-receipt.v1' -or $receipt.status -ne 'complete' -or $receipt.scope -ne $Scope) {
+    if ($receipt.schema -ne 'simdlib.unified-build-receipt.v2' -or $receipt.status -ne 'complete' -or $receipt.scope -ne $Scope) {
         throw "Unified build receipt is incomplete or incompatible: $receiptPath"
     }
     $receiptCompilers = @($receipt.compilers)
     if (($receiptCompilers -join ',') -ne ($SelectedCompilers -join ',')) { throw "Unified build receipt compiler set does not match the requested tests: $receiptPath" }
     $currentDigest = Get-PipelineSourceDigest -RepositoryRoot $repositoryRoot
     if ($receipt.sourceDigest -ne $currentDigest) { throw "Unified build receipt is stale for current source inputs: $receiptPath" }
+    [void](Assert-PipelineRepositoryAuditEntry `
+        -RepositoryRoot $repositoryRoot `
+        -Entry $receipt.repositoryAudit `
+        -ExpectedSourceDigest $currentDigest)
     $expectedPresets = @(Get-ExpectedTestPresets -SelectedCompilers $SelectedCompilers | Sort-Object)
     $receiptPresets = @($receipt.manifests.preset | Sort-Object)
     if (($receiptPresets -join ',') -ne ($expectedPresets -join ',')) { throw "Unified build receipt manifest set does not exactly match requested test cells: $receiptPath" }

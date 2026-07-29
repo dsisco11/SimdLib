@@ -71,18 +71,26 @@ SimdLib Validation Matrix Deduplication Plan:
       ☒ CMake preset parsing, PowerShell parsing, POSIX shell syntax checking, and `git diff --check` completed after the profile, aggregate, and manifest changes.
 
   Phase 2 - Deduplicate Repository and Compiler-Front-End Contracts:
-    ☐ Move the production-header static-assert audit and public-consumer implementation-detail scan into a repository-level validation operation that runs once per source revision.
-    ☐ Eliminate the duplicate execution of the same public-header assertion script as both an unconditional build dependency and a CTest entry in every cell.
-    ☐ Preserve a machine-readable audit result in the unified build receipt so `Run-Tests` can verify that the source revision was audited.
-    ☐ Group header-isolation probes under a compiler-contract aggregate and build them once per supported compiler/language/feature profile.
-    ☐ Group configuration, attribute-adapter, availability, language-availability, Register representation, and immediate-control surface probes under the compiler-contract aggregate.
-    ☐ Run the negative `try_compile` suite once per compiler and language/feature profile instead of repeating it for Debug, Release, sanitizer, and coverage trees.
-    ☐ Verify that no front-end probe relies on `NDEBUG`, optimization level, sanitizer instrumentation, coverage instrumentation, Debug runtime libraries, or a configuration-specific generated expression.
-    ☐ Split any genuinely configuration-dependent probe into a narrow named contract rather than retaining the entire compiler-contract suite in both configurations.
-    ☐ Add explicit probes for the default `SIMDLIB_ENABLE_CHECKS` state in Debug and Release so removing duplicate Debug suites does not leave the `NDEBUG` mapping implicit.
-    ☐ Run method-flags preprocessing, placement, configuration, compile-failure, and ABI-declaration compatibility once per compiler.
-    ☐ Run method-flags generated-code comparison only in its approved optimized profile when its own target options already normalize the optimization level.
-    ☐ End Phase 2 only when compiler-contract evidence remains complete and changing a runtime configuration no longer recompiles configuration-independent probe families.
+    ☒ Move the production-header static-assert audit and public-consumer implementation-detail scan into a repository-level validation operation that runs once per source revision.
+    ☒ Eliminate the duplicate execution of the same public-header assertion script as both an unconditional build dependency and a CTest entry in every cell.
+    ☒ Preserve a machine-readable audit result in the unified build receipt so `Run-Tests` can verify that the source revision was audited.
+    ☒ Group header-isolation probes under a compiler-contract aggregate and build them once per supported compiler/language/feature profile.
+    ☒ Group configuration, attribute-adapter, availability, language-availability, Register representation, and immediate-control surface probes under the compiler-contract aggregate.
+    ☒ Run the negative `try_compile` suite once per compiler and language/feature profile instead of repeating it for Debug, Release, sanitizer, and coverage trees.
+    ☒ Verify that no front-end probe relies on `NDEBUG`, optimization level, sanitizer instrumentation, coverage instrumentation, Debug runtime libraries, or a configuration-specific generated expression.
+    ☒ Split any genuinely configuration-dependent probe into a narrow named contract rather than retaining the entire compiler-contract suite in both configurations.
+    ☒ Add explicit probes for the default `SIMDLIB_ENABLE_CHECKS` state in Debug and Release so removing duplicate Debug suites does not leave the `NDEBUG` mapping implicit.
+    ☒ Run method-flags preprocessing, placement, configuration, compile-failure, and ABI-declaration compatibility once per compiler.
+    ☒ Run method-flags generated-code comparison only in its approved optimized profile when its own target options already normalize the optimization level.
+    ☒ End Phase 2 only when compiler-contract evidence remains complete and changing a runtime configuration no longer recompiles configuration-independent probe families.
+    Evidence:
+      ☒ `Run-RepositoryAudit.ps1` records the static-assert and public-consumer audits once per source digest; a second invocation reused the existing result without re-executing the checks.
+      ☒ Unified build receipt schema v2 binds the repository-audit path, SHA-256, and source digest; the shared validator accepted the current result and rejected a deliberately incorrect hash.
+      ☒ Release configuration contained 46 compiler-contract and 15 constexpr targets; MSVC Debug contained only `ConfigDefaultChecksDebugProbe`, while clang-cl Debug, sanitizer, and coverage contained neither contract family.
+      ☒ The Release compiler-contract tree generated 23 negative-probe logs; the MSVC and clang-cl Debug trees generated none.
+      ☒ `ConfigDefaultChecksReleaseProbe` and `ConfigDefaultChecksDebugProbe` compiled successfully in focused Clang Release and MSVC Debug builds.
+      ☒ Compiler-contract property and source inventories reject configuration expressions, checks state, sanitizer, coverage, and instrumentation dependencies outside the two explicit checks-state probes.
+      ☒ The three method-flags contract CTests and optimized method-flags codegen targets remained Release-owned and were absent from Debug.
 
   Phase 3 - Separate Optimized Codegen Gates from Diagnostic Codegen:
     ☐ Preserve the optimized Release Register wrapper/raw comparison as a mandatory gate for each supported compiler, width, ISA profile, FMA mode, operation family, ABI boundary, and retained documented exception.

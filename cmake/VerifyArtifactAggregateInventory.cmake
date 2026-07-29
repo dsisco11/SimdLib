@@ -69,7 +69,6 @@ if(NOT aggregate_header STREQUAL "aggregate\tcategory")
 endif()
 set(required_aggregates
     ExhaustiveArtifacts
-    SimdLibRepositoryAuditArtifacts
     SimdLibCompilerContractArtifacts
     SimdLibConstexprContractArtifacts
     SimdLibRuntimeValidationArtifacts

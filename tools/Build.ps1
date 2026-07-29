@@ -71,9 +71,19 @@ function Get-ExpectedValidationPresets {
 Records the exact completed validation manifests produced by this build.
 .PARAMETER SelectedCompilers
 Canonical compiler selection.
+.PARAMETER RepositoryAuditPath
+Machine-readable repository audit result for the current source digest.
 #>
 function Write-BuildReceipt {
-    param([Parameter(Mandatory)][string[]]$SelectedCompilers)
+    param(
+        [Parameter(Mandatory)][string[]]$SelectedCompilers,
+        [Parameter(Mandatory)][string]$RepositoryAuditPath
+    )
+    $currentSourceDigest = Get-PipelineSourceDigest -RepositoryRoot $repositoryRoot
+    $repositoryAuditEntry = New-PipelineRepositoryAuditEntry `
+        -RepositoryRoot $repositoryRoot `
+        -AuditPath $RepositoryAuditPath `
+        -ExpectedSourceDigest $currentSourceDigest
     $expectedPresets = @(Get-ExpectedValidationPresets -SelectedCompilers $SelectedCompilers)
     $manifestFiles = @(Get-ChildItem -LiteralPath $pipelineRoot -Filter 'validation-build.manifest' -File -Recurse -ErrorAction SilentlyContinue)
     $entries = [System.Collections.Generic.List[object]]::new()
@@ -95,9 +105,11 @@ function Write-BuildReceipt {
     $selectionId = (Get-PipelineTextDigest -Text $selectionText).Substring(0, 16)
     $receiptPath = Join-Path $pipelineRoot "provenance/build-$selectionId.json"
     $document = [ordered]@{
-        schema = 'simdlib.unified-build-receipt.v1'; status = 'complete'; scope = $Scope
-        compilers = @($SelectedCompilers); sourceDigest = Get-PipelineSourceDigest -RepositoryRoot $repositoryRoot
-        sourceRevision = Get-PipelineRevision -RepositoryRoot $repositoryRoot; manifests = $entries.ToArray()
+        schema = 'simdlib.unified-build-receipt.v2'; status = 'complete'; scope = $Scope
+        compilers = @($SelectedCompilers); sourceDigest = $currentSourceDigest
+        sourceRevision = Get-PipelineRevision -RepositoryRoot $repositoryRoot
+        repositoryAudit = $repositoryAuditEntry
+        manifests = $entries.ToArray()
     }
     Set-PipelineTextFile -Path $receiptPath -Content ($document | ConvertTo-Json -Depth 6)
     Set-PipelineTextFile -Path (Join-Path $pipelineRoot 'provenance/latest-build-receipt.txt') -Content ([System.IO.Path]::GetRelativePath($repositoryRoot, $receiptPath).Replace('\', '/'))
@@ -106,6 +118,11 @@ function Write-BuildReceipt {
 
 $selectedCompilers = @(Resolve-BuildSelection)
 if ($Scope -in @('All', 'Native') -and -not $IsWindows) { throw 'Native scope requires a Windows x64 host with Visual Studio C++ tools and LLVM 22.' }
+$auditSourceDigest = Get-PipelineSourceDigest -RepositoryRoot $repositoryRoot
+$repositoryAuditPath = Join-Path $pipelineRoot "provenance/repository-audit-$($auditSourceDigest.Substring(0, 16)).json"
+& (Join-Path $PSScriptRoot 'Run-RepositoryAudit.ps1') -ResultPath $repositoryAuditPath
+if ($LASTEXITCODE -ne 0) { throw 'Repository audit operation failed.' }
+
 $operations = [System.Collections.Generic.List[object]]::new()
 foreach ($name in @($selectedCompilers | Where-Object { $_ -in @('Msvc', 'ClangCl', 'ClangCoverage') })) {
     $operations.Add([pscustomobject]@{
@@ -124,5 +141,5 @@ if ($containerCompilers.Count -eq 3) {
 $logDirectory = Join-Path $pipelineRoot "logs/$(Get-Date -Format 'yyyyMMdd-HHmmssfff')-build-$PID"
 Invoke-PipelineChildOperations -Operations $operations.ToArray() -LogDirectory $logDirectory
 
-$receipt = Write-BuildReceipt -SelectedCompilers $selectedCompilers
+$receipt = Write-BuildReceipt -SelectedCompilers $selectedCompilers -RepositoryAuditPath $repositoryAuditPath
 Write-Host "Unified build passed. Receipt: $receipt"

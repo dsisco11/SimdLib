@@ -14,6 +14,13 @@ the correctness, ABI, generated-code, sanitizer, consumer, coverage, probe,
 example, and header-validation artifacts, but does not compile benchmark
 targets or run any executable.
 
+Before starting compiler cells, `Build.ps1` invokes
+`tools/Run-RepositoryAudit.ps1`. That operation audits source-text contracts
+once for the canonical source digest and writes
+`out/pipeline/provenance/repository-audit-<digest>.json`. The unified receipt
+binds the result path, hash, and source digest; no compiler tree contains a
+duplicate repository-audit target or CTest.
+
 The corresponding complete validation command is:
 
 ```powershell
@@ -91,9 +98,8 @@ is assigned more than once, or belongs to a category forbidden by the selected
 `SANITIZER`, `COVERAGE`, `COMPILER_CONTRACTS`, and `CUSTOM` for explicitly
 configured local development trees.
 
-Category targets are exposed through globally unique aggregates:
+Compiler-tree category targets are exposed through globally unique aggregates:
 
-- `SimdLibRepositoryAuditArtifacts`;
 - `SimdLibCompilerContractArtifacts`;
 - `SimdLibConstexprContractArtifacts`;
 - `SimdLibRuntimeValidationArtifacts`;
@@ -125,6 +131,14 @@ Each configured tree writes deterministic audit inputs:
 - `development-aggregate-membership.tsv` records exact aggregate dependency
   membership.
 
+Compiler-front-end contracts are Release-owned for each compiler and supported
+language/feature profile. Ordinary Debug, sanitizer, and coverage trees do not
+configure header, availability, language-failure, representation, constexpr,
+or method-flags contract families. `ConfigDefaultChecksReleaseProbe` verifies
+the Release default and the retained MSVC Debug cell separately builds
+`ConfigDefaultChecksDebugProbe`; these narrow targets are the only deliberate
+configuration-sensitive compiler contracts.
+
 For CI or advanced local reuse, tests may skip their one build invocation:
 
 ```powershell
@@ -133,9 +147,10 @@ tools/Run-Tests.ps1 -Scope All -SkipBuild
 
 This succeeds only when the matching unified-build receipt contains exactly
 the requested cells, its source-input digest matches the current tree, every
-manifest is unchanged, and each cell's cache, test inventory, consumer
-inventory, and generated-code records remain valid. Test operations contain no
-configure or build command.
+manifest is unchanged, the repository-audit result remains current and
+unchanged, and each cell's cache, test inventory, consumer inventory, and
+generated-code records remain valid. Test operations contain no configure or
+build command.
 
 Benchmark compilation and execution are intentionally isolated:
 
