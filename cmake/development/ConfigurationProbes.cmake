@@ -31,12 +31,14 @@ if(SIMDLIB_BUILD_CONFIGURATION_PROBES)
         MethodFlagsConfigDisabledVectorcallProbe
         MethodFlagsConfigUnsupportedTargetProbe)
         add_library(${config_probe} OBJECT tests/config/${config_probe}.cpp)
+        simdlib_register_development_target(${config_probe} COMPILER_CONTRACT)
         target_link_libraries(${config_probe} PRIVATE SimdLib::SimdLib)
         simdlib_enable_development_warnings(${config_probe})
     endforeach()
 
 	add_library(MethodFlagsContractPass OBJECT
 		tests/method_flags/MethodFlagsContractPass.cpp)
+	simdlib_register_development_target(MethodFlagsContractPass COMPILER_CONTRACT)
 	target_link_libraries(MethodFlagsContractPass PRIVATE SimdLib::SimdLib)
 	simdlib_enable_development_warnings(MethodFlagsContractPass)
 
@@ -70,6 +72,7 @@ endif()
 
 if(SIMDLIB_BUILD_CONSTEXPR_PROBES)
     add_library(ConstexprProbe OBJECT tests/config/ConstexprProbe.cpp)
+    simdlib_register_development_target(ConstexprProbe CONSTEXPR_CONTRACT)
     target_link_libraries(ConstexprProbe PRIVATE SimdLib::SimdLib)
     simdlib_enable_development_warnings(ConstexprProbe)
 endif()
@@ -81,6 +84,7 @@ endif()
 # @param dependency Public SimdLib target whose usage requirements are under test.
 function(simdlib_add_language_probe target source standard dependency)
 	add_library(${target} OBJECT ${source})
+	simdlib_register_development_target(${target} COMPILER_CONTRACT)
 	target_link_libraries(${target} PRIVATE ${dependency})
 	set_target_properties(${target} PROPERTIES
 		CXX_STANDARD ${standard}
@@ -197,6 +201,8 @@ if(SIMDLIB_BUILD_CONFIGURATION_PROBES)
 		foreach(register_width IN ITEMS 128 256)
 			add_library(RegisterRepresentation${register_width} OBJECT
 				tests/register/RegisterRepresentation.tests.cpp)
+			simdlib_register_development_target(
+				RegisterRepresentation${register_width} COMPILER_CONTRACT)
 			target_link_libraries(RegisterRepresentation${register_width} PRIVATE SimdLib::Register)
 			target_compile_definitions(RegisterRepresentation${register_width} PRIVATE
 				SIMDLIB_REGISTER_TEST_WIDTH=${register_width})
@@ -297,6 +303,8 @@ if(SIMDLIB_BUILD_CONSTEXPR_PROBES AND SIMDLIB_REGISTER_COMPILER_SUPPORTED)
 	foreach(register_width IN ITEMS 128 256)
 		add_library(RegisterConstexpr${register_width}Probe OBJECT
 			tests/constexpr/RegisterConstexpr.tests.cpp)
+		simdlib_register_development_target(
+			RegisterConstexpr${register_width}Probe CONSTEXPR_CONTRACT)
 		target_link_libraries(RegisterConstexpr${register_width}Probe PRIVATE SimdLib::Register)
 		target_compile_definitions(RegisterConstexpr${register_width}Probe PRIVATE
 			SIMDLIB_REGISTER_TEST_WIDTH=${register_width})
@@ -309,17 +317,21 @@ if(SIMDLIB_BUILD_CONSTEXPR_PROBES AND SIMDLIB_REGISTER_COMPILER_SUPPORTED)
 	endforeach()
 endif()
 
-add_library(AvailabilityDisabledProbe OBJECT tests/availability/ApiDisabledProbe.cpp)
-target_link_libraries(AvailabilityDisabledProbe PRIVATE SimdLib::SimdLib)
-simdlib_enable_development_warnings(AvailabilityDisabledProbe)
+if(SIMDLIB_BUILD_CONFIGURATION_PROBES)
+    add_library(AvailabilityDisabledProbe OBJECT tests/availability/ApiDisabledProbe.cpp)
+    simdlib_register_development_target(AvailabilityDisabledProbe COMPILER_CONTRACT)
+    target_link_libraries(AvailabilityDisabledProbe PRIVATE SimdLib::SimdLib)
+    simdlib_enable_development_warnings(AvailabilityDisabledProbe)
 
-add_library(AvailabilityEnabledProbe OBJECT tests/availability/ApiEnabledProbe.cpp)
-target_link_libraries(AvailabilityEnabledProbe PRIVATE SimdLib::SimdLib)
-simdlib_enable_development_warnings(AvailabilityEnabledProbe)
-if(SIMDLIB_MSVC_STYLE_DRIVER)
-    target_compile_options(AvailabilityEnabledProbe PRIVATE /arch:AVX2)
-else()
-    target_compile_options(AvailabilityEnabledProbe PRIVATE -mavx2)
+    add_library(AvailabilityEnabledProbe OBJECT tests/availability/ApiEnabledProbe.cpp)
+    simdlib_register_development_target(AvailabilityEnabledProbe COMPILER_CONTRACT)
+    target_link_libraries(AvailabilityEnabledProbe PRIVATE SimdLib::SimdLib)
+    simdlib_enable_development_warnings(AvailabilityEnabledProbe)
+    if(SIMDLIB_MSVC_STYLE_DRIVER)
+        target_compile_options(AvailabilityEnabledProbe PRIVATE /arch:AVX2)
+    else()
+        target_compile_options(AvailabilityEnabledProbe PRIVATE -mavx2)
+    endif()
 endif()
 
 endblock()

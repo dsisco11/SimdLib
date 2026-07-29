@@ -231,11 +231,14 @@ Writes the aggregate generated-code record index from CMake-owned validation ind
 Configured build tree containing the owner indexes.
 .PARAMETER OutputPath
 Pipeline record index to write.
+.PARAMETER AllowEmpty
+Allows profiles that own no generated-code work to emit an empty index.
 #>
 function Write-CodegenRecordIndex {
     param(
         [Parameter(Mandatory)][string]$BuildDirectory,
-        [Parameter(Mandatory)][string]$OutputPath
+        [Parameter(Mandatory)][string]$OutputPath,
+        [switch]$AllowEmpty
     )
     $ownerIndexes = @(
         (Join-Path $BuildDirectory 'method-flags-codegen/all-records.txt'),
@@ -251,10 +254,15 @@ function Write-CodegenRecordIndex {
         }
     )
     $records = @($records | Sort-Object -Unique)
-    if (-not $records.Count) {
+    if (-not $records.Count -and -not $AllowEmpty) {
         throw "No CMake-owned generated-code records were found under $BuildDirectory"
     }
-    Set-PipelineTextFile -Path $OutputPath -Content (($records -join [Environment]::NewLine) + [Environment]::NewLine)
+    $content = if ($records.Count) {
+        ($records -join [Environment]::NewLine) + [Environment]::NewLine
+    } else {
+        ''
+    }
+    Set-PipelineTextFile -Path $OutputPath -Content $content
 }
 
 <#
@@ -378,7 +386,7 @@ function Build-NativeValidationCell {
     } else {
         Set-PipelineTextFile -Path $consumerInventory -Content ''
     }
-    Write-CodegenRecordIndex -BuildDirectory $Artifact.Build -OutputPath (Join-Path $Artifact.Provenance 'codegen-records.index')
+    Write-CodegenRecordIndex -BuildDirectory $Artifact.Build -OutputPath (Join-Path $Artifact.Provenance 'codegen-records.index') -AllowEmpty:$Artifact.Definition.Coverage
     Write-NativeManifest -Artifact $Artifact -Operation 'build-validation'
 }
 

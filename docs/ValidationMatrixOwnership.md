@@ -90,7 +90,7 @@ zero-multiple-owner audit.
 
 | Current target identity or pattern | Category | Future default owner |
 | --- | --- | --- |
-| `SimdLib`, `SimdLibRegister`, `DevelopmentWarnings`, `ExhaustiveArtifacts` | Production/support aggregate | Profile-local build graph |
+| `SimdLib`, `SimdLibRegister`, `DevelopmentWarnings`, `ExhaustiveArtifacts`, `SimdLib*Artifacts` | Production/support aggregate | Profile-local build graph |
 | `PublicHeaderAssertionAudit` | Repository audit | Repository audit operation, once per source revision |
 | `Header*Probe` | Compiler-front-end contract | Each supported Release compiler identity |
 | `Config*Probe` | Compiler-front-end contract | Each supported Release compiler identity; a new narrow Debug-state probe belongs to MSVC Debug |
@@ -106,9 +106,17 @@ zero-multiple-owner audit.
 | `CoverageReset`, `CoverageReport` | Coverage | Native Clang coverage operation |
 | `Benchmarks`, `BenchmarkArtifacts` | Benchmark | Explicit benchmark operation reusing a validated Release tree |
 
-`BenchmarkArtifacts` and the future scoped aggregates are organizational
+`BenchmarkArtifacts` and the category-scoped aggregates are organizational
 targets. Their category is inherited from their dependencies, and they do not
 create an additional validation result.
+
+Every project-owned development target declares its category through
+`simdlib_register_development_target` when it is created. Configuration writes
+deterministic target, ownership, profile-membership, aggregate-membership, and
+external-consumer inventories, and rejects unowned targets, duplicate
+assignments, or categories forbidden by the selected validation profile.
+External consumers remain separate configure trees rather than being
+represented by an empty main-tree aggregate.
 
 ## CTest ownership rules
 

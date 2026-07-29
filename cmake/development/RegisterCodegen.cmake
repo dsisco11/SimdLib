@@ -13,6 +13,11 @@ block(SCOPE_FOR VARIABLES)
 # @param register_width Width of the compared native and wrapped register values.
 # @param isa_profile Instruction-set profile used to compile both sides of the comparison.
 function(simdlib_add_register_codegen_gate register_width isa_profile)
+	if(SIMDLIB_REGISTER_CODEGEN_MODE STREQUAL "ENFORCE")
+		set(codegen_validation_category OPTIMIZED_CODEGEN)
+	else()
+		set(codegen_validation_category DEBUG_DIAGNOSTIC)
+	endif()
 	if(NOT isa_profile STREQUAL "SSE42" AND NOT isa_profile STREQUAL "AVX2")
 		message(FATAL_ERROR "Unsupported Register codegen ISA profile: ${isa_profile}")
 	endif()
@@ -100,6 +105,8 @@ function(simdlib_add_register_codegen_gate register_width isa_profile)
 			${fma_enabled_wrapper_target} ${fma_enabled_raw_target})
 	endif()
 	foreach(target IN LISTS codegen_object_targets)
+		simdlib_register_development_target(${target}
+			${codegen_validation_category})
 		target_link_libraries(${target} PRIVATE SimdLib::Register)
 		target_compile_definitions(${target} PRIVATE SIMDLIB_REGISTER_TEST_WIDTH=${register_width})
 		simdlib_enable_development_warnings(${target})
@@ -492,15 +499,22 @@ function(simdlib_add_register_codegen_gate register_width isa_profile)
 	endif()
 	add_custom_target(RegisterExpressionCodegen${target_suffix}
 		DEPENDS ${expression_codegen_gate_outputs})
+	simdlib_register_development_target(
+		RegisterExpressionCodegen${target_suffix}
+		${codegen_validation_category})
 	add_dependencies(RegisterExpressionCodegen${target_suffix} ${codegen_object_targets})
 	add_custom_target(RegisterConsumerAbi${target_suffix}
 		DEPENDS "${consumer_abi_stamp_file}")
+	simdlib_register_development_target(RegisterConsumerAbi${target_suffix}
+		${codegen_validation_category})
 	add_dependencies(RegisterConsumerAbi${target_suffix}
 		${abi_wrapper_target} ${abi_raw_target})
 	set(codegen_gate_outputs
 		${expression_codegen_gate_outputs} "${consumer_abi_stamp_file}" "${abi_stamp_file}" "${default_abi_stamp_file}")
 	add_custom_target(RegisterCodegen${target_suffix} ALL
 		DEPENDS "${abi_stamp_file}" "${default_abi_stamp_file}")
+	simdlib_register_development_target(RegisterCodegen${target_suffix}
+		${codegen_validation_category})
 	add_dependencies(RegisterCodegen${target_suffix}
 		RegisterExpressionCodegen${target_suffix}
 		RegisterConsumerAbi${target_suffix})
@@ -529,6 +543,11 @@ if(SIMDLIB_BUILD_REGISTER_CODEGEN_GATES AND SIMDLIB_REGISTER_COMPILER_SUPPORTED)
 		RegisterCodegen128Sse42
 		RegisterCodegen128Avx2
 		RegisterCodegen256Avx2)
+	if(SIMDLIB_REGISTER_CODEGEN_MODE STREQUAL "ENFORCE")
+		simdlib_register_development_target(RegisterCodegen OPTIMIZED_CODEGEN)
+	else()
+		simdlib_register_development_target(RegisterCodegen DEBUG_DIAGNOSTIC)
+	endif()
 endif()
 
 endblock()

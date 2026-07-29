@@ -14,6 +14,7 @@ block(SCOPE_FOR VARIABLES)
 set(simdlib_development_modules
     Options
     TargetConfiguration
+    ArtifactOwnership
     SourceAudits
     Dependencies
     ConfigurationProbes

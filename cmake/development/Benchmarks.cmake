@@ -11,6 +11,7 @@ block(SCOPE_FOR VARIABLES)
 
 if(SIMDLIB_BUILD_BENCHMARKS)
     add_executable(Benchmarks benchmarks/Core.benchmarks.cpp)
+    simdlib_register_development_target(Benchmarks BENCHMARK)
     target_link_libraries(Benchmarks PRIVATE SimdLib::SimdLib Catch2::Catch2WithMain)
 	if(SIMDLIB_REGISTER_COMPILER_SUPPORTED)
 		target_sources(Benchmarks PRIVATE benchmarks/Register.benchmarks.cpp)

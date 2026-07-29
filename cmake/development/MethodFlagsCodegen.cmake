@@ -23,6 +23,8 @@ if(SIMDLIB_BUILD_CONFIGURATION_PROBES
 	add_library(MethodFlagsCodegenFlagged OBJECT
 		tests/method_flags/codegen/MethodFlagsFlagged.cpp)
 	foreach(method_flags_target IN ITEMS MethodFlagsCodegenLegacy MethodFlagsCodegenFlagged)
+		simdlib_register_development_target(${method_flags_target}
+			OPTIMIZED_CODEGEN)
 		target_link_libraries(${method_flags_target} PRIVATE SimdLib::SimdLib)
 		simdlib_enable_development_warnings(${method_flags_target})
 		if(SIMDLIB_MSVC_STYLE_DRIVER)
@@ -91,6 +93,7 @@ if(SIMDLIB_BUILD_CONFIGURATION_PROBES
 		VERBATIM)
 	add_custom_target(MethodFlagsCodegen ALL
 		DEPENDS "${method_flags_record}" "${method_flags_verification}")
+	simdlib_register_development_target(MethodFlagsCodegen OPTIMIZED_CODEGEN)
 	add_dependencies(MethodFlagsCodegen
 		MethodFlagsCodegenLegacy
 		MethodFlagsCodegenFlagged)

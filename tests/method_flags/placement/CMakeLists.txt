@@ -112,6 +112,10 @@ simdlib_require_method_flags_audit_success(MethodFlagsPlacementAbiDefinition.cpp
 simdlib_require_method_flags_audit_success(MethodFlagsPlacementAbiConsumer.cpp)
 
 add_library(MethodFlagsPlacementCxx20 OBJECT MethodFlagsPlacementCxx20.cpp)
+if(COMMAND simdlib_register_development_target)
+	simdlib_register_development_target(MethodFlagsPlacementCxx20
+		COMPILER_CONTRACT)
+endif()
 target_link_libraries(MethodFlagsPlacementCxx20 PRIVATE
 	${simdlib_method_flags_dependency})
 target_compile_features(MethodFlagsPlacementCxx20 PRIVATE cxx_std_20)
@@ -121,6 +125,10 @@ simdlib_configure_method_flags_target(MethodFlagsPlacementCxx20)
 
 if(simdlib_method_flags_enable_cxx23)
 	add_library(MethodFlagsPlacementCxx23 OBJECT MethodFlagsPlacementCxx23.cpp)
+	if(COMMAND simdlib_register_development_target)
+		simdlib_register_development_target(MethodFlagsPlacementCxx23
+			COMPILER_CONTRACT)
+	endif()
 	target_link_libraries(MethodFlagsPlacementCxx23 PRIVATE
 		${simdlib_method_flags_dependency})
 	target_compile_features(MethodFlagsPlacementCxx23 PRIVATE cxx_std_23)
@@ -135,6 +143,10 @@ endif()
 add_executable(MethodFlagsPlacementAbi
 	MethodFlagsPlacementAbiDefinition.cpp
 	MethodFlagsPlacementAbiConsumer.cpp)
+if(COMMAND simdlib_register_development_target)
+	simdlib_register_development_target(MethodFlagsPlacementAbi
+		COMPILER_CONTRACT)
+endif()
 target_link_libraries(MethodFlagsPlacementAbi PRIVATE
 	${simdlib_method_flags_dependency})
 target_compile_features(MethodFlagsPlacementAbi PRIVATE cxx_std_20)
@@ -143,6 +155,9 @@ set_target_properties(MethodFlagsPlacementAbi PROPERTIES
 simdlib_configure_method_flags_target(MethodFlagsPlacementAbi)
 
 add_custom_target(MethodFlagsPlacement)
+if(COMMAND simdlib_register_development_target)
+	simdlib_register_development_target(MethodFlagsPlacement COMPILER_CONTRACT)
+endif()
 add_dependencies(MethodFlagsPlacement
 	MethodFlagsPlacementCxx20
 	MethodFlagsPlacementAbi)

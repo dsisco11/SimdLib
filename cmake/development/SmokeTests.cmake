@@ -13,6 +13,7 @@ if(SIMDLIB_BUILD_SMOKE_TESTS)
     add_executable(HeaderOnlySmoke
         tests/smoke/main.cpp
         tests/smoke/second_translation_unit.cpp)
+    simdlib_register_development_target(HeaderOnlySmoke SMOKE_VALIDATION)
     target_link_libraries(HeaderOnlySmoke PRIVATE SimdLib::SimdLib)
     simdlib_enable_development_warnings(HeaderOnlySmoke)
     add_test(NAME HeaderOnlySmoke COMMAND HeaderOnlySmoke)
@@ -23,6 +24,7 @@ if(SIMDLIB_BUILD_SMOKE_TESTS)
 		add_executable(RegisterOdr
 			tests/register_odr/main.cpp
 			tests/register_odr/second_translation_unit.cpp)
+		simdlib_register_development_target(RegisterOdr SMOKE_VALIDATION)
 		target_link_libraries(RegisterOdr PRIVATE SimdLib::Register)
 		simdlib_enable_development_warnings(RegisterOdr)
 		simdlib_enable_register_sse42(RegisterOdr)

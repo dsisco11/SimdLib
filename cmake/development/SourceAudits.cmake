@@ -31,6 +31,8 @@ if(SIMDLIB_BUILD_CONFIGURATION_PROBES)
 			-P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/AuditPublicHeaderAssertions.cmake
 		COMMENT "Auditing production-header static assertions"
 		VERBATIM)
+	simdlib_register_development_target(PublicHeaderAssertionAudit
+		REPOSITORY_AUDIT)
 	add_test(NAME PublicHeaderStaticAssertAudit
 		COMMAND ${CMAKE_COMMAND}
 			-DSOURCE_DIRECTORY=${CMAKE_CURRENT_SOURCE_DIR}

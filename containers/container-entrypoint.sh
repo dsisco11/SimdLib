@@ -314,7 +314,7 @@ write_codegen_record_index()
 			[ ! -f "$owner_index" ] || cat "$owner_index"
 		done
 	} | sed '/^[[:space:]]*$/d' | LC_ALL=C sort -u >"$codegen_record_index"
-	[ -s "$codegen_record_index" ] || {
+	[ "$sanitizer" != none ] || [ -s "$codegen_record_index" ] || {
 		echo "No CMake-owned generated-code records were found under $build_directory" >&2
 		exit 6
 	}

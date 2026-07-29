@@ -64,7 +64,18 @@ option(SIMDLIB_ENABLE_COVERAGE
 option(SIMDLIB_BUILD_REGISTER_CODEGEN_GATES
     "Build Register generated-code comparisons" OFF)
 option(SIMDLIB_VALIDATE_EXHAUSTIVE_TARGETS
-    "Fail when the exhaustive development target inventory is incomplete" OFF)
+    "Require every category selected by the validation profile to contain owned targets" OFF)
+
+set(SIMDLIB_VALIDATION_PROFILE "CUSTOM" CACHE STRING
+    "Validation ownership profile: CUSTOM, RELEASE, DEBUG, SANITIZER, COVERAGE, or COMPILER_CONTRACTS")
+set_property(CACHE SIMDLIB_VALIDATION_PROFILE PROPERTY STRINGS
+    CUSTOM RELEASE DEBUG SANITIZER COVERAGE COMPILER_CONTRACTS)
+if(NOT SIMDLIB_VALIDATION_PROFILE MATCHES
+        "^(CUSTOM|RELEASE|DEBUG|SANITIZER|COVERAGE|COMPILER_CONTRACTS)$")
+    message(FATAL_ERROR
+        "SIMDLIB_VALIDATION_PROFILE has unsupported value "
+        "'${SIMDLIB_VALIDATION_PROFILE}'")
+endif()
 
 set(SIMDLIB_REGISTER_CODEGEN_MODE "ENFORCE" CACHE STRING
     "Register generated-code policy: ENFORCE or RECORD")

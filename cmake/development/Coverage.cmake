@@ -53,6 +53,7 @@ if(SIMDLIB_ENABLE_COVERAGE)
             -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/ResetCoverage.cmake
         COMMENT "Removing previous SimdLib coverage data"
         VERBATIM)
+    simdlib_register_development_target(CoverageReset COVERAGE_SUPPORT)
 
     add_custom_target(CoverageReport
         COMMAND ${CMAKE_COMMAND}
@@ -66,6 +67,7 @@ if(SIMDLIB_ENABLE_COVERAGE)
         DEPENDS ${simdlib_coverage_targets}
         COMMENT "Generating SimdLib LCOV coverage report"
         VERBATIM)
+    simdlib_register_development_target(CoverageReport COVERAGE_SUPPORT)
 endif()
 
 endblock()

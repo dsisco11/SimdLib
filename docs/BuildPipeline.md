@@ -82,6 +82,49 @@ participate in the fingerprint. Source inputs do not: their separate digest is
 bound into each completed build manifest so editing a source file invalidates
 test-only reuse without creating a new toolchain directory.
 
+## Scoped CMake artifact graph
+
+Every top-level development target declares exactly one validation category
+when it is created. Configuration fails if a project-owned target is unowned,
+is assigned more than once, or belongs to a category forbidden by the selected
+`SIMDLIB_VALIDATION_PROFILE`. The supported profiles are `RELEASE`, `DEBUG`,
+`SANITIZER`, `COVERAGE`, `COMPILER_CONTRACTS`, and `CUSTOM` for explicitly
+configured local development trees.
+
+Category targets are exposed through globally unique aggregates:
+
+- `SimdLibRepositoryAuditArtifacts`;
+- `SimdLibCompilerContractArtifacts`;
+- `SimdLibConstexprContractArtifacts`;
+- `SimdLibRuntimeValidationArtifacts`;
+- `SimdLibChecksValidationArtifacts`;
+- `SimdLibSmokeValidationArtifacts`;
+- `SimdLibOptimizedCodegenArtifacts`;
+- `SimdLibDebugDiagnosticArtifacts`; and
+- `SimdLibCoverageSupportArtifacts`.
+
+`ExhaustiveArtifacts` is the profile umbrella used by the pipeline. It depends
+only on the category aggregates selected by its configured profile. Sanitizer
+and coverage trees use `SimdLibSanitizerValidationArtifacts` and
+`SimdLibCoverageValidationArtifacts`, respectively, so inherited development
+options cannot pull compiler probes, constexpr probes, or generated-code work
+into those builds. `BenchmarkArtifacts` remains a separate Release-only
+aggregate and is never a dependency of `ExhaustiveArtifacts`.
+
+External consumers remain separate CMake projects because a main-tree marker
+target could not truthfully represent their configure and build operations.
+Their applicable targets are recorded in `external-consumer-targets.txt` for
+the pipeline orchestrator.
+
+Each configured tree writes deterministic audit inputs:
+
+- `development-targets.txt` lists configured project targets and aggregates;
+- `development-profile-targets.txt` lists targets selected by the profile;
+- `development-target-ownership.tsv` maps every development target to its
+  category, owning aggregate, and selection state; and
+- `development-aggregate-membership.tsv` records exact aggregate dependency
+  membership.
+
 For CI or advanced local reuse, tests may skip their one build invocation:
 
 ```powershell
@@ -120,9 +163,10 @@ trees.
 
 Compile-only constant-evaluation contracts are owned by each compiler's
 exhaustive Release tree instead of being repeated under Debug or sanitizer
-instrumentation. Native Clang coverage retains the contracts because its
-clang++ Windows driver and platform combination is distinct from the clang-cl
-Release cell. Runtime tests continue to exercise Debug and sanitizer behavior.
+instrumentation. Native Clang coverage builds execution-bearing runtime,
+checks, and smoke/ODR targets, but does not compile constexpr-only or
+compiler-contract targets. Runtime tests continue to exercise Debug and
+sanitizer behavior.
 
 Coverage is development infrastructure owned only by a top-level SimdLib
 build. The root CMake boundary does not load development modules for

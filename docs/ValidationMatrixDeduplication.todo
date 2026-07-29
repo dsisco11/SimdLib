@@ -51,17 +51,24 @@ SimdLib Validation Matrix Deduplication Plan:
       ☒ `ValidationMatrixBaseline.md` records the current cell inventory, target/test intersections, controlled and refreshed timings, critical paths, requirement conflicts, receipt audit, and execution results.
 
   Phase 1 - Replace the Monolithic Artifact Sweep with Scoped Aggregates:
-    ☐ Stop deriving the default exhaustive build solely by sweeping every non-interface development target in the directory.
-    ☐ Define explicit, scoped aggregates for repository audits, compiler contracts, constexpr contracts, runtime validation, optimized codegen/ABI, Debug diagnostics, sanitizer validation, coverage support, examples/smoke/ODR, external consumers, and benchmarks where separate aggregates improve ownership.
-    ☐ Keep aggregate names globally unique where they can coexist in a downstream CMake target graph.
-    ☐ Ensure `ExhaustiveArtifacts` or its approved replacement composes only the aggregates required by the selected validation profile.
-    ☐ Keep `BenchmarkArtifacts` isolated so the default build does not acquire benchmark dependencies indirectly.
-    ☐ Prevent sanitizer and coverage aggregates from inheriting codegen or compile-only targets merely because they inherit common development options.
-    ☐ Generate a deterministic development-target inventory for each configured profile and record the owning aggregate for every target.
-    ☐ Fail configuration when a target is unowned, multiply owned without justification, or present in a profile that excludes its category.
-    ☐ Update exhaustive-target validation so it checks the correct profile-specific contract instead of requiring one universal target set.
-    ☐ Add focused CMake tests that prove each aggregate contains its required targets and excludes forbidden categories.
-    ☐ End Phase 1 only when profile membership is explicit, mechanically audited, and no default aggregate can silently absorb a newly declared development target.
+    ☒ Stop deriving the default exhaustive build solely by sweeping every non-interface development target in the directory.
+    ☒ Define explicit, scoped aggregates for repository audits, compiler contracts, constexpr contracts, runtime validation, optimized codegen/ABI, Debug diagnostics, sanitizer validation, coverage support, examples/smoke/ODR, external consumers, and benchmarks where separate aggregates improve ownership.
+    ☒ Keep aggregate names globally unique where they can coexist in a downstream CMake target graph.
+    ☒ Ensure `ExhaustiveArtifacts` or its approved replacement composes only the aggregates required by the selected validation profile.
+    ☒ Keep `BenchmarkArtifacts` isolated so the default build does not acquire benchmark dependencies indirectly.
+    ☒ Prevent sanitizer and coverage aggregates from inheriting codegen or compile-only targets merely because they inherit common development options.
+    ☒ Generate a deterministic development-target inventory for each configured profile and record the owning aggregate for every target.
+    ☒ Fail configuration when a target is unowned, multiply owned without justification, or present in a profile that excludes its category.
+    ☒ Update exhaustive-target validation so it checks the correct profile-specific contract instead of requiring one universal target set.
+    ☒ Add focused CMake tests that prove each aggregate contains its required targets and excludes forbidden categories.
+    ☒ End Phase 1 only when profile membership is explicit, mechanically audited, and no default aggregate can silently absorb a newly declared development target.
+    Evidence:
+      ☒ Every development target declares one category through `simdlib_register_development_target`; recursive project-owned target discovery rejects declarations that omit it.
+      ☒ Release, Debug diagnostic, sanitizer, coverage, and compiler-contract configure trees generated deterministic target, profile, ownership, aggregate, and external-consumer inventories.
+      ☒ `ArtifactAggregates.ProfileMembership`, `ArtifactAggregates.RejectUNOWNED`, `ArtifactAggregates.RejectMULTIPLE`, and `ArtifactAggregates.RejectEXCLUDED` passed in all five configured profile shapes.
+      ☒ Ninja graph inspection showed the Release umbrella depends on seven category aggregates while `BenchmarkArtifacts` depends only on `Benchmarks`.
+      ☒ Ninja graph inspection showed sanitizer depends only on runtime/checks and coverage depends only on runtime/checks/smoke; coverage reset/report remain under their separate support aggregate.
+      ☒ CMake preset parsing, PowerShell parsing, POSIX shell syntax checking, and `git diff --check` completed after the profile, aggregate, and manifest changes.
 
   Phase 2 - Deduplicate Repository and Compiler-Front-End Contracts:
     ☐ Move the production-header static-assert audit and public-consumer implementation-detail scan into a repository-level validation operation that runs once per source revision.

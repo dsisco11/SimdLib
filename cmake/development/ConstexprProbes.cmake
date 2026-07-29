@@ -14,6 +14,7 @@ block(SCOPE_FOR VARIABLES)
 # @param source Translation unit containing static assertions.
 function(simdlib_add_constexpr_probe target source)
 	add_library(${target} OBJECT ${source})
+	simdlib_register_development_target(${target} CONSTEXPR_CONTRACT)
 	target_link_libraries(${target} PRIVATE SimdLib::SimdLib)
 	simdlib_enable_development_warnings(${target})
 endfunction()
@@ -112,10 +113,8 @@ if(SIMDLIB_BUILD_CONSTEXPR_PROBES)
 		COMMENT "Recording constexpr probe artifacts"
 		VERBATIM)
 	add_custom_target(ConstexprProbes ALL DEPENDS "${constexpr_record}")
+	simdlib_register_development_target(ConstexprProbes CONSTEXPR_CONTRACT)
 	add_dependencies(ConstexprProbes ${simdlib_constexpr_targets})
-	if(TARGET PublicHeaderAssertionAudit)
-		add_dependencies(ConstexprProbes PublicHeaderAssertionAudit)
-	endif()
 	add_test(NAME ConstexprProbes.Artifacts
 		COMMAND ${CMAKE_COMMAND}
 			-DMODE=VALIDATE

@@ -28,8 +28,14 @@ if(SIMDLIB_BUILD_RUNTIME_TESTS)
     # @param source Translation unit that owns the Catch2 cases.
     # @param test_prefix Prefix applied to every discovered CTest identity.
     # @param labels Semicolon-separated labels applied to every discovered case.
+    # @param category Optional validation category; defaults to RUNTIME_VALIDATION.
     function(simdlib_add_catch_test target source test_prefix labels)
+        set(validation_category RUNTIME_VALIDATION)
+        if(ARGC GREATER 4)
+            set(validation_category ${ARGV4})
+        endif()
         add_executable(${target} ${source})
+        simdlib_register_development_target(${target} ${validation_category})
         target_link_libraries(${target} PRIVATE SimdLib::SimdLib Catch2::Catch2WithMain)
         simdlib_enable_development_warnings(${target})
         simdlib_set_coverage_profile_prefix(${target} "${test_prefix}")
@@ -68,6 +74,8 @@ if(SIMDLIB_BUILD_RUNTIME_TESTS)
 		simdlib_enable_register_sse42(RegisterSse42Tests)
 
 		add_executable(RegisterPreconditionTests tests/RegisterPreconditionFailure.tests.cpp)
+		simdlib_register_development_target(RegisterPreconditionTests
+			CHECKS_VALIDATION)
 		target_link_libraries(RegisterPreconditionTests PRIVATE SimdLib::Register Catch2::Catch2WithMain)
 		simdlib_enable_development_warnings(RegisterPreconditionTests)
 		simdlib_set_coverage_profile_prefix(RegisterPreconditionTests
@@ -94,27 +102,36 @@ if(SIMDLIB_BUILD_RUNTIME_TESTS)
 
     simdlib_add_catch_test(FormatTests tests/Format.tests.cpp
         Format "FORMAT;SSE42")
-	add_executable(FormatOdr
-		tests/format_odr/main.cpp
-		tests/format_odr/second_translation_unit.cpp)
-	target_link_libraries(FormatOdr PRIVATE SimdLib::SimdLib)
-	simdlib_enable_development_warnings(FormatOdr)
-	add_test(NAME FormatOdr COMMAND FormatOdr)
-	set_tests_properties(FormatOdr PROPERTIES LABELS "FORMAT;ODR")
-	simdlib_set_coverage_profile_prefix(FormatOdr "FormatOdr")
 	if(SIMDLIB_MSVC_STYLE_DRIVER)
 		target_compile_definitions(FormatTests PRIVATE
 			SIMDLIB_HAS_SSE3=1 SIMDLIB_HAS_SSSE3=1 SIMDLIB_HAS_SSE41=1 SIMDLIB_HAS_SSE42=1)
-		target_compile_definitions(FormatOdr PRIVATE
-			SIMDLIB_HAS_SSE3=1 SIMDLIB_HAS_SSSE3=1 SIMDLIB_HAS_SSE41=1 SIMDLIB_HAS_SSE42=1)
 		if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 			target_compile_options(FormatTests PRIVATE /arch:AVX2)
-			target_compile_options(FormatOdr PRIVATE /arch:AVX2)
 		endif()
     else()
         target_compile_options(FormatTests PRIVATE -msse4.2)
-		target_compile_options(FormatOdr PRIVATE -msse4.2)
     endif()
+
+	if(SIMDLIB_BUILD_SMOKE_TESTS)
+		add_executable(FormatOdr
+			tests/format_odr/main.cpp
+			tests/format_odr/second_translation_unit.cpp)
+		simdlib_register_development_target(FormatOdr SMOKE_VALIDATION)
+		target_link_libraries(FormatOdr PRIVATE SimdLib::SimdLib)
+		simdlib_enable_development_warnings(FormatOdr)
+		add_test(NAME FormatOdr COMMAND FormatOdr)
+		set_tests_properties(FormatOdr PROPERTIES LABELS "FORMAT;ODR")
+		simdlib_set_coverage_profile_prefix(FormatOdr "FormatOdr")
+		if(SIMDLIB_MSVC_STYLE_DRIVER)
+			target_compile_definitions(FormatOdr PRIVATE
+				SIMDLIB_HAS_SSE3=1 SIMDLIB_HAS_SSSE3=1 SIMDLIB_HAS_SSE41=1 SIMDLIB_HAS_SSE42=1)
+			if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+				target_compile_options(FormatOdr PRIVATE /arch:AVX2)
+			endif()
+		else()
+			target_compile_options(FormatOdr PRIVATE -msse4.2)
+		endif()
+	endif()
 
     if(SIMDLIB_BUILD_API_SSE42_TESTS)
         simdlib_add_catch_test(LogicalShuffleImpl128Tests tests/LogicalShuffleImpl128.tests.cpp
@@ -283,6 +300,8 @@ if(SIMDLIB_BUILD_RUNTIME_TESTS)
             tests/SimdAlgo.tests.cpp
             tests/PreconditionBoundary.tests.cpp
             tests/SimdResample.tests.cpp)
+        simdlib_register_development_target(VectorAlgorithmsTests
+            RUNTIME_VALIDATION)
         target_link_libraries(VectorAlgorithmsTests PRIVATE SimdLib::SimdLib Catch2::Catch2WithMain)
         simdlib_enable_development_warnings(VectorAlgorithmsTests)
         simdlib_set_coverage_profile_prefix(VectorAlgorithmsTests
@@ -299,7 +318,7 @@ if(SIMDLIB_BUILD_RUNTIME_TESTS)
         endif()
 
 		simdlib_add_catch_test(VectorChecksTests tests/SimdVectorChecks.tests.cpp
-			VectorChecks "VECTOR_ALGORITHMS;AVX2;CHECKS")
+			VectorChecks "VECTOR_ALGORITHMS;AVX2;CHECKS" CHECKS_VALIDATION)
 		target_compile_definitions(VectorChecksTests PRIVATE SIMDLIB_ENABLE_CHECKS=1)
 		if(SIMDLIB_MSVC_STYLE_DRIVER)
 			target_compile_options(VectorChecksTests PRIVATE /arch:AVX2)
@@ -308,6 +327,7 @@ if(SIMDLIB_BUILD_RUNTIME_TESTS)
 		endif()
 
 		add_executable(PreconditionTests tests/PreconditionFailure.tests.cpp)
+		simdlib_register_development_target(PreconditionTests CHECKS_VALIDATION)
 		target_link_libraries(PreconditionTests PRIVATE SimdLib::SimdLib Catch2::Catch2WithMain)
 		simdlib_enable_development_warnings(PreconditionTests)
 		simdlib_set_coverage_profile_prefix(PreconditionTests
@@ -328,6 +348,8 @@ if(SIMDLIB_BUILD_RUNTIME_TESTS)
 			"PRECONDITIONS;CHECKS;AVX2")
 
         add_executable(ResampleScalarTests tests/SimdResample.tests.cpp)
+        simdlib_register_development_target(ResampleScalarTests
+            RUNTIME_VALIDATION)
         target_link_libraries(ResampleScalarTests PRIVATE SimdLib::SimdLib Catch2::Catch2WithMain)
         simdlib_enable_development_warnings(ResampleScalarTests)
         simdlib_set_coverage_profile_prefix(ResampleScalarTests
