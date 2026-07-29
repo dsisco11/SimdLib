@@ -11,7 +11,8 @@ Code Architecture:
         It should also provide methods for broadcasting, reshaping, and slicing tensors, as well as performing element-wise operations and reductions.
 
 Build Pipeline:
-    ☐ Ensure that the codegen tests are building the actual SimdLib code without optimizations enabled, but building the comparison code WITH optimizations enabled, so we guarantee that the zero-overhead guarantee isnt relying on compiler optimization and also that debug builds are still going to produce optimal codegen.
+    ☐ Implement the validation ownership and matrix deduplication contract described in `docs/ValidationMatrixDeduplication.todo` and `docs/ValidationMatrixOwnership.md`.
+    ☐ Keep optimized Release wrapper/raw and ABI comparisons as the mandatory zero-overhead gates, and preserve unoptimized Debug or sanitizer comparisons as explicit diagnostic operations rather than default-build requirements.
 
 Testing:
     ☐ Ensure test coverage of all `SimdImplementation::negate()` methods.

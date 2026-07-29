@@ -7,19 +7,19 @@ SimdLib Validation Matrix Deduplication Plan:
     ☐ Preserve separate, explicitly requested workflows for diagnostic evidence that remains useful but does not belong in every default build.
     ☐ Measure the effect of each matrix change so reduced wall time is supported by target, test, and critical-path evidence rather than target counts alone.
 
-  Proposed Matrix Contract:
-    ☐ Run the complete optimized Release correctness suite on every supported compiler and supported instruction-set profile.
-    ☐ Enforce optimized Register generated-code and ABI gates in Release on every Register-capable compiler.
-    ☐ Use MSVC as the representative ordinary Debug runtime configuration for default-check behavior, unoptimized Windows behavior, and Debug runtime consumption.
-    ☐ Use Clang ASan+UBSan as the default Linux Debug instrumentation configuration.
-    ☐ Remove ordinary clang-cl, GCC 13, GCC 14, and Clang Debug cells from the default matrix after focused replacement evidence proves they own no unique contract.
-    ☐ Keep compiler-front-end contracts such as header isolation, configuration adapters, availability, language constraints, negative compilation, and method-flags preprocessing once per compiler, independent of Debug/Release runtime duplication.
-    ☐ Run repository-text audits once per source revision rather than once per compiler or configuration.
-    ☐ Keep constexpr qualification once per required compiler and feature profile, without duplicating it in ordinary Debug, sanitizer, or coverage configurations solely because those trees exist.
-    ☐ Keep benchmark builds and execution Release-only and separate from the default correctness build.
-    ☐ Keep Debug and sanitizer generated-code differential recording available through an explicit diagnostic operation while excluding it from default sanitizer and ordinary Debug builds.
-    ☐ Retain separate configure trees for configurations that remain in the matrix; do not merge MSVC Debug and Release into one multi-config validation identity.
-    ☐ Require any future matrix expansion to identify the unique contract owned by the new cell and prohibit adding a full target inventory merely because a compiler/configuration combination is available.
+  Accepted Matrix Contract:
+    ☒ Run the complete optimized Release correctness suite on every supported compiler and supported instruction-set profile.
+    ☒ Enforce optimized Register generated-code and ABI gates in Release on every Register-capable compiler.
+    ☒ Use MSVC as the representative ordinary Debug runtime configuration for default-check behavior, unoptimized Windows behavior, and Debug runtime consumption.
+    ☒ Use Clang ASan+UBSan as the default Linux Debug instrumentation configuration.
+    ☒ Remove ordinary clang-cl, GCC 13, GCC 14, and Clang Debug cells from the default matrix after focused replacement evidence proves they own no unique contract.
+    ☒ Keep compiler-front-end contracts such as header isolation, configuration adapters, availability, language constraints, negative compilation, and method-flags preprocessing once per compiler, independent of Debug/Release runtime duplication.
+    ☒ Run repository-text audits once per source revision rather than once per compiler or configuration.
+    ☒ Keep constexpr qualification once per required compiler and feature profile, without duplicating it in ordinary Debug, sanitizer, or coverage configurations solely because those trees exist.
+    ☒ Keep benchmark builds and execution Release-only and separate from the default correctness build.
+    ☒ Keep Debug and sanitizer generated-code differential recording available through an explicit diagnostic operation while excluding it from default sanitizer and ordinary Debug builds.
+    ☒ Retain separate configure trees for configurations that remain in the matrix; do not merge MSVC Debug and Release into one multi-config validation identity.
+    ☒ Require any future matrix expansion to identify the unique contract owned by the new cell and prohibit adding a full target inventory merely because a compiler/configuration combination is available.
 
   Non-Goals:
     ☐ Do not weaken the optimized Release compiler or instruction-set support matrix.
@@ -34,18 +34,21 @@ SimdLib Validation Matrix Deduplication Plan:
     ☐ Do not run a complete clean compiler matrix after every phase; use focused validation until the final integration and acceptance phases.
 
   Phase 0 - Freeze Validation Ownership and Baseline the Pipeline:
-    ☐ Inventory every current native, container, coverage, sanitizer, benchmark, and external-consumer cell produced by `Build`.
-    ☐ Record each cell's compiler, driver style, language mode, instruction-set profile, configuration, instrumentation, target aggregate, test inventory, consumer behavior, and generated-code mode.
-    ☐ Classify every development target as one of: repository audit, compiler-front-end contract, compile-time contract, runtime correctness, checks/preconditions, smoke/ODR/example, external consumer, optimized codegen/ABI, optional diagnostic codegen, sanitizer, coverage, or benchmark.
-    ☐ Record which targets are configuration-independent, which depend on `NDEBUG` or `SIMDLIB_ENABLE_CHECKS`, which require optimization, and which are intentionally unoptimized.
-    ☐ Record Debug/Release target-set intersections and test-name intersections for each compiler family.
-    ☐ Capture clean and cached wall time for configure, main build, consumer build, test discovery, test execution, codegen comparison, coverage processing, and container orchestration.
-    ☐ Parse Ninja and MSBuild evidence sufficiently to identify critical-path outputs rather than inferring cost from file size or target count.
-    ☐ Record compiler work separately from CTest execution so repeated compilation remains visible even when tests run quickly.
-    ☐ Identify every current requirement in planning and qualification documents that mandates Debug or sanitizer codegen, full Debug compiler coverage, or configuration-specific consumer testing.
-    ☐ Resolve conflicts between the desired default matrix and any existing requirement by assigning the evidence to either the default workflow or an explicit diagnostic workflow.
-    ☐ Define the exact default and optional matrix before changing presets or aggregates.
-    ☐ End Phase 0 only when every existing target and test has one documented owner and every retained Debug cell has a unique stated contract.
+    ☒ Inventory every current native, container, coverage, sanitizer, benchmark, and external-consumer cell produced by `Build`.
+    ☒ Record each cell's compiler, driver style, language mode, instruction-set profile, configuration, instrumentation, target aggregate, test inventory, consumer behavior, and generated-code mode.
+    ☒ Classify every development target as one of: production/support aggregate, repository audit, compiler-front-end contract, compile-time contract, runtime correctness, checks/preconditions, smoke/ODR/example, external consumer, optimized codegen/ABI, optional diagnostic codegen, sanitizer, coverage, or benchmark.
+    ☒ Record which targets are configuration-independent, which depend on `NDEBUG` or `SIMDLIB_ENABLE_CHECKS`, which require optimization, and which are intentionally unoptimized.
+    ☒ Record Debug/Release target-set intersections and test-name intersections for each compiler family.
+    ☒ Capture clean and cached wall time for configure, main build, consumer build, test discovery, test execution, codegen comparison, coverage processing, and container orchestration.
+    ☒ Parse Ninja and MSBuild evidence sufficiently to identify critical-path outputs rather than inferring cost from file size or target count.
+    ☒ Record compiler work separately from CTest execution so repeated compilation remains visible even when tests run quickly.
+    ☒ Identify every current requirement in planning and qualification documents that mandates Debug or sanitizer codegen, full Debug compiler coverage, or configuration-specific consumer testing.
+    ☒ Resolve conflicts between the desired default matrix and any existing requirement by assigning the evidence to either the default workflow or an explicit diagnostic workflow.
+    ☒ Define the exact default and optional matrix before changing presets or aggregates.
+    ☒ End Phase 0 only when every existing target and test has one documented owner and every retained Debug cell has a unique stated contract.
+    Evidence:
+      ☒ `ValidationMatrixOwnership.md` defines the exact default and optional matrix, one-owner rules, configuration sensitivity, and unique retained Debug contracts.
+      ☒ `ValidationMatrixBaseline.md` records the current cell inventory, target/test intersections, controlled and refreshed timings, critical paths, requirement conflicts, receipt audit, and execution results.
 
   Phase 1 - Replace the Monolithic Artifact Sweep with Scoped Aggregates:
     ☐ Stop deriving the default exhaustive build solely by sweeping every non-interface development target in the directory.
@@ -145,6 +148,7 @@ SimdLib Validation Matrix Deduplication Plan:
     ☐ Keep benchmark operations separate and Release-only.
     ☐ Add explicit operations for compiler contracts, Debug codegen diagnostics, and any retained ordinary Debug troubleshooting cells when independent invocation is useful.
     ☐ Keep source/configuration fingerprints distinct for every profile whose target inventory or compiler flags differ.
+    ☐ Use one canonical relative-path source-digest byte stream on the host and in containers, and reject any manifest whose embedded source digest differs from the unified receipt and current source digest.
     ☐ Include the scoped aggregate, target inventory, test inventory, configuration, instrumentation, generated-code mode, consumer scope, and source-audit receipt in provenance.
     ☐ Reject `Run-Tests` when the build receipt does not cover the exact required test inventories, but do not rebuild automatically.
     ☐ Preserve deterministic readable build directories with their existing short fingerprint suffix policy.
@@ -167,7 +171,7 @@ SimdLib Validation Matrix Deduplication Plan:
     ☐ Add a matrix audit command that reports duplicate targets/tests, unowned contracts, and unexpected profile membership.
     ☐ End Phase 8 only when accidental target creep or configuration duplication causes a focused automated failure.
 
-  Phase 9 - Measure, Qualify, Document, and Clean Up:
+  Phase 9 - Measure, Qualify, and Document:
     ☐ Run focused configuration and inventory tests after each relevant refactor without running the complete compiler matrix after every phase.
     ☐ Run one final clean default `Build` across all retained native and container cells.
     ☐ Run `Run-Tests` against the final build receipt and verify that it performs no rebuild.
@@ -181,8 +185,20 @@ SimdLib Validation Matrix Deduplication Plan:
     ☐ Remove stale statements that imply every supported compiler must run a complete ordinary Debug suite.
     ☐ Reconcile `docs/project.todo`, Register qualification requirements, and any other planning documents with the final default-versus-diagnostic codegen policy.
     ☐ Avoid recording transient claims such as tests presently passing in enduring documentation; keep execution results in completion evidence.
-    ☐ Remove temporary measurement scripts, generated reports, scratch build trees, and superseded planning artifacts that have no permanent maintenance value.
     ☐ Run formatting and `git diff --check` on all modified source, CMake, script, and documentation files.
     ☐ Review the final diff for accidental compatibility aliases, stale preset names, unreferenced options, duplicate aggregates, and unrelated changes.
-    ☐ End Phase 9 only when the reduced matrix preserves every approved contract, the default pipeline is measurably faster, optional diagnostics remain usable, and no implementation or documentation cleanup remains.
+    ☐ End Phase 9 only when the reduced matrix preserves every approved contract, the default pipeline is measurably faster, optional diagnostics remain usable, and the enduring documentation describes the implemented workflow accurately.
 
+  Phase 10 - Remove Temporary Planning and Evidence Documentation:
+    ☐ Inventory every planning document, baseline report, measurement note, scratch script, generated report, and temporary artifact added or retained for this work.
+    ☐ Classify each inventoried item as enduring maintenance documentation, temporary execution evidence, superseded planning material, or generated output.
+    ☐ Preserve a document only when it provides continuing value that is not already represented by canonical build, validation, support-matrix, coverage, codegen, sanitizer, or contributor documentation.
+    ☐ Move any enduring decisions or instructions that exist only in temporary documents into their canonical documentation owner before deleting the temporary source.
+    ☐ Evaluate `ValidationMatrixBaseline.md` and `ValidationMatrixOwnership.md` explicitly; retain neither merely because it was created during implementation, and remove or consolidate either document whose useful content is fully represented elsewhere.
+    ☐ Remove temporary measurement scripts, execution-only reports, scratch build trees, generated inventories, and other plan-specific artifacts that have no permanent maintenance value.
+    ☐ Remove superseded `.todo` documents, including this plan after all work is complete, once they contain no unfinished obligation or unique enduring decision.
+    ☐ Search the repository for references to every removed document or artifact and update or remove stale links, commands, paths, and ownership claims.
+    ☐ Verify that cleanup does not remove machine-readable contracts, regression fixtures, canonical user guidance, or provenance artifacts that the implemented pipeline requires.
+    ☐ Review `git status`, ignored generated roots, and the final diff so no temporary documentation or measurement artifact remains accidentally tracked or untracked in the repository workspace.
+    ☐ Run `git diff --check` after cleanup and verify that the remaining documentation set is internally consistent and contains no transient current-status claims.
+    ☐ End Phase 10 only when every temporary item has been removed or explicitly justified as enduring, all stale references are gone, and the repository contains only implementation artifacts and documentation with continuing maintenance value.
