@@ -3540,16 +3540,26 @@ template <class element_t> struct SimdMappings<128, element_t> : public SimdImpl
 
 #pragma region 128-bit Shifting
 
-	/// <summary> Shifts all bytes in the vector to the left by the specified number of bytes. </summary>
-	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE static int_vector_t VECTORCALL byte_shift_left(int_vector_t lhs, int shift) noexcept
+	/**
+	 * @brief Shifts a complete register toward higher byte indices.
+	 * @param lhs Source register.
+	 * @param shift Runtime byte count.
+	 * @return Shifted register with zero-filled low bytes.
+	 */
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static int_vector_t VECTORCALL byte_shift_left(int_vector_t lhs, int shift) noexcept
 	{
-		return register_byte_shift_left(lhs, shift);
+		return _ext128_byte_shift_left_dynamic(lhs, shift);
 	}
 
-	/// <summary> Shifts all bytes in the vector to the right by the specified number of bytes. </summary>
-	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE static int_vector_t VECTORCALL byte_shift_right(int_vector_t lhs, int shift) noexcept
+	/**
+	 * @brief Shifts a complete register toward lower byte indices.
+	 * @param lhs Source register.
+	 * @param shift Runtime byte count.
+	 * @return Shifted register with zero-filled high bytes.
+	 */
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static int_vector_t VECTORCALL byte_shift_right(int_vector_t lhs, int shift) noexcept
 	{
-		return register_byte_shift_right(lhs, shift);
+		return _ext128_byte_shift_right_dynamic(lhs, shift);
 	}
 
 	/// <summary> Shifts all bits of the vector to the left by the specified number of bits. </summary>

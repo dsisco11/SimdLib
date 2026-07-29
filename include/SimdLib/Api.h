@@ -1279,7 +1279,8 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 * @param shift The runtime byte count.
 	 * @return The byte-shifted register.
 	 */
-	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr static int_vector_t VECTORCALL byte_shift_left(const int_vector_t lhs, const int shift) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static int_vector_t VECTORCALL byte_shift_left(const int_vector_t lhs,
+																														const int shift) noexcept
 		requires(using_int && register_width == 128)
 	{
 		if (std::is_constant_evaluated())
@@ -1298,7 +1299,8 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 * @param shift The runtime byte count.
 	 * @return The byte-shifted register.
 	 */
-	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr static int_vector_t VECTORCALL byte_shift_right(const int_vector_t lhs, const int shift) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static int_vector_t VECTORCALL byte_shift_right(const int_vector_t lhs,
+																														 const int shift) noexcept
 		requires(using_int && register_width == 128)
 	{
 		if (std::is_constant_evaluated())

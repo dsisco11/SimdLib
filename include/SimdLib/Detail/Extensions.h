@@ -382,34 +382,6 @@ SIMDLIB_FORCE_INLINE constexpr Vector register_shuffle_half_16(const Vector valu
 	return register_from_array<Vector>(result);
 }
 
-template <class Vector> SIMDLIB_FORCE_INLINE constexpr Vector register_byte_shift_left(const Vector value, const int count) noexcept
-{
-	if (count <= 0)
-		return value;
-	constexpr std::size_t size = sizeof(Vector);
-	if (static_cast<std::size_t>(count) >= size)
-		return register_from_array<Vector>(std::array<std::uint8_t, size>{});
-	const auto source = register_to_array<std::uint8_t>(value);
-	std::array<std::uint8_t, size> result{};
-	for (std::size_t index = static_cast<std::size_t>(count); index < size; ++index)
-		result[index] = source[index - static_cast<std::size_t>(count)];
-	return register_from_array<Vector>(result);
-}
-
-template <class Vector> SIMDLIB_FORCE_INLINE constexpr Vector register_byte_shift_right(const Vector value, const int count) noexcept
-{
-	if (count <= 0)
-		return value;
-	constexpr std::size_t size = sizeof(Vector);
-	if (static_cast<std::size_t>(count) >= size)
-		return register_from_array<Vector>(std::array<std::uint8_t, size>{});
-	const auto source = register_to_array<std::uint8_t>(value);
-	std::array<std::uint8_t, size> result{};
-	for (std::size_t index = 0; index + static_cast<std::size_t>(count) < size; ++index)
-		result[index] = source[index + static_cast<std::size_t>(count)];
-	return register_from_array<Vector>(result);
-}
-
 template <class Element, class Vector, class Operation>
 SIMDLIB_FORCE_INLINE constexpr Vector register_transform_binary(const Vector lhs, const Vector rhs, Operation &&operation) noexcept
 {
@@ -421,6 +393,71 @@ SIMDLIB_FORCE_INLINE constexpr Vector register_transform_binary(const Vector lhs
 }
 
 #if SIMDLIB_HAS_SSE42
+
+#pragma region 128bit Complete-Register Byte Shift Extensions
+
+/**
+ * @brief Clamps a runtime byte-shift count to the complete 128-bit register.
+ * @param count Runtime byte count.
+ * @return A count in the inclusive range zero through sixteen.
+ */
+SIMDLIB_FORCE_INLINE constexpr int _ext128_clamp_byte_shift_count(const int count) noexcept
+{
+	const int nonnegative = count < 0 ? 0 : count;
+	return nonnegative > 16 ? 16 : nonnegative;
+}
+
+/**
+ * @brief Broadcasts a clamped byte-shift count into every byte lane.
+ * @param count Byte count in the inclusive range zero through sixteen.
+ * @return Register containing the count in every byte lane.
+ */
+SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m128i VECTORCALL _ext128_broadcast_byte_shift_count(const int count) noexcept
+{
+	return _mm_set1_epi32(count * 0x01010101);
+}
+
+/**
+ * @brief Shifts a complete 128-bit register toward higher byte indices.
+ *
+ * `PSLLDQ` accepts only an immediate count. This runtime path instead builds
+ * a variable `PSHUFB` control vector without materializing the register in
+ * addressable storage.
+ *
+ * @param lhs Source register.
+ * @param count Runtime byte count; nonpositive values are identity and values
+ *        greater than or equal to sixteen produce zero.
+ * @return Shifted register with zero-filled low bytes.
+ */
+SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m128i VECTORCALL _ext128_byte_shift_left_dynamic(__m128i lhs, const int count) noexcept
+{
+	const __m128i indices = _mm_setr_epi8(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15);
+	const int boundedCount = _ext128_clamp_byte_shift_count(count);
+	const __m128i counts = _ext128_broadcast_byte_shift_count(boundedCount);
+	return _mm_shuffle_epi8(lhs, _mm_sub_epi8(indices, counts));
+}
+
+/**
+ * @brief Shifts a complete 128-bit register toward lower byte indices.
+ *
+ * `PSRLDQ` accepts only an immediate count. This runtime path instead builds
+ * a variable `PSHUFB` control vector without materializing the register in
+ * addressable storage.
+ *
+ * @param lhs Source register.
+ * @param count Runtime byte count; nonpositive values are identity and values
+ *        greater than or equal to sixteen produce zero.
+ * @return Shifted register with zero-filled high bytes.
+ */
+SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m128i VECTORCALL _ext128_byte_shift_right_dynamic(__m128i lhs, const int count) noexcept
+{
+	const __m128i biasedIndices = _mm_setr_epi8(0x70, 0x71, 0x72, 0x73, 0x74, 0x75, 0x76, 0x77, 0x78, 0x79, 0x7A, 0x7B, 0x7C, 0x7D, 0x7E, 0x7F);
+	const int boundedCount = _ext128_clamp_byte_shift_count(count);
+	const __m128i counts = _ext128_broadcast_byte_shift_count(boundedCount);
+	return _mm_shuffle_epi8(lhs, _mm_add_epi8(biasedIndices, counts));
+}
+
+#pragma endregion
 
 #pragma region 128bit Integer Division Extensions
 

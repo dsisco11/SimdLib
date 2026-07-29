@@ -116,11 +116,11 @@ Runtime Register-Storage Removal:
     ☒ Add focused correctness coverage before routing `SimdImpl256<element_t>::modulus` to the new extensions.
 
   Task 12 - Complete-Register Runtime Byte Shifts:
-    ☐ Retain the fact that `PSLLDQ` and `PSRLDQ` accept only an immediate count; do not pass a runtime integer directly to `_mm_slli_si128` or `_mm_srli_si128`.
-    ☐ Compare switch dispatch against branchless variable-count register-only algorithms.
-    ☐ Select the implementation from optimized generated code and focused measurements rather than assuming dispatch is best.
-    ☐ Implement and test left and right shifts for zero, in-range, negative, and out-of-range counts.
-    ☐ Inspect optimized code generation before changing method flags.
+    ☒ Retain the fact that `PSLLDQ` and `PSRLDQ` accept only an immediate count; do not pass a runtime integer directly to `_mm_slli_si128` or `_mm_srli_si128`.
+    ☒ Compare switch dispatch against branchless variable-count register-only algorithms.
+    ☒ Select the implementation from optimized generated code and focused measurements rather than assuming dispatch is best.
+    ☒ Implement and test left and right shifts for zero, in-range, negative, and out-of-range counts.
+    ☒ Inspect optimized code generation before changing method flags.
 
   Task 13 - Complete-Register Bit Shifts:
     ☐ Implement intrinsic-only runtime left and right bit shifts for a complete 128-bit register.

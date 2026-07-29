@@ -499,7 +499,9 @@ void require_complete_register_shifts()
 	for (std::size_t index = 0; index < bytes.size(); ++index)
 		bytes[index] = static_cast<std::uint8_t>(index + 1);
 	const byte_register byte_value = byte_register::from_array(bytes);
-	for (const int count : std::array<int, 6>{-1, 0, 1, 15, 16, 17})
+	constexpr std::array<int, 22> counts{std::numeric_limits<int>::lowest(), -17, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17,
+										 std::numeric_limits<int>::max()};
+	for (const int count : counts)
 	{
 		std::array<std::uint8_t, byte_register::lane_count> left{};
 		std::array<std::uint8_t, byte_register::lane_count> right{};

@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <array>
 #include <cstdint>
+#include <limits>
 
 using namespace SimdLib::Tests;
 
@@ -218,7 +219,9 @@ TEST_CASE("128-bit public byte operations cover lane shifts and byte-shift bound
 	using signed_bytes = SimdLib::Api<128, std::int8_t>;
 	REQUIRE(signed_bytes::to_array(signed_bytes::shift_right_arithmetic(signed_bytes::set1(-126), 1))[0] == -63);
 
-	for (const int count : std::array<int, 6>{-1, 0, 1, 15, 16, 17})
+	constexpr std::array<int, 22> counts{std::numeric_limits<int>::lowest(), -17, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17,
+										 std::numeric_limits<int>::max()};
+	for (const int count : counts)
 	{
 		std::array<std::uint8_t, bytes::element_count> left{};
 		std::array<std::uint8_t, bytes::element_count> right{};

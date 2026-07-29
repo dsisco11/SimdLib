@@ -852,7 +852,8 @@ class Register final
 	 * @return Shifted complete register with zero-filled low bytes.
 	 * @remarks Available only at 128 bits when `IApi::ByteShift<api_type>` is satisfied.
 	 */
-	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr Register VECTORCALL byte_shift_left(this Register value, int count) noexcept
+	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr Register VECTORCALL byte_shift_left(this Register value,
+																														   int count) noexcept
 		requires(register_width == 128 && IApi::ByteShift<api_type>)
 	{
 		return Register{api_type::byte_shift_left(value.native, count)};
@@ -865,7 +866,8 @@ class Register final
 	 * @return Shifted complete register with zero-filled high bytes.
 	 * @remarks Available only at 128 bits when `IApi::ByteShift<api_type>` is satisfied.
 	 */
-	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr Register VECTORCALL byte_shift_right(this Register value, int count) noexcept
+	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr Register VECTORCALL byte_shift_right(this Register value,
+																															int count) noexcept
 		requires(register_width == 128 && IApi::ByteShift<api_type>)
 	{
 		return Register{api_type::byte_shift_right(value.native, count)};
