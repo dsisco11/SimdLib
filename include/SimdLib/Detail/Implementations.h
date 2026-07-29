@@ -2436,9 +2436,15 @@ template <> struct SimdImpl128<int64_t>
 	{
 		return _mm_set_epi64x(args...);
 	}
-	template <typename... Args> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL setr(Args... args) noexcept
+	/**
+	 * @brief Constructs two signed 64-bit lanes in low-to-high logical order.
+	 * @param low Value for lane zero.
+	 * @param high Value for lane one.
+	 * @return Register containing low followed by high.
+	 */
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m128i VECTORCALL setr(const std::int64_t low, const std::int64_t high) noexcept
 	{
-		return register_from_values<__m128i, std::int64_t>(args...);
+		return _mm_set_epi64x(high, low);
 	}
 
 	// comparison
@@ -2688,9 +2694,15 @@ template <> struct SimdImpl128<uint64_t>
 	{
 		return _mm_set_epi64x(args...);
 	}
-	template <typename... Args> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL setr(Args &&...args) noexcept
+	/**
+	 * @brief Constructs two unsigned 64-bit lanes in low-to-high logical order.
+	 * @param low Value for lane zero.
+	 * @param high Value for lane one.
+	 * @return Register containing the exact low and high lane bit patterns.
+	 */
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m128i VECTORCALL setr(const std::uint64_t low, const std::uint64_t high) noexcept
 	{
-		return register_from_values<__m128i, std::int64_t>(args...);
+		return _mm_set_epi64x(std::bit_cast<std::int64_t>(high), std::bit_cast<std::int64_t>(low));
 	}
 
 	// comparison

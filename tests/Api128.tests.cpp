@@ -76,6 +76,24 @@ TEST_CASE("128-bit partial construction and float dot product use public Api ent
 	const auto partialDot = floats::template dot_product<0x11>(floats::set1(1.0F), floats::set1(2.0F));
 	REQUIRE(floats::to_array(partialDot) == std::array<float, 4>{2.0F, 0.0F, 0.0F, 0.0F});
 }
+
+TEST_CASE("128-bit signed and unsigned 64-bit setr preserves forward lane order and exact bit patterns", "[simdlib][sse42][setr][int64][uint64]")
+{
+	using signed_words = SimdLib::Api<128, std::int64_t>;
+	volatile std::int64_t signed_low_source = std::numeric_limits<std::int64_t>::lowest();
+	volatile std::int64_t signed_high_source = std::numeric_limits<std::int64_t>::max();
+	const std::int64_t signed_low = signed_low_source;
+	const std::int64_t signed_high = signed_high_source;
+	REQUIRE(signed_words::to_array(signed_words::setr(signed_low, signed_high)) == std::array<std::int64_t, 2>{signed_low, signed_high});
+
+	using unsigned_words = SimdLib::Api<128, std::uint64_t>;
+	volatile std::uint64_t unsigned_low_source = 0x8000'0000'0000'0001ULL;
+	volatile std::uint64_t unsigned_high_source = 0xFEDC'BA98'7654'3210ULL;
+	const std::uint64_t unsigned_low = unsigned_low_source;
+	const std::uint64_t unsigned_high = unsigned_high_source;
+	REQUIRE(unsigned_words::to_array(unsigned_words::setr(unsigned_low, unsigned_high)) == std::array<std::uint64_t, 2>{unsigned_low, unsigned_high});
+}
+
 TEST_CASE("128-bit arithmetic and int8 division match scalar results", "[simdlib][sse42][arithmetic]")
 {
 	using integers = SimdLib::Api<128, std::int32_t>;

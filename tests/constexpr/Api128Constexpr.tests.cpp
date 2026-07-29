@@ -23,6 +23,7 @@ static_assert(construction_contract<128, std::int64_t>());
 static_assert(construction_contract<128, std::uint64_t>());
 static_assert(construction_contract<128, float>());
 static_assert(construction_contract<128, double>());
+static_assert(setr_64bit_construction_contract());
 
 static_assert(comparison_contract<128, std::int8_t>());
 static_assert(comparison_contract<128, std::uint8_t>());

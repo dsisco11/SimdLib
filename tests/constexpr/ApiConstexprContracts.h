@@ -152,6 +152,28 @@ template <std::size_t Width, class Element> [[nodiscard]] consteval bool constru
 }
 
 /**
+ * @brief Verifies signed and unsigned 64-bit forward-order construction during constant evaluation.
+ * @return True when lane order and complete unsigned bit patterns are preserved.
+ */
+[[nodiscard]] consteval bool setr_64bit_construction_contract() noexcept
+{
+	using signed_words = Api<128, std::int64_t>;
+	constexpr std::array<std::int64_t, 2> signed_values{
+		std::numeric_limits<std::int64_t>::lowest(),
+		std::numeric_limits<std::int64_t>::max(),
+	};
+	if (signed_words::to_array(signed_words::setr(signed_values[0], signed_values[1])) != signed_values)
+		return false;
+
+	using unsigned_words = Api<128, std::uint64_t>;
+	constexpr std::array<std::uint64_t, 2> unsigned_values{
+		0x8000'0000'0000'0001ULL,
+		0xFEDC'BA98'7654'3210ULL,
+	};
+	return unsigned_words::to_array(unsigned_words::setr(unsigned_values[0], unsigned_values[1])) == unsigned_values;
+}
+
+/**
  * @brief Produces deterministic comparison operands.
  * @tparam Width SIMD register width in bits.
  * @tparam Element SIMD lane type.

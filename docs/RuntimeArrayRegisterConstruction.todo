@@ -130,11 +130,11 @@ Runtime Register-Storage Removal:
     ☒ Inspect optimized code generation before changing method flags.
 
   Task 14 - 128-Bit 64-Bit-Lane `setr`:
-    ☐ Replace signed 64-bit runtime construction with the appropriate intrinsic.
-    ☐ Replace unsigned 64-bit runtime construction while preserving lane bit patterns.
-    ☐ Confirm the generic 128-bit dispatcher reaches the intrinsic runtime path.
-    ☐ Preserve the separate constant-evaluation construction path.
-    ☐ Run focused signed and unsigned lane-order tests.
+    ☒ Replace signed 64-bit runtime construction with the appropriate intrinsic.
+    ☒ Replace unsigned 64-bit runtime construction while preserving lane bit patterns.
+    ☒ Confirm the generic 128-bit dispatcher reaches the intrinsic runtime path.
+    ☒ Preserve the separate constant-evaluation construction path.
+    ☒ Run focused signed and unsigned lane-order tests.
 
   Task 15 - Immediate-Control Runtime Naming:
     ☐ Inventory every runtime-control signature in `Api`, `Register`, `SimdVector`, the implementation layer, and the extension layer whose native counterpart normally requires a compile-time immediate.
