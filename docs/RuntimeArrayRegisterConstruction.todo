@@ -164,12 +164,11 @@ Runtime Register-Storage Removal:
     ☐ Keep all deferred immediate-control-mask operations pending.
     ☐ Update inventory explanations without recording transient test-pass claims as enduring documentation.
 
-  Task 17 - Cross-Compiler Integration:
+  Task 17 - Focused Cross-Compiler Validation:
     ☐ Run focused optimized generated-code checks with MSVC and clang-cl.
     ☐ Run focused optimized generated-code checks with GCC and Clang using stack-protection flags.
     ☐ Run the relevant focused correctness and constexpr suites for SSE4.2 and AVX2.
-    ☐ Run the complete build and test pipeline once after all focused tasks pass.
-    ☐ Report focused, generated-code, cross-compiler, and complete-pipeline evidence separately.
+    ☐ Report focused, generated-code, and cross-compiler evidence separately.
 
   Task 18 - Branchless 256-Bit Runtime Extraction Evaluation:
     ☐ Implement branchless experimental extraction paths that use AVX2 variable 32-bit-lane permutation to move the containing dword to lane zero.
@@ -182,3 +181,34 @@ Runtime Register-Storage Removal:
     ☐ Record instruction count, branch count, code size, and any stack references for each element type and compiler configuration.
     ☐ Benchmark both implementations with predictable and unpredictable runtime-index patterns so branch prediction is represented explicitly.
     ☐ Select the production implementation independently for each element type from correctness, generated-code, and benchmark evidence; retain the existing implementation wherever the branchless form does not provide a meaningful benefit.
+
+  Task 19 - Permanent Generated-Code Fixture Rationalization and Final Integration:
+    ☐ Treat handwritten intrinsic and scalar reference implementations as temporary algorithm-evaluation tools unless they protect a documented instruction-property contract that cannot be expressed through the public raw baseline.
+    ☐ Remove `LogicalShuffleCodegenRaw.cpp`, its object target, its direct-intrinsic comparison record, and its dedicated dependencies after retaining the `Register::shuffle` versus `Api::shuffle` comparison.
+    ☐ Remove the handwritten `scalar_remainder_reference` implementations after the 128-bit and 256-bit remainder algorithms have been selected, and restore the permanent raw type-matrix path to `Api::modulus`.
+    ☐ Preserve remainder algorithm comparisons only in execution evidence or dedicated benchmarks; do not retain a second production-algorithm copy in the permanent codegen fixture.
+    ☐ Remove the type-matrix runtime `extract` and `insert` fixtures that compare `Api` directly with `SimdImpl128` or `SimdImpl256`, because dynamic indexing is not part of the `Register` surface.
+    ☐ Generate isolated type-matrix symbols only when the corresponding `IRegister` operation is available; do not emit identity-return fixtures for unavailable floating modulus or floating shift operations.
+    ☐ Remove the uninstantiated aggregate type-matrix `evaluate` and `transfer` helpers and the macro that defines and immediately undefines their unused entry points.
+    ☐ Remove the unused primary-fixture `predicate_type` alias and `zero_predicate` helper.
+    ☐ Make the type matrix the canonical isolated-operation codegen suite across all supported element types, widths, and ISA profiles.
+    ☐ Remove the primary-fixture `unary`, `binary`, `scalar`, `mask`, `mask_native`, `zero`, `from_array`, `to_array`, `lane_first`, `with_lane_last`, and `store` symbols after confirming their isolated contracts are represented by the type matrix.
+    ☐ Remove the primary-fixture `basic_subtract`, `basic_divide`, all eight `basic_integer_divide_*`, `basic_negate`, and `basic_lane_sign_bits` symbols after confirming their isolated contracts are represented by the type matrix.
+    ☐ Remove the primary-fixture runtime per-lane `basic_shift_left_runtime`, `basic_shift_right_logical`, and `basic_shift_right_arithmetic` symbols after confirming their isolated contracts are represented by the type matrix.
+    ☐ Retain distinct primary-fixture coverage for expression composition, comparison followed by mask composition or selection, comparison followed by reduction, broadcast reuse, broadcast arithmetic chains, nonzero-index extraction, immediate shifts, load-operate-store chains, aligned and byte transfers, special members, reassignment, mutation, register pressure, opaque calls, and complete-register shifts.
+    ☐ Remove the dedicated lane comparison record because its symbol pattern is already contained by the register-only comparison.
+    ☐ Partition the full primary comparison into nonoverlapping symbol groups so register-only and reassignment symbols are not disassembled and compared again on compilers that consume the full record.
+    ☐ Preserve comparison records for memory-capable and composition symbols that are not covered by the register-only partition.
+    ☐ Split the FMA-specific fixture so only `multiply_add_f32` and `multiply_add_f64` are compiled and compared in both FMA modes.
+    ☐ Compile the remaining specialized-operation matrix once per width and ISA profile rather than recompiling every FMA-independent symbol under both FMA modes.
+    ☐ Make the FMA presence and absence checks inspect the isolated multiply-add symbols so an unrelated fused instruction cannot satisfy the expectation.
+    ☐ Review the codegen record indexes and CTest registrations for repeated validation of the same record; retain aggregate build targets for convenience but give each permanent record one owning validation test.
+    ☐ Retain the Method Flags codegen suite, explicit-object ABI mirrors, real consumer `Register` and `RegisterMask` ABI boundaries, register-pressure probes, and opaque-call probes.
+    ☐ Retain platform-default ABI and record-only SSE4.2 and Debug artifacts as explicitly identified diagnostics, not as zero-overhead gates.
+    ☐ Preserve CI artifact publication for retained diagnostic records and remove publication paths that belong only to deleted comparisons.
+    ☐ Update `RegisterQualification.md`, `RegisterProposal.md`, `RegisterImplementationMatrix.md`, the unified-build documentation, and codegen target inventories so they describe the rationalized permanent contracts without transient test-result claims.
+    ☐ Configure the focused codegen targets for MSVC, clang-cl, GCC, and Clang and confirm every retained comparison record has a unique contract and raw baseline.
+    ☐ Run focused Release codegen gates for SSE4.2/128, AVX2/128, and AVX2/256, with stack protection enabled where required.
+    ☐ Confirm retained `Register` versus `Api` comparisons preserve exact parity or only the documented compiler-specific exception.
+    ☐ Run the complete build and test pipeline once after Tasks 1-19 have passed their focused checks.
+    ☐ Report focused correctness, algorithm evaluation, generated-code, cross-compiler, diagnostic-artifact, and complete-pipeline evidence separately.
