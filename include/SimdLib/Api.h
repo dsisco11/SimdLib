@@ -359,7 +359,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param rhs Divisor register.
 	 *  @return Register containing per-lane remainder results.
 	 */
-	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE static vector_t VECTORCALL modulus(const vector_t lhs, const vector_t rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static vector_t VECTORCALL modulus(const vector_t lhs, const vector_t rhs) noexcept
 		requires IImpl::Modulus<impl>
 	{
 		return impl::modulus(lhs, rhs);

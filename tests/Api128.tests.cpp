@@ -90,7 +90,7 @@ TEST_CASE("128-bit arithmetic and int8 division match scalar results", "[simdlib
 
 TEST_CASE("128-bit integer remainder matches scalar semantics for every lane and width", "[simdlib][sse42][integer][remainder]")
 {
-	require_128bit_integer_remainder_matrix();
+	require_integer_remainder_matrix<128>();
 }
 
 TEST_CASE("128-bit comparisons and saturation match scalar semantics", "[simdlib][sse42][comparison][saturation]")

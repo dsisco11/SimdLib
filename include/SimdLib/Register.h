@@ -259,7 +259,7 @@ class Register final
 	 * @pre Every divisor lane is nonzero and signed minimum is not divided by negative one.
 	 * @remarks Available exactly when `IApi::Modulus<api_type>` is satisfied.
 	 */
-	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE Register VECTORCALL operator%(this Register lhs, Register rhs) noexcept
+	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY Register VECTORCALL operator%(this Register lhs, Register rhs) noexcept
 		requires IApi::Modulus<api_type>
 	{
 		return Register{api_type::modulus(lhs.native, rhs.native)};

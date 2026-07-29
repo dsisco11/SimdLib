@@ -1195,6 +1195,122 @@ SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m256i VECTORCALL _e
 
 #pragma endregion
 
+#pragma region 256bit Integer Remainder Extensions
+
+/**
+ * @brief Computes signed 8-bit lane remainders through the matching 128-bit extension.
+ * @param lhs Dividend lanes.
+ * @param rhs Divisor lanes.
+ * @pre Every lane in rhs is nonzero and no dividend-minimum lane is divided by negative one.
+ * @return The scalar-equivalent remainder for every lane.
+ */
+SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m256i VECTORCALL _ext256_rem_epi8(__m256i lhs, __m256i rhs) noexcept
+{
+	const __m128i resultLow = _ext128_rem_epi8(_mm256_castsi256_si128(lhs), _mm256_castsi256_si128(rhs));
+	const __m128i resultHigh = _ext128_rem_epi8(_mm256_extracti128_si256(lhs, 1), _mm256_extracti128_si256(rhs, 1));
+	return _mm256_inserti128_si256(_mm256_zextsi128_si256(resultLow), resultHigh, 1);
+}
+
+/**
+ * @brief Computes unsigned 8-bit lane remainders through the matching 128-bit extension.
+ * @param lhs Dividend lanes.
+ * @param rhs Divisor lanes.
+ * @pre Every lane in rhs is nonzero.
+ * @return The scalar-equivalent remainder for every lane.
+ */
+SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m256i VECTORCALL _ext256_rem_epu8(__m256i lhs, __m256i rhs) noexcept
+{
+	const __m128i resultLow = _ext128_rem_epu8(_mm256_castsi256_si128(lhs), _mm256_castsi256_si128(rhs));
+	const __m128i resultHigh = _ext128_rem_epu8(_mm256_extracti128_si256(lhs, 1), _mm256_extracti128_si256(rhs, 1));
+	return _mm256_inserti128_si256(_mm256_zextsi128_si256(resultLow), resultHigh, 1);
+}
+
+/**
+ * @brief Computes signed 16-bit lane remainders through the matching 128-bit extension.
+ * @param lhs Dividend lanes.
+ * @param rhs Divisor lanes.
+ * @pre Every lane in rhs is nonzero and no dividend-minimum lane is divided by negative one.
+ * @return The scalar-equivalent remainder for every lane.
+ */
+SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m256i VECTORCALL _ext256_rem_epi16(__m256i lhs, __m256i rhs) noexcept
+{
+	const __m128i resultLow = _ext128_rem_epi16(_mm256_castsi256_si128(lhs), _mm256_castsi256_si128(rhs));
+	const __m128i resultHigh = _ext128_rem_epi16(_mm256_extracti128_si256(lhs, 1), _mm256_extracti128_si256(rhs, 1));
+	return _mm256_inserti128_si256(_mm256_zextsi128_si256(resultLow), resultHigh, 1);
+}
+
+/**
+ * @brief Computes unsigned 16-bit lane remainders through the matching 128-bit extension.
+ * @param lhs Dividend lanes.
+ * @param rhs Divisor lanes.
+ * @pre Every lane in rhs is nonzero.
+ * @return The scalar-equivalent remainder for every lane.
+ */
+SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m256i VECTORCALL _ext256_rem_epu16(__m256i lhs, __m256i rhs) noexcept
+{
+	const __m128i resultLow = _ext128_rem_epu16(_mm256_castsi256_si128(lhs), _mm256_castsi256_si128(rhs));
+	const __m128i resultHigh = _ext128_rem_epu16(_mm256_extracti128_si256(lhs, 1), _mm256_extracti128_si256(rhs, 1));
+	return _mm256_inserti128_si256(_mm256_zextsi128_si256(resultLow), resultHigh, 1);
+}
+
+/**
+ * @brief Computes signed 32-bit lane remainders through the matching 128-bit extension.
+ * @param lhs Dividend lanes.
+ * @param rhs Divisor lanes.
+ * @pre Every lane in rhs is nonzero and no dividend-minimum lane is divided by negative one.
+ * @return The scalar-equivalent remainder for every lane.
+ */
+SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m256i VECTORCALL _ext256_rem_epi32(__m256i lhs, __m256i rhs) noexcept
+{
+	const __m128i resultLow = _ext128_rem_epi32(_mm256_castsi256_si128(lhs), _mm256_castsi256_si128(rhs));
+	const __m128i resultHigh = _ext128_rem_epi32(_mm256_extracti128_si256(lhs, 1), _mm256_extracti128_si256(rhs, 1));
+	return _mm256_inserti128_si256(_mm256_zextsi128_si256(resultLow), resultHigh, 1);
+}
+
+/**
+ * @brief Computes unsigned 32-bit lane remainders through the matching 128-bit extension.
+ * @param lhs Dividend lanes.
+ * @param rhs Divisor lanes.
+ * @pre Every lane in rhs is nonzero.
+ * @return The scalar-equivalent remainder for every lane.
+ */
+SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m256i VECTORCALL _ext256_rem_epu32(__m256i lhs, __m256i rhs) noexcept
+{
+	const __m128i resultLow = _ext128_rem_epu32(_mm256_castsi256_si128(lhs), _mm256_castsi256_si128(rhs));
+	const __m128i resultHigh = _ext128_rem_epu32(_mm256_extracti128_si256(lhs, 1), _mm256_extracti128_si256(rhs, 1));
+	return _mm256_inserti128_si256(_mm256_zextsi128_si256(resultLow), resultHigh, 1);
+}
+
+/**
+ * @brief Computes signed 64-bit lane remainders through the matching 128-bit extension.
+ * @param lhs Dividend lanes.
+ * @param rhs Divisor lanes.
+ * @pre Every lane in rhs is nonzero and no dividend-minimum lane is divided by negative one.
+ * @return The scalar-equivalent remainder for every lane.
+ */
+SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m256i VECTORCALL _ext256_rem_epi64(__m256i lhs, __m256i rhs) noexcept
+{
+	const __m128i resultLow = _ext128_rem_epi64(_mm256_castsi256_si128(lhs), _mm256_castsi256_si128(rhs));
+	const __m128i resultHigh = _ext128_rem_epi64(_mm256_extracti128_si256(lhs, 1), _mm256_extracti128_si256(rhs, 1));
+	return _mm256_inserti128_si256(_mm256_zextsi128_si256(resultLow), resultHigh, 1);
+}
+
+/**
+ * @brief Computes unsigned 64-bit lane remainders through the matching 128-bit extension.
+ * @param lhs Dividend lanes.
+ * @param rhs Divisor lanes.
+ * @pre Every lane in rhs is nonzero.
+ * @return The scalar-equivalent remainder for every lane.
+ */
+SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m256i VECTORCALL _ext256_rem_epu64(__m256i lhs, __m256i rhs) noexcept
+{
+	const __m128i resultLow = _ext128_rem_epu64(_mm256_castsi256_si128(lhs), _mm256_castsi256_si128(rhs));
+	const __m128i resultHigh = _ext128_rem_epu64(_mm256_extracti128_si256(lhs, 1), _mm256_extracti128_si256(rhs, 1));
+	return _mm256_inserti128_si256(_mm256_zextsi128_si256(resultLow), resultHigh, 1);
+}
+
+#pragma endregion
+
 #pragma region 256bit uint32_t Extensions
 
 SIMDLIB_FORCE_INLINE __m256 VECTORCALL _ext256_cvtepu32_ps(__m256i lhs) noexcept
@@ -1529,24 +1645,6 @@ SIMDLIB_FORCE_INLINE __m256i VECTORCALL _ext256_srai_epi64(__m256i lhs, const in
 	const __m256i logical = _mm256_srl_epi64(lhs, shift);
 	const __m256i fill = _mm256_sll_epi64(sign, fillShift);
 	return _mm256_or_si256(logical, fill);
-}
-
-// AVX2 has no efficient exact variable u64/s64 vector divide. For general-purpose
-// per-lane divisors, unpacking to scalar hardware division is faster than a bit-serial
-// SIMD long-division loop and preserves exact integer semantics.
-
-SIMDLIB_FORCE_INLINE __m256i VECTORCALL _ext256_rem_epu64(__m256i lhs, __m256i rhs) noexcept
-{
-	return register_from_values<__m256i, std::uint64_t>(
-		register_get<std::uint64_t>(lhs, 0) % register_get<std::uint64_t>(rhs, 0), register_get<std::uint64_t>(lhs, 1) % register_get<std::uint64_t>(rhs, 1),
-		register_get<std::uint64_t>(lhs, 2) % register_get<std::uint64_t>(rhs, 2), register_get<std::uint64_t>(lhs, 3) % register_get<std::uint64_t>(rhs, 3));
-}
-
-SIMDLIB_FORCE_INLINE __m256i VECTORCALL _ext256_rem_epi64(__m256i lhs, __m256i rhs) noexcept
-{
-	return register_from_values<__m256i, std::int64_t>(
-		register_get<std::int64_t>(lhs, 0) % register_get<std::int64_t>(rhs, 0), register_get<std::int64_t>(lhs, 1) % register_get<std::int64_t>(rhs, 1),
-		register_get<std::int64_t>(lhs, 2) % register_get<std::int64_t>(rhs, 2), register_get<std::int64_t>(lhs, 3) % register_get<std::int64_t>(rhs, 3));
 }
 
 #pragma endregion

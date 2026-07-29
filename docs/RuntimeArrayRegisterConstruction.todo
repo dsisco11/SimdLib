@@ -108,12 +108,12 @@ Runtime Register-Storage Removal:
     ☒ Add focused correctness coverage before routing `SimdImpl128<element_t>::modulus` to the new extensions.
 
   Task 11 - Specialized 256-Bit Integer Remainder Extensions:
-    ☐ Add width-qualified `_ext256_rem_epi*` and `_ext256_rem_epu*` methods for every supported integer element width.
-    ☐ Delegate through the verified 128-bit remainder extensions when splitting into 128-bit halves produces the best generated code.
-    ☐ Do not implement remainder as `lhs - multiply(divide(lhs, rhs), rhs)`.
-    ☐ Preserve scalar signed-remainder semantics and integer-division preconditions.
-    ☐ Compare optimized instructions with equivalent independently written scalar remainder code for every element width.
-    ☐ Add focused correctness coverage before routing `SimdImpl256<element_t>::modulus` to the new extensions.
+    ☒ Add width-qualified `_ext256_rem_epi*` and `_ext256_rem_epu*` methods for every supported integer element width.
+    ☒ Delegate through the verified 128-bit remainder extensions when splitting into 128-bit halves produces the best generated code.
+    ☒ Do not implement remainder as `lhs - multiply(divide(lhs, rhs), rhs)`.
+    ☒ Preserve scalar signed-remainder semantics and integer-division preconditions.
+    ☒ Compare optimized instructions with equivalent independently written scalar remainder code for every element width.
+    ☒ Add focused correctness coverage before routing `SimdImpl256<element_t>::modulus` to the new extensions.
 
   Task 12 - Complete-Register Runtime Byte Shifts:
     ☐ Retain the fact that `PSLLDQ` and `PSRLDQ` accept only an immediate count; do not pass a runtime integer directly to `_mm_slli_si128` or `_mm_srli_si128`.

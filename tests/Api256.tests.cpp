@@ -101,6 +101,11 @@ TEST_CASE("256-bit integer extrema and position matrix uses public Api entry poi
 	require_integer_extrema_position_matrix<256>();
 }
 
+TEST_CASE("256-bit integer remainder matches scalar semantics for every lane and width", "[simdlib][avx2][integer][remainder]")
+{
+	require_integer_remainder_matrix<256>();
+}
+
 TEST_CASE("256-bit public integer operation matrix", "[simdlib][avx2][integer][operations]")
 {
 	require_integer_operation_matrix<256>();

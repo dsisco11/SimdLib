@@ -745,12 +745,13 @@ template <std::size_t Width> void require_64bit_arithmetic_contract()
 }
 
 /**
- * @brief Verifies scalar remainder semantics for every lane of one 128-bit integer specialization.
+ * @brief Verifies scalar remainder semantics for every lane of one integer specialization.
+ * @tparam Width Native register width in bits.
  * @tparam Element Signed or unsigned integer lane type.
  */
-template <std::integral Element> void require_128bit_integer_remainder_contract()
+template <std::size_t Width, std::integral Element> void require_integer_remainder_contract()
 {
-	using simd = Api<128, Element>;
+	using simd = Api<Width, Element>;
 	std::array<Element, simd::element_count> lhs{};
 	std::array<Element, simd::element_count> rhs{};
 	std::array<Element, simd::element_count> expected{};
@@ -787,17 +788,17 @@ template <std::integral Element> void require_128bit_integer_remainder_contract(
 	REQUIRE(simd::to_array(simd::modulus(simd::construct(lhs), simd::construct(rhs))) == expected);
 }
 
-/** @brief Verifies scalar remainder semantics for every 128-bit integer element type. */
-inline void require_128bit_integer_remainder_matrix()
+/** @brief Verifies scalar remainder semantics for every integer element type at one register width. */
+template <std::size_t Width> void require_integer_remainder_matrix()
 {
-	require_128bit_integer_remainder_contract<std::int8_t>();
-	require_128bit_integer_remainder_contract<std::uint8_t>();
-	require_128bit_integer_remainder_contract<std::int16_t>();
-	require_128bit_integer_remainder_contract<std::uint16_t>();
-	require_128bit_integer_remainder_contract<std::int32_t>();
-	require_128bit_integer_remainder_contract<std::uint32_t>();
-	require_128bit_integer_remainder_contract<std::int64_t>();
-	require_128bit_integer_remainder_contract<std::uint64_t>();
+	require_integer_remainder_contract<Width, std::int8_t>();
+	require_integer_remainder_contract<Width, std::uint8_t>();
+	require_integer_remainder_contract<Width, std::int16_t>();
+	require_integer_remainder_contract<Width, std::uint16_t>();
+	require_integer_remainder_contract<Width, std::int32_t>();
+	require_integer_remainder_contract<Width, std::uint32_t>();
+	require_integer_remainder_contract<Width, std::int64_t>();
+	require_integer_remainder_contract<Width, std::uint64_t>();
 }
 
 /**
