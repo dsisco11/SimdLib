@@ -12,11 +12,13 @@ Runtime Register-Storage Removal:
     ☐ Do not add, remove, or relax a `RegisterOnly` declaration without reviewing that method's complete runtime call graph.
     ☐ Consult the user before relaxing any existing `RegisterOnly` declaration.
     ☐ Keep public API compatibility decisions separate from implementation-layer naming cleanup.
+    ☐ Reserve an unsuffixed immediate-controlled operation name for compile-time controls and genuinely native runtime-control instructions.
+    ☐ Give every retained runtime emulation of an immediate-controlled operation the `_slow` suffix so its additional cost is explicit at the call site.
 
   Explicitly Deferred Scope:
     ☐ Do not implement runtime replacements for `blend`, `blend_bytes`, `shuffle`, `shuffle_lo`, `shuffle_hi`, or `shuffle_32` in this task list.
     ☐ Do not design runtime replacements for operations whose native instruction requires a compile-time immediate control mask.
-    ☐ Limit Task 15 to public-overload evaluation and immediate-blend constant-evaluation delegation; leave runtime algorithms and method-flag classifications to the dedicated immediate-control-mask plans.
+    ☐ Limit Task 15 to naming and migrating runtime implementations that already exist, plus immediate-blend constant-evaluation delegation; leave new runtime algorithms and method-flag classifications to the dedicated immediate-control-mask plans.
 
   Task 1 - Restore a Focused Compilable Baseline:
     ☒ Compile the currently touched SSE4.2 headers and tests with MSVC.
@@ -134,18 +136,27 @@ Runtime Register-Storage Removal:
     ☐ Preserve the separate constant-evaluation construction path.
     ☐ Run focused signed and unsigned lane-order tests.
 
-  Task 15 - Immediate-Control API Surface Evaluation:
-    ☐ Inventory every variadic forwarding overload in `Api` that coexists with a compile-time-indexed or immediate-control overload, including `blend(Args &&...args)`, `shuffle(Args &&...args)`, `shuffle_lo(Args &&...args)`, `shuffle_hi(Args &&...args)`, and `insert(Args &&...args)`.
-    ☐ Identify downstream-facing use cases, implementation-specific semantics, overload-resolution effects, and type-safety differences for every inventoried overload.
-    ☐ Decide whether to retain or remove each overload independently; do not infer one family’s disposition from another family.
-    ☐ For every retained overload, define its distinct public contract and add availability, overload-resolution, correctness, and generated-code coverage.
-    ☐ For every removed overload, migrate internal callers and update `IApi`, tests, compile-failure probes, and documentation without adding compatibility aliases.
+  Task 15 - Immediate-Control Runtime Naming:
+    ☐ Inventory every runtime-control signature in `Api`, `Register`, `SimdVector`, the implementation layer, and the extension layer whose native counterpart normally requires a compile-time immediate.
+    ☐ Include at least dynamic lane extraction and insertion through `extract`, `insert`, `get_element`, and `set_element`; scalar-control `blend`, `shuffle`, `shuffle_lo`, `shuffle_hi`, and `shuffle_32`; complete-register byte shifts; and complete-register bit shifts in the inventory.
+    ☐ Classify signatures independently when one operation name covers both an immediate emulation and a genuinely native runtime-control instruction.
+    ☐ Preserve unsuffixed names for compile-time controls and genuinely native runtime-control forms, including register-selector byte shuffles and register-mask blends.
+    ☐ Do not apply `_slow` merely because an immediate overload also exists; retain unsuffixed runtime forms backed by native variable-count or register-control instructions, including ordinary per-lane shifts.
+    ☐ Rename every retained runtime emulation of an immediate-controlled operation to the corresponding `_slow` name in every layer through which it is exposed or delegated.
+    ☐ Split variadic forwarding overloads where necessary so an unsuffixed native runtime form cannot also accept a scalar runtime control intended for the `_slow` form.
+    ☐ Remove the unsuffixed dynamic signatures after migrating internal callers; do not add deprecated wrappers or compatibility aliases.
+    ☐ Update affected `IApi`, `IImpl`, and `IRegister` concepts, plus tests, examples, and documentation, to use and advertise the `_slow` names.
+    ☐ Document that `_slow` identifies a deliberate runtime substitute for an immediate-controlled operation and may require dispatch, branching, or a longer synthesized instruction sequence.
+    ☐ Add compile-success probes for every retained `_slow` signature and compile-failure probes proving that a runtime scalar control cannot select the unsuffixed immediate form.
+    ☐ Add focused correctness coverage across every valid runtime control and all documented boundary behavior for each renamed family.
+    ☐ Confirm generated code for each unsuffixed compile-time form remains equivalent to direct use of its corresponding immediate intrinsic.
+    ☐ Inspect optimized generated code for each `_slow` form and preserve the no-addressable-register-storage requirements established by the tasks that implement it.
     ☐ Establish an implementation-layer immediate `blend<imm8>` entry point that is valid during constant evaluation while preserving the intrinsic-backed runtime path.
     ☐ Change the constant-evaluation branch of `Api::blend<imm8>` to delegate to the implementation-layer `blend<imm8>` operation instead of evaluating blend semantics in `Api`.
     ☐ Remove `Api::blend_constexpr` only after confirming that the implementation-layer delegation leaves no callers.
     ☐ Verify immediate blend during constant evaluation for every supported element type and register width.
     ☐ Confirm optimized runtime code remains identical to direct use of the corresponding blend intrinsic.
-    ☐ Do not select or implement runtime-variable immediate-mask algorithms in this task.
+    ☐ Do not select or implement new runtime-variable immediate-mask algorithms in this task.
 
   Task 16 - Method-Flag Inventory Reconciliation:
     ☐ Regenerate the method-flags inventory after Tasks 1-15 are independently verified.
