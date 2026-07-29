@@ -37,14 +37,14 @@ Runtime Register-Storage Removal:
     ☒ Add compile-time probes that prove the intended helper boundary.
 
   Task 2 Audit:
-    ☒ `Api` contains 32 `_constexpr` method declarations: `lower_half_constexpr`, `unpack_constexpr`, `shuffle_constexpr`, `shuffle_half_constexpr`, `blend_constexpr`, `bit_cast_constexpr`, `widen_constexpr`, `convert_to_float_constexpr`, `convert_to_int_constexpr`, `bitwise_and_constexpr`, `bitwise_or_constexpr`, `bitwise_xor_constexpr`, `bitwise_andnot_constexpr`, `bitwise_not_constexpr`, `select_constexpr`, `to_array_constexpr`, `get_element_constexpr`, `set_element_constexpr`, `movemask_constexpr`, `min_position_constexpr`, `max_position_constexpr`, `movemask_slim_constexpr`, `compare_equal_constexpr`, `compare_greater_constexpr`, `compare_greater_equal_constexpr`, `compare_less_constexpr`, `compare_less_equal_constexpr`, `shift_left_constexpr`, `shift_right_constexpr`, `shift_right_arithmetic_constexpr`, `byte_shift_left_constexpr`, and `byte_shift_right_constexpr`.
+    ☒ `Api` contains 32 `_constexpr` method declarations: `lower_half_constexpr`, `unpack_constexpr`, `shuffle_constexpr`, `shuffle_half_constexpr`, `blend_constexpr`, `bit_cast_constexpr`, `widen_constexpr`, `convert_to_float_constexpr`, `convert_to_int_constexpr`, `bitwise_and_constexpr`, `bitwise_or_constexpr`, `bitwise_xor_constexpr`, `bitwise_andnot_constexpr`, `bitwise_not_constexpr`, `select_constexpr`, `to_array_constexpr`, `extract_constexpr`, `insert_constexpr`, `movemask_constexpr`, `min_position_constexpr`, `max_position_constexpr`, `movemask_slim_constexpr`, `compare_equal_constexpr`, `compare_greater_constexpr`, `compare_greater_equal_constexpr`, `compare_less_constexpr`, `compare_less_equal_constexpr`, `shift_left_constexpr`, `shift_right_constexpr`, `shift_right_arithmetic_constexpr`, `byte_shift_left_constexpr`, and `byte_shift_right_constexpr`.
     ☒ The implementation layer contains 24 `_constexpr` method declarations: 20 element-specialized `insert_constexpr` methods and two width-specialized pairs of `set1_constexpr` and `setr_constexpr` methods.
     ☒ Every inventoried method accepts ordinary parameters originating in a runtime-callable C++20 `constexpr` wrapper.
     ☒ No inventoried method can legally become `consteval` without making at least one supported wrapper ill-formed, so all 56 remain `constexpr`.
 
   Task 3 - Unconditional API Delegation:
-    ☒ Keep the constant-evaluation branch in `Api::get_element` and delegate every runtime call unconditionally to `impl::extract(lhs, index)`.
-    ☒ Keep the constant-evaluation branch in `Api::set_element` and delegate every runtime call unconditionally to `impl::insert(lhs, value, index)`.
+    ☒ Keep the constant-evaluation branch in `Api::extract(lhs, index)` and delegate every runtime call unconditionally to `impl::extract(lhs, index)`.
+    ☒ Keep the constant-evaluation branch in `Api::insert(lhs, value, index)` and delegate every runtime call unconditionally to `impl::insert(lhs, value, index)`.
     ☒ Remove register-width branching from both API methods.
     ☒ Remove `SIMDLIB_HAS_AVX2` branching from both API methods.
     ☒ Confirm that implementation availability constraints remain the only feature gate.
@@ -67,12 +67,12 @@ Runtime Register-Storage Removal:
     ☒ Inspect optimized code generation for stack references and security-cookie calls.
 
   Task 6 - Implementation Extraction Naming Consolidation:
-    ☐ Inventory every implementation-layer `get_element` declaration and call site.
-    ☐ Compare its semantics, element coverage, width coverage, and index constraints with `extract`.
-    ☐ Migrate implementation-layer callers to `extract` only where the contracts are equivalent.
-    ☐ Remove redundant implementation-layer `get_element` methods after all callers are migrated.
-    ☐ Retain the public `Api::get_element` name unless a separate public API change is approved.
-    ☐ Run focused compile-time-index and runtime-index extraction tests.
+    ☒ Inventory every implementation-layer `get_element` declaration and call site.
+    ☒ Compare its semantics, element coverage, width coverage, and index constraints with `extract`.
+    ☒ Migrate implementation-layer callers to `extract` only where the contracts are equivalent.
+    ☒ Remove redundant implementation-layer `get_element` methods after all callers are migrated.
+    ☒ Remove the public `Api::get_element` name and migrate its callers to `Api::extract`.
+    ☒ Run focused compile-time-index and runtime-index extraction tests.
 
   Task 7 - Specialized 128-Bit Runtime Insertion:
     ☐ Implement runtime `insert(lhs, value, index)` independently in every `SimdImpl128<element_t>` specialization.
@@ -91,12 +91,12 @@ Runtime Register-Storage Removal:
     ☐ Inspect optimized code generation for stack references and security-cookie calls.
 
   Task 9 - Implementation Insertion Naming Consolidation:
-    ☐ Inventory every implementation-layer `set_element` declaration and call site.
-    ☐ Compare its semantics, element coverage, width coverage, and index constraints with `insert`.
-    ☐ Migrate implementation-layer callers to `insert` only where the contracts are equivalent.
-    ☐ Remove redundant implementation-layer `set_element` methods after all callers are migrated.
-    ☐ Retain the public `Api::set_element` name unless a separate public API change is approved.
-    ☐ Run focused compile-time-index and runtime-index insertion tests.
+    ☒ Inventory every implementation-layer `set_element` declaration and call site.
+    ☒ Compare its semantics, element coverage, width coverage, and index constraints with `insert`.
+    ☒ Migrate implementation-layer callers to `insert` only where the contracts are equivalent.
+    ☒ Remove redundant implementation-layer `set_element` methods after all callers are migrated.
+    ☒ Remove the public `Api::set_element` name and migrate its callers to `Api::insert`.
+    ☒ Run focused compile-time-index and runtime-index insertion tests.
 
   Task 10 - Specialized 128-Bit Integer Remainder Extensions:
     ☐ Restore the removed signed and unsigned 64-bit remainder extensions with the width-qualified names `_ext128_rem_epi64` and `_ext128_rem_epu64`.
@@ -138,7 +138,7 @@ Runtime Register-Storage Removal:
 
   Task 15 - Immediate-Control Runtime Naming:
     ☐ Inventory every runtime-control signature in `Api`, `Register`, `SimdVector`, the implementation layer, and the extension layer whose native counterpart normally requires a compile-time immediate.
-    ☐ Include at least dynamic lane extraction and insertion through `extract`, `insert`, `get_element`, and `set_element`; scalar-control `blend`, `shuffle`, `shuffle_lo`, `shuffle_hi`, and `shuffle_32`; complete-register byte shifts; and complete-register bit shifts in the inventory.
+    ☐ Include at least dynamic lane extraction and insertion through `extract` and `insert`; scalar-control `blend`, `shuffle`, `shuffle_lo`, `shuffle_hi`, and `shuffle_32`; complete-register byte shifts; and complete-register bit shifts in the inventory.
     ☐ Classify signatures independently when one operation name covers both an immediate emulation and a genuinely native runtime-control instruction.
     ☐ Preserve unsuffixed names for compile-time controls and genuinely native runtime-control forms, including register-selector byte shuffles and register-mask blends.
     ☐ Do not apply `_slow` merely because an immediate overload also exists; retain unsuffixed runtime forms backed by native variable-count or register-control instructions, including ordinary per-lane shifts.

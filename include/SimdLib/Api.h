@@ -989,6 +989,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL extract(const vector_t lhs) noexcept
 		requires IImpl::IndexedExtract<impl, index>
 	{
+		static_assert(index >= 0 && static_cast<std::size_t>(index) < element_count, "Api::extract index out of range.");
 		return impl::template extract<index>(lhs);
 	}
 
@@ -998,9 +999,11 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @return Extracted value as defined by the specialization.
 	 */
 	template <class selector_t>
-	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE static auto VECTORCALL extract(const vector_t lhs, selector_t rhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr static auto VECTORCALL extract(const vector_t lhs, selector_t rhs) noexcept
 		requires IImpl::DynamicExtract<impl, selector_t>
 	{
+		if (std::is_constant_evaluated())
+			return extract_constexpr(lhs, static_cast<int>(rhs));
 		return impl::extract(lhs, rhs);
 	}
 
@@ -1031,6 +1034,21 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 			return impl::template insert_constexpr<static_cast<int>(index)>(lhs, rhs);
 		else
 			return impl::template insert<static_cast<int>(index)>(lhs, rhs);
+	}
+
+	/**
+	 * @brief Replaces one runtime-selected scalar lane in a register.
+	 * @param lhs Register whose unselected lanes are preserved.
+	 * @param rhs Scalar replacement value.
+	 * @param index Runtime-selected logical lane index.
+	 * @return Register with the selected lane replaced.
+	 */
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr static vector_t VECTORCALL insert(const vector_t lhs, const element_t rhs, const int index) noexcept
+		requires IImpl::Insert<impl, vector_t, element_t, int>
+	{
+		if (std::is_constant_evaluated())
+			return insert_constexpr(lhs, rhs, index);
+		return impl::insert(lhs, rhs, index);
 	}
 
 	/** @brief Inserts a lane or subvalue into a register.
@@ -1876,7 +1894,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	{
 		std::array<element_t, element_count> result{};
 		for (std::size_t index = 0; index < element_count; ++index)
-			result[index] = get_element_constexpr(vector, static_cast<int>(index));
+			result[index] = extract_constexpr(vector, static_cast<int>(index));
 		return result;
 	}
 
@@ -1886,7 +1904,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 * @param index Selected lane index.
 	 * @return Selected scalar lane.
 	 */
-	constexpr static element_t get_element_constexpr(const vector_t lhs, const int index) noexcept
+	constexpr static element_t extract_constexpr(const vector_t lhs, const int index) noexcept
 	{
 		return Detail::register_get_constexpr<element_t>(lhs, static_cast<std::size_t>(index));
 	}
@@ -1894,13 +1912,13 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	/**
 	 * @brief Replaces one lane through the portable constant-evaluation representation.
 	 * @param lhs Source register represented during constant evaluation.
+	 * @param rhs Replacement scalar lane.
 	 * @param index Selected lane index.
-	 * @param value Replacement scalar lane.
 	 * @return Register with the selected lane replaced.
 	 */
-	constexpr static vector_t set_element_constexpr(const vector_t lhs, const int index, const element_t value) noexcept
+	constexpr static vector_t insert_constexpr(const vector_t lhs, const element_t rhs, const int index) noexcept
 	{
-		return Detail::register_insert_constexpr<element_t>(lhs, value, static_cast<std::size_t>(index));
+		return Detail::register_insert_constexpr<element_t>(lhs, rhs, static_cast<std::size_t>(index));
 	}
 
 	/** @brief Computes the byte-granular movemask during constant evaluation.
@@ -2032,7 +2050,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 			return impl::setzero();
 		std::array<element_t, element_count> results{};
 		for (std::size_t index = 0; index < element_count; ++index)
-			results[index] = static_cast<element_t>(get_element_constexpr(lhs, static_cast<int>(index)) << shift);
+			results[index] = static_cast<element_t>(extract_constexpr(lhs, static_cast<int>(index)) << shift);
 		return impl::construct(results);
 	}
 
@@ -2048,7 +2066,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 		std::array<element_t, element_count> results{};
 		for (std::size_t index = 0; index < element_count; ++index)
 		{
-			results[index] = static_cast<element_t>(static_cast<std::make_unsigned_t<element_t>>(get_element_constexpr(lhs, static_cast<int>(index))) >> shift);
+			results[index] = static_cast<element_t>(static_cast<std::make_unsigned_t<element_t>>(extract_constexpr(lhs, static_cast<int>(index))) >> shift);
 		}
 		return impl::construct(results);
 	}
@@ -2064,7 +2082,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 			shift = static_cast<int>(element_width) - 1;
 		std::array<element_t, element_count> results{};
 		for (std::size_t index = 0; index < element_count; ++index)
-			results[index] = static_cast<element_t>(get_element_constexpr(lhs, static_cast<int>(index)) >> shift);
+			results[index] = static_cast<element_t>(extract_constexpr(lhs, static_cast<int>(index)) >> shift);
 		return impl::construct(results);
 	}
 

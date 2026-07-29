@@ -420,7 +420,7 @@ template <class element_t>
 [[nodiscard]] SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY element_t VECTORCALL runtime_extract(native_t<element_t> lhs, const int index) noexcept
 {
 #if SIMDLIB_CODEGEN_USE_WRAPPER
-	return api_t<element_t>::get_element(lhs, index);
+	return api_t<element_t>::extract(lhs, index);
 #else
 #if SIMDLIB_REGISTER_TEST_WIDTH == 128
 	return SimdLib::Detail::SimdImpl128<element_t>::extract(lhs, index);

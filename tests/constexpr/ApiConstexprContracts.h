@@ -143,12 +143,12 @@ template <std::size_t Width, class Element> [[nodiscard]] consteval bool constru
 	{ return simd::setr(static_cast<Element>(Indices + 1)...); }(std::make_index_sequence<simd::element_count>{});
 	if (simd::to_array(setrValue) != values)
 		return false;
-	if (simd::get_element(constructed, 0) != values.front() || simd::get_element(constructed, static_cast<int>(simd::element_count - 1)) != values.back())
+	if (simd::extract(constructed, 0) != values.front() || simd::extract(constructed, static_cast<int>(simd::element_count - 1)) != values.back())
 		return false;
 
 	constexpr Element replacement = static_cast<Element>(42);
-	const auto replaced = simd::set_element(constructed, static_cast<int>(simd::element_count - 1), replacement);
-	return simd::get_element(replaced, static_cast<int>(simd::element_count - 1)) == replacement;
+	const auto replaced = simd::insert(constructed, replacement, static_cast<int>(simd::element_count - 1));
+	return simd::extract(replaced, static_cast<int>(simd::element_count - 1)) == replacement;
 }
 
 /**
@@ -410,12 +410,12 @@ template <std::size_t Width, std::integral Element> [[nodiscard]] consteval bool
 	using simd = Api<Width, Element>;
 	constexpr auto positive = simd::set1(static_cast<Element>(4));
 	if (simd::to_array(simd::shift_left(positive, 0)) != simd::to_array(positive) ||
-		simd::get_element(simd::shift_left(positive, 1), 0) != static_cast<Element>(8) ||
-		simd::get_element(simd::shift_right(positive, 1), 0) != static_cast<Element>(2))
+		simd::extract(simd::shift_left(positive, 1), 0) != static_cast<Element>(8) ||
+		simd::extract(simd::shift_right(positive, 1), 0) != static_cast<Element>(2))
 		return false;
 	constexpr int finalShift = static_cast<int>(sizeof(Element) * 8 - 1);
 	constexpr int widthShift = static_cast<int>(sizeof(Element) * 8);
-	if (simd::get_element(simd::shift_left(simd::set1(static_cast<Element>(1)), finalShift), 0) !=
+	if (simd::extract(simd::shift_left(simd::set1(static_cast<Element>(1)), finalShift), 0) !=
 			static_cast<Element>(std::make_unsigned_t<Element>{1} << finalShift) ||
 		simd::to_array(simd::shift_left(positive, widthShift)) != std::array<Element, simd::element_count>{} ||
 		simd::to_array(simd::shift_left(positive, widthShift + 1)) != std::array<Element, simd::element_count>{} ||
@@ -423,9 +423,9 @@ template <std::size_t Width, std::integral Element> [[nodiscard]] consteval bool
 		simd::to_array(simd::shift_right(positive, widthShift + 1)) != std::array<Element, simd::element_count>{})
 		return false;
 	if constexpr (std::is_signed_v<Element>)
-		return simd::get_element(simd::shift_right_arithmetic(simd::set1(static_cast<Element>(-8)), 1), 0) == static_cast<Element>(-4) &&
-			   simd::get_element(simd::shift_right_arithmetic(simd::set1(static_cast<Element>(-8)), widthShift), 0) == static_cast<Element>(-1) &&
-			   simd::get_element(simd::shift_right_arithmetic(simd::set1(static_cast<Element>(-8)), widthShift + 1), 0) == static_cast<Element>(-1);
+		return simd::extract(simd::shift_right_arithmetic(simd::set1(static_cast<Element>(-8)), 1), 0) == static_cast<Element>(-4) &&
+			   simd::extract(simd::shift_right_arithmetic(simd::set1(static_cast<Element>(-8)), widthShift), 0) == static_cast<Element>(-1) &&
+			   simd::extract(simd::shift_right_arithmetic(simd::set1(static_cast<Element>(-8)), widthShift + 1), 0) == static_cast<Element>(-1);
 	return true;
 }
 

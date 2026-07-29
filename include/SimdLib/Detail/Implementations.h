@@ -3101,6 +3101,7 @@ template <class element_t> struct SimdMappings<128, element_t> : public SimdImpl
 	using impl = SimdImpl128<element_t>;
 
   public:
+	using impl::extract;
 	using impl::shuffle;
 
 	template <class ty> using Mappings = SimdMappings<128, ty>;
@@ -3120,19 +3121,6 @@ template <class element_t> struct SimdMappings<128, element_t> : public SimdImpl
 	constexpr static inline std::size_t register_width = 128;
 	constexpr static inline std::size_t element_count = register_width / (sizeof(element_t) * 8);
 	constexpr static inline int_vector_t vector0 = register_from_values<int_vector_t, std::uint64_t>(0, 0);
-
-	template <int index> SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL extract(const vector_t lhs) noexcept
-	{
-		static_assert(index >= 0 && static_cast<std::size_t>(index) < element_count, "SimdMappings<128>::extract index out of range.");
-		if constexpr (requires(vector_t value) { impl::template extract<index>(value); })
-		{
-			return impl::template extract<index>(lhs);
-		}
-		else
-		{
-			return get_element(lhs, index);
-		}
-	}
 
 #pragma region Set
 	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static vector_t VECTORCALL setzero() noexcept
@@ -3217,38 +3205,6 @@ template <class element_t> struct SimdMappings<128, element_t> : public SimdImpl
 		requires std::is_integral_v<element_t>
 	{
 		return _mm256_broadcastsi128_si256(v);
-	}
-
-	/**
-	 * @brief Replaces one lane through constant-evaluation storage or the runtime implementation.
-	 * @param vec Source register.
-	 * @param index Runtime-selected lane index.
-	 * @param value Replacement scalar lane.
-	 * @return Register with the selected lane replaced.
-	 */
-	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr static vector_t VECTORCALL set_element(vector_t vec, int index, element_t value) noexcept
-		requires requires(vector_t source, element_t replacement, int selected) { impl::insert(source, replacement, selected); }
-	{
-		if (std::is_constant_evaluated())
-		{
-			register_set_constexpr<element_t>(vec, static_cast<std::size_t>(index), value);
-			return vec;
-		}
-		return impl::insert(vec, value, index);
-	}
-
-	/**
-	 * @brief Reads one lane through constant-evaluation storage or the runtime implementation.
-	 * @param vec Source register.
-	 * @param index Runtime-selected lane index.
-	 * @return Selected scalar lane.
-	 */
-	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr static element_t VECTORCALL get_element(vector_t vec, int index) noexcept
-		requires requires(vector_t source, int selected) { impl::extract(source, selected); }
-	{
-		if (std::is_constant_evaluated())
-			return register_get_constexpr<element_t>(vec, static_cast<std::size_t>(index));
-		return impl::extract(vec, index);
 	}
 
 	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE static std::span<element_t, element_count> VECTORCALL view_data(vector_t &vec) noexcept
@@ -6279,6 +6235,7 @@ template <class element_t> struct SimdMappings<256, element_t> : public SimdImpl
 	using impl = SimdImpl256<element_t>;
 
   public:
+	using impl::extract;
 	using impl::shuffle;
 
 	template <class ty> using Mappings = SimdMappings<256, ty>;
@@ -6299,19 +6256,6 @@ template <class element_t> struct SimdMappings<256, element_t> : public SimdImpl
 	constexpr static inline std::size_t element_count = register_width / (sizeof(element_t) * 8);
 	constexpr static inline std::size_t element_size = sizeof(element_t);
 	constexpr static inline std::size_t element_width = 8 * element_size;
-
-	template <int index> SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL extract(const vector_t lhs) noexcept
-	{
-		static_assert(index >= 0 && static_cast<std::size_t>(index) < element_count, "SimdMappings<256>::extract index out of range.");
-		if constexpr (requires(vector_t value) { impl::template extract<index>(value); })
-		{
-			return impl::template extract<index>(lhs);
-		}
-		else
-		{
-			return get_element(lhs, index);
-		}
-	}
 
 	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static typename SimdMappings<128, element_t>::vector_t VECTORCALL
 	lower_half(const vector_t lhs) noexcept
@@ -6400,38 +6344,6 @@ template <class element_t> struct SimdMappings<256, element_t> : public SimdImpl
 			return impl::multiply_add(lhs, rhs, addend);
 		else
 			return impl::add(impl::multiply(lhs, rhs), addend);
-	}
-
-	/**
-	 * @brief Replaces one lane through constant-evaluation storage or the runtime implementation.
-	 * @param vec Source register.
-	 * @param index Runtime-selected lane index.
-	 * @param value Replacement scalar lane.
-	 * @return Register with the selected lane replaced.
-	 */
-	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr static vector_t VECTORCALL set_element(vector_t vec, int index, element_t value) noexcept
-		requires requires(vector_t source, element_t replacement, int selected) { impl::insert(source, replacement, selected); }
-	{
-		if (std::is_constant_evaluated())
-		{
-			register_set_constexpr<element_t>(vec, static_cast<std::size_t>(index), value);
-			return vec;
-		}
-		return impl::insert(vec, value, index);
-	}
-
-	/**
-	 * @brief Reads one lane through constant-evaluation storage or the runtime implementation.
-	 * @param vec Source register.
-	 * @param index Runtime-selected lane index.
-	 * @return Selected scalar lane.
-	 */
-	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr static element_t VECTORCALL get_element(vector_t vec, int index) noexcept
-		requires requires(vector_t source, int selected) { impl::extract(source, selected); }
-	{
-		if (std::is_constant_evaluated())
-			return register_get_constexpr<element_t>(vec, static_cast<std::size_t>(index));
-		return impl::extract(vec, index);
 	}
 
 	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE static std::span<element_t, element_count> VECTORCALL view_data(vector_t &vec) noexcept

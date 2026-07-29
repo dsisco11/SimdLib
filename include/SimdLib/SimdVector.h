@@ -1089,11 +1089,11 @@ class SimdVector final
 			constexpr int lowActiveCount = element_count < laneElementCount ? element_count : laneElementCount;
 			constexpr int lowMask = (((1 << lowActiveCount) - 1) << 4) | 0x1;
 			const auto partial = simd::template dot_product<lowMask>(m_data, rhs);
-			element_t result = simd::get_element(partial, 0);
+			element_t result = simd::extract(partial, 0);
 
 			if constexpr (simd_width == 256 && element_count > laneElementCount)
 			{
-				result = static_cast<element_t>(result + simd::get_element(partial, laneElementCount));
+				result = static_cast<element_t>(result + simd::extract(partial, laneElementCount));
 			}
 
 			return result;
@@ -1104,11 +1104,11 @@ class SimdVector final
 			constexpr int lowActiveCount = element_count < laneElementCount ? element_count : laneElementCount;
 			constexpr int lowMask = (((1 << lowActiveCount) - 1) << 4) | 0x1;
 			const auto partial = simd::template dot_product<lowMask>(m_data, rhs);
-			element_t result = simd::get_element(partial, 0);
+			element_t result = simd::extract(partial, 0);
 
 			if constexpr (simd_width == 256 && element_count > laneElementCount)
 			{
-				result = static_cast<element_t>(result + simd::get_element(partial, laneElementCount));
+				result = static_cast<element_t>(result + simd::extract(partial, laneElementCount));
 			}
 
 			return result;

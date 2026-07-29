@@ -64,7 +64,7 @@ SimdLib Test Coverage Expansion:
     ☒ Add a 128/256-bit `min_position` and `max_position` matrix for every supported integer lane type.
     ☒ Cover first/last extrema, duplicate extrema, signed minima/maxima, unsigned high-bit values, and first-position tie semantics.
     ☒ Add public coverage for `uint64_t::multiply_add_adjacent` and verify its exact lane ordering and overflow contract.
-    ☒ Add missing public tests for floating `set1`, floating bitwise operations, and 128/256-bit `get_element`/`set_element` behavior.
+    ☒ Add missing public tests for floating `set1`, floating bitwise operations, and 128/256-bit runtime-selected `extract`/`insert` behavior.
     ☒ Add exact 64-bit-result and native-word-boundary-crossing cases for `transform_pack`, including a final partial output word and canary-protected destination storage.
     ☒ Avoid direct `Detail/Extensions.h` or `Detail/Implementations.h` tests when a public call can provide the same proof.
     ☒ End Phase 2 only when every supported public specialization is represented in the operation/type matrix and the previously uncovered backend families are reached through that matrix or explicitly justified.
@@ -88,7 +88,7 @@ SimdLib Test Coverage Expansion:
     ☒ Record preprocessing size and compiler front-end timing where supported, and verify the extraction does not increase consumer compile time or introduce additional emitted code.
     ☒ Verify the move does not change public declarations, constraints, diagnostics for invalid instantiations, ABI/layout, or runtime behavior.
     ☒ Create constexpr contract helpers that can be reused by compile-only probes and runtime parity tests without relying on runtime coverage counters for constant evaluation.
-    ☒ Expand `Api` `static_assert`/`consteval` coverage for `setzero`, `setr`, `construct`, `set1`, `to_array`, `get_element`, and `set_element` at 128 and 256 bits.
+    ☒ Expand `Api` `static_assert`/`consteval` coverage for `setzero`, `setr`, `construct`, `set1`, `to_array`, runtime-selected `extract`, and runtime-selected `insert` at 128 and 256 bits.
     ☒ Expand constexpr comparison coverage for native `compare_*`, byte-granular `cmp_*_mask`, lane-granular `cmp_*_slim`, and the internal comparison operation choices reached by them.
     ☒ Expand constexpr `movemask` and `movemask_slim` beyond the current representative types to signed, unsigned, float, and double lane families at both widths.
     ☒ Add constexpr `min_position`, `max_position`, lane-shift, and whole-register-shift boundary checks.
