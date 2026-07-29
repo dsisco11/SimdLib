@@ -49,12 +49,12 @@ Runtime Register-Storage Removal:
     ☒ Compile focused SSE4.2 and AVX2 API probes.
 
   Task 4 - Specialized 128-Bit Runtime Extraction:
-    ☐ Implement runtime `extract(lhs, index)` independently in every `SimdImpl128<element_t>` specialization.
-    ☐ Dispatch runtime indices to that specialization's existing compile-time-indexed `extract<index>` intrinsic methods.
-    ☐ Do not place element-specific extraction methods or element-type switching in `Extensions.h`.
-    ☐ Do not use arrays, compiler register-array members, or addressable register storage.
-    ☐ Add focused correctness coverage for every lane of every supported 128-bit element type.
-    ☐ Inspect optimized code generation for stack references and security-cookie calls.
+    ☒ Implement runtime `extract(lhs, index)` independently in every `SimdImpl128<element_t>` specialization.
+    ☒ Dispatch runtime indices to that specialization's existing compile-time-indexed `extract<index>` intrinsic methods.
+    ☒ Do not place element-specific extraction methods or element-type switching in `Extensions.h`.
+    ☒ Do not use arrays, compiler register-array members, or addressable register storage.
+    ☒ Add focused correctness coverage for every lane of every supported 128-bit element type.
+    ☒ Inspect optimized code generation for stack references and security-cookie calls.
 
   Task 5 - Specialized 256-Bit Runtime Extraction:
     ☐ Implement runtime `extract(lhs, index)` independently in every `SimdImpl256<element_t>` specialization.

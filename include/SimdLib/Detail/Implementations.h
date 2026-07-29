@@ -452,9 +452,52 @@ template <> struct SimdImpl128<int8_t>
 	{
 		return static_cast<int8_t>(_mm_extract_epi8(lhs, index));
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL extract(auto lhs, auto rhs) noexcept
+	/**
+	 * @brief Extracts one runtime-selected signed 8-bit lane.
+	 * @param lhs Source register.
+	 * @param index Selected lane in the range `[0, 16)`.
+	 * @return Selected scalar lane.
+	 */
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static int8_t VECTORCALL extract(const __m128i lhs, const int index) noexcept
 	{
-		return register_get_constexpr<int8_t>(lhs, static_cast<std::size_t>(rhs));
+		SIMDLIB_PRECONDITION(index >= 0 && index < 16, "Signed 8-bit extraction requires a valid 128-bit lane index");
+		switch (index)
+		{
+		case 0:
+			return extract<0>(lhs);
+		case 1:
+			return extract<1>(lhs);
+		case 2:
+			return extract<2>(lhs);
+		case 3:
+			return extract<3>(lhs);
+		case 4:
+			return extract<4>(lhs);
+		case 5:
+			return extract<5>(lhs);
+		case 6:
+			return extract<6>(lhs);
+		case 7:
+			return extract<7>(lhs);
+		case 8:
+			return extract<8>(lhs);
+		case 9:
+			return extract<9>(lhs);
+		case 10:
+			return extract<10>(lhs);
+		case 11:
+			return extract<11>(lhs);
+		case 12:
+			return extract<12>(lhs);
+		case 13:
+			return extract<13>(lhs);
+		case 14:
+			return extract<14>(lhs);
+		case 15:
+			return extract<15>(lhs);
+		default:
+			return extract<0>(lhs);
+		}
 	}
 	/** @brief Replaces the compile-time-selected signed 8-bit lane during constant evaluation. */
 	template <int index> [[nodiscard]] constexpr static auto insert_constexpr(auto lhs, const int8_t rhs) noexcept
@@ -752,9 +795,52 @@ template <> struct SimdImpl128<uint8_t>
 	{
 		return static_cast<uint8_t>(_mm_extract_epi8(lhs, index));
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL extract(auto lhs, auto rhs) noexcept
+	/**
+	 * @brief Extracts one runtime-selected unsigned 8-bit lane.
+	 * @param lhs Source register.
+	 * @param index Selected lane in the range `[0, 16)`.
+	 * @return Selected scalar lane.
+	 */
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static uint8_t VECTORCALL extract(const __m128i lhs, const int index) noexcept
 	{
-		return register_get_constexpr<uint8_t>(lhs, static_cast<std::size_t>(rhs));
+		SIMDLIB_PRECONDITION(index >= 0 && index < 16, "Unsigned 8-bit extraction requires a valid 128-bit lane index");
+		switch (index)
+		{
+		case 0:
+			return extract<0>(lhs);
+		case 1:
+			return extract<1>(lhs);
+		case 2:
+			return extract<2>(lhs);
+		case 3:
+			return extract<3>(lhs);
+		case 4:
+			return extract<4>(lhs);
+		case 5:
+			return extract<5>(lhs);
+		case 6:
+			return extract<6>(lhs);
+		case 7:
+			return extract<7>(lhs);
+		case 8:
+			return extract<8>(lhs);
+		case 9:
+			return extract<9>(lhs);
+		case 10:
+			return extract<10>(lhs);
+		case 11:
+			return extract<11>(lhs);
+		case 12:
+			return extract<12>(lhs);
+		case 13:
+			return extract<13>(lhs);
+		case 14:
+			return extract<14>(lhs);
+		case 15:
+			return extract<15>(lhs);
+		default:
+			return extract<0>(lhs);
+		}
 	}
 	/** @brief Replaces the compile-time-selected unsigned 8-bit lane during constant evaluation. */
 	template <int index> [[nodiscard]] constexpr static auto insert_constexpr(auto lhs, const uint8_t rhs) noexcept
@@ -1062,9 +1148,36 @@ template <> struct SimdImpl128<int16_t>
 	{
 		return static_cast<int16_t>(_mm_extract_epi16(lhs, index));
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL extract(auto lhs, auto rhs) noexcept
+	/**
+	 * @brief Extracts one runtime-selected signed 16-bit lane.
+	 * @param lhs Source register.
+	 * @param index Selected lane in the range `[0, 8)`.
+	 * @return Selected scalar lane.
+	 */
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static int16_t VECTORCALL extract(const __m128i lhs, const int index) noexcept
 	{
-		return register_get_constexpr<int16_t>(lhs, static_cast<std::size_t>(rhs));
+		SIMDLIB_PRECONDITION(index >= 0 && index < 8, "Signed 16-bit extraction requires a valid 128-bit lane index");
+		switch (index)
+		{
+		case 0:
+			return extract<0>(lhs);
+		case 1:
+			return extract<1>(lhs);
+		case 2:
+			return extract<2>(lhs);
+		case 3:
+			return extract<3>(lhs);
+		case 4:
+			return extract<4>(lhs);
+		case 5:
+			return extract<5>(lhs);
+		case 6:
+			return extract<6>(lhs);
+		case 7:
+			return extract<7>(lhs);
+		default:
+			return extract<0>(lhs);
+		}
 	}
 	/** @brief Replaces the compile-time-selected signed 16-bit lane during constant evaluation. */
 	template <int index> [[nodiscard]] constexpr static auto insert_constexpr(auto lhs, const int16_t rhs) noexcept
@@ -1391,9 +1504,36 @@ template <> struct SimdImpl128<uint16_t>
 	{
 		return static_cast<uint16_t>(_mm_extract_epi16(lhs, index));
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL extract(auto lhs, auto rhs) noexcept
+	/**
+	 * @brief Extracts one runtime-selected unsigned 16-bit lane.
+	 * @param lhs Source register.
+	 * @param index Selected lane in the range `[0, 8)`.
+	 * @return Selected scalar lane.
+	 */
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static uint16_t VECTORCALL extract(const __m128i lhs, const int index) noexcept
 	{
-		return register_get_constexpr<uint16_t>(lhs, static_cast<std::size_t>(rhs));
+		SIMDLIB_PRECONDITION(index >= 0 && index < 8, "Unsigned 16-bit extraction requires a valid 128-bit lane index");
+		switch (index)
+		{
+		case 0:
+			return extract<0>(lhs);
+		case 1:
+			return extract<1>(lhs);
+		case 2:
+			return extract<2>(lhs);
+		case 3:
+			return extract<3>(lhs);
+		case 4:
+			return extract<4>(lhs);
+		case 5:
+			return extract<5>(lhs);
+		case 6:
+			return extract<6>(lhs);
+		case 7:
+			return extract<7>(lhs);
+		default:
+			return extract<0>(lhs);
+		}
 	}
 	/** @brief Replaces the compile-time-selected unsigned 16-bit lane during constant evaluation. */
 	template <int index> [[nodiscard]] constexpr static auto insert_constexpr(auto lhs, const uint16_t rhs) noexcept
@@ -1672,9 +1812,28 @@ template <> struct SimdImpl128<int32_t>
 	{
 		return static_cast<int32_t>(_mm_extract_epi32(lhs, index));
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL extract(auto lhs, auto rhs) noexcept
+	/**
+	 * @brief Extracts one runtime-selected signed 32-bit lane.
+	 * @param lhs Source register.
+	 * @param index Selected lane in the range `[0, 4)`.
+	 * @return Selected scalar lane.
+	 */
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static int32_t VECTORCALL extract(const __m128i lhs, const int index) noexcept
 	{
-		return register_get_constexpr<int32_t>(lhs, static_cast<std::size_t>(rhs));
+		SIMDLIB_PRECONDITION(index >= 0 && index < 4, "Signed 32-bit extraction requires a valid 128-bit lane index");
+		switch (index)
+		{
+		case 0:
+			return extract<0>(lhs);
+		case 1:
+			return extract<1>(lhs);
+		case 2:
+			return extract<2>(lhs);
+		case 3:
+			return extract<3>(lhs);
+		default:
+			return extract<0>(lhs);
+		}
 	}
 	/** @brief Replaces the compile-time-selected signed 32-bit lane during constant evaluation. */
 	template <int index> [[nodiscard]] constexpr static auto insert_constexpr(auto lhs, const int32_t rhs) noexcept
@@ -1960,9 +2119,28 @@ template <> struct SimdImpl128<uint32_t>
 	{
 		return static_cast<uint32_t>(_mm_extract_epi32(lhs, index));
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL extract(auto lhs, auto rhs) noexcept
+	/**
+	 * @brief Extracts one runtime-selected unsigned 32-bit lane.
+	 * @param lhs Source register.
+	 * @param index Selected lane in the range `[0, 4)`.
+	 * @return Selected scalar lane.
+	 */
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static uint32_t VECTORCALL extract(const __m128i lhs, const int index) noexcept
 	{
-		return register_get_constexpr<uint32_t>(lhs, static_cast<std::size_t>(rhs));
+		SIMDLIB_PRECONDITION(index >= 0 && index < 4, "Unsigned 32-bit extraction requires a valid 128-bit lane index");
+		switch (index)
+		{
+		case 0:
+			return extract<0>(lhs);
+		case 1:
+			return extract<1>(lhs);
+		case 2:
+			return extract<2>(lhs);
+		case 3:
+			return extract<3>(lhs);
+		default:
+			return extract<0>(lhs);
+		}
 	}
 	/** @brief Replaces the compile-time-selected unsigned 32-bit lane during constant evaluation. */
 	template <int index> [[nodiscard]] constexpr static auto insert_constexpr(auto lhs, const uint32_t rhs) noexcept
@@ -2211,9 +2389,24 @@ template <> struct SimdImpl128<int64_t>
 	{
 		return static_cast<int64_t>(_mm_extract_epi64(lhs, index));
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL extract(auto lhs, auto rhs) noexcept
+	/**
+	 * @brief Extracts one runtime-selected signed 64-bit lane.
+	 * @param lhs Source register.
+	 * @param index Selected lane in the range `[0, 2)`.
+	 * @return Selected scalar lane.
+	 */
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static int64_t VECTORCALL extract(const __m128i lhs, const int index) noexcept
 	{
-		return register_get_constexpr<int64_t>(lhs, static_cast<std::size_t>(rhs));
+		SIMDLIB_PRECONDITION(index >= 0 && index < 2, "Signed 64-bit extraction requires a valid 128-bit lane index");
+		switch (index)
+		{
+		case 0:
+			return extract<0>(lhs);
+		case 1:
+			return extract<1>(lhs);
+		default:
+			return extract<0>(lhs);
+		}
 	}
 	/** @brief Replaces the compile-time-selected signed 64-bit lane during constant evaluation. */
 	template <int index> [[nodiscard]] constexpr static auto insert_constexpr(auto lhs, const int64_t rhs) noexcept
@@ -2437,9 +2630,24 @@ template <> struct SimdImpl128<uint64_t>
 	{
 		return static_cast<uint64_t>(_mm_extract_epi64(lhs, index));
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL extract(auto lhs, auto rhs) noexcept
+	/**
+	 * @brief Extracts one runtime-selected unsigned 64-bit lane.
+	 * @param lhs Source register.
+	 * @param index Selected lane in the range `[0, 2)`.
+	 * @return Selected scalar lane.
+	 */
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static uint64_t VECTORCALL extract(const __m128i lhs, const int index) noexcept
 	{
-		return register_get_constexpr<uint64_t>(lhs, static_cast<std::size_t>(rhs));
+		SIMDLIB_PRECONDITION(index >= 0 && index < 2, "Unsigned 64-bit extraction requires a valid 128-bit lane index");
+		switch (index)
+		{
+		case 0:
+			return extract<0>(lhs);
+		case 1:
+			return extract<1>(lhs);
+		default:
+			return extract<0>(lhs);
+		}
 	}
 	/** @brief Replaces the compile-time-selected unsigned 64-bit lane during constant evaluation. */
 	template <int index> [[nodiscard]] constexpr static auto insert_constexpr(auto lhs, const uint64_t rhs) noexcept
@@ -2599,9 +2807,28 @@ template <> struct SimdImpl128<float>
 		return _mm_cvtss_f32(_mm_shuffle_ps(lhs, lhs, index));
 	}
 
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL extract(auto lhs, auto rhs) noexcept
+	/**
+	 * @brief Extracts one runtime-selected 32-bit floating-point lane.
+	 * @param lhs Source register.
+	 * @param index Selected lane in the range `[0, 4)`.
+	 * @return Selected scalar lane.
+	 */
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static float VECTORCALL extract(const __m128 lhs, const int index) noexcept
 	{
-		return register_get_constexpr<float>(lhs, static_cast<std::size_t>(rhs));
+		SIMDLIB_PRECONDITION(index >= 0 && index < 4, "32-bit floating-point extraction requires a valid 128-bit lane index");
+		switch (index)
+		{
+		case 0:
+			return extract<0>(lhs);
+		case 1:
+			return extract<1>(lhs);
+		case 2:
+			return extract<2>(lhs);
+		case 3:
+			return extract<3>(lhs);
+		default:
+			return extract<0>(lhs);
+		}
 	}
 	/** @brief Replaces the compile-time-selected 32-bit floating-point lane during constant evaluation. */
 	template <int index> [[nodiscard]] constexpr static auto insert_constexpr(auto lhs, const float rhs) noexcept
@@ -2790,9 +3017,24 @@ template <> struct SimdImpl128<double>
 		else
 			return _mm_cvtsd_f64(_mm_unpackhi_pd(lhs, lhs));
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL extract(auto lhs, auto rhs) noexcept
+	/**
+	 * @brief Extracts one runtime-selected 64-bit floating-point lane.
+	 * @param lhs Source register.
+	 * @param index Selected lane in the range `[0, 2)`.
+	 * @return Selected scalar lane.
+	 */
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static double VECTORCALL extract(const __m128d lhs, const int index) noexcept
 	{
-		return register_get_constexpr<double>(lhs, static_cast<std::size_t>(rhs));
+		SIMDLIB_PRECONDITION(index >= 0 && index < 2, "64-bit floating-point extraction requires a valid 128-bit lane index");
+		switch (index)
+		{
+		case 0:
+			return extract<0>(lhs);
+		case 1:
+			return extract<1>(lhs);
+		default:
+			return extract<0>(lhs);
+		}
 	}
 	/** @brief Replaces the compile-time-selected 64-bit floating-point lane during constant evaluation. */
 	template <int index> [[nodiscard]] constexpr static auto insert_constexpr(auto lhs, const double rhs) noexcept

@@ -409,6 +409,25 @@ template <scalar_operation operation, class element_t>
 #endif
 }
 
+#if SIMDLIB_REGISTER_TEST_WIDTH == 128
+/**
+ * @brief Extracts one runtime-selected lane through the public Api or its direct implementation reference.
+ * @tparam element_t Scalar lane type.
+ * @param lhs Source register.
+ * @param index Runtime-selected lane index.
+ * @return Selected scalar lane.
+ */
+template <class element_t>
+[[nodiscard]] SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY element_t VECTORCALL runtime_extract(native_t<element_t> lhs, const int index) noexcept
+{
+#if SIMDLIB_CODEGEN_USE_WRAPPER
+	return api_t<element_t>::get_element(lhs, index);
+#else
+	return SimdLib::Detail::SimdImpl128<element_t>::extract(lhs, index);
+#endif
+}
+#endif
+
 /** @brief Returns a register constructed from a fixed array. */
 template <class element_t> [[nodiscard]] SIMDLIB_FORCE_INLINE native_t<element_t> VECTORCALL construct_array(const array_t<element_t> &source) noexcept
 {
@@ -579,6 +598,18 @@ SIMDLIB_FORCE_INLINE void VECTORCALL transfer(const array_t<element_t> &source_a
 		return SimdLibTypeMatrixCodegen::scalar_result<SimdLibTypeMatrixCodegen::scalar_operation::operation, element_type>(lhs, rhs);                         \
 	}
 
+#if SIMDLIB_REGISTER_TEST_WIDTH == 128
+#define SIMDLIB_DEFINE_TYPE_MATRIX_RUNTIME_EXTRACT(token, element_type)                                                                                        \
+	/** @brief Compares runtime-selected extraction with the direct 128-bit implementation operation. */                                                       \
+	SIMDLIB_REGISTER_ONLY SIMDLIB_TYPE_MATRIX_NOINLINE element_type VECTORCALL simdlib_type_matrix_extract_runtime_##token(                                    \
+		SimdLibTypeMatrixCodegen::native_t<element_type> lhs, const int index) noexcept                                                                        \
+	{                                                                                                                                                          \
+		return SimdLibTypeMatrixCodegen::runtime_extract<element_type>(lhs, index);                                                                            \
+	}
+#else
+#define SIMDLIB_DEFINE_TYPE_MATRIX_RUNTIME_EXTRACT(token, element_type)
+#endif
+
 #define SIMDLIB_DEFINE_TYPE_MATRIX_FIXTURES(token, element_type)                                                                                               \
 	SIMDLIB_DEFINE_TYPE_MATRIX_VECTOR(token, element_type, zero)                                                                                               \
 	SIMDLIB_DEFINE_TYPE_MATRIX_VECTOR(token, element_type, broadcast)                                                                                          \
@@ -616,6 +647,7 @@ SIMDLIB_FORCE_INLINE void VECTORCALL transfer(const array_t<element_t> &source_a
 	SIMDLIB_DEFINE_TYPE_MATRIX_SCALAR(token, element_type, equal)                                                                                              \
 	SIMDLIB_DEFINE_TYPE_MATRIX_SCALAR(token, element_type, not_equal)                                                                                          \
 	SIMDLIB_DEFINE_TYPE_MATRIX_SCALAR(token, element_type, extract_first)                                                                                      \
+	SIMDLIB_DEFINE_TYPE_MATRIX_RUNTIME_EXTRACT(token, element_type)                                                                                            \
 	/** @brief Compares fixed-array construction for one element type. */                                                                                      \
 	SIMDLIB_TYPE_MATRIX_NOINLINE SimdLibTypeMatrixCodegen::native_t<element_type> VECTORCALL simdlib_type_matrix_construct_array_##token(                      \
 		const SimdLibTypeMatrixCodegen::array_t<element_type> &source) noexcept                                                                                \
@@ -684,6 +716,7 @@ SIMDLIB_DEFINE_TYPE_MATRIX_FIXTURES(f32, float)
 SIMDLIB_DEFINE_TYPE_MATRIX_FIXTURES(f64, double)
 
 #undef SIMDLIB_DEFINE_TYPE_MATRIX_FIXTURES
+#undef SIMDLIB_DEFINE_TYPE_MATRIX_RUNTIME_EXTRACT
 #undef SIMDLIB_DEFINE_TYPE_MATRIX_SCALAR
 #undef SIMDLIB_DEFINE_TYPE_MATRIX_VECTOR
 #undef SIMDLIB_TYPE_MATRIX_NOINLINE

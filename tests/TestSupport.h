@@ -47,6 +47,47 @@ template <std::size_t Width> void require_supported_addition_matrix()
 	require_addition_parity<Width, double>();
 }
 
+/**
+ * @brief Verifies runtime-selected extraction from every lane of one 128-bit element specialization.
+ * @tparam Element Scalar lane type.
+ */
+template <class Element> void require_runtime_extraction_contract_128()
+{
+	using simd = Api<128, Element>;
+	std::array<Element, simd::element_count> expected{};
+	for (std::size_t index = 0; index < expected.size(); ++index)
+	{
+		if constexpr (std::is_floating_point_v<Element>)
+			expected[index] = static_cast<Element>(index) + static_cast<Element>(0.25);
+		else if constexpr (std::is_signed_v<Element>)
+			expected[index] = static_cast<Element>(static_cast<int>(index) - 8);
+		else
+			expected[index] = static_cast<Element>(index * 7 + 3);
+	}
+
+	const auto value = simd::construct(expected);
+	for (std::size_t index = 0; index < expected.size(); ++index)
+	{
+		const volatile int runtime_index = static_cast<int>(index);
+		REQUIRE(simd::get_element(value, runtime_index) == expected[index]);
+	}
+}
+
+/** @brief Verifies runtime-selected extraction for every lane of every supported 128-bit element type. */
+inline void require_runtime_extraction_matrix_128()
+{
+	require_runtime_extraction_contract_128<std::int8_t>();
+	require_runtime_extraction_contract_128<std::uint8_t>();
+	require_runtime_extraction_contract_128<std::int16_t>();
+	require_runtime_extraction_contract_128<std::uint16_t>();
+	require_runtime_extraction_contract_128<std::int32_t>();
+	require_runtime_extraction_contract_128<std::uint32_t>();
+	require_runtime_extraction_contract_128<std::int64_t>();
+	require_runtime_extraction_contract_128<std::uint64_t>();
+	require_runtime_extraction_contract_128<float>();
+	require_runtime_extraction_contract_128<double>();
+}
+
 template <std::size_t Width, class Element> void require_transfer_contracts()
 {
 	using simd = Api<Width, Element>;
