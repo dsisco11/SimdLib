@@ -157,6 +157,21 @@ inline void require_runtime_extraction_matrix_256()
 	require_runtime_extraction_contract<256, float>();
 	require_runtime_extraction_contract<256, double>();
 }
+
+/** @brief Verifies runtime-selected insertion for every lane of every supported 256-bit element type. */
+inline void require_runtime_insertion_matrix_256()
+{
+	require_runtime_insertion_contract<256, std::int8_t>();
+	require_runtime_insertion_contract<256, std::uint8_t>();
+	require_runtime_insertion_contract<256, std::int16_t>();
+	require_runtime_insertion_contract<256, std::uint16_t>();
+	require_runtime_insertion_contract<256, std::int32_t>();
+	require_runtime_insertion_contract<256, std::uint32_t>();
+	require_runtime_insertion_contract<256, std::int64_t>();
+	require_runtime_insertion_contract<256, std::uint64_t>();
+	require_runtime_insertion_contract<256, float>();
+	require_runtime_insertion_contract<256, double>();
+}
 #endif
 
 template <std::size_t Width, class Element> void require_transfer_contracts()

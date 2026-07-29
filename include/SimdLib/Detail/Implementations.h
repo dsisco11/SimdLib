@@ -3991,9 +3991,23 @@ template <> struct SimdImpl256<int8_t>
 	{
 		return _mm256_insert_epi8(lhs, static_cast<int>(rhs), index);
 	}
-	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL insert(auto lhs, auto rhs, const int imm8) noexcept
+	/**
+	 * @brief Replaces one runtime-selected signed 8-bit lane.
+	 * @param lhs Source register.
+	 * @param rhs Replacement scalar lane.
+	 * @param index Selected lane in the range `[0, 32)`.
+	 * @return Register with the selected lane replaced.
+	 */
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m256i VECTORCALL insert(const __m256i lhs, const int8_t rhs, const int index) noexcept
 	{
-		return register_insert_constexpr<std::int8_t>(lhs, rhs, static_cast<std::size_t>(imm8));
+		SIMDLIB_PRECONDITION(index >= 0 && index < 32, "Signed 8-bit insertion requires a valid 256-bit lane index");
+		if (index < 16)
+		{
+			const __m128i lower = SimdImpl128<int8_t>::insert(_mm256_castsi256_si128(lhs), rhs, index);
+			return _mm256_inserti128_si256(lhs, lower, 0);
+		}
+		const __m128i upper = SimdImpl128<int8_t>::insert(_mm256_extracti128_si256(lhs, 1), rhs, index - 16);
+		return _mm256_inserti128_si256(lhs, upper, 1);
 	}
 
 	// unpack / pack
@@ -4269,9 +4283,23 @@ template <> struct SimdImpl256<uint8_t>
 	{
 		return _mm256_insert_epi8(lhs, static_cast<int>(rhs), index);
 	}
-	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL insert(auto lhs, auto rhs, const int imm8) noexcept
+	/**
+	 * @brief Replaces one runtime-selected unsigned 8-bit lane.
+	 * @param lhs Source register.
+	 * @param rhs Replacement scalar lane.
+	 * @param index Selected lane in the range `[0, 32)`.
+	 * @return Register with the selected lane replaced.
+	 */
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m256i VECTORCALL insert(const __m256i lhs, const uint8_t rhs, const int index) noexcept
 	{
-		return register_insert_constexpr<std::int8_t>(lhs, rhs, static_cast<std::size_t>(imm8));
+		SIMDLIB_PRECONDITION(index >= 0 && index < 32, "Unsigned 8-bit insertion requires a valid 256-bit lane index");
+		if (index < 16)
+		{
+			const __m128i lower = SimdImpl128<uint8_t>::insert(_mm256_castsi256_si128(lhs), rhs, index);
+			return _mm256_inserti128_si256(lhs, lower, 0);
+		}
+		const __m128i upper = SimdImpl128<uint8_t>::insert(_mm256_extracti128_si256(lhs, 1), rhs, index - 16);
+		return _mm256_inserti128_si256(lhs, upper, 1);
 	}
 
 	// unpack / pack
@@ -4569,9 +4597,23 @@ template <> struct SimdImpl256<int16_t>
 	{
 		return _mm256_insert_epi16(lhs, static_cast<int>(rhs), index);
 	}
-	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL insert(auto lhs, auto rhs, const int imm8) noexcept
+	/**
+	 * @brief Replaces one runtime-selected signed 16-bit lane.
+	 * @param lhs Source register.
+	 * @param rhs Replacement scalar lane.
+	 * @param index Selected lane in the range `[0, 16)`.
+	 * @return Register with the selected lane replaced.
+	 */
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m256i VECTORCALL insert(const __m256i lhs, const int16_t rhs, const int index) noexcept
 	{
-		return register_insert_constexpr<std::int16_t>(lhs, rhs, static_cast<std::size_t>(imm8));
+		SIMDLIB_PRECONDITION(index >= 0 && index < 16, "Signed 16-bit insertion requires a valid 256-bit lane index");
+		if (index < 8)
+		{
+			const __m128i lower = SimdImpl128<int16_t>::insert(_mm256_castsi256_si128(lhs), rhs, index);
+			return _mm256_inserti128_si256(lhs, lower, 0);
+		}
+		const __m128i upper = SimdImpl128<int16_t>::insert(_mm256_extracti128_si256(lhs, 1), rhs, index - 8);
+		return _mm256_inserti128_si256(lhs, upper, 1);
 	}
 
 	// unpack / pack
@@ -4899,9 +4941,23 @@ template <> struct SimdImpl256<uint16_t>
 	{
 		return _mm256_insert_epi16(lhs, static_cast<int>(rhs), index);
 	}
-	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL insert(auto lhs, auto rhs, const int imm8) noexcept
+	/**
+	 * @brief Replaces one runtime-selected unsigned 16-bit lane.
+	 * @param lhs Source register.
+	 * @param rhs Replacement scalar lane.
+	 * @param index Selected lane in the range `[0, 16)`.
+	 * @return Register with the selected lane replaced.
+	 */
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m256i VECTORCALL insert(const __m256i lhs, const uint16_t rhs, const int index) noexcept
 	{
-		return register_insert_constexpr<std::int16_t>(lhs, rhs, static_cast<std::size_t>(imm8));
+		SIMDLIB_PRECONDITION(index >= 0 && index < 16, "Unsigned 16-bit insertion requires a valid 256-bit lane index");
+		if (index < 8)
+		{
+			const __m128i lower = SimdImpl128<uint16_t>::insert(_mm256_castsi256_si128(lhs), rhs, index);
+			return _mm256_inserti128_si256(lhs, lower, 0);
+		}
+		const __m128i upper = SimdImpl128<uint16_t>::insert(_mm256_extracti128_si256(lhs, 1), rhs, index - 8);
+		return _mm256_inserti128_si256(lhs, upper, 1);
 	}
 
 	// unpack / pack
@@ -5156,9 +5212,23 @@ template <> struct SimdImpl256<int32_t>
 	{
 		return _mm256_insert_epi32(lhs, rhs, index);
 	}
-	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL insert(auto lhs, auto rhs, const int imm8) noexcept
+	/**
+	 * @brief Replaces one runtime-selected signed 32-bit lane.
+	 * @param lhs Source register.
+	 * @param rhs Replacement scalar lane.
+	 * @param index Selected lane in the range `[0, 8)`.
+	 * @return Register with the selected lane replaced.
+	 */
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m256i VECTORCALL insert(const __m256i lhs, const int32_t rhs, const int index) noexcept
 	{
-		return register_insert_constexpr<std::int32_t>(lhs, rhs, static_cast<std::size_t>(imm8));
+		SIMDLIB_PRECONDITION(index >= 0 && index < 8, "Signed 32-bit insertion requires a valid 256-bit lane index");
+		if (index < 4)
+		{
+			const __m128i lower = SimdImpl128<int32_t>::insert(_mm256_castsi256_si128(lhs), rhs, index);
+			return _mm256_inserti128_si256(lhs, lower, 0);
+		}
+		const __m128i upper = SimdImpl128<int32_t>::insert(_mm256_extracti128_si256(lhs, 1), rhs, index - 4);
+		return _mm256_inserti128_si256(lhs, upper, 1);
 	}
 
 	// unpack / pack
@@ -5418,9 +5488,23 @@ template <> struct SimdImpl256<uint32_t>
 	{
 		return _mm256_insert_epi32(lhs, std::bit_cast<int32_t>(rhs), index);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, auto rhs, const int index) noexcept
+	/**
+	 * @brief Replaces one runtime-selected unsigned 32-bit lane.
+	 * @param lhs Source register.
+	 * @param rhs Replacement scalar lane.
+	 * @param index Selected lane in the range `[0, 8)`.
+	 * @return Register with the selected lane replaced.
+	 */
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m256i VECTORCALL insert(const __m256i lhs, const uint32_t rhs, const int index) noexcept
 	{
-		return register_insert_constexpr<std::int32_t>(lhs, rhs, static_cast<std::size_t>(index));
+		SIMDLIB_PRECONDITION(index >= 0 && index < 8, "Unsigned 32-bit insertion requires a valid 256-bit lane index");
+		if (index < 4)
+		{
+			const __m128i lower = SimdImpl128<uint32_t>::insert(_mm256_castsi256_si128(lhs), rhs, index);
+			return _mm256_inserti128_si256(lhs, lower, 0);
+		}
+		const __m128i upper = SimdImpl128<uint32_t>::insert(_mm256_extracti128_si256(lhs, 1), rhs, index - 4);
+		return _mm256_inserti128_si256(lhs, upper, 1);
 	}
 
 	// unpack / pack
@@ -5648,9 +5732,23 @@ template <> struct SimdImpl256<int64_t>
 	{
 		return _mm256_insert_epi64(lhs, rhs, index);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, auto rhs, const int index) noexcept
+	/**
+	 * @brief Replaces one runtime-selected signed 64-bit lane.
+	 * @param lhs Source register.
+	 * @param rhs Replacement scalar lane.
+	 * @param index Selected lane in the range `[0, 4)`.
+	 * @return Register with the selected lane replaced.
+	 */
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m256i VECTORCALL insert(const __m256i lhs, const int64_t rhs, const int index) noexcept
 	{
-		return register_insert_constexpr<std::int64_t>(lhs, rhs, static_cast<std::size_t>(index));
+		SIMDLIB_PRECONDITION(index >= 0 && index < 4, "Signed 64-bit insertion requires a valid 256-bit lane index");
+		if (index < 2)
+		{
+			const __m128i lower = SimdImpl128<int64_t>::insert(_mm256_castsi256_si128(lhs), rhs, index);
+			return _mm256_inserti128_si256(lhs, lower, 0);
+		}
+		const __m128i upper = SimdImpl128<int64_t>::insert(_mm256_extracti128_si256(lhs, 1), rhs, index - 2);
+		return _mm256_inserti128_si256(lhs, upper, 1);
 	}
 
 	// unpack / pack
@@ -5859,9 +5957,23 @@ template <> struct SimdImpl256<uint64_t>
 	{
 		return _mm256_insert_epi64(lhs, std::bit_cast<int64_t>(rhs), index);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, auto rhs, const int index) noexcept
+	/**
+	 * @brief Replaces one runtime-selected unsigned 64-bit lane.
+	 * @param lhs Source register.
+	 * @param rhs Replacement scalar lane.
+	 * @param index Selected lane in the range `[0, 4)`.
+	 * @return Register with the selected lane replaced.
+	 */
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m256i VECTORCALL insert(const __m256i lhs, const uint64_t rhs, const int index) noexcept
 	{
-		return register_insert_constexpr<std::int64_t>(lhs, rhs, static_cast<std::size_t>(index));
+		SIMDLIB_PRECONDITION(index >= 0 && index < 4, "Unsigned 64-bit insertion requires a valid 256-bit lane index");
+		if (index < 2)
+		{
+			const __m128i lower = SimdImpl128<uint64_t>::insert(_mm256_castsi256_si128(lhs), rhs, index);
+			return _mm256_inserti128_si256(lhs, lower, 0);
+		}
+		const __m128i upper = SimdImpl128<uint64_t>::insert(_mm256_extracti128_si256(lhs, 1), rhs, index - 2);
+		return _mm256_inserti128_si256(lhs, upper, 1);
 	}
 
 	// unpack / pack
@@ -6063,9 +6175,16 @@ template <> struct SimdImpl256<float>
 	 * @param index Selected lane index.
 	 * @return Register with the selected lane replaced.
 	 */
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, const float rhs, const int index) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m256 VECTORCALL insert(const __m256 lhs, const float rhs, const int index) noexcept
 	{
-		return register_insert_constexpr<float>(lhs, rhs, static_cast<std::size_t>(index));
+		SIMDLIB_PRECONDITION(index >= 0 && index < 8, "32-bit floating-point insertion requires a valid 256-bit lane index");
+		if (index < 4)
+		{
+			const __m128 lower = SimdImpl128<float>::insert(_mm256_castps256_ps128(lhs), rhs, index);
+			return _mm256_insertf128_ps(lhs, lower, 0);
+		}
+		const __m128 upper = SimdImpl128<float>::insert(_mm256_extractf128_ps(lhs, 1), rhs, index - 4);
+		return _mm256_insertf128_ps(lhs, upper, 1);
 	}
 
 	// unpack / pack
@@ -6292,9 +6411,16 @@ template <> struct SimdImpl256<double>
 	 * @param index Selected lane index.
 	 * @return Register with the selected lane replaced.
 	 */
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(auto lhs, const double rhs, const int index) noexcept
+	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m256d VECTORCALL insert(const __m256d lhs, const double rhs, const int index) noexcept
 	{
-		return register_insert_constexpr<double>(lhs, rhs, static_cast<std::size_t>(index));
+		SIMDLIB_PRECONDITION(index >= 0 && index < 4, "64-bit floating-point insertion requires a valid 256-bit lane index");
+		if (index < 2)
+		{
+			const __m128d lower = SimdImpl128<double>::insert(_mm256_castpd256_pd128(lhs), rhs, index);
+			return _mm256_insertf128_pd(lhs, lower, 0);
+		}
+		const __m128d upper = SimdImpl128<double>::insert(_mm256_extractf128_pd(lhs, 1), rhs, index - 2);
+		return _mm256_insertf128_pd(lhs, upper, 1);
 	}
 
 	// unpack / pack

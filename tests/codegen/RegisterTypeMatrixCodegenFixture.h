@@ -430,9 +430,8 @@ template <class element_t>
 #endif
 }
 
-#if SIMDLIB_REGISTER_TEST_WIDTH == 128
 /**
- * @brief Replaces one runtime-selected lane through the public Api or its direct 128-bit implementation reference.
+ * @brief Replaces one runtime-selected lane through the public Api or its direct width-specific implementation reference.
  * @tparam element_t Scalar lane type.
  * @param lhs Source register.
  * @param rhs Replacement scalar lane.
@@ -446,10 +445,13 @@ template <class element_t>
 #if SIMDLIB_CODEGEN_USE_WRAPPER
 	return api_t<element_t>::insert(lhs, rhs, index);
 #else
+#if SIMDLIB_REGISTER_TEST_WIDTH == 128
 	return SimdLib::Detail::SimdImpl128<element_t>::insert(lhs, rhs, index);
+#else
+	return SimdLib::Detail::SimdImpl256<element_t>::insert(lhs, rhs, index);
+#endif
 #endif
 }
-#endif
 
 /** @brief Returns a register constructed from a fixed array. */
 template <class element_t> [[nodiscard]] SIMDLIB_FORCE_INLINE native_t<element_t> VECTORCALL construct_array(const array_t<element_t> &source) noexcept
@@ -629,17 +631,13 @@ SIMDLIB_FORCE_INLINE void VECTORCALL transfer(const array_t<element_t> &source_a
 		return SimdLibTypeMatrixCodegen::runtime_extract<element_type>(lhs, index);                                                                            \
 	}
 
-#if SIMDLIB_REGISTER_TEST_WIDTH == 128
 #define SIMDLIB_DEFINE_TYPE_MATRIX_RUNTIME_INSERT(token, element_type)                                                                                         \
-	/** @brief Compares runtime-selected insertion with the direct 128-bit implementation operation. */                                                        \
+	/** @brief Compares runtime-selected insertion with the direct width-specific implementation operation. */                                                 \
 	SIMDLIB_REGISTER_ONLY SIMDLIB_TYPE_MATRIX_NOINLINE SimdLibTypeMatrixCodegen::native_t<element_type> VECTORCALL simdlib_type_matrix_insert_runtime_##token( \
 		SimdLibTypeMatrixCodegen::native_t<element_type> lhs, const element_type rhs, const int index) noexcept                                                \
 	{                                                                                                                                                          \
 		return SimdLibTypeMatrixCodegen::runtime_insert<element_type>(lhs, rhs, index);                                                                        \
 	}
-#else
-#define SIMDLIB_DEFINE_TYPE_MATRIX_RUNTIME_INSERT(token, element_type)
-#endif
 
 #define SIMDLIB_DEFINE_TYPE_MATRIX_FIXTURES(token, element_type)                                                                                               \
 	SIMDLIB_DEFINE_TYPE_MATRIX_VECTOR(token, element_type, zero)                                                                                               \

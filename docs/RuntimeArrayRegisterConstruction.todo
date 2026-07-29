@@ -83,12 +83,12 @@ Runtime Register-Storage Removal:
     ☒ Inspect optimized code generation for stack references and security-cookie calls.
 
   Task 8 - Specialized 256-Bit Runtime Insertion:
-    ☐ Implement runtime `insert(lhs, value, index)` independently in every `SimdImpl256<element_t>` specialization.
-    ☐ Modify and replace only the selected 128-bit half, delegating to the matching 128-bit element specialization where appropriate.
-    ☐ Do not place element-specific insertion methods or element-type switching in `Extensions.h`.
-    ☐ Do not use arrays, compiler register-array members, or addressable register storage.
-    ☐ Add focused correctness coverage for every lane of every supported 256-bit element type.
-    ☐ Inspect optimized code generation for stack references and security-cookie calls.
+    ☒ Implement runtime `insert(lhs, value, index)` independently in every `SimdImpl256<element_t>` specialization.
+    ☒ Modify and replace only the selected 128-bit half, delegating to the matching 128-bit element specialization where appropriate.
+    ☒ Do not place element-specific insertion methods or element-type switching in `Extensions.h`.
+    ☒ Do not use arrays, compiler register-array members, or addressable register storage.
+    ☒ Add focused correctness coverage for every lane of every supported 256-bit element type.
+    ☒ Inspect optimized code generation for stack references and security-cookie calls.
 
   Task 9 - Implementation Insertion Naming Consolidation:
     ☒ Inventory every implementation-layer `set_element` declaration and call site.

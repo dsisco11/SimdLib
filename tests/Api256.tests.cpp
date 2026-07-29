@@ -23,6 +23,11 @@ TEST_CASE("256-bit runtime extraction covers every lane and element type", "[sim
 	require_runtime_extraction_matrix_256();
 }
 
+TEST_CASE("256-bit runtime insertion covers every lane and element type", "[simdlib][avx2][insert][runtime]")
+{
+	require_runtime_insertion_matrix_256();
+}
+
 TEST_CASE("256-bit aligned and unaligned transfer matrix", "[simdlib][avx2][transfer]")
 {
 	require_supported_transfer_matrix<256>();
