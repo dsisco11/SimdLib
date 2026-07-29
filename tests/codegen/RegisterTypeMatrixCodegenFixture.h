@@ -3,6 +3,8 @@
 #include <SimdLib/Register.h>
 
 #include <array>
+#include <bit>
+#include <concepts>
 #include <cstddef>
 #include <cstdint>
 #include <limits>
@@ -203,6 +205,157 @@ enum class vector_operation
 	shift_right,
 };
 
+#if !SIMDLIB_CODEGEN_USE_WRAPPER && SIMDLIB_REGISTER_TEST_WIDTH == 128
+/**
+ * @brief Independently computes one 128-bit integer remainder result for code-generation comparison.
+ * @tparam element_t Integer lane type.
+ * @param lhs Dividend lanes.
+ * @param rhs Divisor lanes satisfying scalar integer-remainder preconditions.
+ * @return Scalar remainder of every lane reconstructed with immediate insertion.
+ */
+template <std::integral element_t>
+[[nodiscard]] SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY native_t<element_t> VECTORCALL scalar_remainder_reference(native_t<element_t> lhs,
+																												   native_t<element_t> rhs) noexcept;
+
+/** @brief Independently computes signed 8-bit scalar remainders for code-generation comparison. */
+template <>
+[[nodiscard]] SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY native_t<std::int8_t> VECTORCALL
+scalar_remainder_reference<std::int8_t>(native_t<std::int8_t> lhs, native_t<std::int8_t> rhs) noexcept
+{
+	__m128i result = _mm_setzero_si128();
+	result = _mm_insert_epi8(result, static_cast<std::int8_t>(_mm_extract_epi8(lhs, 0)) % static_cast<std::int8_t>(_mm_extract_epi8(rhs, 0)), 0);
+	result = _mm_insert_epi8(result, static_cast<std::int8_t>(_mm_extract_epi8(lhs, 1)) % static_cast<std::int8_t>(_mm_extract_epi8(rhs, 1)), 1);
+	result = _mm_insert_epi8(result, static_cast<std::int8_t>(_mm_extract_epi8(lhs, 2)) % static_cast<std::int8_t>(_mm_extract_epi8(rhs, 2)), 2);
+	result = _mm_insert_epi8(result, static_cast<std::int8_t>(_mm_extract_epi8(lhs, 3)) % static_cast<std::int8_t>(_mm_extract_epi8(rhs, 3)), 3);
+	result = _mm_insert_epi8(result, static_cast<std::int8_t>(_mm_extract_epi8(lhs, 4)) % static_cast<std::int8_t>(_mm_extract_epi8(rhs, 4)), 4);
+	result = _mm_insert_epi8(result, static_cast<std::int8_t>(_mm_extract_epi8(lhs, 5)) % static_cast<std::int8_t>(_mm_extract_epi8(rhs, 5)), 5);
+	result = _mm_insert_epi8(result, static_cast<std::int8_t>(_mm_extract_epi8(lhs, 6)) % static_cast<std::int8_t>(_mm_extract_epi8(rhs, 6)), 6);
+	result = _mm_insert_epi8(result, static_cast<std::int8_t>(_mm_extract_epi8(lhs, 7)) % static_cast<std::int8_t>(_mm_extract_epi8(rhs, 7)), 7);
+	result = _mm_insert_epi8(result, static_cast<std::int8_t>(_mm_extract_epi8(lhs, 8)) % static_cast<std::int8_t>(_mm_extract_epi8(rhs, 8)), 8);
+	result = _mm_insert_epi8(result, static_cast<std::int8_t>(_mm_extract_epi8(lhs, 9)) % static_cast<std::int8_t>(_mm_extract_epi8(rhs, 9)), 9);
+	result = _mm_insert_epi8(result, static_cast<std::int8_t>(_mm_extract_epi8(lhs, 10)) % static_cast<std::int8_t>(_mm_extract_epi8(rhs, 10)), 10);
+	result = _mm_insert_epi8(result, static_cast<std::int8_t>(_mm_extract_epi8(lhs, 11)) % static_cast<std::int8_t>(_mm_extract_epi8(rhs, 11)), 11);
+	result = _mm_insert_epi8(result, static_cast<std::int8_t>(_mm_extract_epi8(lhs, 12)) % static_cast<std::int8_t>(_mm_extract_epi8(rhs, 12)), 12);
+	result = _mm_insert_epi8(result, static_cast<std::int8_t>(_mm_extract_epi8(lhs, 13)) % static_cast<std::int8_t>(_mm_extract_epi8(rhs, 13)), 13);
+	result = _mm_insert_epi8(result, static_cast<std::int8_t>(_mm_extract_epi8(lhs, 14)) % static_cast<std::int8_t>(_mm_extract_epi8(rhs, 14)), 14);
+	result = _mm_insert_epi8(result, static_cast<std::int8_t>(_mm_extract_epi8(lhs, 15)) % static_cast<std::int8_t>(_mm_extract_epi8(rhs, 15)), 15);
+	return result;
+}
+
+/** @brief Independently computes unsigned 8-bit scalar remainders for code-generation comparison. */
+template <>
+[[nodiscard]] SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY native_t<std::uint8_t> VECTORCALL
+scalar_remainder_reference<std::uint8_t>(native_t<std::uint8_t> lhs, native_t<std::uint8_t> rhs) noexcept
+{
+	__m128i result = _mm_setzero_si128();
+	result = _mm_insert_epi8(result, static_cast<std::uint8_t>(_mm_extract_epi8(lhs, 0)) % static_cast<std::uint8_t>(_mm_extract_epi8(rhs, 0)), 0);
+	result = _mm_insert_epi8(result, static_cast<std::uint8_t>(_mm_extract_epi8(lhs, 1)) % static_cast<std::uint8_t>(_mm_extract_epi8(rhs, 1)), 1);
+	result = _mm_insert_epi8(result, static_cast<std::uint8_t>(_mm_extract_epi8(lhs, 2)) % static_cast<std::uint8_t>(_mm_extract_epi8(rhs, 2)), 2);
+	result = _mm_insert_epi8(result, static_cast<std::uint8_t>(_mm_extract_epi8(lhs, 3)) % static_cast<std::uint8_t>(_mm_extract_epi8(rhs, 3)), 3);
+	result = _mm_insert_epi8(result, static_cast<std::uint8_t>(_mm_extract_epi8(lhs, 4)) % static_cast<std::uint8_t>(_mm_extract_epi8(rhs, 4)), 4);
+	result = _mm_insert_epi8(result, static_cast<std::uint8_t>(_mm_extract_epi8(lhs, 5)) % static_cast<std::uint8_t>(_mm_extract_epi8(rhs, 5)), 5);
+	result = _mm_insert_epi8(result, static_cast<std::uint8_t>(_mm_extract_epi8(lhs, 6)) % static_cast<std::uint8_t>(_mm_extract_epi8(rhs, 6)), 6);
+	result = _mm_insert_epi8(result, static_cast<std::uint8_t>(_mm_extract_epi8(lhs, 7)) % static_cast<std::uint8_t>(_mm_extract_epi8(rhs, 7)), 7);
+	result = _mm_insert_epi8(result, static_cast<std::uint8_t>(_mm_extract_epi8(lhs, 8)) % static_cast<std::uint8_t>(_mm_extract_epi8(rhs, 8)), 8);
+	result = _mm_insert_epi8(result, static_cast<std::uint8_t>(_mm_extract_epi8(lhs, 9)) % static_cast<std::uint8_t>(_mm_extract_epi8(rhs, 9)), 9);
+	result = _mm_insert_epi8(result, static_cast<std::uint8_t>(_mm_extract_epi8(lhs, 10)) % static_cast<std::uint8_t>(_mm_extract_epi8(rhs, 10)), 10);
+	result = _mm_insert_epi8(result, static_cast<std::uint8_t>(_mm_extract_epi8(lhs, 11)) % static_cast<std::uint8_t>(_mm_extract_epi8(rhs, 11)), 11);
+	result = _mm_insert_epi8(result, static_cast<std::uint8_t>(_mm_extract_epi8(lhs, 12)) % static_cast<std::uint8_t>(_mm_extract_epi8(rhs, 12)), 12);
+	result = _mm_insert_epi8(result, static_cast<std::uint8_t>(_mm_extract_epi8(lhs, 13)) % static_cast<std::uint8_t>(_mm_extract_epi8(rhs, 13)), 13);
+	result = _mm_insert_epi8(result, static_cast<std::uint8_t>(_mm_extract_epi8(lhs, 14)) % static_cast<std::uint8_t>(_mm_extract_epi8(rhs, 14)), 14);
+	result = _mm_insert_epi8(result, static_cast<std::uint8_t>(_mm_extract_epi8(lhs, 15)) % static_cast<std::uint8_t>(_mm_extract_epi8(rhs, 15)), 15);
+	return result;
+}
+
+/** @brief Independently computes signed 16-bit scalar remainders for code-generation comparison. */
+template <>
+[[nodiscard]] SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY native_t<std::int16_t> VECTORCALL
+scalar_remainder_reference<std::int16_t>(native_t<std::int16_t> lhs, native_t<std::int16_t> rhs) noexcept
+{
+	__m128i result = _mm_setzero_si128();
+	result = _mm_insert_epi16(result, static_cast<std::int16_t>(_mm_extract_epi16(lhs, 0)) % static_cast<std::int16_t>(_mm_extract_epi16(rhs, 0)), 0);
+	result = _mm_insert_epi16(result, static_cast<std::int16_t>(_mm_extract_epi16(lhs, 1)) % static_cast<std::int16_t>(_mm_extract_epi16(rhs, 1)), 1);
+	result = _mm_insert_epi16(result, static_cast<std::int16_t>(_mm_extract_epi16(lhs, 2)) % static_cast<std::int16_t>(_mm_extract_epi16(rhs, 2)), 2);
+	result = _mm_insert_epi16(result, static_cast<std::int16_t>(_mm_extract_epi16(lhs, 3)) % static_cast<std::int16_t>(_mm_extract_epi16(rhs, 3)), 3);
+	result = _mm_insert_epi16(result, static_cast<std::int16_t>(_mm_extract_epi16(lhs, 4)) % static_cast<std::int16_t>(_mm_extract_epi16(rhs, 4)), 4);
+	result = _mm_insert_epi16(result, static_cast<std::int16_t>(_mm_extract_epi16(lhs, 5)) % static_cast<std::int16_t>(_mm_extract_epi16(rhs, 5)), 5);
+	result = _mm_insert_epi16(result, static_cast<std::int16_t>(_mm_extract_epi16(lhs, 6)) % static_cast<std::int16_t>(_mm_extract_epi16(rhs, 6)), 6);
+	result = _mm_insert_epi16(result, static_cast<std::int16_t>(_mm_extract_epi16(lhs, 7)) % static_cast<std::int16_t>(_mm_extract_epi16(rhs, 7)), 7);
+	return result;
+}
+
+/** @brief Independently computes unsigned 16-bit scalar remainders for code-generation comparison. */
+template <>
+[[nodiscard]] SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY native_t<std::uint16_t> VECTORCALL
+scalar_remainder_reference<std::uint16_t>(native_t<std::uint16_t> lhs, native_t<std::uint16_t> rhs) noexcept
+{
+	__m128i result = _mm_setzero_si128();
+	result = _mm_insert_epi16(result, static_cast<std::uint16_t>(_mm_extract_epi16(lhs, 0)) % static_cast<std::uint16_t>(_mm_extract_epi16(rhs, 0)), 0);
+	result = _mm_insert_epi16(result, static_cast<std::uint16_t>(_mm_extract_epi16(lhs, 1)) % static_cast<std::uint16_t>(_mm_extract_epi16(rhs, 1)), 1);
+	result = _mm_insert_epi16(result, static_cast<std::uint16_t>(_mm_extract_epi16(lhs, 2)) % static_cast<std::uint16_t>(_mm_extract_epi16(rhs, 2)), 2);
+	result = _mm_insert_epi16(result, static_cast<std::uint16_t>(_mm_extract_epi16(lhs, 3)) % static_cast<std::uint16_t>(_mm_extract_epi16(rhs, 3)), 3);
+	result = _mm_insert_epi16(result, static_cast<std::uint16_t>(_mm_extract_epi16(lhs, 4)) % static_cast<std::uint16_t>(_mm_extract_epi16(rhs, 4)), 4);
+	result = _mm_insert_epi16(result, static_cast<std::uint16_t>(_mm_extract_epi16(lhs, 5)) % static_cast<std::uint16_t>(_mm_extract_epi16(rhs, 5)), 5);
+	result = _mm_insert_epi16(result, static_cast<std::uint16_t>(_mm_extract_epi16(lhs, 6)) % static_cast<std::uint16_t>(_mm_extract_epi16(rhs, 6)), 6);
+	result = _mm_insert_epi16(result, static_cast<std::uint16_t>(_mm_extract_epi16(lhs, 7)) % static_cast<std::uint16_t>(_mm_extract_epi16(rhs, 7)), 7);
+	return result;
+}
+
+/** @brief Independently computes signed 32-bit scalar remainders for code-generation comparison. */
+template <>
+[[nodiscard]] SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY native_t<std::int32_t> VECTORCALL
+scalar_remainder_reference<std::int32_t>(native_t<std::int32_t> lhs, native_t<std::int32_t> rhs) noexcept
+{
+	__m128i result = _mm_setzero_si128();
+	result = _mm_insert_epi32(result, static_cast<std::int32_t>(_mm_extract_epi32(lhs, 0)) % static_cast<std::int32_t>(_mm_extract_epi32(rhs, 0)), 0);
+	result = _mm_insert_epi32(result, static_cast<std::int32_t>(_mm_extract_epi32(lhs, 1)) % static_cast<std::int32_t>(_mm_extract_epi32(rhs, 1)), 1);
+	result = _mm_insert_epi32(result, static_cast<std::int32_t>(_mm_extract_epi32(lhs, 2)) % static_cast<std::int32_t>(_mm_extract_epi32(rhs, 2)), 2);
+	result = _mm_insert_epi32(result, static_cast<std::int32_t>(_mm_extract_epi32(lhs, 3)) % static_cast<std::int32_t>(_mm_extract_epi32(rhs, 3)), 3);
+	return result;
+}
+
+/** @brief Independently computes unsigned 32-bit scalar remainders for code-generation comparison. */
+template <>
+[[nodiscard]] SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY native_t<std::uint32_t> VECTORCALL
+scalar_remainder_reference<std::uint32_t>(native_t<std::uint32_t> lhs, native_t<std::uint32_t> rhs) noexcept
+{
+	__m128i result = _mm_setzero_si128();
+	result = _mm_insert_epi32(
+		result, std::bit_cast<std::int32_t>(static_cast<std::uint32_t>(_mm_extract_epi32(lhs, 0)) % static_cast<std::uint32_t>(_mm_extract_epi32(rhs, 0))), 0);
+	result = _mm_insert_epi32(
+		result, std::bit_cast<std::int32_t>(static_cast<std::uint32_t>(_mm_extract_epi32(lhs, 1)) % static_cast<std::uint32_t>(_mm_extract_epi32(rhs, 1))), 1);
+	result = _mm_insert_epi32(
+		result, std::bit_cast<std::int32_t>(static_cast<std::uint32_t>(_mm_extract_epi32(lhs, 2)) % static_cast<std::uint32_t>(_mm_extract_epi32(rhs, 2))), 2);
+	result = _mm_insert_epi32(
+		result, std::bit_cast<std::int32_t>(static_cast<std::uint32_t>(_mm_extract_epi32(lhs, 3)) % static_cast<std::uint32_t>(_mm_extract_epi32(rhs, 3))), 3);
+	return result;
+}
+
+/** @brief Independently computes signed 64-bit scalar remainders for code-generation comparison. */
+template <>
+[[nodiscard]] SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY native_t<std::int64_t> VECTORCALL
+scalar_remainder_reference<std::int64_t>(native_t<std::int64_t> lhs, native_t<std::int64_t> rhs) noexcept
+{
+	__m128i result = _mm_setzero_si128();
+	result = _mm_insert_epi64(result, static_cast<std::int64_t>(_mm_extract_epi64(lhs, 0)) % static_cast<std::int64_t>(_mm_extract_epi64(rhs, 0)), 0);
+	result = _mm_insert_epi64(result, static_cast<std::int64_t>(_mm_extract_epi64(lhs, 1)) % static_cast<std::int64_t>(_mm_extract_epi64(rhs, 1)), 1);
+	return result;
+}
+
+/** @brief Independently computes unsigned 64-bit scalar remainders for code-generation comparison. */
+template <>
+[[nodiscard]] SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY native_t<std::uint64_t> VECTORCALL
+scalar_remainder_reference<std::uint64_t>(native_t<std::uint64_t> lhs, native_t<std::uint64_t> rhs) noexcept
+{
+	__m128i result = _mm_setzero_si128();
+	result = _mm_insert_epi64(
+		result, std::bit_cast<std::int64_t>(static_cast<std::uint64_t>(_mm_extract_epi64(lhs, 0)) % static_cast<std::uint64_t>(_mm_extract_epi64(rhs, 0))), 0);
+	result = _mm_insert_epi64(
+		result, std::bit_cast<std::int64_t>(static_cast<std::uint64_t>(_mm_extract_epi64(lhs, 1)) % static_cast<std::uint64_t>(_mm_extract_epi64(rhs, 1))), 1);
+	return result;
+}
+#endif
+
 /**
  * @brief Emits one isolated native-result operation for exact wrapper/raw comparison.
  * @tparam operation Operation selected at compile time.
@@ -295,7 +448,13 @@ template <vector_operation operation, class element_t>
 	else if constexpr (operation == vector_operation::divide && SimdLib::IRegister::Divide<register_type>)
 		return api_type::divide(lhs, rhs);
 	else if constexpr (operation == vector_operation::modulus && SimdLib::IRegister::Modulus<register_type>)
+	{
+#if SIMDLIB_REGISTER_TEST_WIDTH == 128
+		return scalar_remainder_reference<element_t>(lhs, rhs);
+#else
 		return api_type::modulus(lhs, rhs);
+#endif
+	}
 	else if constexpr (operation == vector_operation::negate && SimdLib::IRegister::Negate<register_type>)
 		return api_type::negate(lhs);
 	else if constexpr (operation == vector_operation::bitwise_and || operation == vector_operation::mask_and)

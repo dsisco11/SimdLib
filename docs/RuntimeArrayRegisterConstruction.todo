@@ -99,13 +99,13 @@ Runtime Register-Storage Removal:
     ☒ Run focused compile-time-index and runtime-index insertion tests.
 
   Task 10 - Specialized 128-Bit Integer Remainder Extensions:
-    ☐ Restore the removed signed and unsigned 64-bit remainder extensions with the width-qualified names `_ext128_rem_epi64` and `_ext128_rem_epu64`.
-    ☐ Add `_ext128_rem_epi8`, `_ext128_rem_epu8`, `_ext128_rem_epi16`, `_ext128_rem_epu16`, `_ext128_rem_epi32`, and `_ext128_rem_epu32`.
-    ☐ Follow the existing `_ext128_div_epi*` and `_ext128_div_epu*` structure: use constant-index intrinsic extraction, the scalar `%` operation, and constant-index intrinsic insertion.
-    ☐ Do not implement remainder as `lhs - multiply(divide(lhs, rhs), rhs)`.
-    ☐ Preserve scalar signed-remainder semantics and integer-division preconditions.
-    ☐ Compare optimized instructions with equivalent independently written scalar remainder code for every element width.
-    ☐ Add focused correctness coverage before routing `SimdImpl128<element_t>::modulus` to the new extensions.
+    ☒ Restore the removed signed and unsigned 64-bit remainder extensions with the width-qualified names `_ext128_rem_epi64` and `_ext128_rem_epu64`.
+    ☒ Add `_ext128_rem_epi8`, `_ext128_rem_epu8`, `_ext128_rem_epi16`, `_ext128_rem_epu16`, `_ext128_rem_epi32`, and `_ext128_rem_epu32`.
+    ☒ Follow the existing `_ext128_div_epi*` and `_ext128_div_epu*` structure: use constant-index intrinsic extraction, the scalar `%` operation, and constant-index intrinsic insertion.
+    ☒ Do not implement remainder as `lhs - multiply(divide(lhs, rhs), rhs)`.
+    ☒ Preserve scalar signed-remainder semantics and integer-division preconditions.
+    ☒ Compare optimized instructions with equivalent independently written scalar remainder code for every element width.
+    ☒ Add focused correctness coverage before routing `SimdImpl128<element_t>::modulus` to the new extensions.
 
   Task 11 - Specialized 256-Bit Integer Remainder Extensions:
     ☐ Add width-qualified `_ext256_rem_epi*` and `_ext256_rem_epu*` methods for every supported integer element width.

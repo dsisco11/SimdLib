@@ -730,6 +730,180 @@ SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m128i VECTORCALL _e
 
 #pragma endregion
 
+#pragma region 128bit Integer Remainder Extensions
+
+/**
+ * @brief Computes remainders for 16 signed 8-bit lanes using constant-index intrinsic extraction and insertion.
+ * @param lhs Dividend lanes.
+ * @param rhs Divisor lanes.
+ * @pre Every lane in rhs is nonzero and no dividend-minimum lane is divided by negative one.
+ * @return The scalar signed remainder for every lane.
+ */
+SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m128i VECTORCALL _ext128_rem_epi8(__m128i lhs, __m128i rhs) noexcept
+{
+	__m128i result = _mm_setzero_si128();
+	result = _mm_insert_epi8(result, static_cast<std::int8_t>(_mm_extract_epi8(lhs, 0)) % static_cast<std::int8_t>(_mm_extract_epi8(rhs, 0)), 0);
+	result = _mm_insert_epi8(result, static_cast<std::int8_t>(_mm_extract_epi8(lhs, 1)) % static_cast<std::int8_t>(_mm_extract_epi8(rhs, 1)), 1);
+	result = _mm_insert_epi8(result, static_cast<std::int8_t>(_mm_extract_epi8(lhs, 2)) % static_cast<std::int8_t>(_mm_extract_epi8(rhs, 2)), 2);
+	result = _mm_insert_epi8(result, static_cast<std::int8_t>(_mm_extract_epi8(lhs, 3)) % static_cast<std::int8_t>(_mm_extract_epi8(rhs, 3)), 3);
+	result = _mm_insert_epi8(result, static_cast<std::int8_t>(_mm_extract_epi8(lhs, 4)) % static_cast<std::int8_t>(_mm_extract_epi8(rhs, 4)), 4);
+	result = _mm_insert_epi8(result, static_cast<std::int8_t>(_mm_extract_epi8(lhs, 5)) % static_cast<std::int8_t>(_mm_extract_epi8(rhs, 5)), 5);
+	result = _mm_insert_epi8(result, static_cast<std::int8_t>(_mm_extract_epi8(lhs, 6)) % static_cast<std::int8_t>(_mm_extract_epi8(rhs, 6)), 6);
+	result = _mm_insert_epi8(result, static_cast<std::int8_t>(_mm_extract_epi8(lhs, 7)) % static_cast<std::int8_t>(_mm_extract_epi8(rhs, 7)), 7);
+	result = _mm_insert_epi8(result, static_cast<std::int8_t>(_mm_extract_epi8(lhs, 8)) % static_cast<std::int8_t>(_mm_extract_epi8(rhs, 8)), 8);
+	result = _mm_insert_epi8(result, static_cast<std::int8_t>(_mm_extract_epi8(lhs, 9)) % static_cast<std::int8_t>(_mm_extract_epi8(rhs, 9)), 9);
+	result = _mm_insert_epi8(result, static_cast<std::int8_t>(_mm_extract_epi8(lhs, 10)) % static_cast<std::int8_t>(_mm_extract_epi8(rhs, 10)), 10);
+	result = _mm_insert_epi8(result, static_cast<std::int8_t>(_mm_extract_epi8(lhs, 11)) % static_cast<std::int8_t>(_mm_extract_epi8(rhs, 11)), 11);
+	result = _mm_insert_epi8(result, static_cast<std::int8_t>(_mm_extract_epi8(lhs, 12)) % static_cast<std::int8_t>(_mm_extract_epi8(rhs, 12)), 12);
+	result = _mm_insert_epi8(result, static_cast<std::int8_t>(_mm_extract_epi8(lhs, 13)) % static_cast<std::int8_t>(_mm_extract_epi8(rhs, 13)), 13);
+	result = _mm_insert_epi8(result, static_cast<std::int8_t>(_mm_extract_epi8(lhs, 14)) % static_cast<std::int8_t>(_mm_extract_epi8(rhs, 14)), 14);
+	result = _mm_insert_epi8(result, static_cast<std::int8_t>(_mm_extract_epi8(lhs, 15)) % static_cast<std::int8_t>(_mm_extract_epi8(rhs, 15)), 15);
+	return result;
+}
+
+/**
+ * @brief Computes remainders for 16 unsigned 8-bit lanes using constant-index intrinsic extraction and insertion.
+ * @param lhs Dividend lanes.
+ * @param rhs Divisor lanes.
+ * @pre Every lane in rhs is nonzero.
+ * @return The scalar unsigned remainder for every lane.
+ */
+SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m128i VECTORCALL _ext128_rem_epu8(__m128i lhs, __m128i rhs) noexcept
+{
+	__m128i result = _mm_setzero_si128();
+	result = _mm_insert_epi8(result, static_cast<std::uint8_t>(_mm_extract_epi8(lhs, 0)) % static_cast<std::uint8_t>(_mm_extract_epi8(rhs, 0)), 0);
+	result = _mm_insert_epi8(result, static_cast<std::uint8_t>(_mm_extract_epi8(lhs, 1)) % static_cast<std::uint8_t>(_mm_extract_epi8(rhs, 1)), 1);
+	result = _mm_insert_epi8(result, static_cast<std::uint8_t>(_mm_extract_epi8(lhs, 2)) % static_cast<std::uint8_t>(_mm_extract_epi8(rhs, 2)), 2);
+	result = _mm_insert_epi8(result, static_cast<std::uint8_t>(_mm_extract_epi8(lhs, 3)) % static_cast<std::uint8_t>(_mm_extract_epi8(rhs, 3)), 3);
+	result = _mm_insert_epi8(result, static_cast<std::uint8_t>(_mm_extract_epi8(lhs, 4)) % static_cast<std::uint8_t>(_mm_extract_epi8(rhs, 4)), 4);
+	result = _mm_insert_epi8(result, static_cast<std::uint8_t>(_mm_extract_epi8(lhs, 5)) % static_cast<std::uint8_t>(_mm_extract_epi8(rhs, 5)), 5);
+	result = _mm_insert_epi8(result, static_cast<std::uint8_t>(_mm_extract_epi8(lhs, 6)) % static_cast<std::uint8_t>(_mm_extract_epi8(rhs, 6)), 6);
+	result = _mm_insert_epi8(result, static_cast<std::uint8_t>(_mm_extract_epi8(lhs, 7)) % static_cast<std::uint8_t>(_mm_extract_epi8(rhs, 7)), 7);
+	result = _mm_insert_epi8(result, static_cast<std::uint8_t>(_mm_extract_epi8(lhs, 8)) % static_cast<std::uint8_t>(_mm_extract_epi8(rhs, 8)), 8);
+	result = _mm_insert_epi8(result, static_cast<std::uint8_t>(_mm_extract_epi8(lhs, 9)) % static_cast<std::uint8_t>(_mm_extract_epi8(rhs, 9)), 9);
+	result = _mm_insert_epi8(result, static_cast<std::uint8_t>(_mm_extract_epi8(lhs, 10)) % static_cast<std::uint8_t>(_mm_extract_epi8(rhs, 10)), 10);
+	result = _mm_insert_epi8(result, static_cast<std::uint8_t>(_mm_extract_epi8(lhs, 11)) % static_cast<std::uint8_t>(_mm_extract_epi8(rhs, 11)), 11);
+	result = _mm_insert_epi8(result, static_cast<std::uint8_t>(_mm_extract_epi8(lhs, 12)) % static_cast<std::uint8_t>(_mm_extract_epi8(rhs, 12)), 12);
+	result = _mm_insert_epi8(result, static_cast<std::uint8_t>(_mm_extract_epi8(lhs, 13)) % static_cast<std::uint8_t>(_mm_extract_epi8(rhs, 13)), 13);
+	result = _mm_insert_epi8(result, static_cast<std::uint8_t>(_mm_extract_epi8(lhs, 14)) % static_cast<std::uint8_t>(_mm_extract_epi8(rhs, 14)), 14);
+	result = _mm_insert_epi8(result, static_cast<std::uint8_t>(_mm_extract_epi8(lhs, 15)) % static_cast<std::uint8_t>(_mm_extract_epi8(rhs, 15)), 15);
+	return result;
+}
+
+/**
+ * @brief Computes remainders for 8 signed 16-bit lanes using constant-index intrinsic extraction and insertion.
+ * @param lhs Dividend lanes.
+ * @param rhs Divisor lanes.
+ * @pre Every lane in rhs is nonzero and no dividend-minimum lane is divided by negative one.
+ * @return The scalar signed remainder for every lane.
+ */
+SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m128i VECTORCALL _ext128_rem_epi16(__m128i lhs, __m128i rhs) noexcept
+{
+	__m128i result = _mm_setzero_si128();
+	result = _mm_insert_epi16(result, static_cast<std::int16_t>(_mm_extract_epi16(lhs, 0)) % static_cast<std::int16_t>(_mm_extract_epi16(rhs, 0)), 0);
+	result = _mm_insert_epi16(result, static_cast<std::int16_t>(_mm_extract_epi16(lhs, 1)) % static_cast<std::int16_t>(_mm_extract_epi16(rhs, 1)), 1);
+	result = _mm_insert_epi16(result, static_cast<std::int16_t>(_mm_extract_epi16(lhs, 2)) % static_cast<std::int16_t>(_mm_extract_epi16(rhs, 2)), 2);
+	result = _mm_insert_epi16(result, static_cast<std::int16_t>(_mm_extract_epi16(lhs, 3)) % static_cast<std::int16_t>(_mm_extract_epi16(rhs, 3)), 3);
+	result = _mm_insert_epi16(result, static_cast<std::int16_t>(_mm_extract_epi16(lhs, 4)) % static_cast<std::int16_t>(_mm_extract_epi16(rhs, 4)), 4);
+	result = _mm_insert_epi16(result, static_cast<std::int16_t>(_mm_extract_epi16(lhs, 5)) % static_cast<std::int16_t>(_mm_extract_epi16(rhs, 5)), 5);
+	result = _mm_insert_epi16(result, static_cast<std::int16_t>(_mm_extract_epi16(lhs, 6)) % static_cast<std::int16_t>(_mm_extract_epi16(rhs, 6)), 6);
+	result = _mm_insert_epi16(result, static_cast<std::int16_t>(_mm_extract_epi16(lhs, 7)) % static_cast<std::int16_t>(_mm_extract_epi16(rhs, 7)), 7);
+	return result;
+}
+
+/**
+ * @brief Computes remainders for 8 unsigned 16-bit lanes using constant-index intrinsic extraction and insertion.
+ * @param lhs Dividend lanes.
+ * @param rhs Divisor lanes.
+ * @pre Every lane in rhs is nonzero.
+ * @return The scalar unsigned remainder for every lane.
+ */
+SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m128i VECTORCALL _ext128_rem_epu16(__m128i lhs, __m128i rhs) noexcept
+{
+	__m128i result = _mm_setzero_si128();
+	result = _mm_insert_epi16(result, static_cast<std::uint16_t>(_mm_extract_epi16(lhs, 0)) % static_cast<std::uint16_t>(_mm_extract_epi16(rhs, 0)), 0);
+	result = _mm_insert_epi16(result, static_cast<std::uint16_t>(_mm_extract_epi16(lhs, 1)) % static_cast<std::uint16_t>(_mm_extract_epi16(rhs, 1)), 1);
+	result = _mm_insert_epi16(result, static_cast<std::uint16_t>(_mm_extract_epi16(lhs, 2)) % static_cast<std::uint16_t>(_mm_extract_epi16(rhs, 2)), 2);
+	result = _mm_insert_epi16(result, static_cast<std::uint16_t>(_mm_extract_epi16(lhs, 3)) % static_cast<std::uint16_t>(_mm_extract_epi16(rhs, 3)), 3);
+	result = _mm_insert_epi16(result, static_cast<std::uint16_t>(_mm_extract_epi16(lhs, 4)) % static_cast<std::uint16_t>(_mm_extract_epi16(rhs, 4)), 4);
+	result = _mm_insert_epi16(result, static_cast<std::uint16_t>(_mm_extract_epi16(lhs, 5)) % static_cast<std::uint16_t>(_mm_extract_epi16(rhs, 5)), 5);
+	result = _mm_insert_epi16(result, static_cast<std::uint16_t>(_mm_extract_epi16(lhs, 6)) % static_cast<std::uint16_t>(_mm_extract_epi16(rhs, 6)), 6);
+	result = _mm_insert_epi16(result, static_cast<std::uint16_t>(_mm_extract_epi16(lhs, 7)) % static_cast<std::uint16_t>(_mm_extract_epi16(rhs, 7)), 7);
+	return result;
+}
+
+/**
+ * @brief Computes remainders for 4 signed 32-bit lanes using constant-index intrinsic extraction and insertion.
+ * @param lhs Dividend lanes.
+ * @param rhs Divisor lanes.
+ * @pre Every lane in rhs is nonzero and no dividend-minimum lane is divided by negative one.
+ * @return The scalar signed remainder for every lane.
+ */
+SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m128i VECTORCALL _ext128_rem_epi32(__m128i lhs, __m128i rhs) noexcept
+{
+	__m128i result = _mm_setzero_si128();
+	result = _mm_insert_epi32(result, static_cast<std::int32_t>(_mm_extract_epi32(lhs, 0)) % static_cast<std::int32_t>(_mm_extract_epi32(rhs, 0)), 0);
+	result = _mm_insert_epi32(result, static_cast<std::int32_t>(_mm_extract_epi32(lhs, 1)) % static_cast<std::int32_t>(_mm_extract_epi32(rhs, 1)), 1);
+	result = _mm_insert_epi32(result, static_cast<std::int32_t>(_mm_extract_epi32(lhs, 2)) % static_cast<std::int32_t>(_mm_extract_epi32(rhs, 2)), 2);
+	result = _mm_insert_epi32(result, static_cast<std::int32_t>(_mm_extract_epi32(lhs, 3)) % static_cast<std::int32_t>(_mm_extract_epi32(rhs, 3)), 3);
+	return result;
+}
+
+/**
+ * @brief Computes remainders for 4 unsigned 32-bit lanes using constant-index intrinsic extraction and insertion.
+ * @param lhs Dividend lanes.
+ * @param rhs Divisor lanes.
+ * @pre Every lane in rhs is nonzero.
+ * @return The scalar unsigned remainder for every lane.
+ */
+SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m128i VECTORCALL _ext128_rem_epu32(__m128i lhs, __m128i rhs) noexcept
+{
+	__m128i result = _mm_setzero_si128();
+	result = _mm_insert_epi32(
+		result, std::bit_cast<std::int32_t>(static_cast<std::uint32_t>(_mm_extract_epi32(lhs, 0)) % static_cast<std::uint32_t>(_mm_extract_epi32(rhs, 0))), 0);
+	result = _mm_insert_epi32(
+		result, std::bit_cast<std::int32_t>(static_cast<std::uint32_t>(_mm_extract_epi32(lhs, 1)) % static_cast<std::uint32_t>(_mm_extract_epi32(rhs, 1))), 1);
+	result = _mm_insert_epi32(
+		result, std::bit_cast<std::int32_t>(static_cast<std::uint32_t>(_mm_extract_epi32(lhs, 2)) % static_cast<std::uint32_t>(_mm_extract_epi32(rhs, 2))), 2);
+	result = _mm_insert_epi32(
+		result, std::bit_cast<std::int32_t>(static_cast<std::uint32_t>(_mm_extract_epi32(lhs, 3)) % static_cast<std::uint32_t>(_mm_extract_epi32(rhs, 3))), 3);
+	return result;
+}
+
+/**
+ * @brief Computes remainders for 2 signed 64-bit lanes using constant-index intrinsic extraction and insertion.
+ * @param lhs Dividend lanes.
+ * @param rhs Divisor lanes.
+ * @pre Every lane in rhs is nonzero and no dividend-minimum lane is divided by negative one.
+ * @return The scalar signed remainder for every lane.
+ */
+SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m128i VECTORCALL _ext128_rem_epi64(__m128i lhs, __m128i rhs) noexcept
+{
+	__m128i result = _mm_setzero_si128();
+	result = _mm_insert_epi64(result, static_cast<std::int64_t>(_mm_extract_epi64(lhs, 0)) % static_cast<std::int64_t>(_mm_extract_epi64(rhs, 0)), 0);
+	result = _mm_insert_epi64(result, static_cast<std::int64_t>(_mm_extract_epi64(lhs, 1)) % static_cast<std::int64_t>(_mm_extract_epi64(rhs, 1)), 1);
+	return result;
+}
+
+/**
+ * @brief Computes remainders for 2 unsigned 64-bit lanes using constant-index intrinsic extraction and insertion.
+ * @param lhs Dividend lanes.
+ * @param rhs Divisor lanes.
+ * @pre Every lane in rhs is nonzero.
+ * @return The scalar unsigned remainder for every lane.
+ */
+SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m128i VECTORCALL _ext128_rem_epu64(__m128i lhs, __m128i rhs) noexcept
+{
+	__m128i result = _mm_setzero_si128();
+	result = _mm_insert_epi64(
+		result, std::bit_cast<std::int64_t>(static_cast<std::uint64_t>(_mm_extract_epi64(lhs, 0)) % static_cast<std::uint64_t>(_mm_extract_epi64(rhs, 0))), 0);
+	result = _mm_insert_epi64(
+		result, std::bit_cast<std::int64_t>(static_cast<std::uint64_t>(_mm_extract_epi64(lhs, 1)) % static_cast<std::uint64_t>(_mm_extract_epi64(rhs, 1))), 1);
+	return result;
+}
+
+#pragma endregion
+
 #pragma region 128bit int8_t Extensions
 
 /**
@@ -1091,22 +1265,6 @@ SIMDLIB_FORCE_INLINE __m128i VECTORCALL _ext_srai_epi64(__m128i lhs, const int c
 	const __m128i logical = _mm_srl_epi64(lhs, shift);
 	const __m128i fill = _mm_sll_epi64(sign, fillShift);
 	return _mm_or_si128(logical, fill);
-}
-
-// AVX2 has no efficient exact variable u64/s64 vector divide. For general-purpose
-// per-lane divisors, unpacking to scalar hardware division is faster than a bit-serial
-// SIMD long-division loop and preserves exact integer semantics.
-
-SIMDLIB_FORCE_INLINE __m128i VECTORCALL _ext_rem_epu64(__m128i lhs, __m128i rhs) noexcept
-{
-	return register_from_values<__m128i, std::uint64_t>(register_get<std::uint64_t>(lhs, 0) % register_get<std::uint64_t>(rhs, 0),
-														register_get<std::uint64_t>(lhs, 1) % register_get<std::uint64_t>(rhs, 1));
-}
-
-SIMDLIB_FORCE_INLINE __m128i VECTORCALL _ext_rem_epi64(__m128i lhs, __m128i rhs) noexcept
-{
-	return register_from_values<__m128i, std::int64_t>(register_get<std::int64_t>(lhs, 0) % register_get<std::int64_t>(rhs, 0),
-													   register_get<std::int64_t>(lhs, 1) % register_get<std::int64_t>(rhs, 1));
 }
 
 #pragma endregion

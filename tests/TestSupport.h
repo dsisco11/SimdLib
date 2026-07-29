@@ -745,6 +745,62 @@ template <std::size_t Width> void require_64bit_arithmetic_contract()
 }
 
 /**
+ * @brief Verifies scalar remainder semantics for every lane of one 128-bit integer specialization.
+ * @tparam Element Signed or unsigned integer lane type.
+ */
+template <std::integral Element> void require_128bit_integer_remainder_contract()
+{
+	using simd = Api<128, Element>;
+	std::array<Element, simd::element_count> lhs{};
+	std::array<Element, simd::element_count> rhs{};
+	std::array<Element, simd::element_count> expected{};
+	for (std::size_t index = 0; index < simd::element_count; ++index)
+	{
+		if constexpr (std::is_signed_v<Element>)
+		{
+			const auto magnitude = static_cast<Element>(17 + index * 3);
+			const auto divisor = static_cast<Element>(2 + index % 5);
+			lhs[index] = index % 2 == 0 ? static_cast<Element>(-magnitude) : magnitude;
+			rhs[index] = index % 3 == 0 ? static_cast<Element>(-divisor) : divisor;
+		}
+		else
+		{
+			lhs[index] = static_cast<Element>(20 + index * 7);
+			rhs[index] = static_cast<Element>(2 + index % 5);
+		}
+	}
+
+	if constexpr (std::is_signed_v<Element>)
+	{
+		lhs.back() = std::numeric_limits<Element>::lowest();
+		rhs.back() = static_cast<Element>(3);
+	}
+	else
+	{
+		lhs.back() = std::numeric_limits<Element>::max();
+		rhs.back() = static_cast<Element>(7);
+	}
+
+	for (std::size_t index = 0; index < simd::element_count; ++index)
+		expected[index] = static_cast<Element>(lhs[index] % rhs[index]);
+
+	REQUIRE(simd::to_array(simd::modulus(simd::construct(lhs), simd::construct(rhs))) == expected);
+}
+
+/** @brief Verifies scalar remainder semantics for every 128-bit integer element type. */
+inline void require_128bit_integer_remainder_matrix()
+{
+	require_128bit_integer_remainder_contract<std::int8_t>();
+	require_128bit_integer_remainder_contract<std::uint8_t>();
+	require_128bit_integer_remainder_contract<std::int16_t>();
+	require_128bit_integer_remainder_contract<std::uint16_t>();
+	require_128bit_integer_remainder_contract<std::int32_t>();
+	require_128bit_integer_remainder_contract<std::uint32_t>();
+	require_128bit_integer_remainder_contract<std::int64_t>();
+	require_128bit_integer_remainder_contract<std::uint64_t>();
+}
+
+/**
  * @brief Verifies arithmetic, bitwise, lane-access, and shift behavior for one integer Api specialization.
  *
  * @tparam Width The Api register width.

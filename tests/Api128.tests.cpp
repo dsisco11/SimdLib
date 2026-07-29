@@ -88,6 +88,11 @@ TEST_CASE("128-bit arithmetic and int8 division match scalar results", "[simdlib
 	REQUIRE(bytes::to_array(quotients) == std::array<std::int8_t, 16>{4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4});
 }
 
+TEST_CASE("128-bit integer remainder matches scalar semantics for every lane and width", "[simdlib][sse42][integer][remainder]")
+{
+	require_128bit_integer_remainder_matrix();
+}
+
 TEST_CASE("128-bit comparisons and saturation match scalar semantics", "[simdlib][sse42][comparison][saturation]")
 {
 	require_supported_comparison_matrix<128>();

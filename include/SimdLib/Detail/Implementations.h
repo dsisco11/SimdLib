@@ -257,9 +257,10 @@ template <> struct SimdImpl128<int8_t>
 	{
 		return _ext128_div_epi8(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL modulus(auto lhs, auto rhs) noexcept
+	/** @brief Computes corresponding signed 8-bit remainders with scalar instructions and intrinsic reconstruction. */
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL modulus(auto lhs, auto rhs) noexcept
 	{
-		return register_transform_binary<std::int8_t>(lhs, rhs, [](auto left, auto right) noexcept { return left % right; });
+		return _ext128_rem_epi8(lhs, rhs);
 	}
 	/** @brief Computes lane-wise square roots for this native register specialization. */
 	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL sqrt(auto lhs) noexcept
@@ -601,9 +602,10 @@ template <> struct SimdImpl128<uint8_t>
 	{
 		return _ext128_div_epu8(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL modulus(auto lhs, auto rhs) noexcept
+	/** @brief Computes corresponding unsigned 8-bit remainders with scalar instructions and intrinsic reconstruction. */
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL modulus(auto lhs, auto rhs) noexcept
 	{
-		return register_transform_binary<std::uint8_t>(lhs, rhs, [](auto left, auto right) noexcept { return left % right; });
+		return _ext128_rem_epu8(lhs, rhs);
 	}
 	/** @brief Computes lane-wise square roots for this native register specialization. */
 	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL sqrt(auto lhs) noexcept
@@ -950,9 +952,10 @@ template <> struct SimdImpl128<int16_t>
 	{
 		return _ext128_div_epi16(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL modulus(auto lhs, auto rhs) noexcept
+	/** @brief Computes corresponding signed 16-bit remainders with scalar instructions and intrinsic reconstruction. */
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL modulus(auto lhs, auto rhs) noexcept
 	{
-		return register_transform_binary<std::int16_t>(lhs, rhs, [](auto left, auto right) noexcept { return left % right; });
+		return _ext128_rem_epi16(lhs, rhs);
 	}
 	/** @brief Computes lane-wise square roots for this native register specialization. */
 	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL sqrt(auto lhs) noexcept
@@ -1355,9 +1358,10 @@ template <> struct SimdImpl128<uint16_t>
 	{
 		return _ext128_div_epu16(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL modulus(auto lhs, auto rhs) noexcept
+	/** @brief Computes corresponding unsigned 16-bit remainders with scalar instructions and intrinsic reconstruction. */
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL modulus(auto lhs, auto rhs) noexcept
 	{
-		return register_transform_binary<std::uint16_t>(lhs, rhs, [](auto left, auto right) noexcept { return left % right; });
+		return _ext128_rem_epu16(lhs, rhs);
 	}
 	/** @brief Computes lane-wise square roots for this native register specialization. */
 	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL sqrt(auto lhs) noexcept
@@ -1680,9 +1684,10 @@ template <> struct SimdImpl128<int32_t>
 	{
 		return _ext128_div_epi32(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL modulus(auto lhs, auto rhs) noexcept
+	/** @brief Computes corresponding signed 32-bit remainders with scalar instructions and intrinsic reconstruction. */
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL modulus(auto lhs, auto rhs) noexcept
 	{
-		return register_transform_binary<std::int32_t>(lhs, rhs, [](auto left, auto right) noexcept { return left % right; });
+		return _ext128_rem_epi32(lhs, rhs);
 	}
 	/** @brief Computes lane-wise square roots for this native register specialization. */
 	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL sqrt(auto lhs) noexcept
@@ -1996,9 +2001,10 @@ template <> struct SimdImpl128<uint32_t>
 	{
 		return _ext128_div_epu32(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL modulus(auto lhs, auto rhs) noexcept
+	/** @brief Computes corresponding unsigned 32-bit remainders with scalar instructions and intrinsic reconstruction. */
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL modulus(auto lhs, auto rhs) noexcept
 	{
-		return register_transform_binary<std::uint32_t>(lhs, rhs, [](auto left, auto right) noexcept { return left % right; });
+		return _ext128_rem_epu32(lhs, rhs);
 	}
 	/** @brief Computes lane-wise square roots for this native register specialization. */
 	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL sqrt(auto lhs) noexcept
@@ -2302,9 +2308,10 @@ template <> struct SimdImpl128<int64_t>
 	{
 		return _ext128_div_epi64(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL modulus(auto lhs, auto rhs) noexcept
+	/** @brief Computes corresponding signed 64-bit remainders with scalar instructions and intrinsic reconstruction. */
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL modulus(auto lhs, auto rhs) noexcept
 	{
-		return _ext_rem_epi64(lhs, rhs);
+		return _ext128_rem_epi64(lhs, rhs);
 	}
 	/** @brief Computes lane-wise square roots for this native register specialization. */
 	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL sqrt(auto lhs) noexcept
@@ -2559,9 +2566,10 @@ template <> struct SimdImpl128<uint64_t>
 	{
 		return _ext128_div_epu64(lhs, rhs);
 	}
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL modulus(auto lhs, auto rhs) noexcept
+	/** @brief Computes corresponding unsigned 64-bit remainders with scalar instructions and intrinsic reconstruction. */
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL modulus(auto lhs, auto rhs) noexcept
 	{
-		return _ext_rem_epu64(lhs, rhs);
+		return _ext128_rem_epu64(lhs, rhs);
 	}
 	/** @brief Computes lane-wise square roots for this native register specialization. */
 	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL sqrt(auto lhs) noexcept
