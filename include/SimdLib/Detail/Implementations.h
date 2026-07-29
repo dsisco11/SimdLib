@@ -4142,9 +4142,9 @@ template <> struct SimdImpl256<int8_t>
 	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static int8_t VECTORCALL extract_slow(const __m256i lhs, const int index) noexcept
 	{
 		SIMDLIB_PRECONDITION(index >= 0 && index < 32, "Signed 8-bit extraction requires a valid 256-bit lane index");
-		if (index < 16)
-			return SimdImpl128<int8_t>::extract_slow(_mm256_castsi256_si128(lhs), index);
-		return SimdImpl128<int8_t>::extract_slow(_mm256_extracti128_si256(lhs, 1), index - 16);
+		const __m256i selected = _mm256_permutevar8x32_epi32(lhs, _mm256_set1_epi32(index >> 2));
+		const uint32_t selected_dword = static_cast<uint32_t>(_mm_cvtsi128_si32(_mm256_castsi256_si128(selected)));
+		return static_cast<int8_t>(selected_dword >> ((index & 3) * 8));
 	}
 	/** @brief Replaces the compile-time-selected signed 8-bit lane during constant evaluation. */
 	template <int index> [[nodiscard]] constexpr static auto insert_constexpr(auto lhs, const int8_t rhs) noexcept
@@ -4438,9 +4438,9 @@ template <> struct SimdImpl256<uint8_t>
 	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static uint8_t VECTORCALL extract_slow(const __m256i lhs, const int index) noexcept
 	{
 		SIMDLIB_PRECONDITION(index >= 0 && index < 32, "Unsigned 8-bit extraction requires a valid 256-bit lane index");
-		if (index < 16)
-			return SimdImpl128<uint8_t>::extract_slow(_mm256_castsi256_si128(lhs), index);
-		return SimdImpl128<uint8_t>::extract_slow(_mm256_extracti128_si256(lhs, 1), index - 16);
+		const __m256i selected = _mm256_permutevar8x32_epi32(lhs, _mm256_set1_epi32(index >> 2));
+		const uint32_t selected_dword = static_cast<uint32_t>(_mm_cvtsi128_si32(_mm256_castsi256_si128(selected)));
+		return static_cast<uint8_t>(selected_dword >> ((index & 3) * 8));
 	}
 	/** @brief Replaces the compile-time-selected unsigned 8-bit lane during constant evaluation. */
 	template <int index> [[nodiscard]] constexpr static auto insert_constexpr(auto lhs, const uint8_t rhs) noexcept
@@ -4756,9 +4756,9 @@ template <> struct SimdImpl256<int16_t>
 	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static int16_t VECTORCALL extract_slow(const __m256i lhs, const int index) noexcept
 	{
 		SIMDLIB_PRECONDITION(index >= 0 && index < 16, "Signed 16-bit extraction requires a valid 256-bit lane index");
-		if (index < 8)
-			return SimdImpl128<int16_t>::extract_slow(_mm256_castsi256_si128(lhs), index);
-		return SimdImpl128<int16_t>::extract_slow(_mm256_extracti128_si256(lhs, 1), index - 8);
+		const __m256i selected = _mm256_permutevar8x32_epi32(lhs, _mm256_set1_epi32(index >> 1));
+		const uint32_t selected_dword = static_cast<uint32_t>(_mm_cvtsi128_si32(_mm256_castsi256_si128(selected)));
+		return static_cast<int16_t>(selected_dword >> ((index & 1) * 16));
 	}
 	/** @brief Replaces the compile-time-selected signed 16-bit lane during constant evaluation. */
 	template <int index> [[nodiscard]] constexpr static auto insert_constexpr(auto lhs, const int16_t rhs) noexcept
@@ -5119,9 +5119,9 @@ template <> struct SimdImpl256<uint16_t>
 	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static uint16_t VECTORCALL extract_slow(const __m256i lhs, const int index) noexcept
 	{
 		SIMDLIB_PRECONDITION(index >= 0 && index < 16, "Unsigned 16-bit extraction requires a valid 256-bit lane index");
-		if (index < 8)
-			return SimdImpl128<uint16_t>::extract_slow(_mm256_castsi256_si128(lhs), index);
-		return SimdImpl128<uint16_t>::extract_slow(_mm256_extracti128_si256(lhs, 1), index - 8);
+		const __m256i selected = _mm256_permutevar8x32_epi32(lhs, _mm256_set1_epi32(index >> 1));
+		const uint32_t selected_dword = static_cast<uint32_t>(_mm_cvtsi128_si32(_mm256_castsi256_si128(selected)));
+		return static_cast<uint16_t>(selected_dword >> ((index & 1) * 16));
 	}
 	/** @brief Replaces the compile-time-selected unsigned 16-bit lane during constant evaluation. */
 	template <int index> [[nodiscard]] constexpr static auto insert_constexpr(auto lhs, const uint16_t rhs) noexcept
@@ -5409,9 +5409,8 @@ template <> struct SimdImpl256<int32_t>
 	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static int32_t VECTORCALL extract_slow(const __m256i lhs, const int index) noexcept
 	{
 		SIMDLIB_PRECONDITION(index >= 0 && index < 8, "Signed 32-bit extraction requires a valid 256-bit lane index");
-		if (index < 4)
-			return SimdImpl128<int32_t>::extract_slow(_mm256_castsi256_si128(lhs), index);
-		return SimdImpl128<int32_t>::extract_slow(_mm256_extracti128_si256(lhs, 1), index - 4);
+		const __m256i selected = _mm256_permutevar8x32_epi32(lhs, _mm256_set1_epi32(index));
+		return _mm_cvtsi128_si32(_mm256_castsi256_si128(selected));
 	}
 	/** @brief Replaces the compile-time-selected signed 32-bit lane during constant evaluation. */
 	template <int index> [[nodiscard]] constexpr static auto insert_constexpr(auto lhs, const int32_t rhs) noexcept
@@ -5704,9 +5703,8 @@ template <> struct SimdImpl256<uint32_t>
 	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static uint32_t VECTORCALL extract_slow(const __m256i lhs, const int index) noexcept
 	{
 		SIMDLIB_PRECONDITION(index >= 0 && index < 8, "Unsigned 32-bit extraction requires a valid 256-bit lane index");
-		if (index < 4)
-			return SimdImpl128<uint32_t>::extract_slow(_mm256_castsi256_si128(lhs), index);
-		return SimdImpl128<uint32_t>::extract_slow(_mm256_extracti128_si256(lhs, 1), index - 4);
+		const __m256i selected = _mm256_permutevar8x32_epi32(lhs, _mm256_set1_epi32(index));
+		return static_cast<uint32_t>(_mm_cvtsi128_si32(_mm256_castsi256_si128(selected)));
 	}
 	/** @brief Replaces the compile-time-selected unsigned 32-bit lane during constant evaluation. */
 	template <int index> [[nodiscard]] constexpr static auto insert_constexpr(auto lhs, const uint32_t rhs) noexcept
