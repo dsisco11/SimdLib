@@ -140,8 +140,8 @@ TEST_CASE("256-bit arithmetic, horizontal operations, shuffles, and blends match
 	const auto rhs = simd::setr(8, 7, 6, 5, 4, 3, 2, 1);
 	REQUIRE(simd::to_array(simd::multiply(lhs, rhs)) == std::array<std::int32_t, 8>{8, 14, 18, 20, 20, 18, 14, 8});
 	REQUIRE(simd::to_array(simd::add_horizontal(lhs, rhs)) == std::array<std::int32_t, 8>{3, 7, 15, 11, 11, 15, 7, 3});
-	REQUIRE(simd::to_array(simd::shuffle_32(lhs, 0b00'01'10'11)) == std::array<std::int32_t, 8>{4, 3, 2, 1, 8, 7, 6, 5});
-	REQUIRE(simd::to_array(simd::blend(lhs, rhs, 0b01010101)) == std::array<std::int32_t, 8>{8, 2, 6, 4, 4, 6, 2, 8});
+	REQUIRE(simd::to_array(simd::shuffle_32_slow(lhs, 0b00'01'10'11)) == std::array<std::int32_t, 8>{4, 3, 2, 1, 8, 7, 6, 5});
+	REQUIRE(simd::to_array(simd::blend_slow(lhs, rhs, 0b01010101)) == std::array<std::int32_t, 8>{8, 2, 6, 4, 4, 6, 2, 8});
 }
 
 TEST_CASE("256-bit public 64-bit arithmetic contract", "[simdlib][avx2][int64][arithmetic]")

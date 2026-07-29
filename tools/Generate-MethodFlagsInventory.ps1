@@ -492,21 +492,21 @@ function Get-MemoryClassification {
     $hasByValueArrayParameter =
         $Parameters -match '(?:const\s+)?std::array\s*<[^;{}()]*>\s+(?![&*])'
     $dependentWriterPath =
-        $Body -match '\bimpl::(?:blend|shuffle|shuffle_lo|shuffle_hi)\s*\('
+        $Body -match '\bimpl::(?:blend|shuffle|shuffle_lo|shuffle_hi)(?:_slow)?\s*\('
     $runtimeBody = [regex]::Replace(
         $Body,
         '\bconstexpr\b[^;{}]*\bregister_from_values\b[^;{}]*;',
         '')
     $runtimeStorageHelpers = @($Calls | Where-Object {
             $_ -match '^register_(?:get|set|from_array|from_values|' +
-                'from_repeated_value|to_array|data|insert|blend|blend_bytes|' +
-                'insert_float|shuffle_float|shuffle_double|shuffle_32|' +
-                'shuffle_half_16|byte_shift_left|byte_shift_right|' +
+                'from_repeated_value|to_array|data|insert|blend|blend_slow|blend_bytes|' +
+                'insert_float|shuffle_float|shuffle_float_slow|shuffle_double|shuffle_double_slow|shuffle_32|shuffle_32_slow|' +
+                'shuffle_half_16|shuffle_half_16_slow|byte_shift_left|byte_shift_right|' +
                 'transform_binary)$' -and
             $runtimeBody -match "\b$([regex]::Escape($_))\b"
         })
     if ($constexprIsolation -and
-        $Symbol -match '^_ext128_shift_(?:left|right)_bits_dynamic$') {
+        $Symbol -match '^_ext128_shift_(?:left|right)_bits_slow$') {
         $runtimeStorageHelpers = @()
     }
     $compileTimeArrayOnly =
@@ -834,9 +834,9 @@ foreach ($record in $inventory) {
     if ($record.Memory -like 'ReviewRequired:*') {
         $hazards = @($calls | Where-Object {
                 $_ -match '^register_(?:get|set|from_array|from_values|' +
-                    'from_repeated_value|to_array|data|insert|blend|blend_bytes|' +
-                    'insert_float|shuffle_float|shuffle_double|shuffle_32|' +
-                    'shuffle_half_16|byte_shift_left|byte_shift_right|' +
+                    'from_repeated_value|to_array|data|insert|blend|blend_slow|blend_bytes|' +
+                    'insert_float|shuffle_float|shuffle_float_slow|shuffle_double|shuffle_double_slow|shuffle_32|shuffle_32_slow|' +
+                    'shuffle_half_16|shuffle_half_16_slow|byte_shift_left|byte_shift_right|' +
                     'transform_binary)$'
             })
         $record.TransitiveAudit = if ($hazards.Count -gt 0) {

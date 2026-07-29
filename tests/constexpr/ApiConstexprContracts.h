@@ -143,12 +143,12 @@ template <std::size_t Width, class Element> [[nodiscard]] consteval bool constru
 	{ return simd::setr(static_cast<Element>(Indices + 1)...); }(std::make_index_sequence<simd::element_count>{});
 	if (simd::to_array(setrValue) != values)
 		return false;
-	if (simd::extract(constructed, 0) != values.front() || simd::extract(constructed, static_cast<int>(simd::element_count - 1)) != values.back())
+	if (simd::extract_slow(constructed, 0) != values.front() || simd::extract_slow(constructed, static_cast<int>(simd::element_count - 1)) != values.back())
 		return false;
 
 	constexpr Element replacement = static_cast<Element>(42);
-	const auto replaced = simd::insert(constructed, replacement, static_cast<int>(simd::element_count - 1));
-	return simd::extract(replaced, static_cast<int>(simd::element_count - 1)) == replacement;
+	const auto replaced = simd::insert_slow(constructed, replacement, static_cast<int>(simd::element_count - 1));
+	return simd::extract_slow(replaced, static_cast<int>(simd::element_count - 1)) == replacement;
 }
 
 /**
@@ -432,12 +432,12 @@ template <std::size_t Width, std::integral Element> [[nodiscard]] consteval bool
 	using simd = Api<Width, Element>;
 	constexpr auto positive = simd::set1(static_cast<Element>(4));
 	if (simd::to_array(simd::shift_left(positive, 0)) != simd::to_array(positive) ||
-		simd::extract(simd::shift_left(positive, 1), 0) != static_cast<Element>(8) ||
-		simd::extract(simd::shift_right(positive, 1), 0) != static_cast<Element>(2))
+		simd::extract_slow(simd::shift_left(positive, 1), 0) != static_cast<Element>(8) ||
+		simd::extract_slow(simd::shift_right(positive, 1), 0) != static_cast<Element>(2))
 		return false;
 	constexpr int finalShift = static_cast<int>(sizeof(Element) * 8 - 1);
 	constexpr int widthShift = static_cast<int>(sizeof(Element) * 8);
-	if (simd::extract(simd::shift_left(simd::set1(static_cast<Element>(1)), finalShift), 0) !=
+	if (simd::extract_slow(simd::shift_left(simd::set1(static_cast<Element>(1)), finalShift), 0) !=
 			static_cast<Element>(std::make_unsigned_t<Element>{1} << finalShift) ||
 		simd::to_array(simd::shift_left(positive, widthShift)) != std::array<Element, simd::element_count>{} ||
 		simd::to_array(simd::shift_left(positive, widthShift + 1)) != std::array<Element, simd::element_count>{} ||
@@ -445,9 +445,9 @@ template <std::size_t Width, std::integral Element> [[nodiscard]] consteval bool
 		simd::to_array(simd::shift_right(positive, widthShift + 1)) != std::array<Element, simd::element_count>{})
 		return false;
 	if constexpr (std::is_signed_v<Element>)
-		return simd::extract(simd::shift_right_arithmetic(simd::set1(static_cast<Element>(-8)), 1), 0) == static_cast<Element>(-4) &&
-			   simd::extract(simd::shift_right_arithmetic(simd::set1(static_cast<Element>(-8)), widthShift), 0) == static_cast<Element>(-1) &&
-			   simd::extract(simd::shift_right_arithmetic(simd::set1(static_cast<Element>(-8)), widthShift + 1), 0) == static_cast<Element>(-1);
+		return simd::extract_slow(simd::shift_right_arithmetic(simd::set1(static_cast<Element>(-8)), 1), 0) == static_cast<Element>(-4) &&
+			   simd::extract_slow(simd::shift_right_arithmetic(simd::set1(static_cast<Element>(-8)), widthShift), 0) == static_cast<Element>(-1) &&
+			   simd::extract_slow(simd::shift_right_arithmetic(simd::set1(static_cast<Element>(-8)), widthShift + 1), 0) == static_cast<Element>(-1);
 	return true;
 }
 
@@ -460,23 +460,23 @@ template <std::size_t Width, std::integral Element> [[nodiscard]] consteval bool
 	using words = Api<128, std::uint64_t>;
 	constexpr auto value = words::setr(std::uint64_t{1}, std::uint64_t{1} << 63);
 	constexpr auto original = std::array<std::uint64_t, 2>{1, std::uint64_t{1} << 63};
-	if (words::to_array(words::bit_shift_left(value, -1)) != original || words::to_array(words::bit_shift_left(value, 0)) != original ||
-		words::to_array(words::bit_shift_left(value, 1)) != std::array<std::uint64_t, 2>{2, 0} ||
-		words::to_array(words::bit_shift_left(value, 63)) != std::array<std::uint64_t, 2>{std::uint64_t{1} << 63, 0} ||
-		words::to_array(words::bit_shift_left(value, 64)) != std::array<std::uint64_t, 2>{0, 1} ||
-		words::to_array(words::bit_shift_left(value, 65)) != std::array<std::uint64_t, 2>{0, 2} ||
-		words::to_array(words::bit_shift_left(value, 127)) != std::array<std::uint64_t, 2>{0, std::uint64_t{1} << 63} ||
-		words::to_array(words::bit_shift_left(value, 128)) != std::array<std::uint64_t, 2>{} ||
-		words::to_array(words::bit_shift_left(value, 129)) != std::array<std::uint64_t, 2>{})
+	if (words::to_array(words::bit_shift_left_slow(value, -1)) != original || words::to_array(words::bit_shift_left_slow(value, 0)) != original ||
+		words::to_array(words::bit_shift_left_slow(value, 1)) != std::array<std::uint64_t, 2>{2, 0} ||
+		words::to_array(words::bit_shift_left_slow(value, 63)) != std::array<std::uint64_t, 2>{std::uint64_t{1} << 63, 0} ||
+		words::to_array(words::bit_shift_left_slow(value, 64)) != std::array<std::uint64_t, 2>{0, 1} ||
+		words::to_array(words::bit_shift_left_slow(value, 65)) != std::array<std::uint64_t, 2>{0, 2} ||
+		words::to_array(words::bit_shift_left_slow(value, 127)) != std::array<std::uint64_t, 2>{0, std::uint64_t{1} << 63} ||
+		words::to_array(words::bit_shift_left_slow(value, 128)) != std::array<std::uint64_t, 2>{} ||
+		words::to_array(words::bit_shift_left_slow(value, 129)) != std::array<std::uint64_t, 2>{})
 		return false;
-	if (words::to_array(words::bit_shift_right(value, -1)) != original || words::to_array(words::bit_shift_right(value, 0)) != original ||
-		words::to_array(words::bit_shift_right(value, 1)) != std::array<std::uint64_t, 2>{0, std::uint64_t{1} << 62} ||
-		words::to_array(words::bit_shift_right(value, 63)) != std::array<std::uint64_t, 2>{0, 1} ||
-		words::to_array(words::bit_shift_right(value, 64)) != std::array<std::uint64_t, 2>{std::uint64_t{1} << 63, 0} ||
-		words::to_array(words::bit_shift_right(value, 65)) != std::array<std::uint64_t, 2>{std::uint64_t{1} << 62, 0} ||
-		words::to_array(words::bit_shift_right(value, 127)) != std::array<std::uint64_t, 2>{1, 0} ||
-		words::to_array(words::bit_shift_right(value, 128)) != std::array<std::uint64_t, 2>{} ||
-		words::to_array(words::bit_shift_right(value, 129)) != std::array<std::uint64_t, 2>{})
+	if (words::to_array(words::bit_shift_right_slow(value, -1)) != original || words::to_array(words::bit_shift_right_slow(value, 0)) != original ||
+		words::to_array(words::bit_shift_right_slow(value, 1)) != std::array<std::uint64_t, 2>{0, std::uint64_t{1} << 62} ||
+		words::to_array(words::bit_shift_right_slow(value, 63)) != std::array<std::uint64_t, 2>{0, 1} ||
+		words::to_array(words::bit_shift_right_slow(value, 64)) != std::array<std::uint64_t, 2>{std::uint64_t{1} << 63, 0} ||
+		words::to_array(words::bit_shift_right_slow(value, 65)) != std::array<std::uint64_t, 2>{std::uint64_t{1} << 62, 0} ||
+		words::to_array(words::bit_shift_right_slow(value, 127)) != std::array<std::uint64_t, 2>{1, 0} ||
+		words::to_array(words::bit_shift_right_slow(value, 128)) != std::array<std::uint64_t, 2>{} ||
+		words::to_array(words::bit_shift_right_slow(value, 129)) != std::array<std::uint64_t, 2>{})
 		return false;
 	if (words::to_array(words::template bit_shift_left<0>(value)) != original ||
 		words::to_array(words::template bit_shift_left<1>(value)) != std::array<std::uint64_t, 2>{2, 0} ||
@@ -504,16 +504,37 @@ template <std::size_t Width, std::integral Element> [[nodiscard]] consteval bool
 	std::array<std::uint8_t, bytes::element_count> right15{};
 	left15.back() = byteValues.front();
 	right15.front() = byteValues.back();
-	return bytes::to_array(bytes::byte_shift_left(byteValue, -1)) == byteValues && bytes::to_array(bytes::byte_shift_left(byteValue, 0)) == byteValues &&
-		   bytes::to_array(bytes::byte_shift_left(byteValue, 15)) == left15 &&
-		   bytes::to_array(bytes::byte_shift_left(byteValue, 16)) == std::array<std::uint8_t, bytes::element_count>{} &&
-		   bytes::to_array(bytes::byte_shift_left(byteValue, 17)) == std::array<std::uint8_t, bytes::element_count>{} &&
-		   bytes::to_array(bytes::byte_shift_right(byteValue, -1)) == byteValues && bytes::to_array(bytes::byte_shift_right(byteValue, 0)) == byteValues &&
-		   bytes::to_array(bytes::byte_shift_right(byteValue, 15)) == right15 &&
-		   bytes::to_array(bytes::byte_shift_right(byteValue, 16)) == std::array<std::uint8_t, bytes::element_count>{} &&
-		   bytes::to_array(bytes::byte_shift_right(byteValue, 17)) == std::array<std::uint8_t, bytes::element_count>{};
+	return bytes::to_array(bytes::byte_shift_left_slow(byteValue, -1)) == byteValues &&
+		   bytes::to_array(bytes::byte_shift_left_slow(byteValue, 0)) == byteValues && bytes::to_array(bytes::byte_shift_left_slow(byteValue, 15)) == left15 &&
+		   bytes::to_array(bytes::byte_shift_left_slow(byteValue, 16)) == std::array<std::uint8_t, bytes::element_count>{} &&
+		   bytes::to_array(bytes::byte_shift_left_slow(byteValue, 17)) == std::array<std::uint8_t, bytes::element_count>{} &&
+		   bytes::to_array(bytes::byte_shift_right_slow(byteValue, -1)) == byteValues &&
+		   bytes::to_array(bytes::byte_shift_right_slow(byteValue, 0)) == byteValues &&
+		   bytes::to_array(bytes::byte_shift_right_slow(byteValue, 15)) == right15 &&
+		   bytes::to_array(bytes::byte_shift_right_slow(byteValue, 16)) == std::array<std::uint8_t, bytes::element_count>{} &&
+		   bytes::to_array(bytes::byte_shift_right_slow(byteValue, 17)) == std::array<std::uint8_t, bytes::element_count>{};
 }
 
+/**
+ * @brief Verifies immediate blend through the implementation-layer constant-evaluation entry point.
+ * @tparam Width SIMD register width in bits.
+ * @tparam Element Lane type supported by immediate blend.
+ * @return `true` when the compile-time mask selects the expected lanes.
+ */
+template <std::size_t Width, class Element> [[nodiscard]] consteval bool immediate_blend_contract() noexcept
+{
+	using api = Api<Width, Element>;
+	std::array<Element, api::element_count> left{};
+	std::array<Element, api::element_count> right{};
+	std::array<Element, api::element_count> expected{};
+	for (std::size_t index = 0; index < api::element_count; ++index)
+	{
+		left[index] = static_cast<Element>(index + 1);
+		right[index] = static_cast<Element>(index + 33);
+		expected[index] = (0xA5u & (1u << (index % 8))) != 0 ? right[index] : left[index];
+	}
+	return api::to_array(api::template blend<0xA5>(api::construct(left), api::construct(right))) == expected;
+}
 /** @brief Result bundle shared by constexpr and forced-runtime parity checks. */
 template <std::size_t Width> struct ApiContractSnapshot final
 {

@@ -517,8 +517,8 @@ void require_complete_register_shifts()
 			for (std::size_t index = 0; index + static_cast<std::size_t>(count) < bytes.size(); ++index)
 				right[index] = bytes[index + static_cast<std::size_t>(count)];
 		}
-		REQUIRE(byte_value.byte_shift_left(count).to_array() == left);
-		REQUIRE(byte_value.byte_shift_right(count).to_array() == right);
+		REQUIRE(byte_value.byte_shift_left_slow(count).to_array() == left);
+		REQUIRE(byte_value.byte_shift_right_slow(count).to_array() == right);
 	}
 
 	using word_register = SimdLib::Register<std::uint64_t, 128>;
@@ -527,8 +527,8 @@ void require_complete_register_shifts()
 	constexpr std::array<int, 11> bit_counts{std::numeric_limits<int>::lowest(), -1, 0, 1, 63, 64, 65, 127, 128, 129, std::numeric_limits<int>::max()};
 	for (const int count : bit_counts)
 	{
-		REQUIRE(word_value.bit_shift_left(count).to_array() == whole_left(words, count));
-		REQUIRE(word_value.bit_shift_right(count).to_array() == whole_right(words, count));
+		REQUIRE(word_value.bit_shift_left_slow(count).to_array() == whole_left(words, count));
+		REQUIRE(word_value.bit_shift_right_slow(count).to_array() == whole_right(words, count));
 	}
 	REQUIRE(word_value.template bit_shift_left<0>().to_array() == whole_left(words, 0));
 	REQUIRE(word_value.template bit_shift_left<1>().to_array() == whole_left(words, 1));

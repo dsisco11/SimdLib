@@ -170,6 +170,9 @@ if(SIMDLIB_BUILD_CONFIGURATION_PROBES)
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/RegisterWrongByteShuffleSelectorCount.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/api/ApiInvalidShuffleSelector.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/api/ApiWrongShuffleSelectorCount.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/api/ApiUnsuffixedRuntimeImmediate.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/RegisterUnsuffixedRuntimeImmediate.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/availability/ImmediateControlSlowPathProbe.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/RegisterInvalidRearrangementImmediate.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/RegisterUnsupportedConversionTarget.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/RegisterUnavailableWidthChange.cpp
@@ -178,6 +181,14 @@ if(SIMDLIB_BUILD_CONFIGURATION_PROBES)
 
 	simdlib_add_language_probe(RegisterCxx20UmbrellaProbe
 		tests/availability/RegisterCxx20UmbrellaProbe.cpp 20 SimdLib::SimdLib)
+
+	simdlib_add_language_probe(ImmediateControlSlowPathProbe
+		tests/availability/ImmediateControlSlowPathProbe.cpp 20 SimdLib::SimdLib)
+	if(SIMDLIB_MSVC_STYLE_DRIVER)
+		target_compile_options(ImmediateControlSlowPathProbe PRIVATE /arch:AVX2)
+	else()
+		target_compile_options(ImmediateControlSlowPathProbe PRIVATE -mavx2)
+	endif()
 
 	if(SIMDLIB_REGISTER_COMPILER_SUPPORTED)
 		simdlib_add_language_probe(RegisterEnabledProbe
@@ -245,6 +256,9 @@ if(SIMDLIB_BUILD_CONFIGURATION_PROBES)
 		simdlib_expect_language_probe_failure(RegisterCollectionOperationsFailure
 			tests/compile_fail/register/RegisterCollectionOperations.cpp 23
 			SIMDLIB_REGISTER_REJECTS_COLLECTION_OPERATIONS)
+		simdlib_expect_language_probe_failure(RegisterUnsuffixedRuntimeImmediateFailure
+			tests/compile_fail/register/RegisterUnsuffixedRuntimeImmediate.cpp 23
+			SIMDLIB_REGISTER_REJECTS_UNSUFFIXED_RUNTIME_IMMEDIATE_CONTROLS)
 		if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
 			simdlib_add_language_probe(RegisterMsvcFallbackProbe
 				tests/availability/RegisterMsvcFallbackProbe.cpp 23 SimdLib::Register)
@@ -269,6 +283,9 @@ if(SIMDLIB_BUILD_CONFIGURATION_PROBES)
 	simdlib_expect_language_probe_failure(ApiWrongShuffleSelectorCountFailure
 		tests/compile_fail/api/ApiWrongShuffleSelectorCount.cpp 20
 		SIMDLIB_API_REJECTS_WRONG_SHUFFLE_SELECTOR_COUNT)
+	simdlib_expect_language_probe_failure(ApiUnsuffixedRuntimeImmediateFailure
+		tests/compile_fail/api/ApiUnsuffixedRuntimeImmediate.cpp 20
+		SIMDLIB_REJECTS_UNSUFFIXED_RUNTIME_IMMEDIATE_CONTROLS)
 	if(NOT SIMDLIB_REGISTER_COMPILER_SUPPORTED)
 		simdlib_expect_language_probe_failure(RegisterUnsupportedCompilerFailure
 			tests/compile_fail/register/RegisterUnsupportedCompiler.cpp 23

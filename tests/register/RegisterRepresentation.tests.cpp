@@ -94,10 +94,10 @@ template <class element_t, std::size_t bits> consteval bool has_exact_operation_
 	constexpr bool integral = std::is_integral_v<element_t>;
 	return !has_scalar_arithmetic<register_type> && SimdLib::IRegister::Modulus<register_type> == integral &&
 		   SimdLib::IRegister::ShiftLeft<register_type> == integral && SimdLib::IRegister::LogicalShiftRight<register_type> == integral &&
-		   SimdLib::IRegister::ShiftRight<register_type> == integral && SimdLib::IRegister::ByteShiftLeft<register_type> == (integral && bits == 128) &&
-		   SimdLib::IRegister::ByteShiftRight<register_type> == (integral && bits == 128) &&
-		   SimdLib::IRegister::BitShiftLeft<register_type> == (integral && bits == 128) &&
-		   SimdLib::IRegister::BitShiftRight<register_type> == (integral && bits == 128) &&
+		   SimdLib::IRegister::ShiftRight<register_type> == integral && SimdLib::IRegister::ByteShiftLeftSlow<register_type> == (integral && bits == 128) &&
+		   SimdLib::IRegister::ByteShiftRightSlow<register_type> == (integral && bits == 128) &&
+		   SimdLib::IRegister::BitShiftLeftSlow<register_type> == (integral && bits == 128) &&
+		   SimdLib::IRegister::BitShiftRightSlow<register_type> == (integral && bits == 128) &&
 		   SimdLib::IRegister::IndexedBitShiftLeft<register_type, 1> == (integral && bits == 128) &&
 		   SimdLib::IRegister::IndexedBitShiftRight<register_type, 1> == (integral && bits == 128) &&
 		   !SimdLib::IRegister::IndexedBitShiftLeft<register_type, -1> && !SimdLib::IRegister::IndexedBitShiftRight<register_type, -1>;

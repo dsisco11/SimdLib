@@ -307,13 +307,14 @@ template <class element_t, std::size_t bits>
 		lanes[index] = static_cast<std::uint8_t>(index + 1);
 	const auto value = register_type::from_array(lanes);
 #if SIMDLIB_COMPILER_MSVC
-	const auto bytes = value.byte_shift_left(1);
+	const auto bytes = value.byte_shift_left_slow(1);
 	(void)bytes;
 	return true;
 #else
 	const auto zeros = register_type::zero().to_array();
-	return value.byte_shift_left(0).to_array() == lanes && value.byte_shift_left(16).to_array() == zeros && value.byte_shift_left(17).to_array() == zeros &&
-		   value.byte_shift_right(16).to_array() == zeros && value.bit_shift_left(128).to_array() == zeros && value.bit_shift_right(128).to_array() == zeros &&
+	return value.byte_shift_left_slow(0).to_array() == lanes && value.byte_shift_left_slow(16).to_array() == zeros &&
+		   value.byte_shift_left_slow(17).to_array() == zeros && value.byte_shift_right_slow(16).to_array() == zeros &&
+		   value.bit_shift_left_slow(128).to_array() == zeros && value.bit_shift_right_slow(128).to_array() == zeros &&
 		   value.template bit_shift_left<128>().to_array() == zeros && value.template bit_shift_left<129>().to_array() == zeros &&
 		   value.template bit_shift_right<128>().to_array() == zeros && value.template bit_shift_right<129>().to_array() == zeros;
 #endif

@@ -330,28 +330,28 @@ concept ShiftRight = Type<register_t> && requires(register_t value) {
 	{ value >> 1 } -> std::same_as<register_t>;
 };
 
-/** @brief Reports whether a Register type exposes complete-register dynamic byte left shift. */
+/** @brief Reports whether a Register type exposes explicit slow-path complete-register dynamic byte left shift. */
 template <class register_t>
-concept ByteShiftLeft = Type<register_t> && requires(register_t value) {
-	{ value.byte_shift_left(1) } -> std::same_as<register_t>;
+concept ByteShiftLeftSlow = Type<register_t> && requires(register_t value) {
+	{ value.byte_shift_left_slow(1) } -> std::same_as<register_t>;
 };
 
-/** @brief Reports whether a Register type exposes complete-register dynamic byte right shift. */
+/** @brief Reports whether a Register type exposes explicit slow-path complete-register dynamic byte right shift. */
 template <class register_t>
-concept ByteShiftRight = Type<register_t> && requires(register_t value) {
-	{ value.byte_shift_right(1) } -> std::same_as<register_t>;
+concept ByteShiftRightSlow = Type<register_t> && requires(register_t value) {
+	{ value.byte_shift_right_slow(1) } -> std::same_as<register_t>;
 };
 
-/** @brief Reports whether a Register type exposes complete-register dynamic bit left shift. */
+/** @brief Reports whether a Register type exposes explicit slow-path complete-register dynamic bit left shift. */
 template <class register_t>
-concept BitShiftLeft = Type<register_t> && requires(register_t value) {
-	{ value.bit_shift_left(1) } -> std::same_as<register_t>;
+concept BitShiftLeftSlow = Type<register_t> && requires(register_t value) {
+	{ value.bit_shift_left_slow(1) } -> std::same_as<register_t>;
 };
 
-/** @brief Reports whether a Register type exposes complete-register dynamic bit right shift. */
+/** @brief Reports whether a Register type exposes explicit slow-path complete-register dynamic bit right shift. */
 template <class register_t>
-concept BitShiftRight = Type<register_t> && requires(register_t value) {
-	{ value.bit_shift_right(1) } -> std::same_as<register_t>;
+concept BitShiftRightSlow = Type<register_t> && requires(register_t value) {
+	{ value.bit_shift_right_slow(1) } -> std::same_as<register_t>;
 };
 
 /** @brief Reports whether a Register type exposes complete-register compile-time bit left shift. */

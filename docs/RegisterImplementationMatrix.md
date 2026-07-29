@@ -42,7 +42,7 @@ These portability rules do not change a public declaration.
 
 ## Contract traceability
 
-| Contract | Accepted implementation requirement | Owning phase | Required evidence |
+| Contract | Accepted implementation requirement | Owning task | Required evidence |
 | --- | --- | ---: | --- |
 | Template identity | All new public templates, concepts, aliases, and examples use `<T, Bits>`; only internal delegation uses `Api<Bits, T>` | 3, 9 | Compile probes and public-source audit |
 | Availability | `SIMDLIB_REGISTER_INTERFACE_AVAILABLE` is computed from the standard explicit-object feature macro or the documented MSVC 19.44 fallback and cannot be overridden | 1 | Positive and negative configuration probes |
@@ -83,8 +83,8 @@ These portability rules do not change a public declaration.
 | Implicit scalar broadcast | Excluded | Broadcast cost and intent remain explicit |
 | Implicit native conversion or mutable native reference | Excluded | Native access is an explicit by-value boundary |
 | Scalar mask construction or `from_bits()` | Excluded | Native aggregate interoperation stays explicit and scalar expansion policy remains deferred |
-| Runtime `extract` | Initial compatibility-only | Backend selector semantics are implementation-specific |
-| Generic `shuffle(args...)` | Initial compatibility-only | Implementation-specific signatures are not a portable value API |
+| Runtime `extract_slow` | Api-only slow path | Register deliberately exposes only compile-time lane access |
+| Register-selector `shuffle(value, selector)` | Api-only native control | Register exposes portable logical and byte shuffles instead of the backend register signature |
 | `expand` and `compress` | Compatibility-only | Result width, lane consumption, and saturation are ambiguous |
 | Multi-register widening/narrowing | Separate future design | One Register operation produces one complete result Register |
 | Scalar arithmetic overloads | Deferred additive API | Real call sites and code generation must first justify them |
@@ -171,26 +171,25 @@ the operation or intentionally leaves it in a compatibility or collection layer.
 | Deprecated `cmp_eq`, `cmp_gt`, `cmp_ge`, `cmp_lt`, `cmp_le` | Corresponding explicitly named `cmp_*_mask` method | Compatibility |
 | `expand`, `compress` | No Register operation | Compatibility |
 | `extract<index>` | `value.lane<index>()` | Implemented |
-| Runtime `extract` | No initial Register operation | Compatibility |
+| Runtime `extract_slow` | No Register operation | Explicit Api slow path |
 | `lower_half` | `value.lower_half()` | Implemented |
 | `insert<index>` | `value.with_lane<index>(lane)` | Implemented |
-| Generic `insert(args...)` | No initial Register operation | Compatibility |
 | `unpack_lo` | `lhs.unpack_low(rhs)` | Implemented |
 | `unpack_hi` | `lhs.unpack_high(rhs)` | Implemented |
 | `shuffle<indices...>` | `value.shuffle<indices...>()` | Implemented for every arithmetic element type at 128 and 256 bits |
 | `Api<Bits, std::uint8_t>::shuffle<indices...>` | `value.shuffle_bytes<indices...>()` | Implemented for every arithmetic element type at 128 and 256 bits; result retains its element type |
-| Generic `shuffle(args...)` | No initial Register operation | Compatibility |
-| `shuffle_lo` | `value.shuffle_low<imm8>()` | Implemented |
-| `shuffle_hi` | `value.shuffle_high<imm8>()` | Implemented |
-| `blend` | `lhs.blend<imm8>(rhs)`; predicate selection uses `mask.select()` | Implemented |
+| Register-selector `shuffle(value, selector)` | No generic Register operation | Native Api control; Register exposes `shuffle_bytes<indices...>()` |
+| `shuffle_lo<imm8>`; `shuffle_lo_slow` | `value.shuffle_low<imm8>()` | Compile-time form implemented; scalar runtime control remains Api-only |
+| `shuffle_hi<imm8>`; `shuffle_hi_slow` | `value.shuffle_high<imm8>()` | Compile-time form implemented; scalar runtime control remains Api-only |
+| `blend<imm8>`; register-mask `blend`; `blend_slow` | `lhs.blend<imm8>(rhs)`; predicate selection uses `mask.select()` | Compile-time and native-register controls mapped; scalar runtime control remains Api-only |
 | `shift_left` | `value << count` | Implemented |
 | `shift_right` | `value.logical_shift_right(count)`; unsigned `operator>>` | Implemented |
 | `shift_right_arithmetic` | Signed `value >> count` | Implemented |
-| `byte_shift_left` | `value.byte_shift_left(count)` | Implemented |
-| `byte_shift_right` | `value.byte_shift_right(count)` | Implemented |
-| Runtime `bit_shift_left` | `value.bit_shift_left(count)` | Implemented |
+| `byte_shift_left_slow` | `value.byte_shift_left_slow(count)` | Implemented |
+| `byte_shift_right_slow` | `value.byte_shift_right_slow(count)` | Implemented |
+| Runtime `bit_shift_left_slow` | `value.bit_shift_left_slow(count)` | Implemented |
 | Compile-time `bit_shift_left` | `value.bit_shift_left<count>()` | Implemented |
-| Runtime `bit_shift_right` | `value.bit_shift_right(count)` | Implemented |
+| Runtime `bit_shift_right_slow` | `value.bit_shift_right_slow(count)` | Implemented |
 | Compile-time `bit_shift_right` | `value.bit_shift_right<count>()` | Implemented |
 | `bit_cast` | `value.bit_cast<target_t>()` | Implemented |
 | `convert_to_float` | `value.convert<float>()` | Implemented |
@@ -319,7 +318,7 @@ the complete correctness, layout, ABI, and generated-code gates pass.
 | Checks-enabled preconditions | `tests/RegisterPreconditionFailure.tests.cpp` | Existing precondition death-test infrastructure |
 | Sanitizers | Runtime Register and mask sources | Fresh Clang ASan/UBSan configuration |
 | Supplemental benchmarks | `benchmarks/Register.benchmarks.cpp` | `Benchmarks`; never a correctness/codegen substitute |
-| Final evidence | This document and `docs/Validation.md` | Updated after each completed phase |
+| Final evidence | This document and `docs/Validation.md` | Updated after each completed task |
 
 Every production class and method has Doxygen documentation. Test
 and generated-code sources use only public SimdLib declarations except the

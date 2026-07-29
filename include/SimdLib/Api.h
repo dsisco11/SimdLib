@@ -36,22 +36,6 @@ enum class comparison_operation
 	unordered,
 };
 
-/** @brief Reports whether an argument pack is a runtime scalar-lane insertion signature. */
-template <class vector_t, class element_t, class... argument_t> struct is_runtime_lane_insert : std::false_type
-{
-};
-
-/** @brief Recognizes `(vector, scalar, index)` runtime scalar-lane insertion arguments. */
-template <class vector_t, class element_t, class lhs_t, class rhs_t, class index_t>
-struct is_runtime_lane_insert<vector_t, element_t, lhs_t, rhs_t, index_t>
-	: std::bool_constant<std::same_as<std::remove_cvref_t<lhs_t>, vector_t> && std::convertible_to<rhs_t, element_t> && std::convertible_to<index_t, int>>
-{
-};
-
-/** @brief Exposes runtime scalar-lane insertion argument recognition as a Boolean constant. */
-template <class vector_t, class element_t, class... argument_t>
-inline constexpr bool is_runtime_lane_insert_v = is_runtime_lane_insert<vector_t, element_t, argument_t...>::value;
-
 } // namespace Detail
 
 /**
@@ -1013,14 +997,15 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param lhs Source register.
 	 *  @param rhs Extract selector.
 	 *  @return Extracted value as defined by the specialization.
+	 *  @note `_slow` marks runtime emulation of an immediate lane selector.
 	 */
 	template <class selector_t>
-	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr static auto VECTORCALL extract(const vector_t lhs, selector_t rhs) noexcept
-		requires IImpl::DynamicExtract<impl, selector_t>
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr static auto VECTORCALL extract_slow(const vector_t lhs, selector_t rhs) noexcept
+		requires IImpl::ExtractSlow<impl, selector_t>
 	{
 		if (std::is_constant_evaluated())
 			return extract_constexpr(lhs, static_cast<int>(rhs));
-		return impl::extract(lhs, rhs);
+		return impl::extract_slow(lhs, rhs);
 	}
 
 	/** @brief Returns the low 128-bit half of a 256-bit register when the specialization supports it.
@@ -1058,25 +1043,14 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 * @param rhs Scalar replacement value.
 	 * @param index Runtime-selected logical lane index.
 	 * @return Register with the selected lane replaced.
+	 * @note `_slow` marks runtime emulation of an immediate lane selector.
 	 */
-	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr static vector_t VECTORCALL insert(const vector_t lhs, const element_t rhs, const int index) noexcept
-		requires IImpl::Insert<impl, vector_t, element_t, int>
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr static vector_t VECTORCALL insert_slow(const vector_t lhs, const element_t rhs, const int index) noexcept
+		requires IImpl::InsertSlow<impl, vector_t, element_t, int>
 	{
 		if (std::is_constant_evaluated())
 			return insert_constexpr(lhs, rhs, index);
-		return impl::insert(lhs, rhs, index);
-	}
-
-	/** @brief Inserts a lane or subvalue into a register.
-	 *  @tparam Args Argument pack matching the implementation-specific insert signature.
-	 *  @param args Arguments forwarded to the specialization insert operation.
-	 *  @return Register containing the inserted value.
-	 */
-	template <class... Args>
-	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(Args &&...args) noexcept
-		requires(IImpl::Insert<impl, Args...> && !Detail::is_runtime_lane_insert_v<vector_t, element_t, Args...>)
-	{
-		return impl::insert(std::forward<Args>(args)...);
+		return impl::insert_slow(lhs, rhs, index);
 	}
 
 	/** @brief Unpacks the low lanes of two registers.
@@ -1132,6 +1106,20 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 		return impl::shuffle(std::forward<Args>(args)...);
 	}
 
+	/**
+	 * @brief Emulates an immediate-controlled shuffle from a runtime scalar control.
+	 * @tparam Args Argument pack matching the implementation slow-path shuffle signature.
+	 * @param args Arguments forwarded to the specialization slow-path shuffle operation.
+	 * @return Register containing the shuffled result.
+	 * @note `_slow` identifies a deliberate runtime substitute for an immediate-controlled operation and may require dispatch, branching, or a longer
+	 * synthesized instruction sequence.
+	 */
+	template <class... Args>
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE static auto VECTORCALL shuffle_slow(Args &&...args) noexcept
+		requires IImpl::ShuffleSlow<impl, Args...>
+	{
+		return impl::shuffle_slow(std::forward<Args>(args)...);
+	}
 	/** @brief Shuffles the low four 16-bit lanes in each 128-bit group using an immediate control.
 	 *  @tparam imm8 Immediate control in the inclusive range `0..255`; every two-bit field selects one lane.
 	 *  @param lhs Source register.
@@ -1151,12 +1139,13 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 * shuffle-low signature.
 	 *  @param args Arguments forwarded to the specialization shuffle-low operation.
 	 *  @return Register containing the shuffled low-half result.
+	 *  @note `_slow` marks runtime emulation of an immediate control byte and may require a longer synthesized sequence.
 	 */
 	template <class... Args>
-	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL shuffle_lo(Args &&...args) noexcept
-		requires IImpl::ShuffleLow<impl, Args...>
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL shuffle_lo_slow(Args &&...args) noexcept
+		requires IImpl::ShuffleLowSlow<impl, Args...>
 	{
-		return impl::shuffle_lo(std::forward<Args>(args)...);
+		return impl::shuffle_lo_slow(std::forward<Args>(args)...);
 	}
 
 	/** @brief Shuffles the high four 16-bit lanes in each 128-bit group using an immediate control.
@@ -1178,12 +1167,13 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 * shuffle-high signature.
 	 *  @param args Arguments forwarded to the specialization shuffle-high operation.
 	 *  @return Register containing the shuffled high-half result.
+	 *  @note `_slow` marks runtime emulation of an immediate control byte and may require a longer synthesized sequence.
 	 */
 	template <class... Args>
-	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL shuffle_hi(Args &&...args) noexcept
-		requires IImpl::ShuffleHigh<impl, Args...>
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL shuffle_hi_slow(Args &&...args) noexcept
+		requires IImpl::ShuffleHighSlow<impl, Args...>
 	{
-		return impl::shuffle_hi(std::forward<Args>(args)...);
+		return impl::shuffle_hi_slow(std::forward<Args>(args)...);
 	}
 
 	/** @brief Selects corresponding lanes from two registers using an immediate bit mask.
@@ -1200,8 +1190,6 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static vector_t VECTORCALL blend(const vector_t lhs, const vector_t rhs) noexcept
 		requires(imm8 >= 0 && imm8 <= 255 && IImpl::IndexedBlend<impl, imm8>)
 	{
-		if (std::is_constant_evaluated())
-			return blend_constexpr<imm8>(lhs, rhs);
 		return impl::template blend<imm8>(lhs, rhs);
 	}
 
@@ -1218,6 +1206,20 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 		return impl::blend(std::forward<Args>(args)...);
 	}
 
+	/**
+	 * @brief Emulates an immediate-controlled blend from a runtime scalar control.
+	 * @tparam Args Argument pack matching the implementation slow-path blend signature.
+	 * @param args Arguments forwarded to the specialization slow-path blend operation.
+	 * @return Register containing the blended result.
+	 * @note `_slow` identifies a deliberate runtime substitute for an immediate-controlled operation and may require dispatch, branching, or a longer
+	 * synthesized instruction sequence.
+	 */
+	template <class... Args>
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE static auto VECTORCALL blend_slow(Args &&...args) noexcept
+		requires IImpl::BlendSlow<impl, Args...>
+	{
+		return impl::blend_slow(std::forward<Args>(args)...);
+	}
 #pragma endregion
 
 #pragma region Shifting Operations
@@ -1272,54 +1274,57 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 * @brief Shifts every byte in a 128-bit register toward higher byte indices.
 	 *
 	 * A zero or negative count returns the input unchanged. A count greater than
-	 * or equal to the register byte width returns zero. [eg: byte_shift_left(
+	 * or equal to the register byte width returns zero. [eg: byte_shift_left_slow(
 	 * {0x01, 0x02, ...}, 1) => {0x00, 0x01, 0x02, ...}]
 	 *
 	 * @param lhs The source register.
 	 * @param shift The runtime byte count.
 	 * @return The byte-shifted register.
+	 * @note `_slow` marks runtime emulation of an immediate byte count.
 	 */
-	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static int_vector_t VECTORCALL byte_shift_left(const int_vector_t lhs,
-																														const int shift) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static int_vector_t VECTORCALL byte_shift_left_slow(const int_vector_t lhs,
+																															 const int shift) noexcept
 		requires(using_int && register_width == 128)
 	{
 		if (std::is_constant_evaluated())
 			return byte_shift_left_constexpr(lhs, shift);
-		return impl::byte_shift_left(lhs, shift);
+		return impl::byte_shift_left_slow(lhs, shift);
 	}
 
 	/**
 	 * @brief Shifts every byte in a 128-bit register toward lower byte indices.
 	 *
 	 * A zero or negative count returns the input unchanged. A count greater than
-	 * or equal to the register byte width returns zero. [eg: byte_shift_right(
+	 * or equal to the register byte width returns zero. [eg: byte_shift_right_slow(
 	 * {0x01, 0x02, ...}, 1) => {0x02, ..., 0x00}]
 	 *
 	 * @param lhs The source register.
 	 * @param shift The runtime byte count.
 	 * @return The byte-shifted register.
+	 * @note `_slow` marks runtime emulation of an immediate byte count.
 	 */
-	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static int_vector_t VECTORCALL byte_shift_right(const int_vector_t lhs,
-																														 const int shift) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static int_vector_t VECTORCALL byte_shift_right_slow(const int_vector_t lhs,
+																															  const int shift) noexcept
 		requires(using_int && register_width == 128)
 	{
 		if (std::is_constant_evaluated())
 			return byte_shift_right_constexpr(lhs, shift);
-		return impl::byte_shift_right(lhs, shift);
+		return impl::byte_shift_right_slow(lhs, shift);
 	}
 
 	/** @brief Shifts the complete 128-bit register left, carrying bits across lane boundaries.
 	 * Unlike `shift_left`, this treats the register as one
 	 * unsigned 128-bit bit string.
 	 * A zero or negative runtime count returns the input; counts of 128 or more return zero.
+	 * @note `_slow` marks the synthesized runtime-count substitute for immediate complete-register shifts.
 	 */
-	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static int_vector_t VECTORCALL bit_shift_left(const int_vector_t lhs,
-																													   const int shift) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static int_vector_t VECTORCALL bit_shift_left_slow(const int_vector_t lhs,
+																															const int shift) noexcept
 		requires(using_int && register_width == 128)
 	{
 		if (std::is_constant_evaluated())
 			return bit_shift_left_constexpr(lhs, shift);
-		return impl::bit_shift_left(lhs, shift);
+		return impl::bit_shift_left_slow(lhs, shift);
 	}
 
 	/** @brief Compile-time complete-register left shift. Counts of 128 or more return zero. */
@@ -1337,14 +1342,15 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 * Unlike `shift_right`, this treats the register as one
 	 * unsigned 128-bit bit string.
 	 * A zero or negative runtime count returns the input; counts of 128 or more return zero.
+	 * @note `_slow` marks the synthesized runtime-count substitute for immediate complete-register shifts.
 	 */
-	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static int_vector_t VECTORCALL bit_shift_right(const int_vector_t lhs,
-																														const int shift) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static int_vector_t VECTORCALL bit_shift_right_slow(const int_vector_t lhs,
+																															 const int shift) noexcept
 		requires(using_int && register_width == 128)
 	{
 		if (std::is_constant_evaluated())
 			return bit_shift_right_constexpr(lhs, shift);
-		return impl::bit_shift_right(lhs, shift);
+		return impl::bit_shift_right_slow(lhs, shift);
 	}
 
 	/** @brief Compile-time complete-register right shift. Counts of 128 or more return zero. */
@@ -1729,20 +1735,6 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 				const std::size_t selected = static_cast<unsigned int>(imm8) >> (lane * 2) & 0x3u;
 				result[group + half_offset + lane] = source[group + half_offset + selected];
 			}
-		}
-		return construct(result);
-	}
-
-	/** @brief Applies intrinsic-compatible immediate blend bits during constant evaluation. */
-	template <int imm8> [[nodiscard]] constexpr static vector_t blend_constexpr(const vector_t lhs, const vector_t rhs) noexcept
-	{
-		const auto left = to_array(lhs);
-		const auto right = to_array(rhs);
-		std::array<element_t, element_count> result{};
-		for (std::size_t lane = 0; lane < element_count; ++lane)
-		{
-			const bool select_right = (static_cast<unsigned int>(imm8) & (1u << (lane % 8))) != 0;
-			result[lane] = select_right ? right[lane] : left[lane];
 		}
 		return construct(result);
 	}

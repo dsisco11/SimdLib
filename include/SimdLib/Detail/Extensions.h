@@ -292,7 +292,15 @@ SIMDLIB_FORCE_INLINE constexpr Vector register_insert_constexpr(Vector value, co
 	return value;
 }
 
-template <class Element, class Vector> SIMDLIB_FORCE_INLINE constexpr Vector register_blend(Vector lhs, const Vector rhs, const unsigned int mask) noexcept
+/** @brief Emulates an immediate-controlled lane blend with a runtime scalar mask.
+ *  @tparam Element Logical lane type.
+ *  @tparam Vector Native register type.
+ *  @param lhs Source for lanes whose control bits are clear.
+ *  @param rhs Source for lanes whose control bits are set.
+ *  @param mask Runtime control byte.
+ *  @return Register containing the selected lanes.
+ */
+template <class Element, class Vector> SIMDLIB_FORCE_INLINE constexpr Vector register_blend_slow(Vector lhs, const Vector rhs, const unsigned int mask) noexcept
 {
 	constexpr std::size_t count = sizeof(Vector) / sizeof(Element);
 	for (std::size_t index = 0; index < count; ++index)
@@ -314,20 +322,15 @@ template <class Vector> SIMDLIB_FORCE_INLINE constexpr Vector register_blend_byt
 	return lhs;
 }
 
-template <class Vector> SIMDLIB_FORCE_INLINE constexpr Vector register_insert_float(Vector lhs, const Vector rhs, const unsigned int control) noexcept
-{
-	auto lanes = register_to_array<float>(lhs);
-	const auto source = register_to_array<float>(rhs);
-	lanes[(control >> 4) & 0x3u] = source[(control >> 6) & 0x3u];
-	for (std::size_t index = 0; index < lanes.size(); ++index)
-	{
-		if ((control & (1u << index)) != 0)
-			lanes[index] = 0.0f;
-	}
-	return register_from_array<Vector>(lanes);
-}
-
-template <class Vector> SIMDLIB_FORCE_INLINE constexpr Vector register_shuffle_float(const Vector lhs, const Vector rhs, const unsigned int control) noexcept
+/** @brief Emulates a floating shuffle with a runtime control byte.
+ *  @tparam Vector Native float register type.
+ *  @param lhs Source for the lower selected lanes in each four-lane group.
+ *  @param rhs Source for the upper selected lanes in each four-lane group.
+ *  @param control Runtime control byte.
+ *  @return Register containing the shuffled lanes.
+ */
+template <class Vector>
+SIMDLIB_FORCE_INLINE constexpr Vector register_shuffle_float_slow(const Vector lhs, const Vector rhs, const unsigned int control) noexcept
 {
 	const auto left = register_to_array<float>(lhs);
 	const auto right = register_to_array<float>(rhs);
@@ -342,7 +345,15 @@ template <class Vector> SIMDLIB_FORCE_INLINE constexpr Vector register_shuffle_f
 	return register_from_array<Vector>(result);
 }
 
-template <class Vector> SIMDLIB_FORCE_INLINE constexpr Vector register_shuffle_double(const Vector lhs, const Vector rhs, const unsigned int control) noexcept
+/** @brief Emulates a double shuffle with a runtime control byte.
+ *  @tparam Vector Native double register type.
+ *  @param lhs Source for the first selected lane in each pair.
+ *  @param rhs Source for the second selected lane in each pair.
+ *  @param control Runtime control byte.
+ *  @return Register containing the shuffled lanes.
+ */
+template <class Vector>
+SIMDLIB_FORCE_INLINE constexpr Vector register_shuffle_double_slow(const Vector lhs, const Vector rhs, const unsigned int control) noexcept
 {
 	const auto left = register_to_array<double>(lhs);
 	const auto right = register_to_array<double>(rhs);
@@ -356,7 +367,13 @@ template <class Vector> SIMDLIB_FORCE_INLINE constexpr Vector register_shuffle_d
 	return register_from_array<Vector>(result);
 }
 
-template <class Vector> SIMDLIB_FORCE_INLINE constexpr Vector register_shuffle_32(const Vector value, const unsigned int control) noexcept
+/** @brief Emulates a 32-bit shuffle with a runtime control byte.
+ *  @tparam Vector Native integer register type.
+ *  @param value Source register.
+ *  @param control Runtime control byte.
+ *  @return Register with each four-lane group shuffled.
+ */
+template <class Vector> SIMDLIB_FORCE_INLINE constexpr Vector register_shuffle_32_slow(const Vector value, const unsigned int control) noexcept
 {
 	const auto source = register_to_array<std::uint32_t>(value);
 	std::array<std::uint32_t, sizeof(Vector) / sizeof(std::uint32_t)> result{};
@@ -368,8 +385,15 @@ template <class Vector> SIMDLIB_FORCE_INLINE constexpr Vector register_shuffle_3
 	return register_from_array<Vector>(result);
 }
 
+/** @brief Emulates a low- or high-half 16-bit shuffle with a runtime control byte.
+ *  @tparam Vector Native integer register type.
+ *  @param value Source register.
+ *  @param control Runtime control byte.
+ *  @param high_half Whether to shuffle the high half instead of the low half.
+ *  @return Register containing the shuffled half groups.
+ */
 template <class Vector>
-SIMDLIB_FORCE_INLINE constexpr Vector register_shuffle_half_16(const Vector value, const unsigned int control, const bool high_half) noexcept
+SIMDLIB_FORCE_INLINE constexpr Vector register_shuffle_half_16_slow(const Vector value, const unsigned int control, const bool high_half) noexcept
 {
 	const auto source = register_to_array<std::uint16_t>(value);
 	auto result = source;
@@ -429,7 +453,7 @@ SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m128i VECTORCALL _ext128_broadcast_
  *        greater than or equal to sixteen produce zero.
  * @return Shifted register with zero-filled low bytes.
  */
-SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m128i VECTORCALL _ext128_byte_shift_left_dynamic(__m128i lhs, const int count) noexcept
+SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m128i VECTORCALL _ext128_byte_shift_left_slow(__m128i lhs, const int count) noexcept
 {
 	const __m128i indices = _mm_setr_epi8(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15);
 	const int boundedCount = _ext128_clamp_byte_shift_count(count);
@@ -449,7 +473,7 @@ SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m128i VECTORCALL _e
  *        greater than or equal to sixteen produce zero.
  * @return Shifted register with zero-filled high bytes.
  */
-SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m128i VECTORCALL _ext128_byte_shift_right_dynamic(__m128i lhs, const int count) noexcept
+SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m128i VECTORCALL _ext128_byte_shift_right_slow(__m128i lhs, const int count) noexcept
 {
 	const __m128i biasedIndices = _mm_setr_epi8(0x70, 0x71, 0x72, 0x73, 0x74, 0x75, 0x76, 0x77, 0x78, 0x79, 0x7A, 0x7B, 0x7C, 0x7D, 0x7E, 0x7F);
 	const int boundedCount = _ext128_clamp_byte_shift_count(count);
@@ -1452,7 +1476,7 @@ SIMDLIB_FORCE_INLINE __m128i VECTORCALL _ext_max_epu64(__m128i lhs, __m128i rhs)
  * @param shift Runtime count; nonpositive counts are identity and counts of at least 128 produce zero.
  * @return Shifted register with zero-filled low bits.
  */
-SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m128i VECTORCALL _ext128_shift_left_bits_dynamic(const __m128i lhs, const int shift) noexcept
+SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m128i VECTORCALL _ext128_shift_left_bits_slow(const __m128i lhs, const int shift) noexcept
 {
 	const __m128i count = _mm_min_epi32(_mm_max_epi32(_mm_cvtsi32_si128(shift), _mm_setzero_si128()), _mm_cvtsi32_si128(128));
 	const __m128i midpoint = _mm_cvtsi32_si128(64);
@@ -1490,7 +1514,7 @@ template <int shift> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m128i VECTORCA
  * @param shift Runtime count; nonpositive counts are identity and counts of at least 128 produce zero.
  * @return Shifted register with zero-filled high bits.
  */
-SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m128i VECTORCALL _ext128_shift_right_bits_dynamic(const __m128i lhs, const int shift) noexcept
+SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m128i VECTORCALL _ext128_shift_right_bits_slow(const __m128i lhs, const int shift) noexcept
 {
 	const __m128i count = _mm_min_epi32(_mm_max_epi32(_mm_cvtsi32_si128(shift), _mm_setzero_si128()), _mm_cvtsi32_si128(128));
 	const __m128i midpoint = _mm_cvtsi32_si128(64);

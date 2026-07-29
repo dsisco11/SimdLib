@@ -2,6 +2,7 @@
 
 #include <concepts>
 #include <cstddef>
+#include <cstdint>
 #include <utility>
 
 namespace SimdLib::IImpl
@@ -223,18 +224,18 @@ concept Widen = Mapping<implementation_t> && requires(typename implementation_t:
 template <class implementation_t, std::size_t index>
 concept IndexedExtract = Mapping<implementation_t> && requires(typename implementation_t::vector_t value) { implementation_t::template extract<index>(value); };
 
-/** @brief Reports whether a backend exposes runtime-selected extraction. */
+/** @brief Reports whether a backend exposes explicit slow-path runtime-selected extraction. */
 template <class implementation_t, class selector_t>
-concept DynamicExtract =
-	Mapping<implementation_t> && requires(typename implementation_t::vector_t value, selector_t selector) { implementation_t::extract(value, selector); };
+concept ExtractSlow =
+	Mapping<implementation_t> && requires(typename implementation_t::vector_t value, selector_t selector) { implementation_t::extract_slow(value, selector); };
 
 /** @brief Reports whether a backend exposes extraction of its lower 128-bit half. */
 template <class implementation_t>
 concept LowerHalf = Mapping<implementation_t> && requires(typename implementation_t::vector_t value) { implementation_t::lower_half(value); };
 
-/** @brief Reports whether a backend accepts the supplied insertion arguments. */
+/** @brief Reports whether a backend accepts explicit slow-path runtime insertion arguments. */
 template <class implementation_t, class... argument_t>
-concept Insert = Mapping<implementation_t> && requires(argument_t &&...values) { implementation_t::insert(std::forward<argument_t>(values)...); };
+concept InsertSlow = Mapping<implementation_t> && requires(argument_t &&...values) { implementation_t::insert_slow(std::forward<argument_t>(values)...); };
 
 /** @brief Reports whether a backend exposes low-lane unpacking. */
 template <class implementation_t>
@@ -254,18 +255,58 @@ concept IndexedShuffle =
 /** @brief Reports whether a backend accepts the supplied shuffle arguments. */
 template <class implementation_t, class... argument_t>
 concept Shuffle = Mapping<implementation_t> && requires(argument_t &&...values) { implementation_t::shuffle(std::forward<argument_t>(values)...); };
+/** @brief Reports whether a backend accepts explicit slow-path scalar-controlled shuffle arguments. */
+template <class implementation_t, class... argument_t>
+concept ShuffleSlow = Mapping<implementation_t> && requires(argument_t &&...values) { implementation_t::shuffle_slow(std::forward<argument_t>(values)...); };
 
 /** @brief Reports whether a backend accepts the supplied low-half shuffle arguments. */
 template <class implementation_t, class... argument_t>
 concept ShuffleLow = Mapping<implementation_t> && requires(argument_t &&...values) { implementation_t::shuffle_lo(std::forward<argument_t>(values)...); };
+/** @brief Reports whether a backend accepts explicit slow-path low-half shuffle arguments. */
+template <class implementation_t, class... argument_t>
+concept ShuffleLowSlow =
+	Mapping<implementation_t> && requires(argument_t &&...values) { implementation_t::shuffle_lo_slow(std::forward<argument_t>(values)...); };
 
 /** @brief Reports whether a backend accepts the supplied high-half shuffle arguments. */
 template <class implementation_t, class... argument_t>
 concept ShuffleHigh = Mapping<implementation_t> && requires(argument_t &&...values) { implementation_t::shuffle_hi(std::forward<argument_t>(values)...); };
+/** @brief Reports whether a backend accepts explicit slow-path high-half shuffle arguments. */
+template <class implementation_t, class... argument_t>
+concept ShuffleHighSlow =
+	Mapping<implementation_t> && requires(argument_t &&...values) { implementation_t::shuffle_hi_slow(std::forward<argument_t>(values)...); };
 
 /** @brief Reports whether a backend accepts the supplied blend arguments. */
 template <class implementation_t, class... argument_t>
 concept Blend = Mapping<implementation_t> && requires(argument_t &&...values) { implementation_t::blend(std::forward<argument_t>(values)...); };
+/** @brief Reports whether a backend accepts explicit slow-path scalar-controlled blend arguments. */
+template <class implementation_t, class... argument_t>
+concept BlendSlow = Mapping<implementation_t> && requires(argument_t &&...values) { implementation_t::blend_slow(std::forward<argument_t>(values)...); };
+
+/** @brief Reports whether a backend exposes explicit slow-path 32-bit immediate-mask shuffling. */
+template <class implementation_t>
+concept Shuffle32Slow =
+	Mapping<implementation_t> && requires(typename implementation_t::int_vector_t value) { implementation_t::shuffle_32_slow(value, std::uint32_t{}); };
+
+/** @brief Reports whether a backend exposes explicit slow-path complete-register byte shifts. */
+template <class implementation_t>
+concept ByteShiftSlow = Mapping<implementation_t> && requires(typename implementation_t::int_vector_t value) {
+	implementation_t::byte_shift_left_slow(value, 1);
+	implementation_t::byte_shift_right_slow(value, 1);
+};
+
+/** @brief Reports whether a backend exposes explicit slow-path complete-register bit shifts. */
+template <class implementation_t>
+concept BitShiftSlow = Mapping<implementation_t> && requires(typename implementation_t::int_vector_t value) {
+	implementation_t::bit_shift_left_slow(value, 1);
+	implementation_t::bit_shift_right_slow(value, 1);
+};
+
+/** @brief Reports whether a backend exposes compile-time complete-register bit shifts. */
+template <class implementation_t, int count>
+concept BitShift = Mapping<implementation_t> && requires(typename implementation_t::int_vector_t value) {
+	implementation_t::template bit_shift_left<count>(value);
+	implementation_t::template bit_shift_right<count>(value);
+};
 
 /** @brief Reports whether a backend exposes an immediate-controlled low-half shuffle. */
 template <class implementation_t, int immediate>

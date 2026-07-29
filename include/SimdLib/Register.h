@@ -850,13 +850,14 @@ class Register final
 	 * @param value Source register interpreted as one 16-byte string.
 	 * @param count Runtime byte count; nonpositive values are identity and values at least 16 produce zero.
 	 * @return Shifted complete register with zero-filled low bytes.
-	 * @remarks Available only at 128 bits when `IApi::ByteShift<api_type>` is satisfied.
+	 * @remarks Available only at 128 bits when `IApi::ByteShiftSlow<api_type>` is satisfied.
+	 * @note `_slow` marks runtime emulation of an immediate complete-register byte shift.
 	 */
-	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr Register VECTORCALL byte_shift_left(this Register value,
-																														   int count) noexcept
-		requires(register_width == 128 && IApi::ByteShift<api_type>)
+	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr Register VECTORCALL byte_shift_left_slow(this Register value,
+																																int count) noexcept
+		requires(register_width == 128 && IApi::ByteShiftSlow<api_type>)
 	{
-		return Register{api_type::byte_shift_left(value.native, count)};
+		return Register{api_type::byte_shift_left_slow(value.native, count)};
 	}
 
 	/**
@@ -864,13 +865,14 @@ class Register final
 	 * @param value Source register interpreted as one 16-byte string.
 	 * @param count Runtime byte count; nonpositive values are identity and values at least 16 produce zero.
 	 * @return Shifted complete register with zero-filled high bytes.
-	 * @remarks Available only at 128 bits when `IApi::ByteShift<api_type>` is satisfied.
+	 * @remarks Available only at 128 bits when `IApi::ByteShiftSlow<api_type>` is satisfied.
+	 * @note `_slow` marks runtime emulation of an immediate complete-register byte shift.
 	 */
-	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr Register VECTORCALL byte_shift_right(this Register value,
-																															int count) noexcept
-		requires(register_width == 128 && IApi::ByteShift<api_type>)
+	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr Register VECTORCALL byte_shift_right_slow(this Register value,
+																																 int count) noexcept
+		requires(register_width == 128 && IApi::ByteShiftSlow<api_type>)
 	{
-		return Register{api_type::byte_shift_right(value.native, count)};
+		return Register{api_type::byte_shift_right_slow(value.native, count)};
 	}
 
 	/**
@@ -878,13 +880,14 @@ class Register final
 	 * @param value Source register interpreted as one 128-bit string.
 	 * @param count Runtime bit count; nonpositive values are identity and values at least 128 produce zero.
 	 * @return Complete-register left shift with zero fill.
-	 * @remarks Available only at 128 bits when `IApi::BitShift<api_type>` is satisfied.
+	 * @remarks Available only at 128 bits when `IApi::BitShiftSlow<api_type>` is satisfied.
+	 * @note `_slow` marks the synthesized runtime-count substitute for an immediate complete-register shift.
 	 */
-	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr Register VECTORCALL bit_shift_left(this Register value,
-																														  int count) noexcept
-		requires(register_width == 128 && IApi::BitShift<api_type>)
+	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr Register VECTORCALL bit_shift_left_slow(this Register value,
+																															   int count) noexcept
+		requires(register_width == 128 && IApi::BitShiftSlow<api_type>)
 	{
-		return Register{api_type::bit_shift_left(value.native, count)};
+		return Register{api_type::bit_shift_left_slow(value.native, count)};
 	}
 
 	/**
@@ -892,13 +895,14 @@ class Register final
 	 * @param value Source register interpreted as one 128-bit string.
 	 * @param count Runtime bit count; nonpositive values are identity and values at least 128 produce zero.
 	 * @return Complete-register right shift with zero fill.
-	 * @remarks Available only at 128 bits when `IApi::BitShift<api_type>` is satisfied.
+	 * @remarks Available only at 128 bits when `IApi::BitShiftSlow<api_type>` is satisfied.
+	 * @note `_slow` marks the synthesized runtime-count substitute for an immediate complete-register shift.
 	 */
-	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr Register VECTORCALL bit_shift_right(this Register value,
-																														   int count) noexcept
-		requires(register_width == 128 && IApi::BitShift<api_type>)
+	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr Register VECTORCALL bit_shift_right_slow(this Register value,
+																																int count) noexcept
+		requires(register_width == 128 && IApi::BitShiftSlow<api_type>)
 	{
-		return Register{api_type::bit_shift_right(value.native, count)};
+		return Register{api_type::bit_shift_right_slow(value.native, count)};
 	}
 
 	/**
@@ -906,10 +910,10 @@ class Register final
 	 * @tparam count Nonnegative bit count; values at least 128 produce zero.
 	 * @param value Source register interpreted as one 128-bit string.
 	 * @return Complete-register left shift with zero fill.
-	 * @remarks Available only at 128 bits when `IApi::BitShift<api_type>` is satisfied.
+	 * @remarks Available only at 128 bits when `IApi::BitShift<api_type, count>` is satisfied.
 	 */
 	template <int count>
-		requires(register_width == 128 && count >= 0 && IApi::BitShift<api_type>)
+		requires(register_width == 128 && count >= 0 && IApi::BitShift<api_type, count>)
 	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr Register VECTORCALL bit_shift_left(this Register value) noexcept
 	{
 		return Register{api_type::template bit_shift_left<count>(value.native)};
@@ -920,10 +924,10 @@ class Register final
 	 * @tparam count Nonnegative bit count; values at least 128 produce zero.
 	 * @param value Source register interpreted as one 128-bit string.
 	 * @return Complete-register right shift with zero fill.
-	 * @remarks Available only at 128 bits when `IApi::BitShift<api_type>` is satisfied.
+	 * @remarks Available only at 128 bits when `IApi::BitShift<api_type, count>` is satisfied.
 	 */
 	template <int count>
-		requires(register_width == 128 && count >= 0 && IApi::BitShift<api_type>)
+		requires(register_width == 128 && count >= 0 && IApi::BitShift<api_type, count>)
 	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr Register VECTORCALL bit_shift_right(this Register value) noexcept
 	{
 		return Register{api_type::template bit_shift_right<count>(value.native)};

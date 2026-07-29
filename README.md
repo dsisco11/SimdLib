@@ -121,6 +121,10 @@ StableFloatRegister VECTORCALL add_one(StableFloatRegister value) noexcept
 }
 ```
 
+### Runtime controls for immediate-mode operations
+
+Unsuffixed operations use compile-time controls or genuinely native runtime controls such as selector and mask registers. A method ending in `_slow` is the explicit runtime-scalar substitute for an immediate-controlled instruction and may require dispatch, branching, or a longer synthesized sequence. See [Runtime controls for immediate-mode operations](docs/ImmediateControlRuntimeNaming.md) for the complete naming and availability inventory.
+
 ### Working with RegisterMask
 
 Comparisons create `RegisterMask<T, Bits>` values. Masks can be combined with

@@ -966,18 +966,17 @@ requires an explicit integer reinterpretation followed by integer comparison.
 | `expand` | None | Ambiguous legacy widening alias remains compatibility-only |
 | `compress` | None | Ambiguous legacy narrowing alias remains compatibility-only |
 | `extract<index>` | `value.lane<index>()` | Compile-time logical lane extraction |
-| Runtime `extract` | None initially | Implementation-specific selector remains compatibility-only |
+| Runtime `extract_slow` | None | Explicit Api slow path; Register retains compile-time lane access |
 | `lower_half` | `value.lower_half()` | Returns `Register<T, 128>` from a 256-bit source |
 | `insert<index>` | `value.with_lane<index>(lane)` | Compile-time logical lane replacement |
-| Generic `insert(args...)` | None initially | Implementation-specific signature remains compatibility-only |
 | `unpack_lo` | `lhs.unpack_low(rhs)` | Wrapped backend result |
 | `unpack_hi` | `lhs.unpack_high(rhs)` | Wrapped backend result |
 | `shuffle<indices...>` | `value.shuffle<indices...>()` | One compile-time logical source-lane selector per output lane |
 | `Api<Bits, std::uint8_t>::shuffle<indices...>` | `value.shuffle_bytes<indices...>()` | One compile-time logical source-byte selector per output byte; result retains `T` |
-| Generic `shuffle(args...)` | None initially | Implementation-specific signature remains compatibility-only |
-| `shuffle_lo` | `value.shuffle_low<imm8>()` | Compile-time immediate form |
-| `shuffle_hi` | `value.shuffle_high<imm8>()` | Compile-time immediate form |
-| `blend` | `lhs.blend<imm8>(rhs)` | Immediate blend; predicate blend uses `mask.select(lhs, rhs)` |
+| Register-selector `shuffle(value, selector)` | None | Native Api runtime control; Register exposes portable logical and byte shuffle forms |
+| `shuffle_lo<imm8>`; `shuffle_lo_slow` | `value.shuffle_low<imm8>()` | Compile-time immediate form; scalar runtime control remains Api-only |
+| `shuffle_hi<imm8>`; `shuffle_hi_slow` | `value.shuffle_high<imm8>()` | Compile-time immediate form; scalar runtime control remains Api-only |
+| `blend<imm8>`; register-mask `blend`; `blend_slow` | `lhs.blend<imm8>(rhs)` | Immediate blend maps directly; predicate selection uses `mask.select(lhs, rhs)`; scalar runtime control remains Api-only |
 
 Logical shuffle selectors use low-to-high lane numbering for the element type.
 The selector count must equal the register lane count, repeated selectors are
@@ -985,8 +984,8 @@ permitted, and every selector must name a lane in the complete source register.
 A 256-bit shuffle may therefore move a lane across the 128-bit boundary.
 Floating-point lanes preserve their object representations, including NaN
 payloads and signed zero. There is no out-of-range zero-fill sentinel; the
-generic implementation-specific `Api::shuffle(args...)` overload retains any
-control-mask behavior defined by its backend.
+unsuffixed register-selector `Api::shuffle(value, selector)` overload retains
+control-mask behavior defined by its native backend.
 
 Byte shuffle selectors view the complete register as `byte_count` bytes numbered
 from low to high. The selector count must equal `byte_count`, repeated selectors
@@ -1002,11 +1001,11 @@ nevertheless remains `Register<T, Bits>`.
 | `shift_left` | `value << count` | Per-lane integral shift |
 | `shift_right` | `value.logical_shift_right(count)` | Per-lane logical shift for signed or unsigned lanes |
 | `shift_right_arithmetic` | `value >> count` | Per-lane arithmetic shift for signed lanes |
-| `byte_shift_left` | `value.byte_shift_left(count)` | Complete 128-bit register byte shift |
-| `byte_shift_right` | `value.byte_shift_right(count)` | Complete 128-bit register byte shift |
-| Runtime `bit_shift_left` | `value.bit_shift_left(count)` | Complete 128-bit bit-string shift |
+| `byte_shift_left_slow` | `value.byte_shift_left_slow(count)` | Complete 128-bit register byte shift |
+| `byte_shift_right_slow` | `value.byte_shift_right_slow(count)` | Complete 128-bit register byte shift |
+| Runtime `bit_shift_left_slow` | `value.bit_shift_left_slow(count)` | Complete 128-bit bit-string shift |
 | Compile-time `bit_shift_left` | `value.bit_shift_left<count>()` | Complete 128-bit bit-string shift |
-| Runtime `bit_shift_right` | `value.bit_shift_right(count)` | Complete 128-bit bit-string shift |
+| Runtime `bit_shift_right_slow` | `value.bit_shift_right_slow(count)` | Complete 128-bit bit-string shift |
 | Compile-time `bit_shift_right` | `value.bit_shift_right<count>()` | Complete 128-bit bit-string shift |
 | `bit_cast` | `value.bit_cast<target_t>()` | Full-width bit-preserving reinterpretation |
 | `convert_to_float` | `value.convert<float>()` | `Register<float, Bits>` from supported 32-bit integer lanes |

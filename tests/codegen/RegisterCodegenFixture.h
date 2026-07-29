@@ -613,9 +613,9 @@ SIMDLIB_CODEGEN_NOINLINE SimdLibCodegen::uint_native_type VECTORCALL simdlib_cod
 																											int count) noexcept
 {
 #if SIMDLIB_CODEGEN_USE_WRAPPER
-	return SimdLibCodegen::uint_register_type{value}.bit_shift_right(count).native;
+	return SimdLibCodegen::uint_register_type{value}.bit_shift_right_slow(count).native;
 #else
-	return SimdLibCodegen::uint_api_type::bit_shift_right(value, count);
+	return SimdLibCodegen::uint_api_type::bit_shift_right_slow(value, count);
 #endif
 }
 
@@ -624,9 +624,9 @@ SIMDLIB_CODEGEN_NOINLINE SimdLibCodegen::uint_native_type VECTORCALL simdlib_cod
 																										 int count) noexcept
 {
 #if SIMDLIB_CODEGEN_USE_WRAPPER
-	return SimdLibCodegen::uint_register_type{value}.byte_shift_left(count).native;
+	return SimdLibCodegen::uint_register_type{value}.byte_shift_left_slow(count).native;
 #else
-	return SimdLibCodegen::uint_api_type::byte_shift_left(value, count);
+	return SimdLibCodegen::uint_api_type::byte_shift_left_slow(value, count);
 #endif
 }
 #endif

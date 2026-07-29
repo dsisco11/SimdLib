@@ -37,21 +37,21 @@ Runtime Register-Storage Removal:
     ☒ Add compile-time probes that prove the intended helper boundary.
 
   Task 2 Audit:
-    ☒ `Api` contains 32 `_constexpr` method declarations: `lower_half_constexpr`, `unpack_constexpr`, `shuffle_constexpr`, `shuffle_half_constexpr`, `blend_constexpr`, `bit_cast_constexpr`, `widen_constexpr`, `convert_to_float_constexpr`, `convert_to_int_constexpr`, `bitwise_and_constexpr`, `bitwise_or_constexpr`, `bitwise_xor_constexpr`, `bitwise_andnot_constexpr`, `bitwise_not_constexpr`, `select_constexpr`, `to_array_constexpr`, `extract_constexpr`, `insert_constexpr`, `movemask_constexpr`, `min_position_constexpr`, `max_position_constexpr`, `movemask_slim_constexpr`, `compare_equal_constexpr`, `compare_greater_constexpr`, `compare_greater_equal_constexpr`, `compare_less_constexpr`, `compare_less_equal_constexpr`, `shift_left_constexpr`, `shift_right_constexpr`, `shift_right_arithmetic_constexpr`, `byte_shift_left_constexpr`, and `byte_shift_right_constexpr`.
+    ☒ `Api` contains 31 `_constexpr` method declarations: `lower_half_constexpr`, `unpack_constexpr`, `shuffle_constexpr`, `shuffle_half_constexpr`, `bit_cast_constexpr`, `widen_constexpr`, `convert_to_float_constexpr`, `convert_to_int_constexpr`, `bitwise_and_constexpr`, `bitwise_or_constexpr`, `bitwise_xor_constexpr`, `bitwise_andnot_constexpr`, `bitwise_not_constexpr`, `select_constexpr`, `to_array_constexpr`, `extract_constexpr`, `insert_constexpr`, `movemask_constexpr`, `min_position_constexpr`, `max_position_constexpr`, `movemask_slim_constexpr`, `compare_equal_constexpr`, `compare_greater_constexpr`, `compare_greater_equal_constexpr`, `compare_less_constexpr`, `compare_less_equal_constexpr`, `shift_left_constexpr`, `shift_right_constexpr`, `shift_right_arithmetic_constexpr`, `byte_shift_left_constexpr`, and `byte_shift_right_constexpr`.
     ☒ The implementation layer contains 24 `_constexpr` method declarations: 20 element-specialized `insert_constexpr` methods and two width-specialized pairs of `set1_constexpr` and `setr_constexpr` methods.
     ☒ Every inventoried method accepts ordinary parameters originating in a runtime-callable C++20 `constexpr` wrapper.
-    ☒ No inventoried method can legally become `consteval` without making at least one supported wrapper ill-formed, so all 56 remain `constexpr`.
+    ☒ No inventoried method can legally become `consteval` without making at least one supported wrapper ill-formed, so all 55 remain `constexpr`.
 
   Task 3 - Unconditional API Delegation:
-    ☒ Keep the constant-evaluation branch in `Api::extract(lhs, index)` and delegate every runtime call unconditionally to `impl::extract(lhs, index)`.
-    ☒ Keep the constant-evaluation branch in `Api::insert(lhs, value, index)` and delegate every runtime call unconditionally to `impl::insert(lhs, value, index)`.
+    ☒ Keep the constant-evaluation branch in `Api::extract_slow(lhs, index)` and delegate every runtime call unconditionally to `impl::extract_slow(lhs, index)`.
+    ☒ Keep the constant-evaluation branch in `Api::insert_slow(lhs, value, index)` and delegate every runtime call unconditionally to `impl::insert_slow(lhs, value, index)`.
     ☒ Remove register-width branching from both API methods.
     ☒ Remove `SIMDLIB_HAS_AVX2` branching from both API methods.
     ☒ Confirm that implementation availability constraints remain the only feature gate.
     ☒ Compile focused SSE4.2 and AVX2 API probes.
 
   Task 4 - Specialized 128-Bit Runtime Extraction:
-    ☒ Implement runtime `extract(lhs, index)` independently in every `SimdImpl128<element_t>` specialization.
+    ☒ Implement runtime `extract_slow(lhs, index)` independently in every `SimdImpl128<element_t>` specialization.
     ☒ Dispatch runtime indices to that specialization's existing compile-time-indexed `extract<index>` intrinsic methods.
     ☒ Do not place element-specific extraction methods or element-type switching in `Extensions.h`.
     ☒ Do not use arrays, compiler register-array members, or addressable register storage.
@@ -59,7 +59,7 @@ Runtime Register-Storage Removal:
     ☒ Inspect optimized code generation for stack references and security-cookie calls.
 
   Task 5 - Specialized 256-Bit Runtime Extraction:
-    ☒ Implement runtime `extract(lhs, index)` independently in every `SimdImpl256<element_t>` specialization.
+    ☒ Implement runtime `extract_slow(lhs, index)` independently in every `SimdImpl256<element_t>` specialization.
     ☒ Select the lower or upper 128-bit half with intrinsics and delegate to the matching 128-bit element specialization where appropriate.
     ☒ Do not place element-specific extraction methods or element-type switching in `Extensions.h`.
     ☒ Do not use arrays, compiler register-array members, or addressable register storage.
@@ -75,7 +75,7 @@ Runtime Register-Storage Removal:
     ☒ Run focused compile-time-index and runtime-index extraction tests.
 
   Task 7 - Specialized 128-Bit Runtime Insertion:
-    ☒ Implement runtime `insert(lhs, value, index)` independently in every `SimdImpl128<element_t>` specialization.
+    ☒ Implement runtime `insert_slow(lhs, value, index)` independently in every `SimdImpl128<element_t>` specialization.
     ☒ Use compile-time-indexed `insert<index>` dispatch where optimized code remains register-only; otherwise use a type-specialized intrinsic algorithm that prevents compiler-generated addressable register storage.
     ☒ Do not place element-specific insertion methods or element-type switching in `Extensions.h`.
     ☒ Do not use arrays, compiler register-array members, or addressable register storage.
@@ -83,7 +83,7 @@ Runtime Register-Storage Removal:
     ☒ Inspect optimized code generation for stack references and security-cookie calls.
 
   Task 8 - Specialized 256-Bit Runtime Insertion:
-    ☒ Implement runtime `insert(lhs, value, index)` independently in every `SimdImpl256<element_t>` specialization.
+    ☒ Implement runtime `insert_slow(lhs, value, index)` independently in every `SimdImpl256<element_t>` specialization.
     ☒ Modify and replace only the selected 128-bit half, delegating to the matching 128-bit element specialization where appropriate.
     ☒ Do not place element-specific insertion methods or element-type switching in `Extensions.h`.
     ☒ Do not use arrays, compiler register-array members, or addressable register storage.
@@ -137,26 +137,26 @@ Runtime Register-Storage Removal:
     ☒ Run focused signed and unsigned lane-order tests.
 
   Task 15 - Immediate-Control Runtime Naming:
-    ☐ Inventory every runtime-control signature in `Api`, `Register`, `SimdVector`, the implementation layer, and the extension layer whose native counterpart normally requires a compile-time immediate.
-    ☐ Include at least dynamic lane extraction and insertion through `extract` and `insert`; scalar-control `blend`, `shuffle`, `shuffle_lo`, `shuffle_hi`, and `shuffle_32`; complete-register byte shifts; and complete-register bit shifts in the inventory.
-    ☐ Classify signatures independently when one operation name covers both an immediate emulation and a genuinely native runtime-control instruction.
-    ☐ Preserve unsuffixed names for compile-time controls and genuinely native runtime-control forms, including register-selector byte shuffles and register-mask blends.
-    ☐ Do not apply `_slow` merely because an immediate overload also exists; retain unsuffixed runtime forms backed by native variable-count or register-control instructions, including ordinary per-lane shifts.
-    ☐ Rename every retained runtime emulation of an immediate-controlled operation to the corresponding `_slow` name in every layer through which it is exposed or delegated.
-    ☐ Split variadic forwarding overloads where necessary so an unsuffixed native runtime form cannot also accept a scalar runtime control intended for the `_slow` form.
-    ☐ Remove the unsuffixed dynamic signatures after migrating internal callers; do not add deprecated wrappers or compatibility aliases.
-    ☐ Update affected `IApi`, `IImpl`, and `IRegister` concepts, plus tests, examples, and documentation, to use and advertise the `_slow` names.
-    ☐ Document that `_slow` identifies a deliberate runtime substitute for an immediate-controlled operation and may require dispatch, branching, or a longer synthesized instruction sequence.
-    ☐ Add compile-success probes for every retained `_slow` signature and compile-failure probes proving that a runtime scalar control cannot select the unsuffixed immediate form.
-    ☐ Add focused correctness coverage across every valid runtime control and all documented boundary behavior for each renamed family.
-    ☐ Confirm generated code for each unsuffixed compile-time form remains equivalent to direct use of its corresponding immediate intrinsic.
-    ☐ Inspect optimized generated code for each `_slow` form and preserve the no-addressable-register-storage requirements established by the tasks that implement it.
-    ☐ Establish an implementation-layer immediate `blend<imm8>` entry point that is valid during constant evaluation while preserving the intrinsic-backed runtime path.
-    ☐ Change the constant-evaluation branch of `Api::blend<imm8>` to delegate to the implementation-layer `blend<imm8>` operation instead of evaluating blend semantics in `Api`.
-    ☐ Remove `Api::blend_constexpr` only after confirming that the implementation-layer delegation leaves no callers.
-    ☐ Verify immediate blend during constant evaluation for every supported element type and register width.
-    ☐ Confirm optimized runtime code remains identical to direct use of the corresponding blend intrinsic.
-    ☐ Do not select or implement new runtime-variable immediate-mask algorithms in this task.
+    ☒ Inventory every runtime-control signature in `Api`, `Register`, `SimdVector`, the implementation layer, and the extension layer whose native counterpart normally requires a compile-time immediate.
+    ☒ Include at least dynamic lane extraction and insertion through `extract_slow` and `insert_slow`; scalar-control `blend`, `shuffle`, `shuffle_lo`, `shuffle_hi`, and `shuffle_32`; complete-register byte shifts; and complete-register bit shifts in the inventory.
+    ☒ Classify signatures independently when one operation name covers both an immediate emulation and a genuinely native runtime-control instruction.
+    ☒ Preserve unsuffixed names for compile-time controls and genuinely native runtime-control forms, including register-selector byte shuffles and register-mask blends.
+    ☒ Do not apply `_slow` merely because an immediate overload also exists; retain unsuffixed runtime forms backed by native variable-count or register-control instructions, including ordinary per-lane shifts.
+    ☒ Rename every retained runtime emulation of an immediate-controlled operation to the corresponding `_slow` name in every layer through which it is exposed or delegated.
+    ☒ Split variadic forwarding overloads where necessary so an unsuffixed native runtime form cannot also accept a scalar runtime control intended for the `_slow` form.
+    ☒ Remove the unsuffixed dynamic signatures after migrating internal callers; do not add deprecated wrappers or compatibility aliases.
+    ☒ Update affected `IApi`, `IImpl`, and `IRegister` concepts, plus tests, examples, and documentation, to use and advertise the `_slow` names.
+    ☒ Document that `_slow` identifies a deliberate runtime substitute for an immediate-controlled operation and may require dispatch, branching, or a longer synthesized instruction sequence.
+    ☒ Add compile-success probes for every retained `_slow` signature and compile-failure probes proving that a runtime scalar control cannot select the unsuffixed immediate form.
+    ☒ Add focused correctness coverage across every valid runtime control and all documented boundary behavior for each renamed family.
+    ☒ Confirm generated code for each unsuffixed compile-time form remains equivalent to direct use of its corresponding immediate intrinsic.
+    ☒ Inspect optimized generated code for each `_slow` form and preserve the no-addressable-register-storage requirements established by the tasks that implement it.
+    ☒ Establish an implementation-layer immediate `blend<imm8>` entry point that is valid during constant evaluation while preserving the intrinsic-backed runtime path.
+    ☒ Change the constant-evaluation branch of `Api::blend<imm8>` to delegate to the implementation-layer `blend<imm8>` operation instead of evaluating blend semantics in `Api`.
+    ☒ Remove `Api::blend_constexpr` only after confirming that the implementation-layer delegation leaves no callers.
+    ☒ Verify immediate blend during constant evaluation for every supported element type and register width.
+    ☒ Confirm optimized runtime code remains identical to direct use of the corresponding blend intrinsic.
+    ☒ Do not select or implement new runtime-variable immediate-mask algorithms in this task.
 
   Task 16 - Method-Flag Inventory Reconciliation:
     ☐ Regenerate the method-flags inventory after Tasks 1-15 are independently verified.

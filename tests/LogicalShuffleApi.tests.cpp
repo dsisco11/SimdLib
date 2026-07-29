@@ -46,18 +46,18 @@ template <class api_t, auto selectors, std::size_t... positions>
 }
 
 /**
- * @brief Reports whether an Api retains its dynamic integer-control shuffle overload.
+ * @brief Reports whether an Api retains its native register-selector byte shuffle overload.
  * @tparam api_t Api specialization under test.
  */
 template <class api_t>
-concept accepts_dynamic_integer_shuffle = requires(typename api_t::vector_t value) { api_t::shuffle(value, value); };
+concept accepts_register_selector_shuffle = requires(typename api_t::vector_t value) { api_t::shuffle(value, value); };
 
 /**
- * @brief Reports whether an Api retains its implementation-specific floating shuffle overload.
+ * @brief Reports whether an Api exposes its scalar-control floating shuffle slow path.
  * @tparam api_t Api specialization under test.
  */
 template <class api_t>
-concept accepts_dynamic_floating_shuffle = requires(typename api_t::vector_t value) { api_t::shuffle(value, value, 0); };
+concept accepts_scalar_control_shuffle_slow = requires(typename api_t::vector_t value) { api_t::shuffle_slow(value, value, 0); };
 
 /**
  * @brief Reports whether one Api exposes its complete identity logical shuffle.
@@ -120,9 +120,9 @@ static_assert(api_accepts_identity_shuffle<std::int64_t, SIMDLIB_LOGICAL_SHUFFLE
 static_assert(api_accepts_identity_shuffle<std::uint64_t, SIMDLIB_LOGICAL_SHUFFLE_TEST_WIDTH>());
 static_assert(api_accepts_identity_shuffle<float, SIMDLIB_LOGICAL_SHUFFLE_TEST_WIDTH>());
 static_assert(api_accepts_identity_shuffle<double, SIMDLIB_LOGICAL_SHUFFLE_TEST_WIDTH>());
-static_assert(accepts_dynamic_integer_shuffle<SimdLib::Api<SIMDLIB_LOGICAL_SHUFFLE_TEST_WIDTH, std::int8_t>>);
-static_assert(accepts_dynamic_floating_shuffle<SimdLib::Api<SIMDLIB_LOGICAL_SHUFFLE_TEST_WIDTH, float>>);
-static_assert(accepts_dynamic_floating_shuffle<SimdLib::Api<SIMDLIB_LOGICAL_SHUFFLE_TEST_WIDTH, double>>);
+static_assert(accepts_register_selector_shuffle<SimdLib::Api<SIMDLIB_LOGICAL_SHUFFLE_TEST_WIDTH, std::int8_t>>);
+static_assert(accepts_scalar_control_shuffle_slow<SimdLib::Api<SIMDLIB_LOGICAL_SHUFFLE_TEST_WIDTH, float>>);
+static_assert(accepts_scalar_control_shuffle_slow<SimdLib::Api<SIMDLIB_LOGICAL_SHUFFLE_TEST_WIDTH, double>>);
 
 TEST_CASE("Api logical shuffle matches an independent object-representation oracle", "[simdlib][logical-shuffle]")
 {

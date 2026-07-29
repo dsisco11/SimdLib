@@ -94,8 +94,8 @@ template <class element_t, std::size_t bits> [[nodiscard]] consteval bool has_co
 		SimdLib::IRegister::ShiftLeft<register_t> == SimdLib::IApi::ShiftLeft<api_t> &&
 		SimdLib::IRegister::LogicalShiftRight<register_t> == SimdLib::IApi::ShiftRight<api_t> &&
 		SimdLib::IRegister::ShiftRight<register_t> == (signed_integral ? SimdLib::IApi::ArithmeticShiftRight<api_t> : SimdLib::IApi::ShiftRight<api_t>) &&
-		SimdLib::IRegister::ByteShiftLeft<register_t> == byte_and_bit_shifts && SimdLib::IRegister::ByteShiftRight<register_t> == byte_and_bit_shifts &&
-		SimdLib::IRegister::BitShiftLeft<register_t> == byte_and_bit_shifts && SimdLib::IRegister::BitShiftRight<register_t> == byte_and_bit_shifts &&
+		SimdLib::IRegister::ByteShiftLeftSlow<register_t> == byte_and_bit_shifts && SimdLib::IRegister::ByteShiftRightSlow<register_t> == byte_and_bit_shifts &&
+		SimdLib::IRegister::BitShiftLeftSlow<register_t> == byte_and_bit_shifts && SimdLib::IRegister::BitShiftRightSlow<register_t> == byte_and_bit_shifts &&
 		SimdLib::IRegister::IndexedBitShiftLeft<register_t, 0> == byte_and_bit_shifts &&
 		SimdLib::IRegister::IndexedBitShiftRight<register_t, 0> == byte_and_bit_shifts && !SimdLib::IRegister::IndexedBitShiftLeft<register_t, -1> &&
 		!SimdLib::IRegister::IndexedBitShiftRight<register_t, -1>;

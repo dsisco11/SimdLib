@@ -179,20 +179,34 @@ concept ShiftRight = Type<api_t> && requires(typename api_t::vector_t value) { a
 template <class api_t>
 concept ArithmeticShiftRight = Type<api_t> && requires(typename api_t::vector_t value) { api_t::shift_right_arithmetic(value, 1); };
 
-/** @brief Reports whether an API exposes complete-register byte shifts. */
+/** @brief Reports whether an API exposes explicit slow-path complete-register byte shifts. */
 template <class api_t>
-concept ByteShift = Type<api_t> && requires(typename api_t::vector_t value) {
-	api_t::byte_shift_left(value, 1);
-	api_t::byte_shift_right(value, 1);
+concept ByteShiftSlow = Type<api_t> && requires(typename api_t::vector_t value) {
+	api_t::byte_shift_left_slow(value, 1);
+	api_t::byte_shift_right_slow(value, 1);
 };
 
-/** @brief Reports whether an API exposes complete-register bit shifts. */
+/** @brief Reports whether an API exposes explicit slow-path complete-register bit shifts. */
 template <class api_t>
-concept BitShift = Type<api_t> && requires(typename api_t::vector_t value) {
-	api_t::bit_shift_left(value, 1);
-	api_t::bit_shift_right(value, 1);
+concept BitShiftSlow = Type<api_t> && requires(typename api_t::vector_t value) {
+	api_t::bit_shift_left_slow(value, 1);
+	api_t::bit_shift_right_slow(value, 1);
 };
 
+/** @brief Reports whether an API exposes compile-time complete-register bit shifts. */
+template <class api_t, int count>
+concept BitShift = Type<api_t> && requires(typename api_t::int_vector_t value) {
+	api_t::template bit_shift_left<count>(value);
+	api_t::template bit_shift_right<count>(value);
+};
+
+/** @brief Reports whether an API exposes explicit slow-path runtime-selected lane extraction. */
+template <class api_t, class selector_t = int>
+concept ExtractSlow = Type<api_t> && requires(typename api_t::vector_t value, selector_t selector) { api_t::extract_slow(value, selector); };
+
+/** @brief Reports whether an API exposes explicit slow-path runtime-selected lane insertion. */
+template <class api_t>
+concept InsertSlow = Type<api_t> && requires(typename api_t::vector_t value, typename api_t::element_type lane) { api_t::insert_slow(value, lane, 0); };
 /** @brief Reports whether an API exposes extraction of a 256-bit register's lower 128-bit half. */
 template <class api_t>
 concept LowerHalf = Type<api_t> && requires(typename api_t::vector_t value) { api_t::lower_half(value); };
@@ -221,6 +235,34 @@ concept ShuffleHigh = Type<api_t> && requires(typename api_t::vector_t value) { 
 template <class api_t, int immediate>
 concept Blend = Type<api_t> && requires(typename api_t::vector_t lhs, typename api_t::vector_t rhs) { api_t::template blend<immediate>(lhs, rhs); };
 
+/** @brief Reports whether an API exposes a native register-selector shuffle. */
+template <class api_t>
+concept RegisterShuffle = Type<api_t> && requires(typename api_t::vector_t value) { api_t::shuffle(value, value); };
+
+/** @brief Reports whether an API exposes an explicit slow-path scalar-controlled shuffle. */
+template <class api_t>
+concept ShuffleSlow = Type<api_t> && requires(typename api_t::vector_t value) { api_t::shuffle_slow(value, value, 0); };
+
+/** @brief Reports whether an API exposes an explicit slow-path low-half shuffle. */
+template <class api_t>
+concept ShuffleLowSlow = Type<api_t> && requires(typename api_t::vector_t value) { api_t::shuffle_lo_slow(value, 0); };
+
+/** @brief Reports whether an API exposes an explicit slow-path high-half shuffle. */
+template <class api_t>
+concept ShuffleHighSlow = Type<api_t> && requires(typename api_t::vector_t value) { api_t::shuffle_hi_slow(value, 0); };
+
+/** @brief Reports whether an API exposes a native register-mask blend. */
+template <class api_t>
+concept RegisterBlend =
+	Type<api_t> && requires(typename api_t::vector_t lhs, typename api_t::vector_t rhs, typename api_t::vector_t mask) { api_t::blend(lhs, rhs, mask); };
+
+/** @brief Reports whether an API exposes an explicit slow-path scalar-controlled blend. */
+template <class api_t>
+concept BlendSlow = Type<api_t> && requires(typename api_t::vector_t lhs, typename api_t::vector_t rhs) { api_t::blend_slow(lhs, rhs, 0); };
+
+/** @brief Reports whether an API exposes explicit slow-path 32-bit immediate-mask shuffling. */
+template <class api_t>
+concept Shuffle32Slow = Type<api_t> && requires(typename api_t::int_vector_t value) { api_t::shuffle_32_slow(value, std::uint32_t{}); };
 /** @brief Reports whether an API can reinterpret a complete register as the requested target element type. */
 template <class api_t, class target_t>
 concept BitCast = Type<api_t> && requires(typename api_t::vector_t value) { api_t::template bit_cast<target_t>(value); };

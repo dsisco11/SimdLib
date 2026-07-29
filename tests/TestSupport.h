@@ -70,7 +70,7 @@ template <std::size_t Width, class Element> void require_runtime_extraction_cont
 	for (std::size_t index = 0; index < expected.size(); ++index)
 	{
 		const volatile int runtime_index = static_cast<int>(index);
-		REQUIRE(simd::extract(value, runtime_index) == expected[index]);
+		REQUIRE(simd::extract_slow(value, runtime_index) == expected[index]);
 	}
 }
 
@@ -123,7 +123,7 @@ template <std::size_t Width, class Element> void require_runtime_insertion_contr
 		auto expected = source;
 		expected[index] = replacement;
 		const volatile int runtime_index = static_cast<int>(index);
-		REQUIRE(simd::to_array(simd::insert(value, replacement, runtime_index)) == expected);
+		REQUIRE(simd::to_array(simd::insert_slow(value, replacement, runtime_index)) == expected);
 	}
 }
 
@@ -867,9 +867,9 @@ template <std::size_t Width, std::integral Element> void require_integer_operati
 	if constexpr (std::is_signed_v<Element>)
 		REQUIRE(simd::to_array(simd::shift_right_arithmetic(absolute_source, 1)) == simd::to_array(simd::set1(-4)));
 
-	REQUIRE(simd::extract(left, 0) == lhs[0]);
+	REQUIRE(simd::extract_slow(left, 0) == lhs[0]);
 	const auto replacement = static_cast<Element>(42);
-	const auto replaced = simd::insert(left, replacement, static_cast<int>(simd::element_count - 1));
+	const auto replaced = simd::insert_slow(left, replacement, static_cast<int>(simd::element_count - 1));
 	auto expected_replaced = lhs;
 	expected_replaced.back() = replacement;
 	REQUIRE(simd::to_array(replaced) == expected_replaced);
@@ -939,8 +939,8 @@ template <std::size_t Width, std::floating_point Element> void require_floating_
 	REQUIRE(simd::to_array(simd::max(left, right)) == maximum);
 	REQUIRE(simd::to_array(simd::absolute(left)) == absolute);
 	REQUIRE(simd::to_array(simd::negate(left)) == negated);
-	REQUIRE(simd::extract(left, 0) == lhs[0]);
-	const auto replaced = simd::insert(left, static_cast<Element>(-9.25), static_cast<int>(simd::element_count - 1));
+	REQUIRE(simd::extract_slow(left, 0) == lhs[0]);
+	const auto replaced = simd::insert_slow(left, static_cast<Element>(-9.25), static_cast<int>(simd::element_count - 1));
 	auto expected_replaced = lhs;
 	expected_replaced.back() = static_cast<Element>(-9.25);
 	REQUIRE(simd::to_array(replaced) == expected_replaced);

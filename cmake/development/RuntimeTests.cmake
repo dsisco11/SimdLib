@@ -131,9 +131,12 @@ if(SIMDLIB_BUILD_RUNTIME_TESTS)
 
         simdlib_add_catch_test(ApiSse42Tests tests/Api128.tests.cpp
             Api.SSE42 "SSE42")
-		target_sources(ApiSse42Tests PRIVATE tests/LogicalShuffleApi.tests.cpp)
+		target_sources(ApiSse42Tests PRIVATE
+			tests/LogicalShuffleApi.tests.cpp
+			tests/ImmediateControlSlowPaths.tests.cpp)
 		target_compile_definitions(ApiSse42Tests PRIVATE
-			SIMDLIB_LOGICAL_SHUFFLE_TEST_WIDTH=128)
+			SIMDLIB_LOGICAL_SHUFFLE_TEST_WIDTH=128
+			SIMDLIB_IMMEDIATE_CONTROL_TEST_WIDTH=128)
 		if(SIMDLIB_MSVC_STYLE_DRIVER)
 			target_compile_definitions(ApiSse42Tests PRIVATE
 				SIMDLIB_HAS_SSE3=1 SIMDLIB_HAS_SSSE3=1 SIMDLIB_HAS_SSE41=1 SIMDLIB_HAS_SSE42=1)
@@ -207,9 +210,12 @@ if(SIMDLIB_BUILD_RUNTIME_TESTS)
 
         simdlib_add_catch_test(ApiAvx2Tests tests/Api256.tests.cpp
             Api.AVX2 "AVX2")
-		target_sources(ApiAvx2Tests PRIVATE tests/LogicalShuffleApi.tests.cpp)
+		target_sources(ApiAvx2Tests PRIVATE
+			tests/LogicalShuffleApi.tests.cpp
+			tests/ImmediateControlSlowPaths.tests.cpp)
 		target_compile_definitions(ApiAvx2Tests PRIVATE
-			SIMDLIB_LOGICAL_SHUFFLE_TEST_WIDTH=256)
+			SIMDLIB_LOGICAL_SHUFFLE_TEST_WIDTH=256
+			SIMDLIB_IMMEDIATE_CONTROL_TEST_WIDTH=256)
 		if(SIMDLIB_MSVC_STYLE_DRIVER)
             target_compile_options(ApiAvx2Tests PRIVATE /arch:AVX2)
         else()
