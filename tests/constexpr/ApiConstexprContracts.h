@@ -439,16 +439,40 @@ template <std::size_t Width, std::integral Element> [[nodiscard]] consteval bool
 	constexpr auto value = words::setr(std::uint64_t{1}, std::uint64_t{1} << 63);
 	constexpr auto original = std::array<std::uint64_t, 2>{1, std::uint64_t{1} << 63};
 	if (words::to_array(words::bit_shift_left(value, -1)) != original || words::to_array(words::bit_shift_left(value, 0)) != original ||
+		words::to_array(words::bit_shift_left(value, 1)) != std::array<std::uint64_t, 2>{2, 0} ||
+		words::to_array(words::bit_shift_left(value, 63)) != std::array<std::uint64_t, 2>{std::uint64_t{1} << 63, 0} ||
 		words::to_array(words::bit_shift_left(value, 64)) != std::array<std::uint64_t, 2>{0, 1} ||
+		words::to_array(words::bit_shift_left(value, 65)) != std::array<std::uint64_t, 2>{0, 2} ||
 		words::to_array(words::bit_shift_left(value, 127)) != std::array<std::uint64_t, 2>{0, std::uint64_t{1} << 63} ||
 		words::to_array(words::bit_shift_left(value, 128)) != std::array<std::uint64_t, 2>{} ||
 		words::to_array(words::bit_shift_left(value, 129)) != std::array<std::uint64_t, 2>{})
 		return false;
 	if (words::to_array(words::bit_shift_right(value, -1)) != original || words::to_array(words::bit_shift_right(value, 0)) != original ||
+		words::to_array(words::bit_shift_right(value, 1)) != std::array<std::uint64_t, 2>{0, std::uint64_t{1} << 62} ||
+		words::to_array(words::bit_shift_right(value, 63)) != std::array<std::uint64_t, 2>{0, 1} ||
 		words::to_array(words::bit_shift_right(value, 64)) != std::array<std::uint64_t, 2>{std::uint64_t{1} << 63, 0} ||
+		words::to_array(words::bit_shift_right(value, 65)) != std::array<std::uint64_t, 2>{std::uint64_t{1} << 62, 0} ||
 		words::to_array(words::bit_shift_right(value, 127)) != std::array<std::uint64_t, 2>{1, 0} ||
 		words::to_array(words::bit_shift_right(value, 128)) != std::array<std::uint64_t, 2>{} ||
 		words::to_array(words::bit_shift_right(value, 129)) != std::array<std::uint64_t, 2>{})
+		return false;
+	if (words::to_array(words::template bit_shift_left<0>(value)) != original ||
+		words::to_array(words::template bit_shift_left<1>(value)) != std::array<std::uint64_t, 2>{2, 0} ||
+		words::to_array(words::template bit_shift_left<63>(value)) != std::array<std::uint64_t, 2>{std::uint64_t{1} << 63, 0} ||
+		words::to_array(words::template bit_shift_left<64>(value)) != std::array<std::uint64_t, 2>{0, 1} ||
+		words::to_array(words::template bit_shift_left<65>(value)) != std::array<std::uint64_t, 2>{0, 2} ||
+		words::to_array(words::template bit_shift_left<127>(value)) != std::array<std::uint64_t, 2>{0, std::uint64_t{1} << 63} ||
+		words::to_array(words::template bit_shift_left<128>(value)) != std::array<std::uint64_t, 2>{} ||
+		words::to_array(words::template bit_shift_left<129>(value)) != std::array<std::uint64_t, 2>{})
+		return false;
+	if (words::to_array(words::template bit_shift_right<0>(value)) != original ||
+		words::to_array(words::template bit_shift_right<1>(value)) != std::array<std::uint64_t, 2>{0, std::uint64_t{1} << 62} ||
+		words::to_array(words::template bit_shift_right<63>(value)) != std::array<std::uint64_t, 2>{0, 1} ||
+		words::to_array(words::template bit_shift_right<64>(value)) != std::array<std::uint64_t, 2>{std::uint64_t{1} << 63, 0} ||
+		words::to_array(words::template bit_shift_right<65>(value)) != std::array<std::uint64_t, 2>{std::uint64_t{1} << 62, 0} ||
+		words::to_array(words::template bit_shift_right<127>(value)) != std::array<std::uint64_t, 2>{1, 0} ||
+		words::to_array(words::template bit_shift_right<128>(value)) != std::array<std::uint64_t, 2>{} ||
+		words::to_array(words::template bit_shift_right<129>(value)) != std::array<std::uint64_t, 2>{})
 		return false;
 
 	using bytes = Api<128, std::uint8_t>;

@@ -1446,46 +1446,80 @@ SIMDLIB_FORCE_INLINE __m128i VECTORCALL _ext_max_epu64(__m128i lhs, __m128i rhs)
 
 #pragma region 128bit uint128_t Extentions
 
-SIMDLIB_FORCE_INLINE constexpr __m128i VECTORCALL _ext128_shift_left_bits_dynamic(__m128i lhs, int shift) noexcept
+/**
+ * @brief Shifts a complete 128-bit register left by a runtime bit count.
+ * @param lhs Source register interpreted as one unsigned 128-bit bit string.
+ * @param shift Runtime count; nonpositive counts are identity and counts of at least 128 produce zero.
+ * @return Shifted register with zero-filled low bits.
+ */
+SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m128i VECTORCALL _ext128_shift_left_bits_dynamic(const __m128i lhs, const int shift) noexcept
 {
-	if (shift <= 0)
-		return lhs;
-	if (shift >= 128)
-		return register_from_values<__m128i, std::uint64_t>(0, 0);
-
-	const auto lanes = register_to_array<std::uint64_t>(lhs);
-	if (shift == 64)
-		return register_from_values<__m128i, std::uint64_t>(0, lanes[0]);
-	if (shift < 64)
-		return register_from_values<__m128i, std::uint64_t>(lanes[0] << shift, (lanes[1] << shift) | (lanes[0] >> (64 - shift)));
-	return register_from_values<__m128i, std::uint64_t>(0, lanes[0] << (shift - 64));
+	const __m128i count = _mm_min_epi32(_mm_max_epi32(_mm_cvtsi32_si128(shift), _mm_setzero_si128()), _mm_cvtsi32_si128(128));
+	const __m128i midpoint = _mm_cvtsi32_si128(64);
+	const __m128i complement = _mm_sub_epi64(midpoint, count);
+	const __m128i excess = _mm_sub_epi64(count, midpoint);
+	const __m128i low_range = _mm_or_si128(_mm_sll_epi64(lhs, count), _mm_slli_si128(_mm_srl_epi64(lhs, complement), 8));
+	const __m128i high_range = _mm_sll_epi64(_mm_slli_si128(lhs, 8), excess);
+	return _mm_or_si128(low_range, high_range);
 }
 
-template <int shift> SIMDLIB_FORCE_INLINE constexpr __m128i VECTORCALL _ext128_shift_left_bits_static(__m128i lhs) noexcept
+/**
+ * @brief Shifts a complete 128-bit register left by a compile-time bit count.
+ * @tparam shift Nonnegative bit count; counts of at least 128 produce zero.
+ * @param lhs Source register interpreted as one unsigned 128-bit bit string.
+ * @return Shifted register with zero-filled low bits.
+ */
+template <int shift> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m128i VECTORCALL _ext128_shift_left_bits_static(const __m128i lhs) noexcept
 {
 	static_assert(shift >= 0, "Whole-register shifts require a non-negative count.");
-	return _ext128_shift_left_bits_dynamic(lhs, shift);
-}
-
-SIMDLIB_FORCE_INLINE constexpr __m128i VECTORCALL _ext128_shift_right_bits_dynamic(__m128i lhs, int shift) noexcept
-{
-	if (shift <= 0)
+	if constexpr (shift == 0)
 		return lhs;
-	if (shift >= 128)
-		return register_from_values<__m128i, std::uint64_t>(0, 0);
-
-	const auto lanes = register_to_array<std::uint64_t>(lhs);
-	if (shift == 64)
-		return register_from_values<__m128i, std::uint64_t>(lanes[1], 0);
-	if (shift < 64)
-		return register_from_values<__m128i, std::uint64_t>((lanes[0] >> shift) | (lanes[1] << (64 - shift)), lanes[1] >> shift);
-	return register_from_values<__m128i, std::uint64_t>(lanes[1] >> (shift - 64), 0);
+	else if constexpr (shift >= 128)
+		return _mm_setzero_si128();
+	else if constexpr (shift < 64)
+		return _mm_or_si128(_mm_slli_epi64(lhs, shift), _mm_slli_si128(_mm_srli_epi64(lhs, 64 - shift), 8));
+	else if constexpr (shift == 64)
+		return _mm_slli_si128(lhs, 8);
+	else
+		return _mm_slli_epi64(_mm_slli_si128(lhs, 8), shift - 64);
 }
 
-template <int shift> SIMDLIB_FORCE_INLINE constexpr __m128i VECTORCALL _ext128_shift_right_bits_static(__m128i lhs) noexcept
+/**
+ * @brief Shifts a complete 128-bit register right by a runtime bit count.
+ * @param lhs Source register interpreted as one unsigned 128-bit bit string.
+ * @param shift Runtime count; nonpositive counts are identity and counts of at least 128 produce zero.
+ * @return Shifted register with zero-filled high bits.
+ */
+SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m128i VECTORCALL _ext128_shift_right_bits_dynamic(const __m128i lhs, const int shift) noexcept
+{
+	const __m128i count = _mm_min_epi32(_mm_max_epi32(_mm_cvtsi32_si128(shift), _mm_setzero_si128()), _mm_cvtsi32_si128(128));
+	const __m128i midpoint = _mm_cvtsi32_si128(64);
+	const __m128i complement = _mm_sub_epi64(midpoint, count);
+	const __m128i excess = _mm_sub_epi64(count, midpoint);
+	const __m128i low_range = _mm_or_si128(_mm_srl_epi64(lhs, count), _mm_srli_si128(_mm_sll_epi64(lhs, complement), 8));
+	const __m128i high_range = _mm_srl_epi64(_mm_srli_si128(lhs, 8), excess);
+	return _mm_or_si128(low_range, high_range);
+}
+
+/**
+ * @brief Shifts a complete 128-bit register right by a compile-time bit count.
+ * @tparam shift Nonnegative bit count; counts of at least 128 produce zero.
+ * @param lhs Source register interpreted as one unsigned 128-bit bit string.
+ * @return Shifted register with zero-filled high bits.
+ */
+template <int shift> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m128i VECTORCALL _ext128_shift_right_bits_static(const __m128i lhs) noexcept
 {
 	static_assert(shift >= 0, "Whole-register shifts require a non-negative count.");
-	return _ext128_shift_right_bits_dynamic(lhs, shift);
+	if constexpr (shift == 0)
+		return lhs;
+	else if constexpr (shift >= 128)
+		return _mm_setzero_si128();
+	else if constexpr (shift < 64)
+		return _mm_or_si128(_mm_srli_epi64(lhs, shift), _mm_srli_si128(_mm_slli_epi64(lhs, 64 - shift), 8));
+	else if constexpr (shift == 64)
+		return _mm_srli_si128(lhs, 8);
+	else
+		return _mm_srli_epi64(_mm_srli_si128(lhs, 8), shift - 64);
 }
 
 #pragma endregion

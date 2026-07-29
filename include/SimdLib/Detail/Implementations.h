@@ -3562,26 +3562,48 @@ template <class element_t> struct SimdMappings<128, element_t> : public SimdImpl
 		return _ext128_byte_shift_right_dynamic(lhs, shift);
 	}
 
-	/// <summary> Shifts all bits of the vector to the left by the specified number of bits. </summary>
-	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr static int_vector_t VECTORCALL bit_shift_left(int_vector_t lhs, int shift) noexcept
+	/**
+	 * @brief Shifts a complete 128-bit register left by a runtime bit count.
+	 * @param lhs Source register interpreted as one unsigned 128-bit bit string.
+	 * @param shift Runtime count; nonpositive counts are identity and counts of at least 128 produce zero.
+	 * @return Shifted register with zero-filled low bits.
+	 */
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static int_vector_t VECTORCALL bit_shift_left(const int_vector_t lhs, const int shift) noexcept
 	{
 		return _ext128_shift_left_bits_dynamic(lhs, shift);
 	}
 
-	/// <summary> Shifts all bits of the vector to the right by the specified number of bits. </summary>
-	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr static int_vector_t VECTORCALL bit_shift_right(int_vector_t lhs, int shift) noexcept
+	/**
+	 * @brief Shifts a complete 128-bit register right by a runtime bit count.
+	 * @param lhs Source register interpreted as one unsigned 128-bit bit string.
+	 * @param shift Runtime count; nonpositive counts are identity and counts of at least 128 produce zero.
+	 * @return Shifted register with zero-filled high bits.
+	 */
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static int_vector_t VECTORCALL bit_shift_right(const int_vector_t lhs, const int shift) noexcept
 	{
 		return _ext128_shift_right_bits_dynamic(lhs, shift);
 	}
 
-	/// <summary> Shifts all bits of the vector to the left by the specified number of bits. </summary>
-	template <int shift> SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr static int_vector_t VECTORCALL bit_shift_left(int_vector_t lhs) noexcept
+	/**
+	 * @brief Shifts a complete 128-bit register left by a compile-time bit count.
+	 * @tparam shift Nonnegative bit count; counts of at least 128 produce zero.
+	 * @param lhs Source register interpreted as one unsigned 128-bit bit string.
+	 * @return Shifted register with zero-filled low bits.
+	 */
+	template <int shift>
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static int_vector_t VECTORCALL bit_shift_left(const int_vector_t lhs) noexcept
 	{
 		return _ext128_shift_left_bits_static<shift>(lhs);
 	}
 
-	/// <summary> Shifts all bits of the vector to the right by the specified number of bits. </summary>
-	template <int shift> SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr static int_vector_t VECTORCALL bit_shift_right(int_vector_t lhs) noexcept
+	/**
+	 * @brief Shifts a complete 128-bit register right by a compile-time bit count.
+	 * @tparam shift Nonnegative bit count; counts of at least 128 produce zero.
+	 * @param lhs Source register interpreted as one unsigned 128-bit bit string.
+	 * @return Shifted register with zero-filled high bits.
+	 */
+	template <int shift>
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static int_vector_t VECTORCALL bit_shift_right(const int_vector_t lhs) noexcept
 	{
 		return _ext128_shift_right_bits_static<shift>(lhs);
 	}

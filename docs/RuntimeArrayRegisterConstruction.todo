@@ -123,11 +123,11 @@ Runtime Register-Storage Removal:
     ☒ Inspect optimized code generation before changing method flags.
 
   Task 13 - Complete-Register Bit Shifts:
-    ☐ Implement intrinsic-only runtime left and right bit shifts for a complete 128-bit register.
-    ☐ Keep immediate-count and runtime-count paths distinct where their optimal instruction sequences differ.
-    ☐ Preserve constant-evaluation behavior without allowing its portable representation into runtime code.
-    ☐ Test boundary counts around 0, 64, and 128 bits.
-    ☐ Inspect optimized code generation before changing method flags.
+    ☒ Implement intrinsic-only runtime left and right bit shifts for a complete 128-bit register.
+    ☒ Keep immediate-count and runtime-count paths distinct where their optimal instruction sequences differ.
+    ☒ Preserve constant-evaluation behavior without allowing its portable representation into runtime code.
+    ☒ Test boundary counts around 0, 64, and 128 bits.
+    ☒ Inspect optimized code generation before changing method flags.
 
   Task 14 - 128-Bit 64-Bit-Lane `setr`:
     ☐ Replace signed 64-bit runtime construction with the appropriate intrinsic.
@@ -212,6 +212,8 @@ Runtime Register-Storage Removal:
     ☐ Confirm retained `Register` versus `Api` comparisons preserve exact parity or only the documented compiler-specific exception.
 
   Task 20 - Complete Permanent Generated-Code Suite Audit and Final Integration:
+    ☐ Create a per-symbol audit ledger that records each symbol's owning fixture, contract category, comparison baseline, owning validation, retain-or-remove decision, and decision rationale.
+    ☐ Evaluate symbols independently rather than retaining an entire fixture merely because one sibling symbol protects a valid permanent contract.
     ☐ Inventory every codegen source file, fixture header, generated record, comparison script input, CMake target, CTest registration, CI artifact, and documentation entry.
     ☐ Assign every permanent fixture a specific contract category: public abstraction parity, ABI boundary, compiler-attribute enforcement, instruction-property guarantee, composed-expression optimization, register-pressure behavior, or explicitly diagnostic evidence.
     ☐ Identify fixtures that merely reproduce `Api`, implementation-layer, extension-layer, scalar, or intrinsic algorithms without protecting an independent observable contract.

@@ -880,7 +880,8 @@ class Register final
 	 * @return Complete-register left shift with zero fill.
 	 * @remarks Available only at 128 bits when `IApi::BitShift<api_type>` is satisfied.
 	 */
-	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr Register VECTORCALL bit_shift_left(this Register value, int count) noexcept
+	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr Register VECTORCALL bit_shift_left(this Register value,
+																														  int count) noexcept
 		requires(register_width == 128 && IApi::BitShift<api_type>)
 	{
 		return Register{api_type::bit_shift_left(value.native, count)};
@@ -893,7 +894,8 @@ class Register final
 	 * @return Complete-register right shift with zero fill.
 	 * @remarks Available only at 128 bits when `IApi::BitShift<api_type>` is satisfied.
 	 */
-	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr Register VECTORCALL bit_shift_right(this Register value, int count) noexcept
+	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr Register VECTORCALL bit_shift_right(this Register value,
+																														   int count) noexcept
 		requires(register_width == 128 && IApi::BitShift<api_type>)
 	{
 		return Register{api_type::bit_shift_right(value.native, count)};
@@ -908,7 +910,7 @@ class Register final
 	 */
 	template <int count>
 		requires(register_width == 128 && count >= 0 && IApi::BitShift<api_type>)
-	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr Register VECTORCALL bit_shift_left(this Register value) noexcept
+	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr Register VECTORCALL bit_shift_left(this Register value) noexcept
 	{
 		return Register{api_type::template bit_shift_left<count>(value.native)};
 	}
@@ -922,7 +924,7 @@ class Register final
 	 */
 	template <int count>
 		requires(register_width == 128 && count >= 0 && IApi::BitShift<api_type>)
-	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr Register VECTORCALL bit_shift_right(this Register value) noexcept
+	[[nodiscard]] SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr Register VECTORCALL bit_shift_right(this Register value) noexcept
 	{
 		return Register{api_type::template bit_shift_right<count>(value.native)};
 	}

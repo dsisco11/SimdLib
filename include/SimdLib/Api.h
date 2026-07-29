@@ -1313,18 +1313,23 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 * unsigned 128-bit bit string.
 	 * A zero or negative runtime count returns the input; counts of 128 or more return zero.
 	 */
-	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr static int_vector_t VECTORCALL bit_shift_left(const int_vector_t lhs, const int shift) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static int_vector_t VECTORCALL bit_shift_left(const int_vector_t lhs,
+																													   const int shift) noexcept
 		requires(using_int && register_width == 128)
 	{
+		if (std::is_constant_evaluated())
+			return bit_shift_left_constexpr(lhs, shift);
 		return impl::bit_shift_left(lhs, shift);
 	}
 
 	/** @brief Compile-time complete-register left shift. Counts of 128 or more return zero. */
 	template <int shift>
-	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr static int_vector_t VECTORCALL bit_shift_left(const int_vector_t lhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static int_vector_t VECTORCALL bit_shift_left(const int_vector_t lhs) noexcept
 		requires(using_int && register_width == 128)
 	{
 		static_assert(shift >= 0, "Whole-register shifts require a non-negative count.");
+		if (std::is_constant_evaluated())
+			return bit_shift_left_constexpr(lhs, shift);
 		return impl::template bit_shift_left<shift>(lhs);
 	}
 
@@ -1333,18 +1338,23 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 * unsigned 128-bit bit string.
 	 * A zero or negative runtime count returns the input; counts of 128 or more return zero.
 	 */
-	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr static int_vector_t VECTORCALL bit_shift_right(const int_vector_t lhs, const int shift) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static int_vector_t VECTORCALL bit_shift_right(const int_vector_t lhs,
+																														const int shift) noexcept
 		requires(using_int && register_width == 128)
 	{
+		if (std::is_constant_evaluated())
+			return bit_shift_right_constexpr(lhs, shift);
 		return impl::bit_shift_right(lhs, shift);
 	}
 
 	/** @brief Compile-time complete-register right shift. Counts of 128 or more return zero. */
 	template <int shift>
-	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr static int_vector_t VECTORCALL bit_shift_right(const int_vector_t lhs) noexcept
+	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static int_vector_t VECTORCALL bit_shift_right(const int_vector_t lhs) noexcept
 		requires(using_int && register_width == 128)
 	{
 		static_assert(shift >= 0, "Whole-register shifts require a non-negative count.");
+		if (std::is_constant_evaluated())
+			return bit_shift_right_constexpr(lhs, shift);
 		return impl::template bit_shift_right<shift>(lhs);
 	}
 
@@ -2138,6 +2148,66 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 		for (std::size_t index = 0; index + static_cast<std::size_t>(shift) < byte_count; ++index)
 			resultBytes[index] = sourceBytes[index + static_cast<std::size_t>(shift)];
 		return construct(std::bit_cast<std::array<element_t, element_count>>(resultBytes));
+	}
+
+	/**
+	 * @brief Shifts a complete 128-bit register left during constant evaluation.
+	 * @param lhs Input integer register represented in constant evaluation.
+	 * @param shift Runtime-compatible bit count.
+	 * @return Shifted register with zero-filled low bits.
+	 */
+	constexpr static int_vector_t bit_shift_left_constexpr(const int_vector_t lhs, const int shift) noexcept
+	{
+		if (shift <= 0)
+			return lhs;
+		if (shift >= 128)
+			return impl::setzero();
+
+		const auto source = std::bit_cast<std::array<std::uint64_t, 2>>(to_array(lhs));
+		std::array<std::uint64_t, 2> result{};
+		if (shift < 64)
+		{
+			result = {source[0] << shift, (source[1] << shift) | (source[0] >> (64 - shift))};
+		}
+		else if (shift == 64)
+		{
+			result = {0, source[0]};
+		}
+		else
+		{
+			result = {0, source[0] << (shift - 64)};
+		}
+		return construct(std::bit_cast<std::array<element_t, element_count>>(result));
+	}
+
+	/**
+	 * @brief Shifts a complete 128-bit register right during constant evaluation.
+	 * @param lhs Input integer register represented in constant evaluation.
+	 * @param shift Runtime-compatible bit count.
+	 * @return Shifted register with zero-filled high bits.
+	 */
+	constexpr static int_vector_t bit_shift_right_constexpr(const int_vector_t lhs, const int shift) noexcept
+	{
+		if (shift <= 0)
+			return lhs;
+		if (shift >= 128)
+			return impl::setzero();
+
+		const auto source = std::bit_cast<std::array<std::uint64_t, 2>>(to_array(lhs));
+		std::array<std::uint64_t, 2> result{};
+		if (shift < 64)
+		{
+			result = {(source[0] >> shift) | (source[1] << (64 - shift)), source[1] >> shift};
+		}
+		else if (shift == 64)
+		{
+			result = {source[1], 0};
+		}
+		else
+		{
+			result = {source[1] >> (shift - 64), 0};
+		}
+		return construct(std::bit_cast<std::array<element_t, element_count>>(result));
 	}
 
 	/** @brief Re-encodes integer lanes so a minimum-position backend yields the first maximum index.

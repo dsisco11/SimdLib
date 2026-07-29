@@ -169,13 +169,13 @@ TEST_CASE("128-bit lane and whole-register shifts are distinct", "[simdlib][sse4
 	const auto input = simd::setr(0x0123456789ABCDEFULL, 0xFEDCBA9876543210ULL);
 	REQUIRE(simd::to_array(simd::shift_left(input, 4)) == std::array<std::uint64_t, 2>{0x123456789ABCDEF0ULL, 0xEDCBA98765432100ULL});
 
-	const std::array<int, 9> counts{0, 1, 63, 64, 65, 127, 128, 129, 255};
+	constexpr std::array<int, 12> counts{std::numeric_limits<int>::lowest(), -1, 0, 1, 63, 64, 65, 127, 128, 129, 255, std::numeric_limits<int>::max()};
 	const auto source = simd::to_array(input);
 	for (const int count : counts)
 	{
 		std::array<std::uint64_t, 2> left{};
 		std::array<std::uint64_t, 2> right{};
-		if (count == 0)
+		if (count <= 0)
 		{
 			left = source;
 			right = source;
@@ -199,8 +199,22 @@ TEST_CASE("128-bit lane and whole-register shifts are distinct", "[simdlib][sse4
 		REQUIRE(simd::to_array(simd::bit_shift_right(input, count)) == right);
 	}
 
+	REQUIRE(simd::to_array(simd::template bit_shift_left<0>(input)) == source);
+	REQUIRE(simd::to_array(simd::template bit_shift_left<1>(input)) == std::array<std::uint64_t, 2>{source[0] << 1, (source[1] << 1) | (source[0] >> 63)});
+	REQUIRE(simd::to_array(simd::template bit_shift_left<63>(input)) == std::array<std::uint64_t, 2>{source[0] << 63, (source[1] << 63) | (source[0] >> 1)});
 	REQUIRE(simd::to_array(simd::template bit_shift_left<64>(input)) == std::array<std::uint64_t, 2>{0, source[0]});
+	REQUIRE(simd::to_array(simd::template bit_shift_left<65>(input)) == std::array<std::uint64_t, 2>{0, source[0] << 1});
+	REQUIRE(simd::to_array(simd::template bit_shift_left<127>(input)) == std::array<std::uint64_t, 2>{0, source[0] << 63});
+	REQUIRE(simd::to_array(simd::template bit_shift_left<128>(input)) == std::array<std::uint64_t, 2>{});
+	REQUIRE(simd::to_array(simd::template bit_shift_left<129>(input)) == std::array<std::uint64_t, 2>{});
+	REQUIRE(simd::to_array(simd::template bit_shift_right<0>(input)) == source);
+	REQUIRE(simd::to_array(simd::template bit_shift_right<1>(input)) == std::array<std::uint64_t, 2>{(source[0] >> 1) | (source[1] << 63), source[1] >> 1});
+	REQUIRE(simd::to_array(simd::template bit_shift_right<63>(input)) == std::array<std::uint64_t, 2>{(source[0] >> 63) | (source[1] << 1), source[1] >> 63});
+	REQUIRE(simd::to_array(simd::template bit_shift_right<64>(input)) == std::array<std::uint64_t, 2>{source[1], 0});
+	REQUIRE(simd::to_array(simd::template bit_shift_right<65>(input)) == std::array<std::uint64_t, 2>{source[1] >> 1, 0});
+	REQUIRE(simd::to_array(simd::template bit_shift_right<127>(input)) == std::array<std::uint64_t, 2>{source[1] >> 63, 0});
 	REQUIRE(simd::to_array(simd::template bit_shift_right<128>(input)) == std::array<std::uint64_t, 2>{});
+	REQUIRE(simd::to_array(simd::template bit_shift_right<129>(input)) == std::array<std::uint64_t, 2>{});
 }
 
 TEST_CASE("128-bit public byte operations cover lane shifts and byte-shift boundaries", "[simdlib][sse42][byte][shift]")
