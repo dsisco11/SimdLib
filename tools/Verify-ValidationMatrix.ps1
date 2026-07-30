@@ -64,6 +64,79 @@ function Assert-MatrixSequence {
 }
 
 $compilerOrder = @('Msvc', 'ClangCl', 'ClangCoverage', 'Gcc13', 'Gcc14', 'Clang22')
+$matrixPath = Join-Path $PSScriptRoot 'validation-matrix.json'
+$matrix = Get-Content -LiteralPath $matrixPath -Raw | ConvertFrom-Json
+if ($matrix.schema -ne 'simdlib.validation-matrix.v1') {
+    throw "Unsupported validation matrix schema in $matrixPath"
+}
+
+<#
+.SYNOPSIS
+Returns the canonical cell objects assigned to one matrix operation.
+.PARAMETER Operation
+Operation property from the machine-readable matrix.
+#>
+function Get-ExpectedMatrixCells {
+    param([Parameter(Mandatory)][string]$Operation)
+
+    $operationProperty = $matrix.operations.PSObject.Properties[$Operation]
+    if (-not $operationProperty) {
+        throw "Validation matrix does not define operation $Operation"
+    }
+    $seen = [System.Collections.Generic.HashSet[string]]::new(
+        [System.StringComparer]::Ordinal)
+    return @(
+        foreach ($cellId in @($operationProperty.Value)) {
+            if (-not $seen.Add([string]$cellId)) {
+                throw "Validation matrix operation $Operation duplicates cell $cellId"
+            }
+            $cellProperty = $matrix.cells.PSObject.Properties[[string]$cellId]
+            if (-not $cellProperty) {
+                throw "Validation matrix operation $Operation references unknown cell $cellId"
+            }
+            Add-Member -InputObject $cellProperty.Value `
+                -NotePropertyName MatrixCell -NotePropertyValue ([string]$cellId) `
+                -Force -PassThru
+        }
+    )
+}
+
+$defaultContractCells = @(Get-ExpectedMatrixCells -Operation defaultBuild)
+$defaultTestContractCells = @(Get-ExpectedMatrixCells -Operation defaultTests)
+Assert-MatrixSequence -Name 'Default build/test ownership' `
+    -Actual @($defaultTestContractCells.MatrixCell) `
+    -Expected @($defaultContractCells.MatrixCell)
+$ordinaryDebugCells = @('clangcl-debug', 'gcc13-debug', 'gcc14-debug', 'clang22-debug')
+foreach ($ordinaryDebugCell in $ordinaryDebugCells) {
+    if ($ordinaryDebugCell -in @($defaultContractCells.MatrixCell)) {
+        throw "Ordinary Debug cell re-entered the default matrix: $ordinaryDebugCell"
+    }
+}
+foreach ($profileName in @('SANITIZER', 'COVERAGE')) {
+    $profile = $matrix.profiles.$profileName
+    $forbidden = @(@($profile.allowedTargetCategories) |
+        Where-Object { $_ -in @('OPTIMIZED_CODEGEN', 'DEBUG_DIAGNOSTIC', 'CONSTEXPR_CONTRACT', 'SMOKE_VALIDATION') })
+    if ($forbidden.Count) {
+        throw "$profileName profile permits forbidden categories: $($forbidden -join ', ')"
+    }
+}
+$contractCells = @(Get-ExpectedMatrixCells -Operation compilerContracts)
+$contractCompilerIdentities = @($contractCells.compilerIdentity)
+if (@($contractCompilerIdentities | Select-Object -Unique).Count -ne $contractCompilerIdentities.Count) {
+    throw 'Compiler-front-end contracts are assigned more than once per compiler identity'
+}
+foreach ($cell in $defaultContractCells | Where-Object {
+        $_.profile -eq 'RELEASE' -and $_.registerCapable }) {
+    if ($cell.codegenMode -ne 'ENFORCE') {
+        throw "Register-capable Release cell does not enforce codegen: $($cell.MatrixCell)"
+    }
+}
+foreach ($cell in @(Get-ExpectedMatrixCells -Operation optionalDiagnostics)) {
+    if ($cell.codegenMode -ne 'RECORD' -or
+        $cell.MatrixCell -in @($defaultContractCells.MatrixCell)) {
+        throw "Optional diagnostic is not isolated record-only evidence: $($cell.MatrixCell)"
+    }
+}
 $defaultPresets = @(
     'msvc-release-exhaustive',
     'msvc-debug-diagnostics',
@@ -74,6 +147,9 @@ $defaultPresets = @(
     'clang22-release-exhaustive',
     'clang22-debug-asan-ubsan'
 )
+Assert-MatrixSequence -Name 'Machine-readable default presets' `
+    -Actual @($defaultContractCells.preset) `
+    -Expected $defaultPresets
 Assert-MatrixSequence -Name 'Canonical default presets' `
     -Actual @(Get-PipelineDefaultValidationPresets -SelectedCompilers $compilerOrder) `
     -Expected $defaultPresets
@@ -99,6 +175,23 @@ Assert-MatrixSequence -Name 'Container default cells' `
         'gcc14-release-exhaustive',
         'clang22-release-exhaustive',
         'clang22-debug-asan-ubsan')
+$nativeBenchmarkCells = @(
+    Resolve-NativeCells -CompilerName All -CellScope Release -Operation BuildBenchmarks)
+$containerBenchmarkCells = @(
+    Resolve-Cells -Services @('gcc13', 'gcc14', 'clang22') -CellScope Release -Operation BuildBenchmarks)
+$benchmarkContractCells = @(Get-ExpectedMatrixCells -Operation benchmarks)
+Assert-MatrixSequence -Name 'Native benchmark Release-tree reuse' `
+    -Actual @($nativeBenchmarkCells.Preset) `
+    -Expected @($benchmarkContractCells | Where-Object platform -eq native | ForEach-Object preset)
+Assert-MatrixSequence -Name 'Container benchmark Release-tree reuse' `
+    -Actual @($containerBenchmarkCells.Preset) `
+    -Expected @($benchmarkContractCells | Where-Object platform -eq container | ForEach-Object preset)
+foreach ($benchmarkCell in @($nativeBenchmarkCells) + @($containerBenchmarkCells)) {
+    if ($benchmarkCell.BuildProfile -ne 'Release' -or
+        $benchmarkCell.Aggregate -ne 'ExhaustiveArtifacts') {
+        throw "Benchmark operation does not reuse its owning Release tree: $($benchmarkCell.Preset)"
+    }
+}
 Assert-MatrixSequence -Name 'Native consumer owners' `
     -Actual @($nativeDefaultCells | ForEach-Object { "$($_.Preset):$($_.Consumer)" }) `
     -Expected @(
@@ -147,7 +240,13 @@ Assert-MatrixSequence -Name 'Native compiler-contract cells' `
 Assert-MatrixSequence -Name 'Native compiler-contract aggregates' `
     -Actual @($nativeContractCells.Aggregate) `
     -Expected @('SimdLibCompilerContractArtifacts', 'SimdLibCompilerContractArtifacts')
+Assert-MatrixSequence -Name 'Machine-readable native compiler contracts' `
+    -Actual @($nativeContractCells.Preset) `
+    -Expected @($contractCells | Where-Object platform -eq native | ForEach-Object preset)
 $containerContractCells = @(Resolve-Cells -Services @('gcc13', 'gcc14', 'clang22') -CellScope Release -Operation BuildCompilerContracts)
+Assert-MatrixSequence -Name 'Machine-readable container compiler contracts' `
+    -Actual @($containerContractCells.Preset) `
+    -Expected @($contractCells | Where-Object platform -eq container | ForEach-Object preset)
 Assert-MatrixSequence -Name 'Container compiler-contract cells' `
     -Actual @($containerContractCells.Preset) `
     -Expected @('container-release-contracts', 'container-release-contracts', 'container-release-contracts')
@@ -166,10 +265,17 @@ $nativeDiagnosticCells = @(Resolve-NativeCells -CompilerName All -CellScope Debu
 Assert-MatrixSequence -Name 'Native optional codegen diagnostics' `
     -Actual @($nativeDiagnosticCells.Preset) `
     -Expected @('msvc-debug-codegen-diagnostic', 'clangcl-debug-codegen-diagnostic')
+$diagnosticContractCells = @(Get-ExpectedMatrixCells -Operation optionalDiagnostics)
+Assert-MatrixSequence -Name 'Machine-readable native diagnostics' `
+    -Actual @($nativeDiagnosticCells.Preset) `
+    -Expected @($diagnosticContractCells | Where-Object platform -eq native | ForEach-Object preset)
 $containerDiagnosticCells = @(Resolve-Cells -Services @('gcc13', 'gcc14', 'clang22') -CellScope All -Operation RecordCodegen)
 Assert-MatrixSequence -Name 'Container optional codegen diagnostics' `
     -Actual @($containerDiagnosticCells.Preset) `
     -Expected @('gcc14-debug-codegen-diagnostic', 'clang22-debug-codegen-diagnostic', 'clang22-asan-ubsan-codegen-diagnostic')
+Assert-MatrixSequence -Name 'Machine-readable container diagnostics' `
+    -Actual @($containerDiagnosticCells.Preset) `
+    -Expected @($diagnosticContractCells | Where-Object platform -eq container | ForEach-Object preset)
 foreach ($diagnosticCell in @($nativeDiagnosticCells) + @($containerDiagnosticCells)) {
     if ($diagnosticCell.Preset -in $defaultPresets -or $diagnosticCell.Aggregate -ne 'SimdLibDebugDiagnosticArtifacts') {
         throw "Optional codegen diagnostic contaminates the default matrix: $($diagnosticCell.Preset)"

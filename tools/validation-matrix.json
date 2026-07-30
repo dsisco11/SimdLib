@@ -1,0 +1,463 @@
+{
+  "schema": "simdlib.validation-matrix.v1",
+  "targetCategories": [
+    "COMPILER_CONTRACT",
+    "CONSTEXPR_CONTRACT",
+    "RUNTIME_VALIDATION",
+    "CHECKS_VALIDATION",
+    "SMOKE_VALIDATION",
+    "OPTIMIZED_CODEGEN",
+    "DEBUG_DIAGNOSTIC",
+    "COVERAGE_SUPPORT",
+    "BENCHMARK"
+  ],
+  "testOnlyOwners": [
+    "PROFILE_AUDIT"
+  ],
+  "profiles": {
+    "RELEASE": {
+      "allowedTargetCategories": [
+        "COMPILER_CONTRACT",
+        "CONSTEXPR_CONTRACT",
+        "RUNTIME_VALIDATION",
+        "CHECKS_VALIDATION",
+        "SMOKE_VALIDATION",
+        "OPTIMIZED_CODEGEN",
+        "BENCHMARK"
+      ],
+      "selectedTargetCategories": [
+        "COMPILER_CONTRACT",
+        "CONSTEXPR_CONTRACT",
+        "RUNTIME_VALIDATION",
+        "CHECKS_VALIDATION",
+        "SMOKE_VALIDATION",
+        "OPTIMIZED_CODEGEN"
+      ],
+      "allowedTestOwners": [
+        "COMPILER_CONTRACT",
+        "CONSTEXPR_CONTRACT",
+        "RUNTIME_VALIDATION",
+        "CHECKS_VALIDATION",
+        "SMOKE_VALIDATION",
+        "OPTIMIZED_CODEGEN",
+        "PROFILE_AUDIT"
+      ]
+    },
+    "DEBUG": {
+      "allowedTargetCategories": [
+        "COMPILER_CONTRACT",
+        "RUNTIME_VALIDATION",
+        "CHECKS_VALIDATION"
+      ],
+      "selectedTargetCategories": [
+        "COMPILER_CONTRACT",
+        "RUNTIME_VALIDATION",
+        "CHECKS_VALIDATION"
+      ],
+      "allowedTestOwners": [
+        "COMPILER_CONTRACT",
+        "RUNTIME_VALIDATION",
+        "CHECKS_VALIDATION",
+        "PROFILE_AUDIT"
+      ]
+    },
+    "SANITIZER": {
+      "allowedTargetCategories": [
+        "RUNTIME_VALIDATION",
+        "CHECKS_VALIDATION"
+      ],
+      "selectedTargetCategories": [
+        "RUNTIME_VALIDATION",
+        "CHECKS_VALIDATION"
+      ],
+      "allowedTestOwners": [
+        "RUNTIME_VALIDATION",
+        "CHECKS_VALIDATION",
+        "PROFILE_AUDIT"
+      ]
+    },
+    "COVERAGE": {
+      "allowedTargetCategories": [
+        "RUNTIME_VALIDATION",
+        "CHECKS_VALIDATION",
+        "COVERAGE_SUPPORT"
+      ],
+      "selectedTargetCategories": [
+        "RUNTIME_VALIDATION",
+        "CHECKS_VALIDATION"
+      ],
+      "allowedTestOwners": [
+        "RUNTIME_VALIDATION",
+        "CHECKS_VALIDATION",
+        "PROFILE_AUDIT"
+      ]
+    },
+    "COMPILER_CONTRACTS": {
+      "allowedTargetCategories": [
+        "COMPILER_CONTRACT"
+      ],
+      "selectedTargetCategories": [
+        "COMPILER_CONTRACT"
+      ],
+      "allowedTestOwners": [
+        "COMPILER_CONTRACT",
+        "PROFILE_AUDIT"
+      ]
+    },
+    "CODEGEN_DIAGNOSTIC": {
+      "allowedTargetCategories": [
+        "DEBUG_DIAGNOSTIC"
+      ],
+      "selectedTargetCategories": [
+        "DEBUG_DIAGNOSTIC"
+      ],
+      "allowedTestOwners": [
+        "DEBUG_DIAGNOSTIC",
+        "PROFILE_AUDIT"
+      ]
+    }
+  },
+  "cells": {
+    "msvc-release": {
+      "platform": "native",
+      "compiler": "Msvc",
+      "compilerIdentity": "msvc",
+      "preset": "msvc-release-exhaustive",
+      "profile": "RELEASE",
+      "configuration": "Release",
+      "instrumentation": "none",
+      "codegenMode": "ENFORCE",
+      "aggregate": "ExhaustiveArtifacts",
+      "consumer": true,
+      "registerCapable": true
+    },
+    "msvc-debug": {
+      "platform": "native",
+      "compiler": "Msvc",
+      "compilerIdentity": "msvc",
+      "preset": "msvc-debug-diagnostics",
+      "profile": "DEBUG",
+      "configuration": "Debug",
+      "instrumentation": "none",
+      "codegenMode": "OFF",
+      "aggregate": "ExhaustiveArtifacts",
+      "consumer": false,
+      "registerCapable": true
+    },
+    "clangcl-release": {
+      "platform": "native",
+      "compiler": "ClangCl",
+      "compilerIdentity": "clangcl",
+      "preset": "clangcl-release-exhaustive",
+      "profile": "RELEASE",
+      "configuration": "Release",
+      "instrumentation": "none",
+      "codegenMode": "ENFORCE",
+      "aggregate": "ExhaustiveArtifacts",
+      "consumer": true,
+      "registerCapable": true
+    },
+    "clangcl-debug": {
+      "platform": "native",
+      "compiler": "ClangCl",
+      "compilerIdentity": "clangcl",
+      "preset": "clangcl-debug-diagnostics",
+      "profile": "DEBUG",
+      "configuration": "Debug",
+      "instrumentation": "none",
+      "codegenMode": "OFF",
+      "aggregate": "ExhaustiveArtifacts",
+      "consumer": false,
+      "registerCapable": true
+    },
+    "clang-coverage": {
+      "platform": "native",
+      "compiler": "ClangCoverage",
+      "compilerIdentity": "clang-coverage",
+      "preset": "clang-debug-coverage",
+      "profile": "COVERAGE",
+      "configuration": "Debug",
+      "instrumentation": "coverage",
+      "codegenMode": "OFF",
+      "aggregate": "ExhaustiveArtifacts",
+      "consumer": false,
+      "registerCapable": true
+    },
+    "gcc13-release": {
+      "platform": "container",
+      "compiler": "Gcc13",
+      "compilerIdentity": "gcc13",
+      "preset": "gcc13-core-release-exhaustive",
+      "profile": "RELEASE",
+      "configuration": "Release",
+      "instrumentation": "none",
+      "codegenMode": "OFF",
+      "aggregate": "ExhaustiveArtifacts",
+      "consumer": true,
+      "registerCapable": false
+    },
+    "gcc13-debug": {
+      "platform": "container",
+      "compiler": "Gcc13",
+      "compilerIdentity": "gcc13",
+      "preset": "gcc13-core-debug-diagnostics",
+      "profile": "DEBUG",
+      "configuration": "Debug",
+      "instrumentation": "none",
+      "codegenMode": "OFF",
+      "aggregate": "ExhaustiveArtifacts",
+      "consumer": false,
+      "registerCapable": false
+    },
+    "gcc14-release": {
+      "platform": "container",
+      "compiler": "Gcc14",
+      "compilerIdentity": "gcc14",
+      "preset": "gcc14-release-exhaustive",
+      "profile": "RELEASE",
+      "configuration": "Release",
+      "instrumentation": "none",
+      "codegenMode": "ENFORCE",
+      "aggregate": "ExhaustiveArtifacts",
+      "consumer": true,
+      "registerCapable": true
+    },
+    "gcc14-debug": {
+      "platform": "container",
+      "compiler": "Gcc14",
+      "compilerIdentity": "gcc14",
+      "preset": "gcc14-debug-diagnostics",
+      "profile": "DEBUG",
+      "configuration": "Debug",
+      "instrumentation": "none",
+      "codegenMode": "OFF",
+      "aggregate": "ExhaustiveArtifacts",
+      "consumer": false,
+      "registerCapable": true
+    },
+    "clang22-release": {
+      "platform": "container",
+      "compiler": "Clang22",
+      "compilerIdentity": "clang22",
+      "preset": "clang22-release-exhaustive",
+      "profile": "RELEASE",
+      "configuration": "Release",
+      "instrumentation": "none",
+      "codegenMode": "ENFORCE",
+      "aggregate": "ExhaustiveArtifacts",
+      "consumer": true,
+      "registerCapable": true
+    },
+    "clang22-debug": {
+      "platform": "container",
+      "compiler": "Clang22",
+      "compilerIdentity": "clang22",
+      "preset": "clang22-debug-diagnostics",
+      "profile": "DEBUG",
+      "configuration": "Debug",
+      "instrumentation": "none",
+      "codegenMode": "OFF",
+      "aggregate": "ExhaustiveArtifacts",
+      "consumer": false,
+      "registerCapable": true
+    },
+    "clang22-sanitizer": {
+      "platform": "container",
+      "compiler": "Clang22",
+      "compilerIdentity": "clang22",
+      "preset": "clang22-debug-asan-ubsan",
+      "profile": "SANITIZER",
+      "configuration": "Debug",
+      "instrumentation": "asan-ubsan",
+      "codegenMode": "OFF",
+      "aggregate": "ExhaustiveArtifacts",
+      "consumer": false,
+      "registerCapable": true
+    },
+    "msvc-contracts": {
+      "platform": "native",
+      "compiler": "Msvc",
+      "compilerIdentity": "msvc",
+      "preset": "msvc-compiler-contracts",
+      "profile": "COMPILER_CONTRACTS",
+      "configuration": "Release",
+      "instrumentation": "none",
+      "codegenMode": "OFF",
+      "aggregate": "SimdLibCompilerContractArtifacts",
+      "consumer": false,
+      "registerCapable": true
+    },
+    "clangcl-contracts": {
+      "platform": "native",
+      "compiler": "ClangCl",
+      "compilerIdentity": "clangcl",
+      "preset": "clangcl-compiler-contracts",
+      "profile": "COMPILER_CONTRACTS",
+      "configuration": "Release",
+      "instrumentation": "none",
+      "codegenMode": "OFF",
+      "aggregate": "SimdLibCompilerContractArtifacts",
+      "consumer": false,
+      "registerCapable": true
+    },
+    "gcc13-contracts": {
+      "platform": "container",
+      "compiler": "Gcc13",
+      "compilerIdentity": "gcc13",
+      "preset": "container-release-contracts",
+      "profile": "COMPILER_CONTRACTS",
+      "configuration": "Release",
+      "instrumentation": "none",
+      "codegenMode": "OFF",
+      "aggregate": "SimdLibCompilerContractArtifacts",
+      "consumer": false,
+      "registerCapable": false
+    },
+    "gcc14-contracts": {
+      "platform": "container",
+      "compiler": "Gcc14",
+      "compilerIdentity": "gcc14",
+      "preset": "container-release-contracts",
+      "profile": "COMPILER_CONTRACTS",
+      "configuration": "Release",
+      "instrumentation": "none",
+      "codegenMode": "OFF",
+      "aggregate": "SimdLibCompilerContractArtifacts",
+      "consumer": false,
+      "registerCapable": true
+    },
+    "clang22-contracts": {
+      "platform": "container",
+      "compiler": "Clang22",
+      "compilerIdentity": "clang22",
+      "preset": "container-release-contracts",
+      "profile": "COMPILER_CONTRACTS",
+      "configuration": "Release",
+      "instrumentation": "none",
+      "codegenMode": "OFF",
+      "aggregate": "SimdLibCompilerContractArtifacts",
+      "consumer": false,
+      "registerCapable": true
+    },
+    "msvc-diagnostic": {
+      "platform": "native",
+      "compiler": "Msvc",
+      "compilerIdentity": "msvc",
+      "preset": "msvc-debug-codegen-diagnostic",
+      "profile": "CODEGEN_DIAGNOSTIC",
+      "configuration": "Debug",
+      "instrumentation": "none",
+      "codegenMode": "RECORD",
+      "aggregate": "SimdLibDebugDiagnosticArtifacts",
+      "consumer": false,
+      "registerCapable": true
+    },
+    "clangcl-diagnostic": {
+      "platform": "native",
+      "compiler": "ClangCl",
+      "compilerIdentity": "clangcl",
+      "preset": "clangcl-debug-codegen-diagnostic",
+      "profile": "CODEGEN_DIAGNOSTIC",
+      "configuration": "Debug",
+      "instrumentation": "none",
+      "codegenMode": "RECORD",
+      "aggregate": "SimdLibDebugDiagnosticArtifacts",
+      "consumer": false,
+      "registerCapable": true
+    },
+    "gcc14-diagnostic": {
+      "platform": "container",
+      "compiler": "Gcc14",
+      "compilerIdentity": "gcc14",
+      "preset": "gcc14-debug-codegen-diagnostic",
+      "profile": "CODEGEN_DIAGNOSTIC",
+      "configuration": "Debug",
+      "instrumentation": "none",
+      "codegenMode": "RECORD",
+      "aggregate": "SimdLibDebugDiagnosticArtifacts",
+      "consumer": false,
+      "registerCapable": true
+    },
+    "clang22-diagnostic": {
+      "platform": "container",
+      "compiler": "Clang22",
+      "compilerIdentity": "clang22",
+      "preset": "clang22-debug-codegen-diagnostic",
+      "profile": "CODEGEN_DIAGNOSTIC",
+      "configuration": "Debug",
+      "instrumentation": "none",
+      "codegenMode": "RECORD",
+      "aggregate": "SimdLibDebugDiagnosticArtifacts",
+      "consumer": false,
+      "registerCapable": true
+    },
+    "clang22-sanitizer-diagnostic": {
+      "platform": "container",
+      "compiler": "Clang22",
+      "compilerIdentity": "clang22",
+      "preset": "clang22-asan-ubsan-codegen-diagnostic",
+      "profile": "CODEGEN_DIAGNOSTIC",
+      "configuration": "Debug",
+      "instrumentation": "asan-ubsan",
+      "codegenMode": "RECORD",
+      "aggregate": "SimdLibDebugDiagnosticArtifacts",
+      "consumer": false,
+      "registerCapable": true
+    }
+  },
+  "operations": {
+    "defaultBuild": [
+      "msvc-release",
+      "msvc-debug",
+      "clangcl-release",
+      "clang-coverage",
+      "gcc13-release",
+      "gcc14-release",
+      "clang22-release",
+      "clang22-sanitizer"
+    ],
+    "defaultTests": [
+      "msvc-release",
+      "msvc-debug",
+      "clangcl-release",
+      "clang-coverage",
+      "gcc13-release",
+      "gcc14-release",
+      "clang22-release",
+      "clang22-sanitizer"
+    ],
+    "coverage": [
+      "clang-coverage"
+    ],
+    "sanitizer": [
+      "clang22-sanitizer"
+    ],
+    "benchmarks": [
+      "msvc-release",
+      "clangcl-release",
+      "gcc13-release",
+      "gcc14-release",
+      "clang22-release"
+    ],
+    "compilerContracts": [
+      "msvc-contracts",
+      "clangcl-contracts",
+      "gcc13-contracts",
+      "gcc14-contracts",
+      "clang22-contracts"
+    ],
+    "optionalDiagnostics": [
+      "msvc-diagnostic",
+      "clangcl-diagnostic",
+      "gcc14-diagnostic",
+      "clang22-diagnostic",
+      "clang22-sanitizer-diagnostic"
+    ],
+    "optionalDebug": [
+      "clangcl-debug",
+      "gcc13-debug",
+      "gcc14-debug",
+      "clang22-debug"
+    ]
+  }
+}

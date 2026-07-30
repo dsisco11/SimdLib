@@ -198,7 +198,7 @@ SimdLib Register Implementation Plan:
     ☒ Require zero wrapper-only instructions, moves, spills, reloads, stack traffic, return buffers, branches, temporaries, or indirection in every supported optimized Release comparison.
     ☒ Validate consumer-defined `VECTORCALL` boundaries on MSVC and Clang and equivalent raw/default ABI boundaries on GCC where `VECTORCALL` is empty.
     ☒ Report default-convention consumer behavior separately on compilers where `VECTORCALL` is available and exclude failing signatures from the supported call-boundary claim.
-    ☒ Run Debug and sanitizer wrapper-versus-raw differential checks under identical flags and record any wrapper-only difference even though optimized Release assembly is the primary machine-code gate.
+    ☒ Keep Debug and sanitizer wrapper-versus-raw differential checks available as explicitly selected diagnostics under identical flags, and keep every recorded difference separate from the mandatory optimized Release machine-code gate.
     ☒ Run supplemental benchmarks only after generated-code gates pass, using runtime-derived inputs that prevent constant folding and dead-code elimination.
     ☒ Record all accepted and excluded compiler/type/width/configuration combinations and discuss every observed performance exception explicitly.
     ☒ End Phase 10 only when every supported configuration has complete correctness and zero-overhead evidence and every exclusion has a reviewed written justification.

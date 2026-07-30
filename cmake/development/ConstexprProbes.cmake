@@ -122,6 +122,7 @@ if(SIMDLIB_BUILD_CONSTEXPR_PROBES)
 			-P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/RecordArtifactHashes.cmake)
 	set_tests_properties(ConstexprProbes.Artifacts PROPERTIES
 		LABELS "CONSTEXPR;COMPILE_ONLY" RUN_SERIAL TRUE)
+	simdlib_register_development_test(ConstexprProbes.Artifacts CONSTEXPR_CONTRACT)
 endif()
 
 endblock()

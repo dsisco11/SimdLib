@@ -55,19 +55,22 @@ function Assert-BuildReceipt {
     $receiptPath = Join-Path $pipelineRoot "provenance/build-$selectionId.json"
     if (-not (Test-Path -LiteralPath $receiptPath -PathType Leaf)) { throw "Required unified build receipt is missing: $receiptPath" }
     $receipt = Get-Content -LiteralPath $receiptPath -Raw | ConvertFrom-Json
-    if ($receipt.schema -ne 'simdlib.unified-build-receipt.v3' -or $receipt.status -ne 'complete' -or $receipt.scope -ne $Scope) {
+    if ($receipt.schema -ne 'simdlib.unified-build-receipt.v4' -or $receipt.status -ne 'complete' -or $receipt.scope -ne $Scope) {
         throw "Unified build receipt is incomplete or incompatible: $receiptPath"
     }
     $receiptCompilers = @($receipt.compilers)
     if (($receiptCompilers -join ',') -ne ($SelectedCompilers -join ',')) { throw "Unified build receipt compiler set does not match the requested tests: $receiptPath" }
     $currentDigest = Get-PipelineSourceDigest -RepositoryRoot $repositoryRoot
+    $matrixPath = Join-Path $repositoryRoot 'tools/validation-matrix.json'
+    $matrixHash = (Get-FileHash -LiteralPath $matrixPath -Algorithm SHA256).Hash.ToLowerInvariant()
+    $matrix = Get-Content -LiteralPath $matrixPath -Raw | ConvertFrom-Json
     if ($receipt.sourceDigest -ne $currentDigest) { throw "Unified build receipt is stale for current source inputs: $receiptPath" }
     [void](Assert-PipelineRepositoryAuditEntry `
         -RepositoryRoot $repositoryRoot `
         -Entry $receipt.repositoryAudit `
         -ExpectedSourceDigest $currentDigest)
     $expectedPresets = @(Get-PipelineDefaultValidationPresets -SelectedCompilers $SelectedCompilers | Sort-Object)
-    $receiptPresets = @($receipt.manifests.preset | Sort-Object)
+    $receiptPresets = @($receipt.manifests | ForEach-Object { $_.preset } | Sort-Object)
     if (($receiptPresets -join ',') -ne ($expectedPresets -join ',')) { throw "Unified build receipt manifest set does not exactly match requested test cells: $receiptPath" }
     foreach ($entry in $receipt.manifests) {
         $manifestPath = Join-Path $repositoryRoot ([string]$entry.path)
@@ -79,15 +82,38 @@ function Assert-BuildReceipt {
             throw "Receipt manifest source digest does not match the unified receipt and current sources: $manifestPath"
         }
         $provenancePairs = @{
+            matrix_cell = 'matrixCell'
             aggregate = 'aggregate'; target_inventory_sha256 = 'targetInventorySha256'
             main_test_inventory_sha256 = 'testInventorySha256'; build_profile = 'configuration'
             sanitizer = 'instrumentation'; codegen_mode = 'generatedCodeMode'; consumer_scope = 'consumerScope'
+            matrix_contract_sha256 = 'matrixContractSha256'
+            validation_inventory_audit_sha256 = 'inventoryAuditSha256'
         }
         foreach ($manifestKey in $provenancePairs.Keys) {
             $receiptValue = [string]$entry.($provenancePairs[$manifestKey])
             if ($manifest[$manifestKey] -ne $receiptValue) {
                 throw "Receipt manifest provenance $manifestKey does not match the unified receipt: $manifestPath"
             }
+        }
+        if ($manifest.matrix_contract_sha256 -ne $matrixHash) {
+            throw "Receipt manifest uses a stale validation matrix contract: $manifestPath"
+        }
+        $inventoryAuditPath = [string]$manifest.validation_inventory_audit
+        if (-not (Test-Path -LiteralPath $inventoryAuditPath -PathType Leaf)) {
+            throw "Receipt validation inventory audit is missing: $inventoryAuditPath"
+        }
+        $inventoryAuditHash = (Get-FileHash -LiteralPath $inventoryAuditPath -Algorithm SHA256).Hash.ToLowerInvariant()
+        if ($inventoryAuditHash -ne $manifest.validation_inventory_audit_sha256) {
+            throw "Receipt validation inventory audit changed after the build: $inventoryAuditPath"
+        }
+        $inventoryAudit = Get-Content -LiteralPath $inventoryAuditPath -Raw | ConvertFrom-Json
+        $matrixCell = $matrix.cells.PSObject.Properties[[string]$manifest.matrix_cell]
+        if (-not $matrixCell -or
+            $inventoryAudit.schema -ne 'simdlib.validation-inventory-audit.v1' -or
+            $inventoryAudit.status -ne 'complete' -or
+            $inventoryAudit.cell -ne $manifest.matrix_cell -or
+            $inventoryAudit.profile -ne $matrixCell.Value.profile) {
+            throw "Receipt validation inventory audit is category-incompatible: $inventoryAuditPath"
         }
         if ($manifest.aggregate -ne 'ExhaustiveArtifacts' -or
             $manifest.target_inventory_sha256 -eq 'none' -or

@@ -592,6 +592,8 @@ function(simdlib_add_register_codegen_gate register_width isa_profile)
 			-P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/ValidateRegisterCodegenProfile.cmake)
 	set_tests_properties(RegisterCodegen.${target_suffix} PROPERTIES
 		LABELS "REGISTER;CODEGEN;ABI;${isa_profile}" RUN_SERIAL TRUE)
+	simdlib_register_development_test(RegisterCodegen.${target_suffix}
+		${codegen_validation_category})
 endfunction()
 
 if(SIMDLIB_BUILD_REGISTER_CODEGEN_GATES AND SIMDLIB_REGISTER_COMPILER_SUPPORTED)

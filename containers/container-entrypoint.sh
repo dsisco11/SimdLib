@@ -10,6 +10,7 @@ build_profile=
 sanitizer=none
 codegen_mode=OFF
 aggregate=ExhaustiveArtifacts
+matrix_cell=
 consumer_scope=none
 artifact_root="/workspace/out/${SIMDLIB_COMPILER_ID:-unknown}"
 fingerprint_sha256=
@@ -28,6 +29,7 @@ Usage: simdlib-container --operation OPERATION [options]
   --sanitizer MODE       none or asan-ubsan
   --codegen-mode MODE    OFF, ENFORCE, or RECORD
   --aggregate NAME       Scoped CMake aggregate owned by this operation
+  --matrix-cell NAME     Canonical validation-matrix cell identifier
   --consumer-scope SCOPE none or compiler-release
   --artifact-root PATH   Writable compiler-specific artifact root
   --fingerprint-sha256   Full SHA256 of the canonical build-cell fingerprint
@@ -45,6 +47,7 @@ while [ "$#" -gt 0 ]; do
 		--sanitizer) sanitizer=$2; shift 2 ;;
 		--codegen-mode) codegen_mode=$2; shift 2 ;;
 		--aggregate) aggregate=$2; shift 2 ;;
+		--matrix-cell) matrix_cell=$2; shift 2 ;;
 		--consumer-scope) consumer_scope=$2; shift 2 ;;
 		--artifact-root) artifact_root=$2; shift 2 ;;
 		--fingerprint-sha256) fingerprint_sha256=$2; shift 2 ;;
@@ -85,6 +88,10 @@ case "$aggregate" in
 	ExhaustiveArtifacts|SimdLibCompilerContractArtifacts|SimdLibDebugDiagnosticArtifacts) ;;
 	*) echo "Unsupported scoped aggregate: $aggregate" >&2; exit 2 ;;
 esac
+[ -n "$matrix_cell" ] || {
+	echo "A canonical --matrix-cell is required" >&2
+	exit 2
+}
 case "$consumer_scope" in
 	none|compiler-release) ;;
 	*) echo "Unsupported consumer scope: $consumer_scope" >&2; exit 2 ;;
@@ -126,6 +133,8 @@ main_inventory="$provenance_directory/main-test-artifacts.inventory"
 consumer_inventory="$provenance_directory/consumer-test-artifacts.inventory"
 codegen_record_index="$provenance_directory/codegen-records.index"
 target_inventory="$build_directory/development-profile-targets.txt"
+matrix_contract="$source_directory/tools/validation-matrix.json"
+validation_inventory_audit="$report_directory/validation-inventory.audit.json"
 codegen_diagnostic_provenance="$provenance_directory/codegen-diagnostic.json"
 mkdir -p "$report_directory" "$provenance_directory"
 [ -f "$fingerprint_document" ] || {
@@ -146,7 +155,7 @@ run_traced_test_operation()
 	set -- --operation "$operation" --preset "$preset" --build-profile "$build_profile" \
 		--sanitizer "$sanitizer" --artifact-root "$artifact_root" \
 		--codegen-mode "$codegen_mode" --aggregate "$aggregate" \
-		--consumer-scope "$consumer_scope" \
+		--matrix-cell "$matrix_cell" --consumer-scope "$consumer_scope" \
 		--fingerprint-sha256 "$fingerprint_sha256"
 	[ -z "$test_regex" ] || set -- "$@" --test-regex "$test_regex"
 	[ -z "$test_label" ] || set -- "$@" --test-label "$test_label"
@@ -365,6 +374,16 @@ record_test_inventory()
 		-P "$source_directory/cmake/RecordTestInventory.cmake"
 }
 
+## @brief Audits generated target and CTest ownership against the matrix contract.
+audit_validation_inventory()
+{
+	cmake -DMATRIX_FILE="$matrix_contract" \
+		-DCELL_ID="$matrix_cell" \
+		-DBUILD_DIRECTORY="$build_directory" \
+		-DCMAKE_CTEST_COMMAND="$(command -v ctest)" \
+		-DRESULT_FILE="$validation_inventory_audit" \
+		-P "$source_directory/cmake/AuditValidationInventory.cmake"
+}
 ## @brief Writes the aggregate generated-code record index from CMake-owned indexes.
 write_codegen_record_index()
 {
@@ -425,6 +444,8 @@ write_completed_manifest()
 	main_inventory_hash=none
 	consumer_inventory_hash=none
 	codegen_record_index_hash=none
+	matrix_contract_hash=$(sha256sum "$matrix_contract" | cut -d ' ' -f 1)
+	validation_inventory_audit_hash=none
 	main_ctest_metadata_hash=none
 	consumer_ctest_metadata_hash=none
 	[ ! -f "$target_inventory" ] ||
@@ -435,6 +456,8 @@ write_completed_manifest()
 		consumer_inventory_hash=$(sha256sum "$consumer_inventory" | cut -d ' ' -f 1)
 	[ ! -f "$codegen_record_index" ] ||
 		codegen_record_index_hash=$(sha256sum "$codegen_record_index" | cut -d ' ' -f 1)
+	[ ! -f "$validation_inventory_audit" ] ||
+		validation_inventory_audit_hash=$(sha256sum "$validation_inventory_audit" | cut -d ' ' -f 1)
 	[ ! -f "$build_directory/CTestTestfile.cmake" ] ||
 		main_ctest_metadata_hash=$(sha256sum "$build_directory/CTestTestfile.cmake" | cut -d ' ' -f 1)
 	[ ! -f "$consumer_directory/CTestTestfile.cmake" ] ||
@@ -457,9 +480,13 @@ write_completed_manifest()
 		echo "sanitizer=$sanitizer"
 		echo "codegen_mode=$codegen_mode"
 		echo "aggregate=$manifest_aggregate"
+		echo "matrix_cell=$matrix_cell"
 		echo "consumer_owner=$consumer_scope"
 		echo "target_inventory=$target_inventory"
 		echo "target_inventory_sha256=$target_inventory_hash"
+		echo "matrix_contract_sha256=$matrix_contract_hash"
+		echo "validation_inventory_audit=$validation_inventory_audit"
+		echo "validation_inventory_audit_sha256=$validation_inventory_audit_hash"
 		echo "consumer_scope=$concrete_consumer_scope"
 		echo "build_directory=$build_directory"
 		echo "consumer_directory=$consumer_directory"
@@ -498,6 +525,7 @@ validate_validation_manifest()
 		[ "$(manifest_value "$validation_manifest" sanitizer)" = "$sanitizer" ] &&
 		[ "$(manifest_value "$validation_manifest" codegen_mode)" = "$codegen_mode" ] &&
 		[ "$(manifest_value "$validation_manifest" aggregate)" = "$aggregate" ] &&
+		[ "$(manifest_value "$validation_manifest" matrix_cell)" = "$matrix_cell" ] &&
 		[ "$(manifest_value "$validation_manifest" consumer_owner)" = "$consumer_scope" ] &&
 		[ "$(manifest_value "$validation_manifest" compiler_id)" = "${SIMDLIB_COMPILER_ID:-unknown}" ] &&
 		[ "$(manifest_value "$validation_manifest" base_image)" = "${SIMDLIB_BASE_IMAGE:-unknown}" ] ||
@@ -526,6 +554,10 @@ validate_validation_manifest()
 	}
 	[ "$(manifest_value "$validation_manifest" target_inventory_sha256)" = \
 		"$(sha256sum "$target_inventory" | cut -d ' ' -f 1)" ] &&
+		[ "$(manifest_value "$validation_manifest" matrix_contract_sha256)" = \
+			"$(sha256sum "$matrix_contract" | cut -d ' ' -f 1)" ] &&
+		[ "$(manifest_value "$validation_manifest" validation_inventory_audit_sha256)" = \
+			"$(sha256sum "$validation_inventory_audit" | cut -d ' ' -f 1)" ] &&
 		[ "$(manifest_value "$validation_manifest" main_test_inventory_sha256)" = \
 		"$(sha256sum "$main_inventory" | cut -d ' ' -f 1)" ] &&
 		[ "$(manifest_value "$validation_manifest" consumer_test_inventory_sha256)" = \
@@ -576,8 +608,13 @@ validate_benchmark_manifest()
 		[ "$(manifest_value "$benchmark_manifest" build_profile)" = "$build_profile" ] &&
 		[ "$(manifest_value "$benchmark_manifest" sanitizer)" = "$sanitizer" ] &&
 		[ "$(manifest_value "$benchmark_manifest" aggregate)" = BenchmarkArtifacts ] &&
+		[ "$(manifest_value "$benchmark_manifest" matrix_cell)" = "$matrix_cell" ] &&
 		[ "$(manifest_value "$benchmark_manifest" target_inventory_sha256)" = \
 			"$(sha256sum "$target_inventory" | cut -d ' ' -f 1)" ] &&
+		[ "$(manifest_value "$benchmark_manifest" matrix_contract_sha256)" = \
+			"$(sha256sum "$matrix_contract" | cut -d ' ' -f 1)" ] &&
+		[ "$(manifest_value "$benchmark_manifest" validation_inventory_audit_sha256)" = \
+			"$(sha256sum "$validation_inventory_audit" | cut -d ' ' -f 1)" ] &&
 		[ "$(manifest_value "$benchmark_manifest" compiler_id)" = "${SIMDLIB_COMPILER_ID:-unknown}" ] &&
 		[ "$(manifest_value "$benchmark_manifest" base_image)" = "${SIMDLIB_BASE_IMAGE:-unknown}" ] ||
 		{
@@ -614,12 +651,17 @@ can_reuse_validation_configuration()
 		[ "$(manifest_value "$validation_manifest" sanitizer)" = "$sanitizer" ] &&
 		[ "$(manifest_value "$validation_manifest" codegen_mode)" = "$codegen_mode" ] &&
 		[ "$(manifest_value "$validation_manifest" aggregate)" = "$aggregate" ] &&
+		[ "$(manifest_value "$validation_manifest" matrix_cell)" = "$matrix_cell" ] &&
 		[ "$(manifest_value "$validation_manifest" consumer_owner)" = "$consumer_scope" ] &&
 		[ "$(manifest_value "$validation_manifest" compiler_id)" = "${SIMDLIB_COMPILER_ID:-unknown}" ] &&
 		[ "$(manifest_value "$validation_manifest" base_image)" = "${SIMDLIB_BASE_IMAGE:-unknown}" ] &&
 		[ "$(manifest_value "$validation_manifest" source_digest)" = "$(compute_source_digest)" ] &&
 		[ "$(manifest_value "$validation_manifest" cmake_cache_sha256)" = \
-			"$(sha256sum "$build_directory/CMakeCache.txt" | cut -d ' ' -f 1)" ]
+			"$(sha256sum "$build_directory/CMakeCache.txt" | cut -d ' ' -f 1)" ] &&
+		[ "$(manifest_value "$validation_manifest" matrix_contract_sha256)" = \
+			"$(sha256sum "$matrix_contract" | cut -d ' ' -f 1)" ] &&
+		[ "$(manifest_value "$validation_manifest" validation_inventory_audit_sha256)" = \
+			"$(sha256sum "$validation_inventory_audit" | cut -d ' ' -f 1)" ]
 }
 
 validate_environment
@@ -647,6 +689,7 @@ case "$operation" in
 			record_test_inventory "$consumer_directory" "$consumer_inventory"
 		fi
 		write_codegen_record_index
+		audit_validation_inventory
 		write_completed_manifest "$validation_manifest" build-validation "$source_digest"
 		;;
 	record-codegen)
@@ -672,6 +715,7 @@ case "$operation" in
 			-DOWNERSHIP_FILE="$build_directory/development-target-ownership.tsv" \
 			-DPROFILE=CODEGEN_DIAGNOSTIC -DCODEGEN_MODE=RECORD \
 			-P "$source_directory/cmake/VerifyCodegenProfileIsolation.cmake"
+		audit_validation_inventory
 		cmake -DRECORD_INDEX="$codegen_record_index" \
 			-DOUTPUT_FILE="$codegen_diagnostic_provenance" \
 			-DCOMPILE_COMMANDS="$build_directory/compile_commands.json" \

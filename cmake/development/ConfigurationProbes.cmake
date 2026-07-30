@@ -52,6 +52,7 @@ if(SIMDLIB_BUILD_CONFIGURATION_PROBES)
 			-P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/VerifyMethodFlagsPreprocessor.cmake)
 	set_tests_properties(MethodFlagsPreprocessor PROPERTIES
 		LABELS "CONFIGURATION;METHOD_FLAGS;PREPROCESSOR")
+	simdlib_register_development_test(MethodFlagsPreprocessor COMPILER_CONTRACT)
 
 	add_test(NAME MethodFlagsConfiguration
 		COMMAND ${CMAKE_COMMAND}
@@ -64,6 +65,7 @@ if(SIMDLIB_BUILD_CONFIGURATION_PROBES)
 			-P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/VerifyMethodFlagsConfiguration.cmake)
 	set_tests_properties(MethodFlagsConfiguration PROPERTIES
 		LABELS "CONFIGURATION;METHOD_FLAGS;ADAPTERS;PREPROCESSOR")
+	simdlib_register_development_test(MethodFlagsConfiguration COMPILER_CONTRACT)
 
 	add_subdirectory(
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/method_flags/placement

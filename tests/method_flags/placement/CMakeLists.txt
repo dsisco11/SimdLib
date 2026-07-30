@@ -170,4 +170,5 @@ if(BUILD_TESTING)
 		COMMAND MethodFlagsPlacementAbi)
 	set_tests_properties(MethodFlagsPlacementAbi PROPERTIES
 		LABELS "CONFIGURATION;METHOD_FLAGS;ABI")
+	simdlib_register_development_test(MethodFlagsPlacementAbi COMPILER_CONTRACT)
 endif()

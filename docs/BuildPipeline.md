@@ -180,10 +180,27 @@ depend on the selected build type.
 matching unified-build receipt contains exactly the requested cells, its
 source-input digest matches the current tree and every embedded manifest, every
 manifest is unchanged, and the repository-audit result remains current and
-unchanged. Receipt schema v3 binds each cell's scoped aggregate; target and test
-inventories; configuration and instrumentation; generated-code mode; and
+unchanged. Receipt schema v4 binds each cell's canonical matrix identity, scoped
+aggregate, target and test inventory hashes, generated ownership-audit result,
+matrix-contract hash, configuration, instrumentation, generated-code mode, and
 consumer scope. Test operations contain no artifact-tree configure or build
 command.
+
+The expected default, benchmark, compiler-contract, coverage, sanitizer, and
+optional diagnostic cells are defined in `tools/validation-matrix.json`.
+Generated target and CTest inventories can be checked directly with:
+
+```powershell
+tools/Audit-ValidationMatrix.ps1 `
+    -Cell msvc-release `
+    -BuildDirectory out/pipeline/windows-msvc/<release-tree>/build `
+    -Configuration Release
+```
+
+The audit rejects duplicate targets or tests, missing ownership, and categories
+that are not permitted by the selected profile. Build manifests bind the audit
+result, and `Run-Tests.ps1` rejects a receipt whose matrix contract or inventory
+audit is stale or belongs to a different cell.
 
 Focused compiler-front-end diagnosis has explicit lower-level operations that
 do not enter the default receipt:

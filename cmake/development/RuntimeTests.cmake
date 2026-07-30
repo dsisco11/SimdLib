@@ -18,11 +18,12 @@ if(SIMDLIB_BUILD_RUNTIME_TESTS)
     # @brief Applies labels after Catch2 has populated its deferred discovery list.
     # @param test_list_variable Name of the Catch2-generated test-list variable.
     # @param labels Semicolon-separated labels applied to every discovered test.
-    function(simdlib_label_discovered_tests test_list_variable labels)
+    # @param owner Validation category that owns every discovered test.
+    function(simdlib_label_discovered_tests test_list_variable labels owner)
         set(label_file "${CMAKE_CURRENT_BINARY_DIR}/${test_list_variable}-labels.cmake")
         file(WRITE "${label_file}"
             "foreach(discovered_test IN LISTS ${test_list_variable})\n"
-            "    set_tests_properties(\"\${discovered_test}\" PROPERTIES LABELS \"${labels}\")\n"
+            "    set_tests_properties(\"\${discovered_test}\" PROPERTIES LABELS \"${labels};SIMDLIB_OWNER_${owner}\")\n"
             "endforeach()\n")
         set_property(DIRECTORY APPEND PROPERTY TEST_INCLUDE_FILES "${label_file}")
     endfunction()
@@ -47,7 +48,8 @@ if(SIMDLIB_BUILD_RUNTIME_TESTS)
         catch_discover_tests(${target}
             TEST_PREFIX "${test_prefix}."
             TEST_LIST ${test_list_variable})
-        simdlib_label_discovered_tests(${test_list_variable} "${labels}")
+        simdlib_label_discovered_tests(${test_list_variable} "${labels}"
+            ${validation_category})
     endfunction()
 
 	if(SIMDLIB_REGISTER_COMPILER_SUPPORTED)
@@ -92,7 +94,7 @@ if(SIMDLIB_BUILD_RUNTIME_TESTS)
 				PASS_REGULAR_EXPRESSION "SIMDLIB_REGISTER_PRECONDITION_FAILURE_EXPECTED_61B4C2"
 				TIMEOUT 10)
 		simdlib_label_discovered_tests(RegisterPreconditionTests_DISCOVERED_TESTS
-			"REGISTER;PRECONDITIONS;AVX2")
+			"REGISTER;PRECONDITIONS;AVX2" CHECKS_VALIDATION)
 	endif()
 
     simdlib_add_catch_test(BmiPortableTests tests/Bmi.tests.cpp
@@ -125,6 +127,7 @@ if(SIMDLIB_BUILD_RUNTIME_TESTS)
 		simdlib_enable_development_warnings(FormatOdr)
 		add_test(NAME FormatOdr COMMAND FormatOdr)
 		set_tests_properties(FormatOdr PROPERTIES LABELS "FORMAT;ODR")
+	simdlib_register_development_test(FormatOdr SMOKE_VALIDATION)
 		simdlib_set_coverage_profile_prefix(FormatOdr "FormatOdr")
 		if(SIMDLIB_MSVC_STYLE_DRIVER)
 			target_compile_definitions(FormatOdr PRIVATE
@@ -211,6 +214,7 @@ if(SIMDLIB_BUILD_RUNTIME_TESTS)
                 -DOPTIMIZED_EXECUTABLE=$<TARGET_FILE:UInt128OptimizedTests>
                 -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/CompareUInt128ResultSets.cmake)
         set_tests_properties(UInt128ResultSetEquivalence PROPERTIES LABELS "UINT128;EQUIVALENCE;SSE42")
+        simdlib_register_development_test(UInt128ResultSetEquivalence RUNTIME_VALIDATION)
 
 		add_test(NAME UInt128ScalarResultSetEquivalence
 			COMMAND ${CMAKE_COMMAND}
@@ -218,6 +222,7 @@ if(SIMDLIB_BUILD_RUNTIME_TESTS)
 				-DOPTIMIZED_EXECUTABLE=$<TARGET_FILE:UInt128OptimizedTests>
 				-P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/CompareUInt128ResultSets.cmake)
 		set_tests_properties(UInt128ScalarResultSetEquivalence PROPERTIES LABELS "UINT128;EQUIVALENCE;SCALAR")
+		simdlib_register_development_test(UInt128ScalarResultSetEquivalence RUNTIME_VALIDATION)
     endif()
 
     if(SIMDLIB_BUILD_API_AVX2_TESTS)
@@ -291,6 +296,7 @@ if(SIMDLIB_BUILD_RUNTIME_TESTS)
                     -DENABLED_EXECUTABLE=$<TARGET_FILE:${target}>
                     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/CompareBmiResultSets.cmake)
             set_tests_properties(${equivalence_name} PROPERTIES LABELS "BMI;EQUIVALENCE;${profile_name};OPTIONAL")
+            simdlib_register_development_test(${equivalence_name} RUNTIME_VALIDATION)
         endfunction()
 
         simdlib_add_bmi_profile(1 1 0)
@@ -314,7 +320,7 @@ if(SIMDLIB_BUILD_RUNTIME_TESTS)
             TEST_PREFIX "VectorAlgorithms."
             TEST_LIST VectorAlgorithmsTests_DISCOVERED_TESTS)
         simdlib_label_discovered_tests(VectorAlgorithmsTests_DISCOVERED_TESTS
-            "VECTOR_ALGORITHMS;AVX2")
+            "VECTOR_ALGORITHMS;AVX2" RUNTIME_VALIDATION)
 		if(SIMDLIB_MSVC_STYLE_DRIVER)
             target_compile_options(VectorAlgorithmsTests PRIVATE /arch:AVX2)
         else()
@@ -349,7 +355,7 @@ if(SIMDLIB_BUILD_RUNTIME_TESTS)
 				PASS_REGULAR_EXPRESSION "SIMDLIB_PRECONDITION_FAILURE_EXPECTED_18A7E3"
 				TIMEOUT 10)
 		simdlib_label_discovered_tests(PreconditionTests_DISCOVERED_TESTS
-			"PRECONDITIONS;CHECKS;AVX2")
+			"PRECONDITIONS;CHECKS;AVX2" CHECKS_VALIDATION)
 
         add_executable(ResampleScalarTests tests/SimdResample.tests.cpp)
         simdlib_register_development_target(ResampleScalarTests
@@ -365,7 +371,7 @@ if(SIMDLIB_BUILD_RUNTIME_TESTS)
             TEST_PREFIX "ResampleScalar."
             TEST_LIST ResampleScalarTests_DISCOVERED_TESTS)
         simdlib_label_discovered_tests(ResampleScalarTests_DISCOVERED_TESTS
-            "VECTOR_ALGORITHMS;SCALAR")
+            "VECTOR_ALGORITHMS;SCALAR" RUNTIME_VALIDATION)
     endif()
 endif()
 

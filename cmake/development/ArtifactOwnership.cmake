@@ -38,3 +38,32 @@ function(simdlib_register_development_target target category)
     set_property(TARGET ${target} PROPERTY
         SIMDLIB_VALIDATION_CATEGORY ${category})
 endfunction()
+# @brief Assigns one configured CTest test to its sole validation owner.
+# @param test Existing CTest test name.
+# @param owner Validation target category or the PROFILE_AUDIT test-only owner.
+function(simdlib_register_development_test test owner)
+    get_property(configured_tests DIRECTORY PROPERTY TESTS)
+    if(NOT test IN_LIST configured_tests)
+        message(FATAL_ERROR
+            "Cannot assign validation ownership before test ${test} exists")
+    endif()
+    if(NOT owner IN_LIST SIMDLIB_VALIDATION_CATEGORIES AND
+            NOT owner STREQUAL "PROFILE_AUDIT")
+        message(FATAL_ERROR
+            "Test ${test} uses unknown validation owner ${owner}")
+    endif()
+
+    get_property(existing_labels TEST "${test}" PROPERTY LABELS)
+    set(existing_owner_labels ${existing_labels})
+    list(FILTER existing_owner_labels INCLUDE
+        REGEX "^SIMDLIB_OWNER_")
+    if(existing_owner_labels)
+        message(FATAL_ERROR
+            "Test ${test} has multiple validation owners: "
+            "${existing_owner_labels} and ${owner}")
+    endif()
+
+    list(APPEND existing_labels "SIMDLIB_OWNER_${owner}")
+    list(REMOVE_DUPLICATES existing_labels)
+    set_property(TEST "${test}" PROPERTY LABELS "${existing_labels}")
+endfunction()

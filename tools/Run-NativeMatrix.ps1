@@ -251,6 +251,46 @@ function Invoke-RuntimeTestInventoryAudit {
     }
 }
 
+
+<#
+.SYNOPSIS
+Returns the canonical validation-matrix cell identifier for one native artifact.
+.PARAMETER Artifact
+Resolved native build-cell artifact.
+#>
+function Get-NativeValidationCellId {
+    param([Parameter(Mandatory)]$Artifact)
+
+    $compiler = $Artifact.Definition.Compiler
+    $key = $Artifact.Definition.Key
+    if ($compiler -eq 'clang-coverage') { return 'clang-coverage' }
+    if ($key -eq 'compiler-contracts') { return "$compiler-contracts" }
+    if ($key -eq 'debug-codegen') { return "$compiler-diagnostic" }
+    return "$compiler-$key"
+}
+
+<#
+.SYNOPSIS
+Audits generated target and CTest ownership for one native build cell.
+.PARAMETER Artifact
+Resolved native build-cell artifact.
+#>
+function Invoke-NativeValidationInventoryAudit {
+    param([Parameter(Mandatory)]$Artifact)
+
+    $auditParameters = @{
+        Cell = Get-NativeValidationCellId -Artifact $Artifact
+        BuildDirectory = $Artifact.Build
+        ResultPath = Join-Path $Artifact.Reports 'validation-inventory.audit.json'
+    }
+    if ($Artifact.Definition.Compiler -eq 'msvc') {
+        $auditParameters.Configuration = $Artifact.Definition.BuildProfile
+    }
+    & (Join-Path $PSScriptRoot 'Audit-ValidationMatrix.ps1') @auditParameters
+    if ($LASTEXITCODE -ne 0) {
+        throw "Validation inventory audit failed for $($Artifact.Id)"
+    }
+}
 <#
 .SYNOPSIS
 Returns a file hash or the manifest marker for an absent optional file.
@@ -345,6 +385,8 @@ function Write-NativeManifest {
     $consumerInventory = Join-Path $Artifact.Provenance 'consumer-test-artifacts.inventory'
     $codegenIndex = Join-Path $Artifact.Provenance 'codegen-records.index'
     $targetInventory = Join-Path $Artifact.Build 'development-profile-targets.txt'
+    $ownershipAudit = Join-Path $Artifact.Reports 'validation-inventory.audit.json'
+    $matrixContract = Join-Path $PSScriptRoot 'validation-matrix.json'
     $consumerScope = Get-NativeConsumerScope -Artifact $Artifact
     $aggregate = if ($Operation -eq 'build-benchmarks') { 'BenchmarkArtifacts' } else { $Artifact.Definition.Aggregate }
     $mainMetadata = Join-Path $Artifact.Build 'CTestTestfile.cmake'
@@ -359,8 +401,11 @@ function Write-NativeManifest {
         "compiler_id=$($Artifact.Definition.Compiler)", "compiler=$($Artifact.CompilerIdentity.version)", 'base_image=none',
         "preset=$($Artifact.Definition.Preset)", "build_profile=$($Artifact.Definition.BuildProfile)",
         "sanitizer=$($Artifact.Definition.Sanitizer)", "codegen_mode=$($Artifact.Definition.CodegenMode)",
-        "aggregate=$aggregate", "consumer_scope=$consumerScope",
+        "aggregate=$aggregate", "matrix_cell=$(Get-NativeValidationCellId -Artifact $Artifact)", "consumer_scope=$consumerScope",
         "target_inventory=$targetInventory", "target_inventory_sha256=$(Get-OptionalFileHash -Path $targetInventory)",
+        "matrix_contract_sha256=$(Get-OptionalFileHash -Path $matrixContract)",
+        "validation_inventory_audit=$ownershipAudit",
+        "validation_inventory_audit_sha256=$(Get-OptionalFileHash -Path $ownershipAudit)",
         "build_directory=$($Artifact.Build)", "consumer_directory=$($Artifact.Consumer)",
         "cmake_cache_sha256=$(Get-OptionalFileHash -Path (Join-Path $Artifact.Build 'CMakeCache.txt'))",
         'required_cpu_features=sse4.2,avx2,fma,bmi1,bmi2',
@@ -393,6 +438,7 @@ function Assert-NativeManifest {
         build_profile = $Artifact.Definition.BuildProfile; sanitizer = $Artifact.Definition.Sanitizer
         codegen_mode = $Artifact.Definition.CodegenMode
         aggregate = if ($Operation -eq 'build-benchmarks') { 'BenchmarkArtifacts' } else { $Artifact.Definition.Aggregate }
+        matrix_cell = Get-NativeValidationCellId -Artifact $Artifact
         consumer_scope = Get-NativeConsumerScope -Artifact $Artifact
     }
     foreach ($key in $expected.Keys) {
@@ -403,6 +449,10 @@ function Assert-NativeManifest {
     $cache = Join-Path $Artifact.Build 'CMakeCache.txt'
     if ($manifest.cmake_cache_sha256 -ne (Get-OptionalFileHash -Path $cache)) { throw "Build manifest is stale for CMake cache: $path" }
     if ($manifest.target_inventory_sha256 -ne (Get-OptionalFileHash -Path $manifest.target_inventory)) { throw "Configured target inventory is missing or stale: $($manifest.target_inventory)" }
+    $matrixContract = Join-Path $PSScriptRoot 'validation-matrix.json'
+    Invoke-NativeValidationInventoryAudit -Artifact $Artifact
+    if ($manifest.matrix_contract_sha256 -ne (Get-OptionalFileHash -Path $matrixContract)) { throw "Validation matrix contract is stale for $($Artifact.Id)" }
+    if ($manifest.validation_inventory_audit_sha256 -ne (Get-OptionalFileHash -Path $manifest.validation_inventory_audit)) { throw "Validation inventory audit is missing or stale: $($manifest.validation_inventory_audit)" }
     if ($Operation -eq 'build-validation') {
         foreach ($pair in @(
                 @('main_test_inventory', 'main_test_inventory_sha256'),
@@ -468,6 +518,7 @@ function Build-NativeValidationCell {
     }
     $allowEmptyCodegen = $Artifact.Definition.CodegenMode -eq 'OFF'
     Write-CodegenRecordIndex -BuildDirectory $Artifact.Build -OutputPath (Join-Path $Artifact.Provenance 'codegen-records.index') -AllowEmpty:$allowEmptyCodegen
+    Invoke-NativeValidationInventoryAudit -Artifact $Artifact
     Write-NativeManifest -Artifact $Artifact -Operation 'build-validation'
 }
 

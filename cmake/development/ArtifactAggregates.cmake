@@ -486,6 +486,7 @@ if(BUILD_TESTING)
             -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/VerifyArtifactAggregateInventory.cmake)
     set_tests_properties(ArtifactAggregates.ProfileMembership PROPERTIES
         LABELS "CONFIGURATION;ARTIFACT_OWNERSHIP")
+    simdlib_register_development_test(ArtifactAggregates.ProfileMembership PROFILE_AUDIT)
 
     add_test(NAME ArtifactAggregates.PublicConsumption
         COMMAND ${CMAKE_COMMAND}
@@ -496,6 +497,7 @@ if(BUILD_TESTING)
             -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/VerifyPublicConsumptionProfile.cmake)
     set_tests_properties(ArtifactAggregates.PublicConsumption PROPERTIES
         LABELS "CONFIGURATION;ARTIFACT_OWNERSHIP;PUBLIC_CONSUMPTION")
+    simdlib_register_development_test(ArtifactAggregates.PublicConsumption PROFILE_AUDIT)
 
     if(simdlib_targets_COMPILER_CONTRACT)
         add_test(NAME ArtifactAggregates.CompilerContractIndependence
@@ -507,6 +509,7 @@ if(BUILD_TESTING)
         set_tests_properties(
             ArtifactAggregates.CompilerContractIndependence PROPERTIES
             LABELS "CONFIGURATION;ARTIFACT_OWNERSHIP;COMPILER_CONTRACT")
+        simdlib_register_development_test(ArtifactAggregates.CompilerContractIndependence PROFILE_AUDIT)
     endif()
 
     if(simdlib_targets_CHECKS_VALIDATION)
@@ -517,6 +520,7 @@ if(BUILD_TESTING)
                 -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/VerifyChecksConfiguration.cmake)
         set_tests_properties(ArtifactAggregates.ChecksConfiguration PROPERTIES
             LABELS "CONFIGURATION;ARTIFACT_OWNERSHIP;CHECKS")
+        simdlib_register_development_test(ArtifactAggregates.ChecksConfiguration PROFILE_AUDIT)
     endif()
 
     foreach(simdlib_failure_case IN ITEMS UNOWNED MULTIPLE EXCLUDED)
@@ -531,6 +535,7 @@ if(BUILD_TESTING)
         set_tests_properties(
             ArtifactAggregates.Reject${simdlib_failure_case} PROPERTIES
             LABELS "CONFIGURATION;ARTIFACT_OWNERSHIP")
+        simdlib_register_development_test(ArtifactAggregates.Reject${simdlib_failure_case} PROFILE_AUDIT)
     endforeach()
 
 	if(SIMDLIB_VALIDATION_PROFILE MATCHES
@@ -548,6 +553,7 @@ if(BUILD_TESTING)
 				-P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/VerifyCodegenProfileIsolation.cmake)
 		set_tests_properties(ArtifactAggregates.CodegenIsolation PROPERTIES
 			LABELS "CONFIGURATION;ARTIFACT_OWNERSHIP;CODEGEN_ISOLATION")
+		simdlib_register_development_test(ArtifactAggregates.CodegenIsolation PROFILE_AUDIT)
 	endif()
 
 	if(SIMDLIB_VALIDATION_PROFILE MATCHES "^(RELEASE|CODEGEN_DIAGNOSTIC)$")
@@ -558,6 +564,7 @@ if(BUILD_TESTING)
 				-P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/VerifyCodegenPolicySeparation.cmake)
 		set_tests_properties(CodegenPolicy.RejectRecordAsEnforced PROPERTIES
 			LABELS "CONFIGURATION;CODEGEN;CODEGEN_POLICY")
+		simdlib_register_development_test(CodegenPolicy.RejectRecordAsEnforced PROFILE_AUDIT)
 	endif()
 endif()
 

@@ -256,3 +256,8 @@ A new compiler, configuration, instrumentation mode, target, or test may enter
 the default matrix only when its unique contract is stated and no existing
 owner proves that contract. New targets must join one scoped category rather
 than being absorbed automatically by a directory-wide target sweep.
+`tools/validation-matrix.json` is the machine-readable owner of the cell and
+profile mapping. Every generated development target and CTest test has exactly
+one validation owner. `tools/Audit-ValidationMatrix.ps1` compares those
+inventories with the selected profile and rejects duplicates, missing owners,
+or unexpected membership before the completed build manifest is written.

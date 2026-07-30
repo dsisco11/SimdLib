@@ -74,12 +74,28 @@ function Write-BuildReceipt {
         if ($manifest.operation -ne 'build-validation' -or $manifest.status -ne 'complete') { throw "Incomplete validation manifest for preset $preset" }
         if ($manifest.source_digest -ne $currentSourceDigest) { throw "Validation manifest has a stale source digest for preset $preset" }
         if ($manifest.aggregate -ne 'ExhaustiveArtifacts') { throw "Default validation manifest has an unexpected scoped aggregate for preset $preset" }
-        foreach ($requiredManifestField in @('target_inventory_sha256', 'main_test_inventory_sha256', 'build_profile', 'sanitizer', 'codegen_mode', 'consumer_scope')) {
+        foreach ($requiredManifestField in @(
+                'target_inventory_sha256',
+                'main_test_inventory_sha256',
+                'matrix_cell',
+                'matrix_contract_sha256',
+                'validation_inventory_audit_sha256',
+                'build_profile',
+                'sanitizer',
+                'codegen_mode',
+                'consumer_scope'
+            )) {
             if (-not $manifest.ContainsKey($requiredManifestField) -or [string]::IsNullOrWhiteSpace($manifest[$requiredManifestField])) {
                 throw "Validation manifest omits required provenance $requiredManifestField for preset $preset"
             }
         }
-        foreach ($requiredInventoryField in @('target_inventory_sha256', 'main_test_inventory_sha256')) {
+        foreach ($requiredInventoryField in @(
+                'target_inventory_sha256',
+                'main_test_inventory_sha256',
+                'matrix_cell',
+                'matrix_contract_sha256',
+                'validation_inventory_audit_sha256'
+            )) {
             if ($manifest[$requiredInventoryField] -eq 'none') {
                 throw "Validation manifest has no required $requiredInventoryField for preset $preset"
             }
@@ -91,8 +107,11 @@ function Write-BuildReceipt {
                 fingerprint = $manifest.fingerprint_sha256
                 sourceDigest = $manifest.source_digest
                 aggregate = $manifest.aggregate
+                matrixCell = $manifest.matrix_cell
                 targetInventorySha256 = $manifest.target_inventory_sha256
                 testInventorySha256 = $manifest.main_test_inventory_sha256
+                matrixContractSha256 = $manifest.matrix_contract_sha256
+                inventoryAuditSha256 = $manifest.validation_inventory_audit_sha256
                 configuration = $manifest.build_profile
                 instrumentation = $manifest.sanitizer
                 generatedCodeMode = $manifest.codegen_mode
@@ -103,7 +122,7 @@ function Write-BuildReceipt {
     $selectionId = (Get-PipelineTextDigest -Text $selectionText).Substring(0, 16)
     $receiptPath = Join-Path $pipelineRoot "provenance/build-$selectionId.json"
     $document = [ordered]@{
-        schema = 'simdlib.unified-build-receipt.v3'; status = 'complete'; scope = $Scope
+        schema = 'simdlib.unified-build-receipt.v4'; status = 'complete'; scope = $Scope
         compilers = @($SelectedCompilers); sourceDigest = $currentSourceDigest
         sourceRevision = Get-PipelineRevision -RepositoryRoot $repositoryRoot
         repositoryAudit = $repositoryAuditEntry

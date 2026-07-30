@@ -148,6 +148,24 @@ function Resolve-Cells {
 
 <#
 .SYNOPSIS
+Returns the canonical validation-matrix cell identifier for one container cell.
+.PARAMETER BuildCell
+Resolved container cell definition.
+#>
+function Get-ContainerValidationCellId {
+    param([Parameter(Mandatory)]$BuildCell)
+
+    $service = $BuildCell.Service
+    switch ($BuildCell.Key) {
+        'compiler-contracts' { return "$service-contracts" }
+        'debug-codegen' { return "$service-diagnostic" }
+        'asan-ubsan-codegen' { return 'clang22-sanitizer-diagnostic' }
+        'debug-asan-ubsan' { return 'clang22-sanitizer' }
+        default { return "$service-$($BuildCell.Key)" }
+    }
+}
+<#
+.SYNOPSIS
 Reads immutable identity and labels from one local compiler image.
 .PARAMETER Service
 Compose service whose image is inspected.
@@ -261,6 +279,7 @@ function Initialize-CellArtifact {
         Sanitizer = $BuildCell.Sanitizer
         CodegenMode = $BuildCell.CodegenMode
         Aggregate = $BuildCell.Aggregate
+        MatrixCell = Get-ContainerValidationCellId -BuildCell $BuildCell
         Consumer = $BuildCell.Consumer
         Fingerprint = $digest
         HostRoot = $hostRoot
@@ -307,6 +326,7 @@ function Start-CellOperation {
                 '--sanitizer', $CellArtifact.Sanitizer,
                 '--codegen-mode', $CellArtifact.CodegenMode,
                 '--aggregate', $CellArtifact.Aggregate,
+                '--matrix-cell', $CellArtifact.MatrixCell,
                 '--consumer-scope', $(if ($CellArtifact.Consumer) { 'compiler-release' } else { 'none' }),
                 '--artifact-root', $CellArtifact.ContainerRoot,
                 '--fingerprint-sha256', $CellArtifact.Fingerprint

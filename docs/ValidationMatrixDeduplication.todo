@@ -222,19 +222,28 @@ SimdLib Validation Matrix Deduplication Plan:
       ☒ `Run-Tests` rejected a missing exact receipt without starting a build, and current CI callers no longer pass the retired `-SkipBuild` compatibility option.
       ☒ JSON parsing, PowerShell parsing, POSIX shell parsing, Docker Compose expansion, matrix verification, and diff-integrity checks cover the refactored orchestration; the complete clean compiler matrix remains assigned to Phase 9.
   Phase 8 - Add Matrix-Ownership and No-Rebuild Regression Coverage:
-    ☐ Add a machine-readable expected cell matrix covering default build, default tests, coverage, sanitizer, benchmarks, compiler contracts, and optional diagnostics.
-    ☐ Add tests that compare every generated target inventory with the allowed categories for its profile.
-    ☐ Add tests that compare every CTest inventory with the tests owned by its profile.
-    ☐ Assert that ordinary Debug test inventories are not accidentally restored for clang-cl, GCC 13, GCC 14, or Clang.
-    ☐ Assert that sanitizer and coverage inventories exclude generated-code gates and other forbidden categories.
-    ☐ Assert that repository audits execute once per source revision and are represented in provenance.
-    ☐ Assert that compiler-front-end contracts execute once per compiler identity rather than once per runtime configuration.
-    ☐ Assert that optimized Release codegen remains enforced for every Register-capable compiler and cannot be satisfied by record-only diagnostic output.
-    ☐ Assert that `Run-Tests` consumes the completed matching build receipt without invoking CMake build commands.
-    ☐ Assert that benchmark operations reuse the matching Release tree without entering the default build.
-    ☐ Add negative tests for stale, incomplete, mismatched, or category-incompatible receipts.
-    ☐ Add a matrix audit command that reports duplicate targets/tests, unowned contracts, and unexpected profile membership.
-    ☐ End Phase 8 only when accidental target creep or configuration duplication causes a focused automated failure.
+    ☒ Add a machine-readable expected cell matrix covering default build, default tests, coverage, sanitizer, benchmarks, compiler contracts, and optional diagnostics.
+    ☒ Add tests that compare every generated target inventory with the allowed categories for its profile.
+    ☒ Add tests that compare every CTest inventory with the tests owned by its profile.
+    ☒ Assert that ordinary Debug test inventories are not accidentally restored for clang-cl, GCC 13, GCC 14, or Clang.
+    ☒ Assert that sanitizer and coverage inventories exclude generated-code gates and other forbidden categories.
+    ☒ Assert that repository audits execute once per source revision and are represented in provenance.
+    ☒ Assert that compiler-front-end contracts execute once per compiler identity rather than once per runtime configuration.
+    ☒ Assert that optimized Release codegen remains enforced for every Register-capable compiler and cannot be satisfied by record-only diagnostic output.
+    ☒ Assert that `Run-Tests` consumes the completed matching build receipt without invoking CMake build commands.
+    ☒ Assert that benchmark operations reuse the matching Release tree without entering the default build.
+    ☒ Add negative tests for stale, incomplete, mismatched, or category-incompatible receipts.
+    ☒ Add a matrix audit command that reports duplicate targets/tests, unowned contracts, and unexpected profile membership.
+    ☒ End Phase 8 only when accidental target creep or configuration duplication causes a focused automated failure.
+
+    Evidence:
+      - `tools/Verify-ValidationMatrix.ps1` validates the eight-cell default build/test contract, four opt-in ordinary Debug cells, sanitizer and coverage exclusions, one compiler-contract cell per compiler identity, enforced optimized codegen, isolated record-only diagnostics, and Release-tree benchmark reuse.
+      - `tools/Test-ValidationPipeline.ps1` accepts the valid ownership and receipt fixtures and rejects duplicate or unexpected targets, duplicate, unowned, or unexpected tests, and stale, incomplete, mismatched, category-incompatible, or audit-incomplete receipts.
+      - `cmake/AuditValidationInventory.cmake` audited the generated MSVC compiler-contract inventory as 47 owned targets, 47 selected targets, and 9 owned tests, and the generated MSVC Release inventory as 149 owned targets, 148 selected targets, and 269 owned tests.
+      - `Run-Tests` test-only validation passed for the MSVC compiler-contract tree and focused MSVC Release profile/codegen-policy tests without invoking a build.
+      - `BuildBenchmarks` reused the validated `msvc-release` tree and built only `BenchmarkArtifacts`; its completed manifest is bound to the same matrix contract and inventory audit.
+      - Two consecutive current-source repository-audit calls reused the same `repository-audit-d3da398f9646e068.json` file without changing its hash or timestamp.
+      - PowerShell parsing, JSON parsing, POSIX shell parsing with LF-only enforcement, Docker Compose expansion, CMake preset listing, matrix verification, focused regression tests, and `git diff --check` passed.
 
   Phase 9 - Measure, Qualify, and Document:
     ☐ Run focused configuration and inventory tests after each relevant refactor without running the complete compiler matrix after every phase.

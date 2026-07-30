@@ -110,6 +110,7 @@ if(SIMDLIB_BUILD_CONFIGURATION_PROBES
 			-P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/VerifyMethodFlagsCodegenRecords.cmake)
 	set_tests_properties(MethodFlagsCodegen PROPERTIES
 		LABELS "CONFIGURATION;METHOD_FLAGS;CODEGEN;ABI;STACK")
+	simdlib_register_development_test(MethodFlagsCodegen OPTIMIZED_CODEGEN)
 endif()
 
 endblock()
