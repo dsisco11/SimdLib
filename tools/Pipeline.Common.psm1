@@ -12,6 +12,50 @@ function Get-PipelineRepositoryRoot {
 
 <#
 .SYNOPSIS
+Returns the exact configure presets owned by the unified default validation matrix.
+.PARAMETER SelectedCompilers
+Canonical user-facing compiler names selected by the caller.
+#>
+function Get-PipelineDefaultValidationPresets {
+    param([Parameter(Mandatory)][string[]]$SelectedCompilers)
+
+    $presets = [System.Collections.Generic.List[string]]::new()
+    foreach ($compiler in $SelectedCompilers) {
+        switch ($compiler) {
+            'Msvc' {
+                $presets.Add('msvc-release-exhaustive')
+                $presets.Add('msvc-debug-diagnostics')
+            }
+            'ClangCl' { $presets.Add('clangcl-release-exhaustive') }
+            'ClangCoverage' { $presets.Add('clang-debug-coverage') }
+            'Gcc13' { $presets.Add('gcc13-core-release-exhaustive') }
+            'Gcc14' { $presets.Add('gcc14-release-exhaustive') }
+            'Clang22' {
+                $presets.Add('clang22-release-exhaustive')
+                $presets.Add('clang22-debug-asan-ubsan')
+            }
+            default { throw "Unknown compiler identity in the default validation matrix: $compiler" }
+        }
+    }
+    return $presets.ToArray()
+}
+
+<#
+.SYNOPSIS
+Reports whether a configure preset belongs to the unified default validation matrix.
+.PARAMETER Preset
+Configure preset name to classify.
+#>
+function Test-PipelineDefaultValidationPreset {
+    param([Parameter(Mandatory)][string]$Preset)
+
+    $allDefaultPresets = Get-PipelineDefaultValidationPresets -SelectedCompilers @(
+        'Msvc', 'ClangCl', 'ClangCoverage', 'Gcc13', 'Gcc14', 'Clang22')
+    return $Preset -in $allDefaultPresets
+}
+
+<#
+.SYNOPSIS
 Computes the canonical digest of source inputs that affect build artifacts.
 .PARAMETER RepositoryRoot
 Absolute path to the SimdLib source tree.
@@ -284,6 +328,8 @@ function Invoke-PipelineChildOperations {
 
 Export-ModuleMember -Function @(
     'Get-PipelineRepositoryRoot',
+    'Get-PipelineDefaultValidationPresets',
+    'Test-PipelineDefaultValidationPreset',
     'Get-PipelineSourceDigest',
     'Get-PipelineTextDigest',
     'Set-PipelineTextFile',

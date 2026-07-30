@@ -167,6 +167,12 @@ elseif(SIMDLIB_VALIDATION_PROFILE MATCHES
                 "${simdlib_forbidden_contract_option}")
         endif()
     endforeach()
+    if(SIMDLIB_VALIDATION_PROFILE MATCHES "^(DEBUG|SANITIZER)$" AND
+            NOT SIMDLIB_DEFAULT_CHECKS_PROBE STREQUAL "DEBUG")
+        message(FATAL_ERROR
+            "Validation profile ${SIMDLIB_VALIDATION_PROFILE} requires the "
+            "checks-enabled Debug state probe")
+    endif()
     if(SIMDLIB_VALIDATION_PROFILE STREQUAL "CODEGEN_DIAGNOSTIC")
         if(NOT SIMDLIB_BUILD_REGISTER_CODEGEN_GATES OR
                 NOT SIMDLIB_REGISTER_CODEGEN_MODE STREQUAL "RECORD")
@@ -373,6 +379,38 @@ string(REPLACE ";" "\n" simdlib_compiler_contract_source_inventory
 file(WRITE "${CMAKE_BINARY_DIR}/compiler-contract-sources.tsv"
     "${simdlib_compiler_contract_source_inventory}\n")
 
+set(simdlib_checks_contract_rows "target\tcompile_definitions\tsources")
+foreach(simdlib_checks_contract_target IN LISTS simdlib_targets_CHECKS_VALIDATION)
+    get_target_property(simdlib_checks_contract_definitions
+        ${simdlib_checks_contract_target} COMPILE_DEFINITIONS)
+    if(NOT simdlib_checks_contract_definitions)
+        set(simdlib_checks_contract_definitions "")
+    endif()
+    string(REPLACE ";" "," simdlib_checks_contract_definitions
+        "${simdlib_checks_contract_definitions}")
+
+    get_target_property(simdlib_checks_contract_sources
+        ${simdlib_checks_contract_target} SOURCES)
+    get_target_property(simdlib_checks_contract_source_directory
+        ${simdlib_checks_contract_target} SOURCE_DIR)
+    set(simdlib_checks_contract_absolute_sources "")
+    foreach(simdlib_checks_contract_source IN LISTS simdlib_checks_contract_sources)
+        cmake_path(ABSOLUTE_PATH simdlib_checks_contract_source
+            BASE_DIRECTORY "${simdlib_checks_contract_source_directory}"
+            NORMALIZE OUTPUT_VARIABLE simdlib_checks_contract_source_absolute)
+        list(APPEND simdlib_checks_contract_absolute_sources
+            "${simdlib_checks_contract_source_absolute}")
+    endforeach()
+    string(REPLACE ";" "," simdlib_checks_contract_absolute_sources
+        "${simdlib_checks_contract_absolute_sources}")
+    list(APPEND simdlib_checks_contract_rows
+        "${simdlib_checks_contract_target}\t${simdlib_checks_contract_definitions}\t${simdlib_checks_contract_absolute_sources}")
+endforeach()
+string(REPLACE ";" "\n" simdlib_checks_contract_inventory
+    "${simdlib_checks_contract_rows}")
+file(WRITE "${CMAKE_BINARY_DIR}/checks-contract-properties.tsv"
+    "${simdlib_checks_contract_inventory}\n")
+
 set(simdlib_aggregate_rows "")
 foreach(simdlib_category IN LISTS SIMDLIB_VALIDATION_CATEGORIES)
     list(APPEND simdlib_aggregate_rows
@@ -445,6 +483,16 @@ if(BUILD_TESTING)
         set_tests_properties(
             ArtifactAggregates.CompilerContractIndependence PROPERTIES
             LABELS "CONFIGURATION;ARTIFACT_OWNERSHIP;COMPILER_CONTRACT")
+    endif()
+
+    if(simdlib_targets_CHECKS_VALIDATION)
+        add_test(NAME ArtifactAggregates.ChecksConfiguration
+            COMMAND ${CMAKE_COMMAND}
+                "-DPROPERTY_FILE=${CMAKE_BINARY_DIR}/checks-contract-properties.tsv"
+                "-DDEFAULT_CHECKS_PROBE=${SIMDLIB_DEFAULT_CHECKS_PROBE}"
+                -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/VerifyChecksConfiguration.cmake)
+        set_tests_properties(ArtifactAggregates.ChecksConfiguration PROPERTIES
+            LABELS "CONFIGURATION;ARTIFACT_OWNERSHIP;CHECKS")
     endif()
 
     foreach(simdlib_failure_case IN ITEMS UNOWNED MULTIPLE EXCLUDED)

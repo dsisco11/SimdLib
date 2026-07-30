@@ -65,6 +65,12 @@ Register compilers.
 | Selected Debug codegen diagnostic | compiler-specific `*-debug-codegen-diagnostic` | same name |
 | Selected Clang sanitizer codegen diagnostic | `clang22-asan-ubsan-codegen-diagnostic` | same name |
 
+The ordinary clang-cl, GCC 13, GCC 14, and Clang 22 Debug presets remain
+available for direct troubleshooting, but they are not members of the unified
+default matrix. `Pipeline.Common.psm1` defines the default preset set: MSVC
+Release and Debug, clang-cl Release, GCC 13 core Release, GCC 14 Release,
+Clang 22 Release and ASan+UBSan Debug, and native Clang coverage.
+
 Hidden presets own common development controls, exhaustive Release controls,
 ordinary Debug controls, optional codegen-diagnostic controls, sanitizer flags,
 coverage controls, compiler-driver selection, and container defaults. Every

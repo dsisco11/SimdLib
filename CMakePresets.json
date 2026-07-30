@@ -57,6 +57,7 @@
                 "SIMDLIB_BUILD_CONSTEXPR_PROBES": "OFF",
                 "SIMDLIB_BUILD_CONFIGURATION_PROBES": "OFF",
                 "SIMDLIB_BUILD_HEADER_PROBES": "OFF",
+                "SIMDLIB_DEFAULT_CHECKS_PROBE": "DEBUG",
                 "SIMDLIB_BUILD_REGISTER_CODEGEN_GATES": "OFF",
                 "SIMDLIB_REGISTER_CODEGEN_MODE": "OFF",
                 "SIMDLIB_VALIDATION_PROFILE": "DEBUG",
@@ -116,6 +117,7 @@
                 "SIMDLIB_BUILD_CONFIGURATION_PROBES": "OFF",
                 "SIMDLIB_BUILD_CONSTEXPR_PROBES": "OFF",
                 "SIMDLIB_BUILD_HEADER_PROBES": "OFF",
+                "SIMDLIB_DEFAULT_CHECKS_PROBE": "DEBUG",
                 "SIMDLIB_BUILD_REGISTER_CODEGEN_GATES": "OFF",
                 "SIMDLIB_REGISTER_CODEGEN_MODE": "OFF",
                 "SIMDLIB_VALIDATION_PROFILE": "SANITIZER"
@@ -230,8 +232,7 @@
             "description": "Windows x64 Debug runtime correctness without generated-code diagnostics",
             "inherits": ["msvc-common", "debug-diagnostics-options"],
             "cacheVariables": {
-                "CMAKE_CONFIGURATION_TYPES": "Debug",
-                "SIMDLIB_DEFAULT_CHECKS_PROBE": "DEBUG"
+                "CMAKE_CONFIGURATION_TYPES": "Debug"
             }
         },
         {

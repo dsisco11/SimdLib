@@ -23,8 +23,13 @@ if(NOT SIMDLIB_DEFAULT_CHECKS_PROBE STREQUAL "NONE")
 
     add_library(${default_checks_target} OBJECT
         tests/config/ConfigDefaultChecksProbe.cpp)
-    simdlib_register_development_target(${default_checks_target}
-        COMPILER_CONTRACT)
+    if(SIMDLIB_DEFAULT_CHECKS_PROBE STREQUAL "DEBUG")
+        simdlib_register_development_target(${default_checks_target}
+            CHECKS_VALIDATION)
+    else()
+        simdlib_register_development_target(${default_checks_target}
+            COMPILER_CONTRACT)
+    endif()
     target_link_libraries(${default_checks_target} PRIVATE SimdLib::SimdLib)
     target_compile_definitions(${default_checks_target} PRIVATE
         SIMDLIB_EXPECT_DEFAULT_CHECKS=${default_checks_expected})

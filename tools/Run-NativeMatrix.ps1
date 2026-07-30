@@ -90,8 +90,12 @@ function Resolve-NativeCells {
         }
         if ($Operation -notin @('BuildBenchmarks', 'RunBenchmarks') -and $CellScope -in @('All', 'Debug')) {
             $presetPrefix = if ($compilerKey -eq 'msvc') { 'msvc' } else { 'clangcl' }
+            $preset = "$presetPrefix-debug-diagnostics"
+            if ($CellScope -eq 'All' -and -not (Test-PipelineDefaultValidationPreset -Preset $preset)) {
+                continue
+            }
             $cells.Add([pscustomobject]@{
-                    Compiler = $compilerKey; Key = 'debug'; Preset = "$presetPrefix-debug-diagnostics"
+                    Compiler = $compilerKey; Key = 'debug'; Preset = $preset
                     BuildProfile = 'Debug'; Generator = if ($compilerKey -eq 'msvc') { 'Visual Studio 17 2022' } else { 'Ninja' }
                     Consumer = $true; Coverage = $false; Sanitizer = 'none'; CodegenMode = 'OFF'
                 })

@@ -45,28 +45,6 @@ function Resolve-TestSelection {
 
 <#
 .SYNOPSIS
-Returns the exact validation preset set for selected compilers.
-.PARAMETER SelectedCompilers
-Canonical compiler selection.
-#>
-function Get-ExpectedTestPresets {
-    param([Parameter(Mandatory)][string[]]$SelectedCompilers)
-    $presets = [System.Collections.Generic.List[string]]::new()
-    foreach ($name in $SelectedCompilers) {
-        switch ($name) {
-            'Msvc' { $presets.Add('msvc-release-exhaustive'); $presets.Add('msvc-debug-diagnostics') }
-            'ClangCl' { $presets.Add('clangcl-release-exhaustive'); $presets.Add('clangcl-debug-diagnostics') }
-            'ClangCoverage' { $presets.Add('clang-debug-coverage') }
-            'Gcc13' { $presets.Add('gcc13-core-release-exhaustive'); $presets.Add('gcc13-core-debug-diagnostics') }
-            'Gcc14' { $presets.Add('gcc14-release-exhaustive'); $presets.Add('gcc14-debug-diagnostics') }
-            'Clang22' { $presets.Add('clang22-release-exhaustive'); $presets.Add('clang22-debug-diagnostics'); $presets.Add('clang22-debug-asan-ubsan') }
-        }
-    }
-    return @($presets)
-}
-
-<#
-.SYNOPSIS
 Validates the exact build receipt required by this test selection.
 .PARAMETER SelectedCompilers
 Canonical compiler selection.
@@ -89,7 +67,7 @@ function Assert-BuildReceipt {
         -RepositoryRoot $repositoryRoot `
         -Entry $receipt.repositoryAudit `
         -ExpectedSourceDigest $currentDigest)
-    $expectedPresets = @(Get-ExpectedTestPresets -SelectedCompilers $SelectedCompilers | Sort-Object)
+    $expectedPresets = @(Get-PipelineDefaultValidationPresets -SelectedCompilers $SelectedCompilers | Sort-Object)
     $receiptPresets = @($receipt.manifests.preset | Sort-Object)
     if (($receiptPresets -join ',') -ne ($expectedPresets -join ',')) { throw "Unified build receipt manifest set does not exactly match requested test cells: $receiptPath" }
     foreach ($entry in $receipt.manifests) {

@@ -41,14 +41,14 @@ describe the profile in which that instance is compiled and executed.
 
 ## Accepted default matrix
 
-The following cells compose the future default `Build`. “Full runtime” means
+The following cells compose the default `Build`. “Full runtime” means
 the runtime correctness and explicit checks/precondition categories applicable
 to that compiler's supported surface.
 
 | Cell | Unique default contract | Compiler contracts | Constexpr | Runtime | Smoke/ODR/examples | Consumer | Codegen | Instrumentation |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | --- | --- |
 | MSVC Release | Windows MSVC optimizer, ISA mappings, `VECTORCALL`, Release ABI, and zero-overhead qualification | yes | yes | full | yes | core+Register | enforce | none |
-| MSVC Debug | Representative ordinary Debug behavior, default checks/preconditions, Windows Debug runtime, and Debug consumer use | narrow Debug-state probe only | no | full | no | core+Register | off | none |
+| MSVC Debug | Representative ordinary Debug behavior, default checks/preconditions, Windows Debug runtime, and Debug consumer use | no; narrow checks-state probe | no | full | no | core+Register | off | none |
 | clang-cl Release | Windows Clang frontend/optimizer, MSVC-style driver, `VECTORCALL`, and Release ABI | yes | yes | full | yes | core+Register | enforce | none |
 | GCC 13 core Release | C++20 core compatibility floor and unavailable-Register contract | yes | core only | core only | core only | core only | unavailable | none |
 | GCC 14 Release | GNU optimizer, core/Register language surface, GNU ABI, and zero-overhead qualification | yes | yes | full | yes | core+Register | enforce | none |
@@ -93,13 +93,36 @@ tools/Record-Codegen.ps1 -Scope Containers -Compiler Clang22 -Cell AsanUbsan
 The operation builds only the selected fixture/comparison graph and records its
 own provenance; it is not part of the unified default build receipt.
 
+Ordinary Debug troubleshooting uses the lower-level matrix runners explicitly:
+
+```powershell
+tools/Run-NativeMatrix.ps1 -Action Build -Compiler ClangCl -Cell Debug
+tools/Run-ContainerMatrix.ps1 -Action Build -Compiler Gcc13 -Cell Debug
+tools/Run-ContainerMatrix.ps1 -Action Build -Compiler Gcc14 -Cell Debug
+tools/Run-ContainerMatrix.ps1 -Action Build -Compiler Clang22 -Cell Debug
+```
+
+`Pipeline.Common.psm1` owns the canonical default preset list consumed by the
+build receipt, test receipt, and both matrix runners. `-Cell All` follows that
+list; explicit `-Cell Debug` bypasses default membership only for the selected
+troubleshooting operation.
+
+## Removed ordinary Debug cells
+
+| Removed default cell | Replacement evidence | Remaining direct use |
+| --- | --- | --- |
+| clang-cl Debug | clang-cl Release owns the Clang frontend, Windows ABI, `VECTORCALL`, language, runtime, consumer, and optimizer contracts; MSVC Debug owns unoptimized Windows and default-check behavior. No separate clang-cl Debug CRT, ABI, or calling-convention contract was identified. | Explicit reproduction of a clang-cl-only Debug failure |
+| GCC 13 core Debug | GCC 13 core Release owns the C++20 compatibility floor, core runtime/consumer surface, and unavailable-Register contract; MSVC Debug owns configuration-sensitive default checks. | Explicit reproduction of a GCC 13 Debug compatibility failure |
+| GCC 14 Debug | GCC 14 Release owns GNU language, ABI, runtime, consumer, and optimizer contracts; MSVC Debug owns ordinary Debug configuration and Clang ASan+UBSan owns instrumented Linux Debug runtime behavior. | Explicit reproduction of a GCC 14 Debug failure |
+| Clang 22 Debug | Clang 22 Release owns Clang language, ABI, runtime, consumer, and optimizer contracts; Clang 22 ASan+UBSan owns Linux Debug runtime and cross-translation-unit instrumentation. | Explicit reproduction of a non-sanitized Clang Debug failure |
+
 ## Development-target ownership rules
 
 The current logical target union is completely covered by the following ordered
 rules. The baseline report records the mechanical zero-unmatched,
 zero-multiple-owner audit.
 
-| Current target identity or pattern | Category | Future default owner |
+| Current target identity or pattern | Category | Default owner |
 | --- | --- | --- |
 | `SimdLib`, `SimdLibRegister`, `DevelopmentWarnings`, `ExhaustiveArtifacts`, `SimdLib*Artifacts` | Production/support aggregate | Profile-local build graph |
 | `Header*Probe` | Compiler-front-end contract | Each supported Release compiler identity |
@@ -139,7 +162,7 @@ result.
 The current 265-name logical CTest union is completely covered by stable
 identity prefixes.
 
-| Current CTest identity or prefix | Logical count at baseline | Category | Future default owner |
+| Current CTest identity or prefix | Logical count at baseline | Category | Default owner |
 | --- | ---: | --- | --- |
 | `PublicHeaderStaticAssertAudit` | 1 | Repository audit | Replaced by the source-revision audit receipt; not repeated as CTest in every cell |
 | `MethodFlagsPreprocessor`, `MethodFlagsConfiguration`, `MethodFlagsPlacementAbi` | 3 | Compiler-front-end contract | Applicable Release compiler identity |
@@ -173,8 +196,9 @@ make every target configuration-sensitive.
 - Runtime correctness is optimizer-sensitive and therefore remains complete in
   every Release compiler cell.
 - The representative MSVC Debug runtime cell owns the unoptimized/default-check
-  configuration. A narrow compiler probe must assert the Debug and Release
-  `SIMDLIB_ENABLE_CHECKS` defaults before the broader Debug cells are retired.
+  configuration. The retained MSVC Debug and Clang sanitizer cells compile the
+  checks-state probe with `SIMDLIB_ENABLE_CHECKS=1` and an explicit rejection of
+  `NDEBUG`; Release compilers separately assert the disabled default.
 - Method-flags codegen applies its own optimized compiler flags and therefore
   belongs to the optimized codegen owner rather than every runtime profile.
 - Register codegen requires optimization only for the mandatory zero-overhead

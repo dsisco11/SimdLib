@@ -27,6 +27,7 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+Import-Module (Join-Path $PSScriptRoot 'Pipeline.Common.psm1') -Force
 $repositoryRoot = Split-Path -Parent $PSScriptRoot
 $composeFile = Join-Path $repositoryRoot 'compose.yml'
 $pipelineRoot = Join-Path $repositoryRoot 'out/pipeline'
@@ -117,7 +118,9 @@ function Resolve-Cells {
         }
         if ($CellScope -in @('All', 'Debug')) {
             $preset = if ($service -eq 'gcc13') { 'gcc13-core-debug-diagnostics' } else { "$service-debug-diagnostics" }
-            $cells.Add([pscustomobject]@{ Service = $service; Key = 'debug'; Preset = $preset; BuildProfile = 'Debug'; Sanitizer = 'none'; CodegenMode = 'OFF' })
+            if ($CellScope -eq 'Debug' -or (Test-PipelineDefaultValidationPreset -Preset $preset)) {
+                $cells.Add([pscustomobject]@{ Service = $service; Key = 'debug'; Preset = $preset; BuildProfile = 'Debug'; Sanitizer = 'none'; CodegenMode = 'OFF' })
+            }
         }
         if ($service -eq 'clang22' -and $CellScope -in @('All', 'AsanUbsan')) {
             $cells.Add([pscustomobject]@{ Service = $service; Key = 'debug-asan-ubsan'; Preset = 'clang22-debug-asan-ubsan'; BuildProfile = 'Debug'; Sanitizer = 'asan-ubsan'; CodegenMode = 'OFF' })

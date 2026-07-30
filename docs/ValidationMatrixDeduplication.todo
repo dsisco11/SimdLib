@@ -125,20 +125,27 @@ SimdLib Validation Matrix Deduplication Plan:
       ☒ Separate timing identified the sanitizer-instrumented common type matrix as pathological: its slowest record required 244 seconds and the 35 records reported 678 cumulative comparison seconds.
 
   Phase 4 - Reduce the Ordinary Debug Compiler Matrix:
-    ☐ Treat the full optimized Release suite as the cross-compiler correctness and optimizer matrix.
-    ☐ Keep one ordinary MSVC Debug runtime cell as the representative unoptimized Windows and default-check configuration.
-    ☐ Keep Clang ASan+UBSan Debug as the representative instrumented Linux Debug configuration.
-    ☐ Remove the ordinary clang-cl Debug cell from the default matrix after proving clang-cl Release plus MSVC Debug owns its language, Windows ABI, and Debug-configuration contracts.
-    ☐ Remove the ordinary GCC 13 Debug cell from the default matrix after proving the GCC 13 core-only Release cell owns its compatibility-floor contract.
-    ☐ Remove the ordinary GCC 14 Debug cell from the default matrix after proving GCC 14 Release plus the representative Debug/sanitizer cells cover all non-optimizer Debug contracts.
-    ☐ Remove the ordinary Clang 22 Debug cell from the default matrix after proving the Clang 22 sanitizer cell owns its Debug runtime contracts.
-    ☐ Preserve direct selection of an ordinary Debug compiler cell as an opt-in troubleshooting operation when useful.
-    ☐ Verify the representative Debug cells compile without `NDEBUG` and exercise the intended default checks configuration.
-    ☐ Verify `VectorChecksTests`, `PreconditionTests`, and other explicit checks-enabled targets remain checks-enabled independent of Release/Debug selection.
-    ☐ Audit Register precondition tests and any failure-process tests to ensure their intended configuration is explicit rather than accidentally inherited.
-    ☐ Retain a narrow clang-cl Debug consumer build only if it exposes a Debug CRT, ABI, or calling-convention contract not covered elsewhere.
-    ☐ Record the removed cells and the exact replacement evidence in the matrix documentation.
-    ☐ End Phase 4 only when every removed ordinary Debug cell has no unowned contract and remains available only where an explicit troubleshooting use is justified.
+    ☒ Treat the full optimized Release suite as the cross-compiler correctness and optimizer matrix.
+    ☒ Keep one ordinary MSVC Debug runtime cell as the representative unoptimized Windows and default-check configuration.
+    ☒ Keep Clang ASan+UBSan Debug as the representative instrumented Linux Debug configuration.
+    ☒ Remove the ordinary clang-cl Debug cell from the default matrix after proving clang-cl Release plus MSVC Debug owns its language, Windows ABI, and Debug-configuration contracts.
+    ☒ Remove the ordinary GCC 13 Debug cell from the default matrix after proving the GCC 13 core-only Release cell owns its compatibility-floor contract.
+    ☒ Remove the ordinary GCC 14 Debug cell from the default matrix after proving GCC 14 Release plus the representative Debug/sanitizer cells cover all non-optimizer Debug contracts.
+    ☒ Remove the ordinary Clang 22 Debug cell from the default matrix after proving the Clang 22 sanitizer cell owns its Debug runtime contracts.
+    ☒ Preserve direct selection of an ordinary Debug compiler cell as an opt-in troubleshooting operation when useful.
+    ☒ Verify the representative Debug cells compile without `NDEBUG` and exercise the intended default checks configuration.
+    ☒ Verify `VectorChecksTests`, `PreconditionTests`, and other explicit checks-enabled targets remain checks-enabled independent of Release/Debug selection.
+    ☒ Audit Register precondition tests and any failure-process tests to ensure their intended configuration is explicit rather than accidentally inherited.
+    ☒ Retain a narrow clang-cl Debug consumer build only if it exposes a Debug CRT, ABI, or calling-convention contract not covered elsewhere.
+    ☒ Record the removed cells and the exact replacement evidence in the matrix documentation.
+    ☒ End Phase 4 only when every removed ordinary Debug cell has no unowned contract and remains available only where an explicit troubleshooting use is justified.
+      ☒ `Pipeline.Common.psm1` now owns the exact eight-preset default matrix consumed by build receipts, test receipts, and both runners; the repository audit executes the real resolver functions and rejects restoration of any retired ordinary Debug cell.
+      ☒ Default resolution retains MSVC Release+Debug, clang-cl Release, native Clang coverage, GCC 13 core Release, GCC 14 Release, and Clang 22 Release+ASan/UBSan; explicit Debug resolution remains available for clang-cl, GCC 13, GCC 14, and Clang 22.
+      ☒ `ValidationMatrixOwnership.md` records each removed cell's compiler, ABI, runtime, consumer, configuration, and instrumentation replacement owner; no separate clang-cl Debug CRT, ABI, or calling-convention contract was identified.
+      ☒ Fresh MSVC Debug and Clang 22 ASan+UBSan builds compiled `ConfigDefaultChecksDebugProbe` with checks enabled and an explicit `NDEBUG` rejection; both inventories contained four checks targets and no compiler-contract target.
+      ☒ The checks-configuration verifier proves `VectorChecksTests` and `PreconditionTests` explicitly define `SIMDLIB_ENABLE_CHECKS=1`, and proves both failure-process suites install their custom precondition hooks before including production headers.
+      ☒ Focused MSVC Debug checks and preconditions passed 22 cases, focused Clang sanitizer checks and preconditions passed 22 project cases plus both consumer cases, and focused MSVC Release checks and preconditions passed 20 cases.
+      ☒ Profile-membership and codegen-isolation checks passed in both retained Debug representatives; the current MSVC Release refresh also preserved the explicit checks contract outside Debug.
 
   Phase 5 - Slim Runtime, Sanitizer, and Coverage Target Sets:
     ☐ Define the runtime correctness aggregate independently from header, configuration, constexpr, codegen, source-audit, example, and benchmark aggregates.

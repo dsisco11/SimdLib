@@ -46,28 +46,6 @@ function Resolve-BuildSelection {
 
 <#
 .SYNOPSIS
-Returns the exact validation presets owned by selected compiler filters.
-.PARAMETER SelectedCompilers
-Canonical compiler selection.
-#>
-function Get-ExpectedValidationPresets {
-    param([Parameter(Mandatory)][string[]]$SelectedCompilers)
-    $presets = [System.Collections.Generic.List[string]]::new()
-    foreach ($name in $SelectedCompilers) {
-        switch ($name) {
-            'Msvc' { $presets.Add('msvc-release-exhaustive'); $presets.Add('msvc-debug-diagnostics') }
-            'ClangCl' { $presets.Add('clangcl-release-exhaustive'); $presets.Add('clangcl-debug-diagnostics') }
-            'ClangCoverage' { $presets.Add('clang-debug-coverage') }
-            'Gcc13' { $presets.Add('gcc13-core-release-exhaustive'); $presets.Add('gcc13-core-debug-diagnostics') }
-            'Gcc14' { $presets.Add('gcc14-release-exhaustive'); $presets.Add('gcc14-debug-diagnostics') }
-            'Clang22' { $presets.Add('clang22-release-exhaustive'); $presets.Add('clang22-debug-diagnostics'); $presets.Add('clang22-debug-asan-ubsan') }
-        }
-    }
-    return @($presets)
-}
-
-<#
-.SYNOPSIS
 Records the exact completed validation manifests produced by this build.
 .PARAMETER SelectedCompilers
 Canonical compiler selection.
@@ -84,7 +62,7 @@ function Write-BuildReceipt {
         -RepositoryRoot $repositoryRoot `
         -AuditPath $RepositoryAuditPath `
         -ExpectedSourceDigest $currentSourceDigest
-    $expectedPresets = @(Get-ExpectedValidationPresets -SelectedCompilers $SelectedCompilers)
+    $expectedPresets = @(Get-PipelineDefaultValidationPresets -SelectedCompilers $SelectedCompilers)
     $manifestFiles = @(Get-ChildItem -LiteralPath $pipelineRoot -Filter 'validation-build.manifest' -File -Recurse -ErrorAction SilentlyContinue)
     $entries = [System.Collections.Generic.List[object]]::new()
     foreach ($preset in $expectedPresets) {

@@ -7,14 +7,15 @@ command. A complete local build is:
 tools/Build.ps1 -Scope All
 ```
 
-This builds the Windows MSVC and clang-cl Release and Debug cells, native Clang
-Debug coverage, Linux GCC 13 core-only Release and Debug, Linux GCC 14 Release
-and Debug, and Linux Clang 22 Release, Debug, and ASan+UBSan cells. It builds
+This builds MSVC Release and the representative MSVC Debug cell, clang-cl
+Release, native Clang Debug coverage, GCC 13 core-only Release, GCC 14 Release,
+and Clang 22 Release plus the representative ASan+UBSan Debug cell. It builds
 the correctness, ABI, sanitizer, consumer, coverage, probe, example, and
 header-validation artifacts, plus the mandatory optimized generated-code gates
-in Release. Ordinary Debug, sanitizer, and coverage cells do not compile
-Register generated-code fixtures. The command does not compile benchmark
-targets or run any executable.
+in Release. The default matrix does not build ordinary clang-cl, GCC 13,
+GCC 14, or Clang 22 Debug cells. Debug, sanitizer, and coverage cells do not
+compile Register generated-code fixtures. The command does not compile
+benchmark targets or run any executable.
 
 Before starting compiler cells, `Build.ps1` invokes
 `tools/Run-RepositoryAudit.ps1`. That operation audits source-text contracts
@@ -69,6 +70,19 @@ tools/Run-Tests.ps1 -Scope Containers -Compiler Gcc14,Clang22
 
 Native filters are `Msvc`, `ClangCl`, and `ClangCoverage`. Container filters
 are `Gcc13`, `Gcc14`, and `Clang22`. A filter from the wrong scope is an error.
+Compiler filters retain the default ownership policy: for example, selecting
+`ClangCl` builds clang-cl Release, while selecting `Clang22` builds Clang 22
+Release and ASan+UBSan Debug.
+
+Retired ordinary Debug cells remain directly available for troubleshooting but
+do not produce manifests accepted by the unified default receipt:
+
+```powershell
+tools/Run-NativeMatrix.ps1 -Action Build -Compiler ClangCl -Cell Debug
+tools/Run-ContainerMatrix.ps1 -Action Build -Compiler Gcc13 -Cell Debug
+tools/Run-ContainerMatrix.ps1 -Action Build -Compiler Gcc14 -Cell Debug
+tools/Run-ContainerMatrix.ps1 -Action Build -Compiler Clang22 -Cell Debug
+```
 
 ## Artifact reuse and manifests
 
@@ -137,9 +151,13 @@ Compiler-front-end contracts are Release-owned for each compiler and supported
 language/feature profile. Ordinary Debug, sanitizer, and coverage trees do not
 configure header, availability, language-failure, representation, constexpr,
 or method-flags contract families. `ConfigDefaultChecksReleaseProbe` verifies
-the Release default and the retained MSVC Debug cell separately builds
-`ConfigDefaultChecksDebugProbe`; these narrow targets are the only deliberate
-configuration-sensitive compiler contracts.
+the Release default. The retained MSVC Debug and Clang sanitizer cells build
+`ConfigDefaultChecksDebugProbe`, which also rejects `NDEBUG`; these narrow
+targets are the only deliberate default-check configuration probes.
+`VectorChecksTests` and `PreconditionTests` explicitly define
+`SIMDLIB_ENABLE_CHECKS=1`, while `RegisterPreconditionTests` installs its
+failure hook before including the Register API, so their contracts do not
+depend on the selected build type.
 
 For CI or advanced local reuse, tests may skip their one build invocation:
 
