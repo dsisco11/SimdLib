@@ -1,18 +1,14 @@
 Code Architecture:
-    ☐ Remove `shuffle_lo` and `shuffle_hi` methods from Register class.
+    ☐ Remove `MethodFlagsInventory.csv` from the repo and audit tooling.
+    ☐ Remove `MethodFlagsRegisterOnly.csv` from the repo and audit tooling.
+    ☐ Remove `shuffle_lo` and `shuffle_hi` methods from Register class (to be replaced with generic templated shuffle method).
     ☐ Analyze `Implementation::shuffle<...>()` type methods to ensure they handle shuffling optimally, e.g. using `shuffle_lo` and `shuffle_hi` when appropriate, and ensure that the `shuffle<...>()` methods are implemented in a way that is both efficient and maintainable.
-    ☐ Implement a `SimdLib::IMask` class to represent compile-time immediate-mode masks for SIMD intrinsics, providing methods for creating and manipulating masks based on compile-time conditions. This class should be compatible with the `SimdLib::Register` and `SimdLib::Tensor` classes, allowing for efficient lane control in SIMD operations.
-
-    ☒ Implement the unified public `SIMD_FLAGS(...)` method-contract and compiler-attribute system described in `docs/MethodFlagsImplementation.todo`.
+    ☐ Implement a `SimdLib::ImmMask` class to represent compile-time immediate-mode masks for SIMD intrinsics, providing methods for creating and manipulating masks based on compile-time conditions. This class should be compatible with the `SimdLib::Register` and `SimdLib::Tensor` classes, allowing for efficient lane control in SIMD operations.
 
     ☐ Design a `SimdLib::Tensor` class to represent multi-dimensional arrays (tensors) and provide methods for performing tensor operations in a SIMD context.
         The Tensor type should support various data types and dimensions, allowing for efficient manipulation of large datasets in parallel.
         It should also facilitate tensors with a templated compile-time fixed size, as well as dynamic size tensors that can be resized at runtime via std::spans.
         It should also provide methods for broadcasting, reshaping, and slicing tensors, as well as performing element-wise operations and reductions.
-
-Build Pipeline:
-    ☒ Implement the validation ownership and matrix deduplication contract documented in `docs/BuildPipeline.md` and enforced by `tools/validation-matrix.json`.
-    ☒ Keep optimized Release wrapper/raw and ABI comparisons as the mandatory zero-overhead gates, and preserve unoptimized Debug or sanitizer comparisons as explicit diagnostic operations rather than default-build requirements.
 
 Testing:
     ☐ Ensure test coverage of all `SimdImplementation::negate()` methods.
