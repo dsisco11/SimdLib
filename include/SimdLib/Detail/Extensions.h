@@ -32,7 +32,7 @@ namespace SimdLib::Detail
  */
 template <class Element, class Vector>
 	requires std::is_arithmetic_v<Element> && (sizeof(Vector) % sizeof(Element) == 0)
-SIMDLIB_FORCE_INLINE constexpr Element register_get_constexpr(const Vector value, const std::size_t index) noexcept
+constexpr Element SIMD_FLAGS(Neither, ForceInline) register_get_constexpr(const Vector value, const std::size_t index) noexcept
 {
 #if SIMDLIB_COMPILER_MSVC
 	if constexpr (sizeof(Vector) == 16)
@@ -97,7 +97,7 @@ SIMDLIB_FORCE_INLINE constexpr Element register_get_constexpr(const Vector value
  */
 template <class Element, class Vector>
 	requires std::is_arithmetic_v<Element> && (sizeof(Vector) % sizeof(Element) == 0)
-SIMDLIB_FORCE_INLINE Element register_get(const Vector value, const std::size_t index) noexcept
+Element SIMD_FLAGS(Neither, ForceInline) register_get(const Vector value, const std::size_t index) noexcept
 {
 #if SIMDLIB_COMPILER_MSVC
 	if constexpr (sizeof(Vector) == 16)
@@ -163,7 +163,7 @@ SIMDLIB_FORCE_INLINE Element register_get(const Vector value, const std::size_t 
  */
 template <class Element, class Vector>
 	requires std::is_arithmetic_v<Element> && (sizeof(Vector) % sizeof(Element) == 0)
-SIMDLIB_FORCE_INLINE constexpr void register_set_constexpr(Vector &value, const std::size_t index, const Element lane) noexcept
+constexpr void SIMD_FLAGS(Neither, ForceInline) register_set_constexpr(Vector &value, const std::size_t index, const Element lane) noexcept
 {
 #if SIMDLIB_COMPILER_MSVC
 	if constexpr (sizeof(Vector) == 16)
@@ -221,7 +221,7 @@ SIMDLIB_FORCE_INLINE constexpr void register_set_constexpr(Vector &value, const 
 
 template <class Vector, class Element, std::size_t Count>
 	requires(sizeof(Vector) == sizeof(Element) * Count)
-SIMDLIB_FORCE_INLINE constexpr Vector register_from_array(const std::array<Element, Count> &lanes) noexcept
+constexpr Vector SIMD_FLAGS(Neither, ForceInline) register_from_array(const std::array<Element, Count> &lanes) noexcept
 {
 	Vector result{};
 	for (std::size_t index = 0; index < Count; ++index)
@@ -233,7 +233,7 @@ SIMDLIB_FORCE_INLINE constexpr Vector register_from_array(const std::array<Eleme
 
 template <class Vector, class Element, class... Args>
 	requires(sizeof(Vector) == sizeof(Element) * sizeof...(Args)) && (std::convertible_to<Args, Element> && ...)
-SIMDLIB_FORCE_INLINE constexpr Vector register_from_values(Args &&...values) noexcept
+constexpr Vector SIMD_FLAGS(Neither, ForceInline) register_from_values(Args &&...values) noexcept
 {
 	return register_from_array<Vector>(std::array<Element, sizeof...(Args)>{static_cast<Element>(values)...});
 }
@@ -246,14 +246,14 @@ SIMDLIB_FORCE_INLINE constexpr Vector register_from_values(Args &&...values) noe
  */
 template <class Vector, class Element>
 	requires(sizeof(Vector) % sizeof(Element) == 0)
-SIMDLIB_FORCE_INLINE constexpr Vector register_from_repeated_value(const Element value) noexcept
+constexpr Vector SIMD_FLAGS(Neither, ForceInline) register_from_repeated_value(const Element value) noexcept
 {
 	std::array<Element, sizeof(Vector) / sizeof(Element)> lanes{};
 	lanes.fill(value);
 	return register_from_array<Vector>(lanes);
 }
 
-template <class Element, class Vector> SIMDLIB_FORCE_INLINE constexpr auto register_to_array(const Vector value) noexcept
+template <class Element, class Vector> constexpr auto SIMD_FLAGS(Neither, ForceInline) register_to_array(const Vector value) noexcept
 {
 	std::array<Element, sizeof(Vector) / sizeof(Element)> result{};
 	for (std::size_t index = 0; index < result.size(); ++index)
@@ -263,12 +263,12 @@ template <class Element, class Vector> SIMDLIB_FORCE_INLINE constexpr auto regis
 	return result;
 }
 
-template <class Element, class Vector> SIMDLIB_FORCE_INLINE Element *register_data(Vector &value) noexcept
+template <class Element, class Vector> auto SIMD_FLAGS(Neither, ForceInline) register_data(Vector &value) noexcept -> Element *
 {
 	return reinterpret_cast<Element *>(&value);
 }
 
-template <class Element, class Vector> SIMDLIB_FORCE_INLINE const Element *register_data(const Vector &value) noexcept
+template <class Element, class Vector> auto SIMD_FLAGS(Neither, ForceInline) register_data(const Vector &value) noexcept -> const Element *
 {
 	return reinterpret_cast<const Element *>(&value);
 }
@@ -286,7 +286,7 @@ template <class Element, class Vector> SIMDLIB_FORCE_INLINE const Element *regis
  * runtime-callable `constexpr` wrappers pass their parameters through it.
  */
 template <class Element, class Vector, class Value>
-SIMDLIB_FORCE_INLINE constexpr Vector register_insert_constexpr(Vector value, const Value lane, const std::size_t index) noexcept
+constexpr Vector SIMD_FLAGS(Neither, ForceInline) register_insert_constexpr(Vector value, const Value lane, const std::size_t index) noexcept
 {
 	register_set_constexpr<Element>(value, index, static_cast<Element>(lane));
 	return value;
@@ -300,7 +300,8 @@ SIMDLIB_FORCE_INLINE constexpr Vector register_insert_constexpr(Vector value, co
  *  @param mask Runtime control byte.
  *  @return Register containing the selected lanes.
  */
-template <class Element, class Vector> SIMDLIB_FORCE_INLINE constexpr Vector register_blend_slow(Vector lhs, const Vector rhs, const unsigned int mask) noexcept
+template <class Element, class Vector>
+constexpr Vector SIMD_FLAGS(Neither, ForceInline) register_blend_slow(Vector lhs, const Vector rhs, const unsigned int mask) noexcept
 {
 	constexpr std::size_t count = sizeof(Vector) / sizeof(Element);
 	for (std::size_t index = 0; index < count; ++index)
@@ -311,7 +312,7 @@ template <class Element, class Vector> SIMDLIB_FORCE_INLINE constexpr Vector reg
 	return lhs;
 }
 
-template <class Vector> SIMDLIB_FORCE_INLINE constexpr Vector register_blend_bytes(Vector lhs, const Vector rhs, const Vector mask) noexcept
+template <class Vector> constexpr Vector SIMD_FLAGS(Neither, ForceInline) register_blend_bytes(Vector lhs, const Vector rhs, const Vector mask) noexcept
 {
 	constexpr std::size_t count = sizeof(Vector);
 	for (std::size_t index = 0; index < count; ++index)
@@ -330,7 +331,7 @@ template <class Vector> SIMDLIB_FORCE_INLINE constexpr Vector register_blend_byt
  *  @return Register containing the shuffled lanes.
  */
 template <class Vector>
-SIMDLIB_FORCE_INLINE constexpr Vector register_shuffle_float_slow(const Vector lhs, const Vector rhs, const unsigned int control) noexcept
+constexpr Vector SIMD_FLAGS(Neither, ForceInline) register_shuffle_float_slow(const Vector lhs, const Vector rhs, const unsigned int control) noexcept
 {
 	const auto left = register_to_array<float>(lhs);
 	const auto right = register_to_array<float>(rhs);
@@ -353,7 +354,7 @@ SIMDLIB_FORCE_INLINE constexpr Vector register_shuffle_float_slow(const Vector l
  *  @return Register containing the shuffled lanes.
  */
 template <class Vector>
-SIMDLIB_FORCE_INLINE constexpr Vector register_shuffle_double_slow(const Vector lhs, const Vector rhs, const unsigned int control) noexcept
+constexpr Vector SIMD_FLAGS(Neither, ForceInline) register_shuffle_double_slow(const Vector lhs, const Vector rhs, const unsigned int control) noexcept
 {
 	const auto left = register_to_array<double>(lhs);
 	const auto right = register_to_array<double>(rhs);
@@ -373,7 +374,7 @@ SIMDLIB_FORCE_INLINE constexpr Vector register_shuffle_double_slow(const Vector 
  *  @param control Runtime control byte.
  *  @return Register with each four-lane group shuffled.
  */
-template <class Vector> SIMDLIB_FORCE_INLINE constexpr Vector register_shuffle_32_slow(const Vector value, const unsigned int control) noexcept
+template <class Vector> constexpr Vector SIMD_FLAGS(Neither, ForceInline) register_shuffle_32_slow(const Vector value, const unsigned int control) noexcept
 {
 	const auto source = register_to_array<std::uint32_t>(value);
 	std::array<std::uint32_t, sizeof(Vector) / sizeof(std::uint32_t)> result{};
@@ -393,7 +394,7 @@ template <class Vector> SIMDLIB_FORCE_INLINE constexpr Vector register_shuffle_3
  *  @return Register containing the shuffled half groups.
  */
 template <class Vector>
-SIMDLIB_FORCE_INLINE constexpr Vector register_shuffle_half_16_slow(const Vector value, const unsigned int control, const bool high_half) noexcept
+constexpr Vector SIMD_FLAGS(Neither, ForceInline) register_shuffle_half_16_slow(const Vector value, const unsigned int control, const bool high_half) noexcept
 {
 	const auto source = register_to_array<std::uint16_t>(value);
 	auto result = source;
@@ -407,7 +408,7 @@ SIMDLIB_FORCE_INLINE constexpr Vector register_shuffle_half_16_slow(const Vector
 }
 
 template <class Element, class Vector, class Operation>
-SIMDLIB_FORCE_INLINE constexpr Vector register_transform_binary(const Vector lhs, const Vector rhs, Operation &&operation) noexcept
+constexpr Vector SIMD_FLAGS(Neither, ForceInline) register_transform_binary(const Vector lhs, const Vector rhs, Operation &&operation) noexcept
 {
 	constexpr std::size_t count = sizeof(Vector) / sizeof(Element);
 	std::array<Element, count> result{};
@@ -425,7 +426,7 @@ SIMDLIB_FORCE_INLINE constexpr Vector register_transform_binary(const Vector lhs
  * @param count Runtime byte count.
  * @return A count in the inclusive range zero through sixteen.
  */
-SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr int _ext128_clamp_byte_shift_count(const int count) noexcept
+constexpr int SIMD_FLAGS(Neither, RegisterOnly, ForceInline) _ext128_clamp_byte_shift_count(const int count) noexcept
 {
 	const int nonnegative = count < 0 ? 0 : count;
 	return nonnegative > 16 ? 16 : nonnegative;
@@ -436,7 +437,7 @@ SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr int _ext128_clamp_byte_shif
  * @param count Byte count in the inclusive range zero through sixteen.
  * @return Register containing the count in every byte lane.
  */
-SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m128i VECTORCALL _ext128_broadcast_byte_shift_count(const int count) noexcept
+__m128i SIMD_FLAGS(Out, RegisterOnly, ForceInline) _ext128_broadcast_byte_shift_count(const int count) noexcept
 {
 	return _mm_set1_epi32(count * 0x01010101);
 }
@@ -453,7 +454,7 @@ SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m128i VECTORCALL _ext128_broadcast_
  *        greater than or equal to sixteen produce zero.
  * @return Shifted register with zero-filled low bytes.
  */
-SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m128i VECTORCALL _ext128_byte_shift_left_slow(__m128i lhs, const int count) noexcept
+__m128i SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) _ext128_byte_shift_left_slow(__m128i lhs, const int count) noexcept
 {
 	const __m128i indices = _mm_setr_epi8(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15);
 	const int boundedCount = _ext128_clamp_byte_shift_count(count);
@@ -473,7 +474,7 @@ SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m128i VECTORCALL _e
  *        greater than or equal to sixteen produce zero.
  * @return Shifted register with zero-filled high bytes.
  */
-SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m128i VECTORCALL _ext128_byte_shift_right_slow(__m128i lhs, const int count) noexcept
+__m128i SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) _ext128_byte_shift_right_slow(__m128i lhs, const int count) noexcept
 {
 	const __m128i biasedIndices = _mm_setr_epi8(0x70, 0x71, 0x72, 0x73, 0x74, 0x75, 0x76, 0x77, 0x78, 0x79, 0x7A, 0x7B, 0x7C, 0x7D, 0x7E, 0x7F);
 	const int boundedCount = _ext128_clamp_byte_shift_count(count);
@@ -492,7 +493,7 @@ SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m128i VECTORCALL _e
  * @pre Every lane in rhs is nonzero and no dividend-minimum lane is divided by negative one.
  * @return The truncating integer quotient for every lane.
  */
-SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m128i VECTORCALL _ext128_div_epi8(__m128i lhs, __m128i rhs) noexcept
+__m128i SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) _ext128_div_epi8(__m128i lhs, __m128i rhs) noexcept
 {
 	__m128i result = _mm_setzero_si128();
 	result = _mm_insert_epi8(
@@ -559,7 +560,7 @@ SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m128i VECTORCALL _e
  * @pre Every lane in rhs is nonzero.
  * @return The truncating integer quotient for every lane.
  */
-SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m128i VECTORCALL _ext128_div_epu8(__m128i lhs, __m128i rhs) noexcept
+__m128i SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) _ext128_div_epu8(__m128i lhs, __m128i rhs) noexcept
 {
 	__m128i result = _mm_setzero_si128();
 	result = _mm_insert_epi8(
@@ -636,7 +637,7 @@ SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m128i VECTORCALL _e
  * @pre Every lane in rhs is nonzero and no dividend-minimum lane is divided by negative one.
  * @return The truncating integer quotient for every lane.
  */
-SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m128i VECTORCALL _ext128_div_epi16(__m128i lhs, __m128i rhs) noexcept
+__m128i SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) _ext128_div_epi16(__m128i lhs, __m128i rhs) noexcept
 {
 	__m128i result = _mm_setzero_si128();
 	result = _mm_insert_epi16(result,
@@ -681,7 +682,7 @@ SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m128i VECTORCALL _e
  * @pre Every lane in rhs is nonzero.
  * @return The truncating integer quotient for every lane.
  */
-SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m128i VECTORCALL _ext128_div_epu16(__m128i lhs, __m128i rhs) noexcept
+__m128i SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) _ext128_div_epu16(__m128i lhs, __m128i rhs) noexcept
 {
 	__m128i result = _mm_setzero_si128();
 	result = _mm_insert_epi16(result,
@@ -726,7 +727,7 @@ SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m128i VECTORCALL _e
  * @pre Every lane in rhs is nonzero and no dividend-minimum lane is divided by negative one.
  * @return The truncating integer quotient for every lane.
  */
-SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m128i VECTORCALL _ext128_div_epi32(__m128i lhs, __m128i rhs) noexcept
+__m128i SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) _ext128_div_epi32(__m128i lhs, __m128i rhs) noexcept
 {
 	__m128i result = _mm_setzero_si128();
 	result = _mm_insert_epi32(result, static_cast<std::int32_t>(_mm_extract_epi32(lhs, 0)) / static_cast<std::int32_t>(_mm_extract_epi32(rhs, 0)), 0);
@@ -743,7 +744,7 @@ SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m128i VECTORCALL _e
  * @pre Every lane in rhs is nonzero.
  * @return The truncating integer quotient for every lane.
  */
-SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m128i VECTORCALL _ext128_div_epu32(__m128i lhs, __m128i rhs) noexcept
+__m128i SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) _ext128_div_epu32(__m128i lhs, __m128i rhs) noexcept
 {
 	__m128i result = _mm_setzero_si128();
 	result = _mm_insert_epi32(
@@ -764,7 +765,7 @@ SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m128i VECTORCALL _e
  * @pre Every lane in rhs is nonzero and no dividend-minimum lane is divided by negative one.
  * @return The truncating integer quotient for every lane.
  */
-SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m128i VECTORCALL _ext128_div_epi64(__m128i lhs, __m128i rhs) noexcept
+__m128i SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) _ext128_div_epi64(__m128i lhs, __m128i rhs) noexcept
 {
 	__m128i result = _mm_setzero_si128();
 	result = _mm_insert_epi64(result, static_cast<std::int64_t>(_mm_extract_epi64(lhs, 0)) / static_cast<std::int64_t>(_mm_extract_epi64(rhs, 0)), 0);
@@ -779,7 +780,7 @@ SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m128i VECTORCALL _e
  * @pre Every lane in rhs is nonzero.
  * @return The truncating integer quotient for every lane.
  */
-SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m128i VECTORCALL _ext128_div_epu64(__m128i lhs, __m128i rhs) noexcept
+__m128i SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) _ext128_div_epu64(__m128i lhs, __m128i rhs) noexcept
 {
 	__m128i result = _mm_setzero_si128();
 	result = _mm_insert_epi64(
@@ -800,7 +801,7 @@ SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m128i VECTORCALL _e
  * @pre Every lane in rhs is nonzero and no dividend-minimum lane is divided by negative one.
  * @return The scalar signed remainder for every lane.
  */
-SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m128i VECTORCALL _ext128_rem_epi8(__m128i lhs, __m128i rhs) noexcept
+__m128i SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) _ext128_rem_epi8(__m128i lhs, __m128i rhs) noexcept
 {
 	__m128i result = _mm_setzero_si128();
 	result = _mm_insert_epi8(result, static_cast<std::int8_t>(_mm_extract_epi8(lhs, 0)) % static_cast<std::int8_t>(_mm_extract_epi8(rhs, 0)), 0);
@@ -829,7 +830,7 @@ SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m128i VECTORCALL _e
  * @pre Every lane in rhs is nonzero.
  * @return The scalar unsigned remainder for every lane.
  */
-SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m128i VECTORCALL _ext128_rem_epu8(__m128i lhs, __m128i rhs) noexcept
+__m128i SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) _ext128_rem_epu8(__m128i lhs, __m128i rhs) noexcept
 {
 	__m128i result = _mm_setzero_si128();
 	result = _mm_insert_epi8(result, static_cast<std::uint8_t>(_mm_extract_epi8(lhs, 0)) % static_cast<std::uint8_t>(_mm_extract_epi8(rhs, 0)), 0);
@@ -858,7 +859,7 @@ SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m128i VECTORCALL _e
  * @pre Every lane in rhs is nonzero and no dividend-minimum lane is divided by negative one.
  * @return The scalar signed remainder for every lane.
  */
-SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m128i VECTORCALL _ext128_rem_epi16(__m128i lhs, __m128i rhs) noexcept
+__m128i SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) _ext128_rem_epi16(__m128i lhs, __m128i rhs) noexcept
 {
 	__m128i result = _mm_setzero_si128();
 	result = _mm_insert_epi16(result, static_cast<std::int16_t>(_mm_extract_epi16(lhs, 0)) % static_cast<std::int16_t>(_mm_extract_epi16(rhs, 0)), 0);
@@ -879,7 +880,7 @@ SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m128i VECTORCALL _e
  * @pre Every lane in rhs is nonzero.
  * @return The scalar unsigned remainder for every lane.
  */
-SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m128i VECTORCALL _ext128_rem_epu16(__m128i lhs, __m128i rhs) noexcept
+__m128i SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) _ext128_rem_epu16(__m128i lhs, __m128i rhs) noexcept
 {
 	__m128i result = _mm_setzero_si128();
 	result = _mm_insert_epi16(result, static_cast<std::uint16_t>(_mm_extract_epi16(lhs, 0)) % static_cast<std::uint16_t>(_mm_extract_epi16(rhs, 0)), 0);
@@ -900,7 +901,7 @@ SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m128i VECTORCALL _e
  * @pre Every lane in rhs is nonzero and no dividend-minimum lane is divided by negative one.
  * @return The scalar signed remainder for every lane.
  */
-SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m128i VECTORCALL _ext128_rem_epi32(__m128i lhs, __m128i rhs) noexcept
+__m128i SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) _ext128_rem_epi32(__m128i lhs, __m128i rhs) noexcept
 {
 	__m128i result = _mm_setzero_si128();
 	result = _mm_insert_epi32(result, static_cast<std::int32_t>(_mm_extract_epi32(lhs, 0)) % static_cast<std::int32_t>(_mm_extract_epi32(rhs, 0)), 0);
@@ -917,7 +918,7 @@ SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m128i VECTORCALL _e
  * @pre Every lane in rhs is nonzero.
  * @return The scalar unsigned remainder for every lane.
  */
-SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m128i VECTORCALL _ext128_rem_epu32(__m128i lhs, __m128i rhs) noexcept
+__m128i SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) _ext128_rem_epu32(__m128i lhs, __m128i rhs) noexcept
 {
 	__m128i result = _mm_setzero_si128();
 	result = _mm_insert_epi32(
@@ -938,7 +939,7 @@ SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m128i VECTORCALL _e
  * @pre Every lane in rhs is nonzero and no dividend-minimum lane is divided by negative one.
  * @return The scalar signed remainder for every lane.
  */
-SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m128i VECTORCALL _ext128_rem_epi64(__m128i lhs, __m128i rhs) noexcept
+__m128i SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) _ext128_rem_epi64(__m128i lhs, __m128i rhs) noexcept
 {
 	__m128i result = _mm_setzero_si128();
 	result = _mm_insert_epi64(result, static_cast<std::int64_t>(_mm_extract_epi64(lhs, 0)) % static_cast<std::int64_t>(_mm_extract_epi64(rhs, 0)), 0);
@@ -953,7 +954,7 @@ SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m128i VECTORCALL _e
  * @pre Every lane in rhs is nonzero.
  * @return The scalar unsigned remainder for every lane.
  */
-SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m128i VECTORCALL _ext128_rem_epu64(__m128i lhs, __m128i rhs) noexcept
+__m128i SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) _ext128_rem_epu64(__m128i lhs, __m128i rhs) noexcept
 {
 	__m128i result = _mm_setzero_si128();
 	result = _mm_insert_epi64(
@@ -974,7 +975,7 @@ SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m128i VECTORCALL _e
  * @param rhs The second byte-lane register.
  * @return The low byte of each lane product.
  */
-SIMDLIB_FORCE_INLINE __m128i VECTORCALL _ext_mul_epi8(__m128i lhs, __m128i rhs) noexcept
+__m128i SIMD_FLAGS(InOut, ForceInline) _ext_mul_epi8(__m128i lhs, __m128i rhs) noexcept
 {
 	// unpack and multiply
 	const __m128i dst_even = _mm_mullo_epi16(lhs, rhs);
@@ -984,13 +985,13 @@ SIMDLIB_FORCE_INLINE __m128i VECTORCALL _ext_mul_epi8(__m128i lhs, __m128i rhs) 
 	return _mm_blendv_epi8(dst_odd, dst_even, mask);
 }
 
-SIMDLIB_FORCE_INLINE __m128i VECTORCALL _ext_slli_epx8(__m128i lhs, const int count) noexcept
+__m128i SIMD_FLAGS(InOut, ForceInline) _ext_slli_epx8(__m128i lhs, const int count) noexcept
 {
 	const __m128i mask = _mm_set1_epi8(0xFF << count);
 	return _mm_and_si128(_mm_slli_epi16(lhs, count), mask);
 }
 
-SIMDLIB_FORCE_INLINE __m128i VECTORCALL _ext_srli_epx8(__m128i lhs, const int count) noexcept
+__m128i SIMD_FLAGS(InOut, ForceInline) _ext_srli_epx8(__m128i lhs, const int count) noexcept
 {
 	const __m128i mask = _mm_set1_epi8(0xFF >> count);
 	return _mm_and_si128(_mm_srli_epi16(lhs, count), mask);
@@ -1003,7 +1004,7 @@ SIMDLIB_FORCE_INLINE __m128i VECTORCALL _ext_srli_epx8(__m128i lhs, const int co
  * @param count The per-lane shift count.
  * @return The arithmetic-right-shifted byte lanes.
  */
-SIMDLIB_FORCE_INLINE __m128i VECTORCALL _ext_srai_epx8(__m128i lhs, const int count) noexcept
+__m128i SIMD_FLAGS(InOut, ForceInline) _ext_srai_epx8(__m128i lhs, const int count) noexcept
 {
 	__m128i aeven = _mm_slli_epi16(lhs, 8);						 // even numbered elements get sign bit in position
 	aeven = _mm_sra_epi16(aeven, _mm_cvtsi32_si128(count + 8));	 // shift arithmetic, back to position
@@ -1017,24 +1018,24 @@ SIMDLIB_FORCE_INLINE __m128i VECTORCALL _ext_srai_epx8(__m128i lhs, const int co
 
 #pragma region 128bit uint8_t Extensions
 
-SIMDLIB_FORCE_INLINE __m128i VECTORCALL _ext_mul_epu8(__m128i lhs, __m128i rhs) noexcept
+__m128i SIMD_FLAGS(InOut, ForceInline) _ext_mul_epu8(__m128i lhs, __m128i rhs) noexcept
 {
 	return _ext_mul_epi8(lhs, rhs);
 }
 
-SIMDLIB_FORCE_INLINE __m128i VECTORCALL _ext_cmpgt_epu8(__m128i lhs, __m128i rhs) noexcept
+__m128i SIMD_FLAGS(InOut, ForceInline) _ext_cmpgt_epu8(__m128i lhs, __m128i rhs) noexcept
 {
 	// Returns 0xFF where x > y:
 	return _mm_andnot_si128(_mm_cmpeq_epi8(lhs, rhs), _mm_cmpeq_epi8(_mm_max_epu8(lhs, rhs), lhs));
 }
 
-SIMDLIB_FORCE_INLINE __m128i VECTORCALL _ext_cmplt_epu8(__m128i lhs, __m128i rhs) noexcept
+__m128i SIMD_FLAGS(InOut, ForceInline) _ext_cmplt_epu8(__m128i lhs, __m128i rhs) noexcept
 {
 	// Returns 0xFF where x < y:
 	return _ext_cmpgt_epu8(rhs, lhs);
 }
 
-SIMDLIB_FORCE_INLINE __m128i VECTORCALL _ext_set1_epu8(const std::uint8_t value) noexcept
+__m128i SIMD_FLAGS(Out, ForceInline) _ext_set1_epu8(const std::uint8_t value) noexcept
 {
 	return _mm_set1_epi8(std::bit_cast<char>(value));
 }
@@ -1043,32 +1044,32 @@ SIMDLIB_FORCE_INLINE __m128i VECTORCALL _ext_set1_epu8(const std::uint8_t value)
 
 #pragma region 128bit uint16_t Extensions
 
-SIMDLIB_FORCE_INLINE __m128i VECTORCALL _ext_cmple_epu16(__m128i x, __m128i y) noexcept
+__m128i SIMD_FLAGS(InOut, ForceInline) _ext_cmple_epu16(__m128i x, __m128i y) noexcept
 {
 	// Returns 0xFFFF where x <= y:
 	return _mm_cmpeq_epi16(_mm_subs_epu16(x, y), _mm_setzero_si128());
 }
 
-SIMDLIB_FORCE_INLINE __m128i VECTORCALL _ext_cmpgt_epu16(__m128i x, __m128i y) noexcept
+__m128i SIMD_FLAGS(InOut, ForceInline) _ext_cmpgt_epu16(__m128i x, __m128i y) noexcept
 {
 	// Returns 0xFFFF where x > y:
 	return _mm_andnot_si128(_mm_cmpeq_epi16(x, y), _ext_cmple_epu16(y, x));
 }
 
-SIMDLIB_FORCE_INLINE __m128i VECTORCALL _ext_cmplt_epu16(__m128i x, __m128i y) noexcept
+__m128i SIMD_FLAGS(InOut, ForceInline) _ext_cmplt_epu16(__m128i x, __m128i y) noexcept
 {
 	// Returns 0xFFFF where x < y:
 	return _ext_cmpgt_epu16(y, x);
 }
 
 // Return x where x <= y, else y.
-SIMDLIB_FORCE_INLINE __m128i VECTORCALL _ext_min_epu16(__m128i x, __m128i y) noexcept
+__m128i SIMD_FLAGS(InOut, ForceInline) _ext_min_epu16(__m128i x, __m128i y) noexcept
 {
 	return _mm_sub_epi16(x, _mm_subs_epu16(x, y));
 }
 
 // Return x where x >= y, else y.
-SIMDLIB_FORCE_INLINE __m128i VECTORCALL _ext_max_epu16(__m128i x, __m128i y) noexcept
+__m128i SIMD_FLAGS(InOut, ForceInline) _ext_max_epu16(__m128i x, __m128i y) noexcept
 {
 	return _mm_add_epi16(x, _mm_subs_epu16(y, x));
 }
@@ -1080,7 +1081,7 @@ SIMDLIB_FORCE_INLINE __m128i VECTORCALL _ext_max_epu16(__m128i x, __m128i y) noe
 
 #pragma region 128bit uint32_t Extensions
 
-SIMDLIB_FORCE_INLINE __m128 VECTORCALL _ext_cvtepu32_ps(__m128i lhs) noexcept
+__m128 SIMD_FLAGS(InOut, ForceInline) _ext_cvtepu32_ps(__m128i lhs) noexcept
 {
 	const __m128 signedFloats = _mm_cvtepi32_ps(lhs);
 	const __m128i highBitMask = _mm_cmpgt_epi32(_mm_setzero_si128(), lhs);
@@ -1088,7 +1089,7 @@ SIMDLIB_FORCE_INLINE __m128 VECTORCALL _ext_cvtepu32_ps(__m128i lhs) noexcept
 	return _mm_add_ps(signedFloats, correction);
 }
 
-SIMDLIB_FORCE_INLINE __m128i VECTORCALL _ext_cmpgt_epu32(__m128i lhs, __m128i rhs) noexcept
+__m128i SIMD_FLAGS(InOut, ForceInline) _ext_cmpgt_epu32(__m128i lhs, __m128i rhs) noexcept
 {
 	// Returns 0xFFFFFFFF where x > y:
 	return _mm_andnot_si128(_mm_cmpeq_epi32(lhs, rhs), _mm_cmpeq_epi32(_mm_max_epu32(lhs, rhs), lhs));
@@ -1109,7 +1110,7 @@ SIMDLIB_FORCE_INLINE __m128i VECTORCALL _ext_cmpgt_epu32(__m128i lhs, __m128i rh
  * @pre Every lane in rhs is nonzero and no dividend-minimum lane is divided by negative one.
  * @return The truncating integer quotient for every lane.
  */
-SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m256i VECTORCALL _ext256_div_epi8(__m256i lhs, __m256i rhs) noexcept
+__m256i SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) _ext256_div_epi8(__m256i lhs, __m256i rhs) noexcept
 {
 	const __m128i lhsLow = _mm256_castsi256_si128(lhs);
 	const __m128i rhsLow = _mm256_castsi256_si128(rhs);
@@ -1128,7 +1129,7 @@ SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m256i VECTORCALL _e
  * @pre Every lane in rhs is nonzero.
  * @return The truncating integer quotient for every lane.
  */
-SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m256i VECTORCALL _ext256_div_epu8(__m256i lhs, __m256i rhs) noexcept
+__m256i SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) _ext256_div_epu8(__m256i lhs, __m256i rhs) noexcept
 {
 	const __m128i lhsLow = _mm256_castsi256_si128(lhs);
 	const __m128i rhsLow = _mm256_castsi256_si128(rhs);
@@ -1147,7 +1148,7 @@ SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m256i VECTORCALL _e
  * @pre Every lane in rhs is nonzero and no dividend-minimum lane is divided by negative one.
  * @return The truncating integer quotient for every lane.
  */
-SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m256i VECTORCALL _ext256_div_epi16(__m256i lhs, __m256i rhs) noexcept
+__m256i SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) _ext256_div_epi16(__m256i lhs, __m256i rhs) noexcept
 {
 	const __m128i lhsLow = _mm256_castsi256_si128(lhs);
 	const __m128i rhsLow = _mm256_castsi256_si128(rhs);
@@ -1166,7 +1167,7 @@ SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m256i VECTORCALL _e
  * @pre Every lane in rhs is nonzero.
  * @return The truncating integer quotient for every lane.
  */
-SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m256i VECTORCALL _ext256_div_epu16(__m256i lhs, __m256i rhs) noexcept
+__m256i SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) _ext256_div_epu16(__m256i lhs, __m256i rhs) noexcept
 {
 	const __m128i lhsLow = _mm256_castsi256_si128(lhs);
 	const __m128i rhsLow = _mm256_castsi256_si128(rhs);
@@ -1185,7 +1186,7 @@ SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m256i VECTORCALL _e
  * @pre Every lane in rhs is nonzero and no dividend-minimum lane is divided by negative one.
  * @return The truncating integer quotient for every lane.
  */
-SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m256i VECTORCALL _ext256_div_epi32(__m256i lhs, __m256i rhs) noexcept
+__m256i SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) _ext256_div_epi32(__m256i lhs, __m256i rhs) noexcept
 {
 	const __m128i lhsLow = _mm256_castsi256_si128(lhs);
 	const __m128i rhsLow = _mm256_castsi256_si128(rhs);
@@ -1204,7 +1205,7 @@ SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m256i VECTORCALL _e
  * @pre Every lane in rhs is nonzero.
  * @return The truncating integer quotient for every lane.
  */
-SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m256i VECTORCALL _ext256_div_epu32(__m256i lhs, __m256i rhs) noexcept
+__m256i SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) _ext256_div_epu32(__m256i lhs, __m256i rhs) noexcept
 {
 	const __m128i lhsLow = _mm256_castsi256_si128(lhs);
 	const __m128i rhsLow = _mm256_castsi256_si128(rhs);
@@ -1223,7 +1224,7 @@ SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m256i VECTORCALL _e
  * @pre Every lane in rhs is nonzero and no dividend-minimum lane is divided by negative one.
  * @return The truncating integer quotient for every lane.
  */
-SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m256i VECTORCALL _ext256_div_epi64(__m256i lhs, __m256i rhs) noexcept
+__m256i SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) _ext256_div_epi64(__m256i lhs, __m256i rhs) noexcept
 {
 	const __m128i lhsLow = _mm256_castsi256_si128(lhs);
 	const __m128i rhsLow = _mm256_castsi256_si128(rhs);
@@ -1242,7 +1243,7 @@ SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m256i VECTORCALL _e
  * @pre Every lane in rhs is nonzero.
  * @return The truncating integer quotient for every lane.
  */
-SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m256i VECTORCALL _ext256_div_epu64(__m256i lhs, __m256i rhs) noexcept
+__m256i SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) _ext256_div_epu64(__m256i lhs, __m256i rhs) noexcept
 {
 	const __m128i lhsLow = _mm256_castsi256_si128(lhs);
 	const __m128i rhsLow = _mm256_castsi256_si128(rhs);
@@ -1265,7 +1266,7 @@ SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m256i VECTORCALL _e
  * @pre Every lane in rhs is nonzero and no dividend-minimum lane is divided by negative one.
  * @return The scalar-equivalent remainder for every lane.
  */
-SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m256i VECTORCALL _ext256_rem_epi8(__m256i lhs, __m256i rhs) noexcept
+__m256i SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) _ext256_rem_epi8(__m256i lhs, __m256i rhs) noexcept
 {
 	const __m128i resultLow = _ext128_rem_epi8(_mm256_castsi256_si128(lhs), _mm256_castsi256_si128(rhs));
 	const __m128i resultHigh = _ext128_rem_epi8(_mm256_extracti128_si256(lhs, 1), _mm256_extracti128_si256(rhs, 1));
@@ -1279,7 +1280,7 @@ SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m256i VECTORCALL _e
  * @pre Every lane in rhs is nonzero.
  * @return The scalar-equivalent remainder for every lane.
  */
-SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m256i VECTORCALL _ext256_rem_epu8(__m256i lhs, __m256i rhs) noexcept
+__m256i SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) _ext256_rem_epu8(__m256i lhs, __m256i rhs) noexcept
 {
 	const __m128i resultLow = _ext128_rem_epu8(_mm256_castsi256_si128(lhs), _mm256_castsi256_si128(rhs));
 	const __m128i resultHigh = _ext128_rem_epu8(_mm256_extracti128_si256(lhs, 1), _mm256_extracti128_si256(rhs, 1));
@@ -1293,7 +1294,7 @@ SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m256i VECTORCALL _e
  * @pre Every lane in rhs is nonzero and no dividend-minimum lane is divided by negative one.
  * @return The scalar-equivalent remainder for every lane.
  */
-SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m256i VECTORCALL _ext256_rem_epi16(__m256i lhs, __m256i rhs) noexcept
+__m256i SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) _ext256_rem_epi16(__m256i lhs, __m256i rhs) noexcept
 {
 	const __m128i resultLow = _ext128_rem_epi16(_mm256_castsi256_si128(lhs), _mm256_castsi256_si128(rhs));
 	const __m128i resultHigh = _ext128_rem_epi16(_mm256_extracti128_si256(lhs, 1), _mm256_extracti128_si256(rhs, 1));
@@ -1307,7 +1308,7 @@ SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m256i VECTORCALL _e
  * @pre Every lane in rhs is nonzero.
  * @return The scalar-equivalent remainder for every lane.
  */
-SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m256i VECTORCALL _ext256_rem_epu16(__m256i lhs, __m256i rhs) noexcept
+__m256i SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) _ext256_rem_epu16(__m256i lhs, __m256i rhs) noexcept
 {
 	const __m128i resultLow = _ext128_rem_epu16(_mm256_castsi256_si128(lhs), _mm256_castsi256_si128(rhs));
 	const __m128i resultHigh = _ext128_rem_epu16(_mm256_extracti128_si256(lhs, 1), _mm256_extracti128_si256(rhs, 1));
@@ -1321,7 +1322,7 @@ SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m256i VECTORCALL _e
  * @pre Every lane in rhs is nonzero and no dividend-minimum lane is divided by negative one.
  * @return The scalar-equivalent remainder for every lane.
  */
-SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m256i VECTORCALL _ext256_rem_epi32(__m256i lhs, __m256i rhs) noexcept
+__m256i SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) _ext256_rem_epi32(__m256i lhs, __m256i rhs) noexcept
 {
 	const __m128i resultLow = _ext128_rem_epi32(_mm256_castsi256_si128(lhs), _mm256_castsi256_si128(rhs));
 	const __m128i resultHigh = _ext128_rem_epi32(_mm256_extracti128_si256(lhs, 1), _mm256_extracti128_si256(rhs, 1));
@@ -1335,7 +1336,7 @@ SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m256i VECTORCALL _e
  * @pre Every lane in rhs is nonzero.
  * @return The scalar-equivalent remainder for every lane.
  */
-SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m256i VECTORCALL _ext256_rem_epu32(__m256i lhs, __m256i rhs) noexcept
+__m256i SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) _ext256_rem_epu32(__m256i lhs, __m256i rhs) noexcept
 {
 	const __m128i resultLow = _ext128_rem_epu32(_mm256_castsi256_si128(lhs), _mm256_castsi256_si128(rhs));
 	const __m128i resultHigh = _ext128_rem_epu32(_mm256_extracti128_si256(lhs, 1), _mm256_extracti128_si256(rhs, 1));
@@ -1349,7 +1350,7 @@ SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m256i VECTORCALL _e
  * @pre Every lane in rhs is nonzero and no dividend-minimum lane is divided by negative one.
  * @return The scalar-equivalent remainder for every lane.
  */
-SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m256i VECTORCALL _ext256_rem_epi64(__m256i lhs, __m256i rhs) noexcept
+__m256i SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) _ext256_rem_epi64(__m256i lhs, __m256i rhs) noexcept
 {
 	const __m128i resultLow = _ext128_rem_epi64(_mm256_castsi256_si128(lhs), _mm256_castsi256_si128(rhs));
 	const __m128i resultHigh = _ext128_rem_epi64(_mm256_extracti128_si256(lhs, 1), _mm256_extracti128_si256(rhs, 1));
@@ -1363,7 +1364,7 @@ SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m256i VECTORCALL _e
  * @pre Every lane in rhs is nonzero.
  * @return The scalar-equivalent remainder for every lane.
  */
-SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m256i VECTORCALL _ext256_rem_epu64(__m256i lhs, __m256i rhs) noexcept
+__m256i SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) _ext256_rem_epu64(__m256i lhs, __m256i rhs) noexcept
 {
 	const __m128i resultLow = _ext128_rem_epu64(_mm256_castsi256_si128(lhs), _mm256_castsi256_si128(rhs));
 	const __m128i resultHigh = _ext128_rem_epu64(_mm256_extracti128_si256(lhs, 1), _mm256_extracti128_si256(rhs, 1));
@@ -1374,7 +1375,7 @@ SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m256i VECTORCALL _e
 
 #pragma region 256bit uint32_t Extensions
 
-SIMDLIB_FORCE_INLINE __m256 VECTORCALL _ext256_cvtepu32_ps(__m256i lhs) noexcept
+__m256 SIMD_FLAGS(InOut, ForceInline) _ext256_cvtepu32_ps(__m256i lhs) noexcept
 {
 	const __m256 signedFloats = _mm256_cvtepi32_ps(lhs);
 	const __m256i highBitMask = _mm256_cmpgt_epi32(_mm256_setzero_si256(), lhs);
@@ -1390,12 +1391,12 @@ SIMDLIB_FORCE_INLINE __m256 VECTORCALL _ext256_cvtepu32_ps(__m256i lhs) noexcept
 
 #pragma region 128bit int64_t Extensions
 
-SIMDLIB_FORCE_INLINE __m128i VECTORCALL _ext_cmpgt_epi64(__m128i lhs, __m128i rhs) noexcept
+__m128i SIMD_FLAGS(InOut, ForceInline) _ext_cmpgt_epi64(__m128i lhs, __m128i rhs) noexcept
 {
 	return _mm_cmpgt_epi64(lhs, rhs);
 }
 
-SIMDLIB_FORCE_INLINE __m128i VECTORCALL _ext_mullo_epi64(__m128i lhs, __m128i rhs) noexcept
+__m128i SIMD_FLAGS(InOut, ForceInline) _ext_mullo_epi64(__m128i lhs, __m128i rhs) noexcept
 {
 	const __m128i productLow = _mm_mul_epu32(lhs, rhs);
 	const __m128i lhsHigh = _mm_srli_epi64(lhs, 32);
@@ -1404,26 +1405,26 @@ SIMDLIB_FORCE_INLINE __m128i VECTORCALL _ext_mullo_epi64(__m128i lhs, __m128i rh
 	return _mm_add_epi64(productLow, _mm_slli_epi64(cross, 32));
 }
 
-SIMDLIB_FORCE_INLINE __m128i VECTORCALL _ext_abs_epi64(__m128i lhs) noexcept
+__m128i SIMD_FLAGS(InOut, ForceInline) _ext_abs_epi64(__m128i lhs) noexcept
 {
 	const __m128i zero = _mm_setzero_si128();
 	const __m128i sign = _mm_cmpgt_epi64(zero, lhs);
 	return _mm_sub_epi64(_mm_xor_si128(lhs, sign), sign);
 }
 
-SIMDLIB_FORCE_INLINE __m128i VECTORCALL _ext_min_epi64(__m128i lhs, __m128i rhs) noexcept
+__m128i SIMD_FLAGS(InOut, ForceInline) _ext_min_epi64(__m128i lhs, __m128i rhs) noexcept
 {
 	const __m128i mask = _mm_cmpgt_epi64(lhs, rhs);
 	return _mm_blendv_epi8(lhs, rhs, mask);
 }
 
-SIMDLIB_FORCE_INLINE __m128i VECTORCALL _ext_max_epi64(__m128i lhs, __m128i rhs) noexcept
+__m128i SIMD_FLAGS(InOut, ForceInline) _ext_max_epi64(__m128i lhs, __m128i rhs) noexcept
 {
 	const __m128i mask = _mm_cmpgt_epi64(lhs, rhs);
 	return _mm_blendv_epi8(rhs, lhs, mask);
 }
 
-SIMDLIB_FORCE_INLINE __m128i VECTORCALL _ext_srai_epi64(__m128i lhs, const int count) noexcept
+__m128i SIMD_FLAGS(InOut, ForceInline) _ext_srai_epi64(__m128i lhs, const int count) noexcept
 {
 	if (count <= 0)
 	{
@@ -1448,19 +1449,19 @@ SIMDLIB_FORCE_INLINE __m128i VECTORCALL _ext_srai_epi64(__m128i lhs, const int c
 
 #pragma region 128bit uint64_t Extensions
 
-SIMDLIB_FORCE_INLINE __m128i VECTORCALL _ext_cmpgt_epu64(__m128i lhs, __m128i rhs) noexcept
+__m128i SIMD_FLAGS(InOut, ForceInline) _ext_cmpgt_epu64(__m128i lhs, __m128i rhs) noexcept
 {
 	const __m128i signBit = _mm_set1_epi64x(std::numeric_limits<std::int64_t>::min());
 	return _mm_cmpgt_epi64(_mm_xor_si128(lhs, signBit), _mm_xor_si128(rhs, signBit));
 }
 
-SIMDLIB_FORCE_INLINE __m128i VECTORCALL _ext_min_epu64(__m128i lhs, __m128i rhs) noexcept
+__m128i SIMD_FLAGS(InOut, ForceInline) _ext_min_epu64(__m128i lhs, __m128i rhs) noexcept
 {
 	const __m128i mask = _ext_cmpgt_epu64(lhs, rhs);
 	return _mm_blendv_epi8(lhs, rhs, mask);
 }
 
-SIMDLIB_FORCE_INLINE __m128i VECTORCALL _ext_max_epu64(__m128i lhs, __m128i rhs) noexcept
+__m128i SIMD_FLAGS(InOut, ForceInline) _ext_max_epu64(__m128i lhs, __m128i rhs) noexcept
 {
 	const __m128i mask = _ext_cmpgt_epu64(lhs, rhs);
 	return _mm_blendv_epi8(rhs, lhs, mask);
@@ -1476,7 +1477,7 @@ SIMDLIB_FORCE_INLINE __m128i VECTORCALL _ext_max_epu64(__m128i lhs, __m128i rhs)
  * @param shift Runtime count; nonpositive counts are identity and counts of at least 128 produce zero.
  * @return Shifted register with zero-filled low bits.
  */
-SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m128i VECTORCALL _ext128_shift_left_bits_slow(const __m128i lhs, const int shift) noexcept
+__m128i SIMD_FLAGS(InOut, RegisterOnly, ForceInline) _ext128_shift_left_bits_slow(const __m128i lhs, const int shift) noexcept
 {
 	const __m128i count = _mm_min_epi32(_mm_max_epi32(_mm_cvtsi32_si128(shift), _mm_setzero_si128()), _mm_cvtsi32_si128(128));
 	const __m128i midpoint = _mm_cvtsi32_si128(64);
@@ -1493,7 +1494,7 @@ SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m128i VECTORCALL _ext128_shift_left
  * @param lhs Source register interpreted as one unsigned 128-bit bit string.
  * @return Shifted register with zero-filled low bits.
  */
-template <int shift> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m128i VECTORCALL _ext128_shift_left_bits_static(const __m128i lhs) noexcept
+template <int shift> __m128i SIMD_FLAGS(InOut, RegisterOnly, ForceInline) _ext128_shift_left_bits_static(const __m128i lhs) noexcept
 {
 	static_assert(shift >= 0, "Whole-register shifts require a non-negative count.");
 	if constexpr (shift == 0)
@@ -1514,7 +1515,7 @@ template <int shift> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m128i VECTORCA
  * @param shift Runtime count; nonpositive counts are identity and counts of at least 128 produce zero.
  * @return Shifted register with zero-filled high bits.
  */
-SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m128i VECTORCALL _ext128_shift_right_bits_slow(const __m128i lhs, const int shift) noexcept
+__m128i SIMD_FLAGS(InOut, RegisterOnly, ForceInline) _ext128_shift_right_bits_slow(const __m128i lhs, const int shift) noexcept
 {
 	const __m128i count = _mm_min_epi32(_mm_max_epi32(_mm_cvtsi32_si128(shift), _mm_setzero_si128()), _mm_cvtsi32_si128(128));
 	const __m128i midpoint = _mm_cvtsi32_si128(64);
@@ -1531,7 +1532,7 @@ SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m128i VECTORCALL _ext128_shift_righ
  * @param lhs Source register interpreted as one unsigned 128-bit bit string.
  * @return Shifted register with zero-filled high bits.
  */
-template <int shift> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m128i VECTORCALL _ext128_shift_right_bits_static(const __m128i lhs) noexcept
+template <int shift> __m128i SIMD_FLAGS(InOut, RegisterOnly, ForceInline) _ext128_shift_right_bits_static(const __m128i lhs) noexcept
 {
 	static_assert(shift >= 0, "Whole-register shifts require a non-negative count.");
 	if constexpr (shift == 0)
@@ -1556,7 +1557,7 @@ template <int shift> SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY __m128i VECTORCA
  * @param lhs The floating-point lanes.
  * @return The per-lane absolute values.
  */
-SIMDLIB_FORCE_INLINE __m128 VECTORCALL _ext_abs_ps(const __m128 lhs) noexcept
+__m128 SIMD_FLAGS(InOut, ForceInline) _ext_abs_ps(const __m128 lhs) noexcept
 {
 	return _mm_and_ps(lhs, _mm_castsi128_ps(_mm_set1_epi32(0x7FFFFFFF)));
 }
@@ -1567,7 +1568,7 @@ SIMDLIB_FORCE_INLINE __m128 VECTORCALL _ext_abs_ps(const __m128 lhs) noexcept
  * @param lhs The floating-point lanes.
  * @return The per-lane absolute values.
  */
-SIMDLIB_FORCE_INLINE __m128d VECTORCALL _ext_abs_pd(const __m128d lhs) noexcept
+__m128d SIMD_FLAGS(InOut, ForceInline) _ext_abs_pd(const __m128d lhs) noexcept
 {
 	return _mm_and_pd(lhs, _mm_castsi128_pd(_mm_set1_epi64x(0x7FFF'FFFF'FFFF'FFFFLL)));
 }
@@ -1586,7 +1587,7 @@ SIMDLIB_FORCE_INLINE __m128d VECTORCALL _ext_abs_pd(const __m128d lhs) noexcept
  * @param rhs The second byte-lane register.
  * @return The low byte of each lane product.
  */
-SIMDLIB_FORCE_INLINE __m256i VECTORCALL _ext256_mul_epi8(__m256i lhs, __m256i rhs) noexcept
+__m256i SIMD_FLAGS(InOut, ForceInline) _ext256_mul_epi8(__m256i lhs, __m256i rhs) noexcept
 {
 	// unpack and multiply
 	const auto dst_even = _mm256_mullo_epi16(lhs, rhs);
@@ -1596,19 +1597,19 @@ SIMDLIB_FORCE_INLINE __m256i VECTORCALL _ext256_mul_epi8(__m256i lhs, __m256i rh
 	return _mm256_blendv_epi8(dst_odd, dst_even, mask);
 }
 
-SIMDLIB_FORCE_INLINE __m256i VECTORCALL _ext256_cmplt_epi8(__m256i lhs, __m256i rhs) noexcept
+__m256i SIMD_FLAGS(InOut, ForceInline) _ext256_cmplt_epi8(__m256i lhs, __m256i rhs) noexcept
 {
 	// Compare (b > a) which is effectively (a < b)
 	return _mm256_cmpgt_epi8(rhs, lhs);
 }
 
-SIMDLIB_FORCE_INLINE __m256i VECTORCALL _ext256_slli_epx8(__m256i lhs, const int count) noexcept
+__m256i SIMD_FLAGS(InOut, ForceInline) _ext256_slli_epx8(__m256i lhs, const int count) noexcept
 {
 	const __m256i mask = _mm256_set1_epi8(0xFF << count);
 	return _mm256_and_si256(_mm256_slli_epi16(lhs, count), mask);
 }
 
-SIMDLIB_FORCE_INLINE __m256i VECTORCALL _ext256_srli_epx8(__m256i lhs, const int count) noexcept
+__m256i SIMD_FLAGS(InOut, ForceInline) _ext256_srli_epx8(__m256i lhs, const int count) noexcept
 {
 	const __m256i mask = _mm256_set1_epi8(0xFF >> count);
 	return _mm256_and_si256(_mm256_srli_epi16(lhs, count), mask);
@@ -1621,7 +1622,7 @@ SIMDLIB_FORCE_INLINE __m256i VECTORCALL _ext256_srli_epx8(__m256i lhs, const int
  * @param count The per-lane shift count.
  * @return The arithmetic-right-shifted byte lanes.
  */
-SIMDLIB_FORCE_INLINE __m256i VECTORCALL _ext256_srai_epx8(__m256i lhs, const int count) noexcept
+__m256i SIMD_FLAGS(InOut, ForceInline) _ext256_srai_epx8(__m256i lhs, const int count) noexcept
 {
 	__m256i aeven = _mm256_slli_epi16(lhs, 8);						// even numbered elements get sign bit in position
 	aeven = _mm256_sra_epi16(aeven, _mm_cvtsi32_si128(count + 8));	// shift arithmetic, back to position
@@ -1635,17 +1636,17 @@ SIMDLIB_FORCE_INLINE __m256i VECTORCALL _ext256_srai_epx8(__m256i lhs, const int
 
 #pragma region 256bit uint8_t Extensions
 
-SIMDLIB_FORCE_INLINE __m256i VECTORCALL _ext256_mul_epu8(__m256i lhs, __m256i rhs) noexcept
+__m256i SIMD_FLAGS(InOut, ForceInline) _ext256_mul_epu8(__m256i lhs, __m256i rhs) noexcept
 {
 	return _ext256_mul_epi8(lhs, rhs);
 }
 
-SIMDLIB_FORCE_INLINE __m256i VECTORCALL _ext256_set1_epu8(std::uint8_t value) noexcept
+__m256i SIMD_FLAGS(Out, ForceInline) _ext256_set1_epu8(std::uint8_t value) noexcept
 {
 	return _mm256_set1_epi8(static_cast<char>(value));
 }
 
-SIMDLIB_FORCE_INLINE __m256i VECTORCALL _ext256_cmpgt_epu8(__m256i lhs, __m256i rhs) noexcept
+__m256i SIMD_FLAGS(InOut, ForceInline) _ext256_cmpgt_epu8(__m256i lhs, __m256i rhs) noexcept
 {
 	// Returns 0xFF where x > y:
 	return _mm256_andnot_si256(_mm256_cmpeq_epi8(lhs, rhs), _mm256_cmpeq_epi8(_mm256_max_epu8(lhs, rhs), lhs));
@@ -1655,7 +1656,7 @@ SIMDLIB_FORCE_INLINE __m256i VECTORCALL _ext256_cmpgt_epu8(__m256i lhs, __m256i 
 
 #pragma region 256bit uint16_t Extensions
 
-SIMDLIB_FORCE_INLINE __m256i VECTORCALL _ext256_cmpgt_epu16(__m256i lhs, __m256i rhs) noexcept
+__m256i SIMD_FLAGS(InOut, ForceInline) _ext256_cmpgt_epu16(__m256i lhs, __m256i rhs) noexcept
 {
 	// Returns 0xFF where x > y:
 	return _mm256_andnot_si256(_mm256_cmpeq_epi16(lhs, rhs), _mm256_cmpeq_epi16(_mm256_max_epu16(lhs, rhs), lhs));
@@ -1665,7 +1666,7 @@ SIMDLIB_FORCE_INLINE __m256i VECTORCALL _ext256_cmpgt_epu16(__m256i lhs, __m256i
 
 #pragma region 256bit uint32_t Extensions
 
-SIMDLIB_FORCE_INLINE __m256i VECTORCALL _ext256_cmpgt_epu32(__m256i lhs, __m256i rhs) noexcept
+__m256i SIMD_FLAGS(InOut, ForceInline) _ext256_cmpgt_epu32(__m256i lhs, __m256i rhs) noexcept
 {
 	// Returns 0xFF where x > y:
 	return _mm256_andnot_si256(_mm256_cmpeq_epi32(lhs, rhs), _mm256_cmpeq_epi32(_mm256_max_epu32(lhs, rhs), lhs));
@@ -1675,13 +1676,13 @@ SIMDLIB_FORCE_INLINE __m256i VECTORCALL _ext256_cmpgt_epu32(__m256i lhs, __m256i
 
 #pragma region 256bit uint64_t Extensions
 
-SIMDLIB_FORCE_INLINE __m256i VECTORCALL _ext256_cmpgt_epu64(__m256i lhs, __m256i rhs) noexcept
+__m256i SIMD_FLAGS(InOut, ForceInline) _ext256_cmpgt_epu64(__m256i lhs, __m256i rhs) noexcept
 {
 	const __m256i signBit = _mm256_set1_epi64x(std::numeric_limits<std::int64_t>::min());
 	return _mm256_cmpgt_epi64(_mm256_xor_si256(lhs, signBit), _mm256_xor_si256(rhs, signBit));
 }
 
-SIMDLIB_FORCE_INLINE __m256i VECTORCALL _ext256_mullo_epi64(__m256i lhs, __m256i rhs) noexcept
+__m256i SIMD_FLAGS(InOut, ForceInline) _ext256_mullo_epi64(__m256i lhs, __m256i rhs) noexcept
 {
 	const __m256i productLow = _mm256_mul_epu32(lhs, rhs);
 	const __m256i lhsHigh = _mm256_srli_epi64(lhs, 32);
@@ -1690,38 +1691,38 @@ SIMDLIB_FORCE_INLINE __m256i VECTORCALL _ext256_mullo_epi64(__m256i lhs, __m256i
 	return _mm256_add_epi64(productLow, _mm256_slli_epi64(cross, 32));
 }
 
-SIMDLIB_FORCE_INLINE __m256i VECTORCALL _ext256_abs_epi64(__m256i lhs) noexcept
+__m256i SIMD_FLAGS(InOut, ForceInline) _ext256_abs_epi64(__m256i lhs) noexcept
 {
 	const __m256i zero = _mm256_setzero_si256();
 	const __m256i sign = _mm256_cmpgt_epi64(zero, lhs);
 	return _mm256_sub_epi64(_mm256_xor_si256(lhs, sign), sign);
 }
 
-SIMDLIB_FORCE_INLINE __m256i VECTORCALL _ext256_min_epi64(__m256i lhs, __m256i rhs) noexcept
+__m256i SIMD_FLAGS(InOut, ForceInline) _ext256_min_epi64(__m256i lhs, __m256i rhs) noexcept
 {
 	const __m256i mask = _mm256_cmpgt_epi64(lhs, rhs);
 	return _mm256_blendv_epi8(lhs, rhs, mask);
 }
 
-SIMDLIB_FORCE_INLINE __m256i VECTORCALL _ext256_max_epi64(__m256i lhs, __m256i rhs) noexcept
+__m256i SIMD_FLAGS(InOut, ForceInline) _ext256_max_epi64(__m256i lhs, __m256i rhs) noexcept
 {
 	const __m256i mask = _mm256_cmpgt_epi64(lhs, rhs);
 	return _mm256_blendv_epi8(rhs, lhs, mask);
 }
 
-SIMDLIB_FORCE_INLINE __m256i VECTORCALL _ext256_min_epu64(__m256i lhs, __m256i rhs) noexcept
+__m256i SIMD_FLAGS(InOut, ForceInline) _ext256_min_epu64(__m256i lhs, __m256i rhs) noexcept
 {
 	const __m256i mask = _ext256_cmpgt_epu64(lhs, rhs);
 	return _mm256_blendv_epi8(lhs, rhs, mask);
 }
 
-SIMDLIB_FORCE_INLINE __m256i VECTORCALL _ext256_max_epu64(__m256i lhs, __m256i rhs) noexcept
+__m256i SIMD_FLAGS(InOut, ForceInline) _ext256_max_epu64(__m256i lhs, __m256i rhs) noexcept
 {
 	const __m256i mask = _ext256_cmpgt_epu64(lhs, rhs);
 	return _mm256_blendv_epi8(rhs, lhs, mask);
 }
 
-SIMDLIB_FORCE_INLINE __m256i VECTORCALL _ext256_srai_epi64(__m256i lhs, const int count) noexcept
+__m256i SIMD_FLAGS(InOut, ForceInline) _ext256_srai_epi64(__m256i lhs, const int count) noexcept
 {
 	if (count <= 0)
 	{
@@ -1752,7 +1753,7 @@ SIMDLIB_FORCE_INLINE __m256i VECTORCALL _ext256_srai_epi64(__m256i lhs, const in
  * @param lhs The floating-point lanes.
  * @return The per-lane absolute values.
  */
-SIMDLIB_FORCE_INLINE __m256 VECTORCALL _ext256_abs_ps(const __m256 lhs) noexcept
+__m256 SIMD_FLAGS(InOut, ForceInline) _ext256_abs_ps(const __m256 lhs) noexcept
 {
 	return _mm256_and_ps(lhs, _mm256_castsi256_ps(_mm256_set1_epi32(0x7FFFFFFF)));
 }
@@ -1763,17 +1764,17 @@ SIMDLIB_FORCE_INLINE __m256 VECTORCALL _ext256_abs_ps(const __m256 lhs) noexcept
  * @param lhs The floating-point lanes.
  * @return The per-lane absolute values.
  */
-SIMDLIB_FORCE_INLINE __m256d VECTORCALL _ext256_abs_pd(const __m256d lhs) noexcept
+__m256d SIMD_FLAGS(InOut, ForceInline) _ext256_abs_pd(const __m256d lhs) noexcept
 {
 	return _mm256_and_pd(lhs, _mm256_castsi256_pd(_mm256_set1_epi64x(0x7FFF'FFFF'FFFF'FFFFLL)));
 }
 
-SIMDLIB_FORCE_INLINE __m256 VECTORCALL _ext256_cmpeq_ps(__m256 lhs, __m256 rhs) noexcept
+__m256 SIMD_FLAGS(InOut, ForceInline) _ext256_cmpeq_ps(__m256 lhs, __m256 rhs) noexcept
 {
 	return _mm256_cmp_ps(lhs, rhs, _CMP_EQ_OQ);
 }
 
-SIMDLIB_FORCE_INLINE __m256 VECTORCALL _ext256_cmpgt_ps(__m256 lhs, __m256 rhs) noexcept
+__m256 SIMD_FLAGS(InOut, ForceInline) _ext256_cmpgt_ps(__m256 lhs, __m256 rhs) noexcept
 {
 	return _mm256_cmp_ps(lhs, rhs, _CMP_GT_OQ);
 }
@@ -1784,7 +1785,7 @@ SIMDLIB_FORCE_INLINE __m256 VECTORCALL _ext256_cmpgt_ps(__m256 lhs, __m256 rhs) 
  * @param rhs The second floating-point register.
  * @return An all-ones lane mask where corresponding lanes are equal.
  */
-SIMDLIB_FORCE_INLINE __m256d VECTORCALL _ext256_cmpeq_pd(const __m256d lhs, const __m256d rhs) noexcept
+__m256d SIMD_FLAGS(InOut, ForceInline) _ext256_cmpeq_pd(const __m256d lhs, const __m256d rhs) noexcept
 {
 	return _mm256_cmp_pd(lhs, rhs, _CMP_EQ_OQ);
 }
@@ -1796,7 +1797,7 @@ SIMDLIB_FORCE_INLINE __m256d VECTORCALL _ext256_cmpeq_pd(const __m256d lhs, cons
  * @param rhs The second floating-point register.
  * @return An all-ones lane mask where lhs is greater than rhs.
  */
-SIMDLIB_FORCE_INLINE __m256d VECTORCALL _ext256_cmpgt_pd(const __m256d lhs, const __m256d rhs) noexcept
+__m256d SIMD_FLAGS(InOut, ForceInline) _ext256_cmpgt_pd(const __m256d lhs, const __m256d rhs) noexcept
 {
 	return _mm256_cmp_pd(lhs, rhs, _CMP_GT_OQ);
 }

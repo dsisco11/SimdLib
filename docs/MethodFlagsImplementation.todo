@@ -129,19 +129,20 @@ SimdLib Method Flags Implementation Plan:
     ☒ Classify constexpr helper calls and runtime helper calls independently when their bodies or memory effects differ.
     ☒ Record declarations that cannot use the unified macro and the precise grammar or compiler reason for each exception.
     ☒ End Phase 5 only when every legacy macro occurrence has an individual target classification or a reviewed exception.
-      Evidence: `docs/MethodFlagsInventory.csv` records 1,524 declaration-level classifications covering all 4,443 active legacy occurrences, including independent input/output decisions, direct and transitive memory review, constexpr/runtime separation, modifier targets, exact unified-macro spelling, and 64 reviewed exceptions. `docs/MethodFlagsInventory.md` documents the audit rules and retains `RegisterOnly` on 25 declarations pending source repair rather than relaxing the promise mechanically. `docs/RuntimeArrayRegisterConstruction.todo` separates 81 runtime array-backed construction methods from confirmed constant-evaluation-only uses and records the completed by-reference construction boundary repair. `tools/Generate-MethodFlagsInventory.ps1 -Verify` rejects missing occurrences and stale inventory output.
+      Evidence: the pre-migration `docs/MethodFlagsInventory.csv` baseline recorded 1,502 declaration-level classifications covering 4,524 active legacy occurrences, including independent input/output decisions, direct and transitive memory review, constexpr/runtime separation, modifier targets, exact unified-macro spelling, and 64 reviewed declaration-form exceptions. The baseline retained `RegisterOnly` on 24 immediate-control declarations pending source repair rather than relaxing the promise mechanically. `tools/Generate-MethodFlagsInventory.ps1 -Verify` rejects missing occurrences and stale inventory output.
 
   Phase 6 - Migrate Implementation and Api Layers:
-    ☐ Migrate implementation-layer free functions, helpers, and specialization methods in reviewable operation-family groups.
-    ☐ Migrate `Api` methods only after the corresponding implementation methods have passed their focused compile and code-generation checks.
-    ☐ Encode load methods as `Out` and store methods as `In`, adding the opposite direction only when the signature actually carries a SIMD value that way.
-    ☐ Preserve memory-writing methods without `RegisterOnly`, even when they otherwise use only intrinsic operations.
-    ☐ Preserve individually approved register-only scalar fallbacks, including extract/compute/insert implementations, only when they perform no prohibited memory write.
-    ☐ Verify constexpr branches and runtime branches both satisfy every declared promise.
-    ☐ Keep `ForceInline` and `Flatten` only where the method's established performance contract requires them.
-    ☐ Run focused operation-family correctness and generated-code tests after each migration group rather than relying only on a final whole-project build.
-    ☐ Update code-generation raw mirrors through the same declaration form where appropriate without obscuring wrapper-versus-raw comparisons.
-    ☐ End Phase 6 only when implementation and `Api` production declarations use the unified macro or have a documented, tested exception.
+    ☒ Migrate implementation-layer free functions, helpers, and specialization methods in reviewable operation-family groups.
+    ☒ Migrate `Api` methods only after the corresponding implementation methods have passed their focused compile and code-generation checks.
+    ☒ Encode load methods as `Out` and store methods as `In`, adding the opposite direction only when the signature actually carries a SIMD value that way.
+    ☒ Preserve memory-writing methods without `RegisterOnly`, even when they otherwise use only intrinsic operations.
+    ☒ Preserve individually approved register-only scalar fallbacks, including extract/compute/insert implementations, only when they perform no prohibited memory write.
+    ☒ Verify constexpr branches and runtime branches both satisfy every declared promise.
+    ☒ Keep `ForceInline` and `Flatten` only where the method's established performance contract requires them.
+    ☒ Run focused operation-family correctness and generated-code tests after each migration group rather than relying only on a final whole-project build.
+    ☒ Update code-generation raw mirrors through the same declaration form where appropriate without obscuring wrapper-versus-raw comparisons.
+    ☒ End Phase 6 only when implementation and `Api` production declarations use the unified macro or have a documented, tested exception.
+      Evidence: 1,059 individually classified declarations now use `SIMD_FLAGS(...)`: 846 implementation methods, 108 extension helpers, and 105 `Api` methods. All 18 load declarations use `Out`; all 15 store declarations use `In`; no classified memory writer gained `RegisterOnly`; and every migrated retained promise has a no-write classification. Twenty-four deferred immediate-control blend/shuffle declarations retain their legacy spelling and `RegisterOnly` promise as `KeepLegacyPendingSourceRepair` exceptions instead of being relaxed or misrepresented as migrated. Two pointer-return helpers use the qualified trailing-return form, and 28 unified immediate templates use their specialization's exact native parameter type to avoid MSVC's full-attribute abbreviated-template specialization defect. The permanent legacy/flagged method-flags code-generation pair remains deliberately unchanged so the raw comparison is not obscured. Focused Release builds and 57-test correctness/code-generation sets passed independently with MSVC 19.44, clang-cl 22.1.8, pinned GCC 14.2.0, and pinned Clang 22.1.3 across SSE4.2 and AVX2. The active ledger now records 443 remaining declarations and all 1,049 active legacy occurrences, including the 24 tested deferred exceptions.
 
   Phase 7 - Migrate Register-Facing and Remaining Public Code:
     ☐ Migrate `Register` explicit-object members, static factories, operators, and internal helpers according to their individual classifications.
@@ -188,7 +189,7 @@ SimdLib Method Flags Implementation Plan:
     ☒ Phase 3 public macro, compiler adapters, caller overrides, and isolated configuration probes recorded.
     ☒ Phase 4 syntax, ABI, stack-protection, inlining, flattening, code-generation, and downstream-consumer tests recorded.
     ☒ Phase 5 individual declaration inventory, promise classifications, and reviewed exceptions recorded.
-    ☐ Phase 6 implementation-layer and `Api` migration with focused correctness and code-generation results recorded.
+    ☒ Phase 6 implementation-layer and `Api` migration with focused correctness and code-generation results recorded.
     ☐ Phase 7 Register-facing, remaining public-code, example, and downstream migration results recorded.
     ☐ Phase 8 legacy-surface removal, source audits, installed-header, and inclusion results recorded.
     ☐ Phase 9 documentation, complete compiler/profile qualification, repository hygiene, and close-out evidence recorded.

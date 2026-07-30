@@ -567,6 +567,20 @@ function Get-DeclarationDisposition {
     if ($Path -match '^tests/method_flags/') {
         return @('LegacyComparisonFixture', 'KeepLegacyBaseline', 'Intentional legacy side of method-flags syntax, ABI, or codegen comparison')
     }
+    $pendingImplementationRepair =
+        $Path -eq 'include/SimdLib/Detail/Implementations.h' -and
+        $Symbol -in @('blend', 'blend_slow', 'shuffle_32_slow')
+    $pendingApiRepair =
+        $Path -eq 'include/SimdLib/Api.h' -and (
+            $Symbol -in @('shuffle_lo_slow', 'shuffle_hi_slow') -or
+            ($Symbol -in @('shuffle', 'blend') -and $Header -match 'Args\s*&&\.\.\.args'))
+    if ($pendingImplementationRepair -or $pendingApiRepair) {
+        return @(
+            'Function',
+            'KeepLegacyPendingSourceRepair',
+            'Deferred immediate-control path retains RegisterOnly pending its separately planned non-storage runtime implementation'
+        )
+    }
     if (-not $Symbol) {
         return @('Unclassified', 'Error', 'Active legacy occurrence has no declaration or reviewed adapter role')
     }
