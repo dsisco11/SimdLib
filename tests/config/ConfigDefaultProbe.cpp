@@ -1,32 +1,32 @@
 #include <SimdLib/Config.h>
 
-int VECTORCALL ConfigFreeFunction(const int value) noexcept
+int SIMD_FLAGS(Neither) ConfigFreeFunction(const int value) noexcept
 {
 	return value;
 }
 
 struct ConfigProbe
 {
-	static int VECTORCALL StaticFunction(const int value) noexcept
+	static int SIMD_FLAGS(Neither) StaticFunction(const int value) noexcept
 	{
 		return value;
 	}
 
-	template <typename value_t> static value_t VECTORCALL TemplateFunction(const value_t value) noexcept
+	template <typename value_t> static value_t SIMD_FLAGS(Neither) TemplateFunction(const value_t value) noexcept
 	{
 		return value;
 	}
 };
 
-using ConfigFunctionPointer = int(VECTORCALL *)(int);
+using ConfigFunctionPointer = int (*)(int);
 
-SIMDLIB_FORCE_INLINE int ForceInlineFunction(const int value) noexcept
+int SIMD_FLAGS(Neither, ForceInline) ForceInlineFunction(const int value) noexcept
 {
 	return value + 1;
 }
 
 /** @brief Exercises the default recursive-inlining annotation. */
-SIMDLIB_FLATTEN int FlattenFunction(const int value) noexcept
+int SIMD_FLAGS(Neither, Flatten) FlattenFunction(const int value) noexcept
 {
 	return ForceInlineFunction(value);
 }

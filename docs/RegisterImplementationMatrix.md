@@ -58,7 +58,7 @@ These portability rules do not change a public declaration.
 | Integer division | Because x86 has no packed integer divide instruction, the named `_ext128_div_{epi,epu}{8,16,32,64}` methods explicitly extract, divide, and reinsert every lane with constant-index intrinsics; the matching `_ext256_` methods divide two 128-bit halves and reassemble them without a fold helper, runtime selector, or addressable array | 6, 10 | Scalar-oracle correctness and register-only wrapper-versus-raw generated-code parity for every integer type and width |
 | Native interoperation | Register and RegisterMask support explicit aggregate-brace initialization from one complete native value and expose their representation through the public `native` member; direct mask initialization requires canonical predicate lanes | 4, 5 | Aggregate/constructibility assertions and native-result ABI probes |
 | Explicit object parameters | Active non-static members take the explicit object by value; compound assignment is intentionally disabled and its implementations remain preserved in source comments | 3-9 | Declaration audit, constraint rejection, and reassignment code-generation probes |
-| Calling convention | Register-shaped members use `VECTORCALL` where supported; consumer-defined non-inlined boundaries must opt in separately | 3, 10 | Vector/default convention wrapper-versus-raw mirrors |
+| Calling convention | Register-shaped members use the appropriate `SIMD_FLAGS(...)` boundary mode; consumer-defined non-inlined boundaries must opt in separately | 3, 10 | Vector/default convention wrapper-versus-raw mirrors |
 | Mask invariant | Comparisons and mask operations produce all-zero/all-one predicate lanes; direct aggregate initialization has the same canonical-lane precondition | 5 | Constraint tests, predicate-bit tests, and documented aggregate precondition |
 | Compact mask bits | `bits_type` is normalized from lane count, is `uint32_t` for initial widths, maps bit `i` to lane `i`, and clears unused bits | 5 | Static assertions and mask-pattern tests |
 | Comparison semantics | Named comparisons reproduce the selected intrinsic, including signedness, NaNs, signed zero, ordered/unordered predicates, and lane bit patterns | 5 | Runtime, portable, emulated, and constexpr parity |
@@ -347,7 +347,7 @@ begins. It also remains absent from `SimdLib.h`.
 | Opt-in target | `SimdLib::Register` links the core target, requests `cxx_std_23`, and publishes `SIMDLIB_REQUIRE_REGISTER_INTERFACE=1` |
 | Microsoft language selection | Only Microsoft C++ receives `/std:c++latest`; clang-cl and GNU-like Clang use their CMake-selected C++23 modes |
 | Focused header | Direct unsupported inclusion of `Register.h` emits `SIMDLIB_REGISTER_HEADER_REQUIRES_CXX23` |
-| Positive syntax | The enabled probe compiles named, arithmetic, comparison, and reference-mutating explicit-object members using `VECTORCALL` |
+| Positive syntax | The enabled probe compiles named, arithmetic, comparison, and reference-mutating explicit-object members using `SIMD_FLAGS(...)` |
 | Reproducible negative probes | The compile-failure inputs and public headers are configure dependencies; every fresh or affected configuration reruns each `try_compile` and records its compiler output |
 | External consumers | The core consumer explicitly remains C++20; the separate Register consumer receives C++23 only by linking `SimdLib::Register` |
 
@@ -378,7 +378,7 @@ and never configure, clear, or rebuild the tree.
 The exhaustive build and test operations collectively cover the complete
 Linux-supported C++20/C++23 suite, not a platform-independent subset. Portable
 header repairs guard the Windows-only `<intrin.h>` boundary, include x86
-intrinsics only on x86, disable `VECTORCALL` for GNU-like Linux Clang, and
+intrinsics only on x86, use an empty vectorcall adapter for GNU-like Linux Clang, and
 value-initialize the temporary used by `register_set_constexpr`. Native Windows jobs
 remain authoritative for MSVC, clang-cl, Windows ABI, and calling-convention
 evidence.

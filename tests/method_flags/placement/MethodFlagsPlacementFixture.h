@@ -78,19 +78,19 @@ struct VectorBox final
 [[nodiscard]] vector_type SIMD_FLAGS(InOut, RegisterOnly) flagged_abi(vector_type value) noexcept;
 
 /// Declares the legacy InOut calling-convention position for type comparison.
-[[nodiscard]] SIMDLIB_REGISTER_ONLY vector_type VECTORCALL legacy_abi(vector_type value) noexcept;
+[[nodiscard]] SIMDLIB_METHOD_FLAGS_SAFE_BUFFERS vector_type SIMDLIB_METHOD_FLAGS_VECTORCALL legacy_abi(vector_type value) noexcept;
 
 /// Declares the canonical In spelling for cross-TU ABI verification.
 [[nodiscard]] int SIMD_FLAGS(In, RegisterOnly) flagged_in_abi(vector_type value) noexcept;
 
 /// Declares the legacy In calling-convention position for type comparison.
-[[nodiscard]] SIMDLIB_REGISTER_ONLY int VECTORCALL legacy_in_abi(vector_type value) noexcept;
+[[nodiscard]] SIMDLIB_METHOD_FLAGS_SAFE_BUFFERS int SIMDLIB_METHOD_FLAGS_VECTORCALL legacy_in_abi(vector_type value) noexcept;
 
 /// Declares the canonical Out spelling for cross-TU ABI verification.
 [[nodiscard]] vector_type SIMD_FLAGS(Out, RegisterOnly) flagged_out_abi(float value) noexcept;
 
 /// Declares the legacy Out calling-convention position for type comparison.
-[[nodiscard]] SIMDLIB_REGISTER_ONLY vector_type VECTORCALL legacy_out_abi(float value) noexcept;
+[[nodiscard]] SIMDLIB_METHOD_FLAGS_SAFE_BUFFERS vector_type SIMDLIB_METHOD_FLAGS_VECTORCALL legacy_out_abi(float value) noexcept;
 
 using flagged_callback = decltype(&flagged_abi);
 using legacy_callback = decltype(&legacy_abi);

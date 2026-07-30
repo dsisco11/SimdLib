@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 4.4)
 
 foreach(required_variable IN ITEMS
-	FLAGGED_OBJECT LEGACY_OBJECT OBJDUMP COMPILER_ID STACK_PROTECTOR_MODE OUTPUT_FILE)
+	FLAGGED_OBJECT RAW_OBJECT OBJDUMP COMPILER_ID STACK_PROTECTOR_MODE OUTPUT_FILE)
 	if(NOT DEFINED ${required_variable} OR "${${required_variable}}" STREQUAL "")
 		message(FATAL_ERROR "VerifyMethodFlagsCodegen requires ${required_variable}")
 	endif()
@@ -42,7 +42,7 @@ set(register_only_symbols
 	simdlib_method_flags_codegen_forceinline
 	simdlib_method_flags_codegen_flatten)
 
-foreach(object_file IN ITEMS "${FLAGGED_OBJECT}" "${LEGACY_OBJECT}")
+foreach(object_file IN ITEMS "${FLAGGED_OBJECT}" "${RAW_OBJECT}")
 	execute_process(
 		COMMAND "${OBJDUMP}" -dr "${object_file}"
 		RESULT_VARIABLE disassembly_result

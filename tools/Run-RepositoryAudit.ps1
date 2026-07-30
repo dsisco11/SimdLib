@@ -42,11 +42,23 @@ function Test-CurrentRepositoryAudit {
 if (-not (Test-CurrentRepositoryAudit)) {
     & (Join-Path $PSScriptRoot 'Verify-ValidationMatrix.ps1')
     & (Join-Path $PSScriptRoot 'Test-ValidationPipeline.ps1')
+    & (Join-Path $PSScriptRoot 'Test-MethodFlagsSourceAudit.ps1')
+    & (Join-Path $PSScriptRoot 'Generate-MethodFlagsInventory.ps1') -Verify
+    $legacyInventoryPath = Join-Path $repositoryRoot 'docs/MethodFlagsInventory.csv'
+    $registerOnlyInventoryPath = Join-Path $repositoryRoot 'docs/MethodFlagsRegisterOnly.csv'
+    $legacyInventoryHash = (Get-FileHash -LiteralPath $legacyInventoryPath -Algorithm SHA256).Hash.ToLowerInvariant()
+    $registerOnlyInventoryHash = (Get-FileHash -LiteralPath $registerOnlyInventoryPath -Algorithm SHA256).Hash.ToLowerInvariant()
+    $legacyInventoryCount = @(Import-Csv -LiteralPath $legacyInventoryPath).Count
+    $registerOnlyInventoryCount = @(Import-Csv -LiteralPath $registerOnlyInventoryPath).Count
     $cmake = (Get-Command cmake -ErrorAction Stop).Source
     $arguments = @(
         "-DSOURCE_DIRECTORY=$repositoryRoot",
         "-DSOURCE_DIGEST=$sourceDigest",
         "-DSOURCE_REVISION=$sourceRevision",
+        "-DMETHOD_FLAGS_LEGACY_COUNT=$legacyInventoryCount",
+        "-DMETHOD_FLAGS_LEGACY_SHA256=$legacyInventoryHash",
+        "-DMETHOD_FLAGS_REGISTER_ONLY_COUNT=$registerOnlyInventoryCount",
+        "-DMETHOD_FLAGS_REGISTER_ONLY_SHA256=$registerOnlyInventoryHash",
         "-DRESULT_FILE=$ResultPath",
         '-P', (Join-Path $repositoryRoot 'cmake/AuditRepository.cmake')
     )

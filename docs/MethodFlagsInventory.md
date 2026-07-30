@@ -1,105 +1,62 @@
-# Method flags declaration inventory
+# Method-flags source inventories
 
-`MethodFlagsInventory.csv` is the exhaustive migration and review ledger for
-active uses of `VECTORCALL`, `SIMDLIB_REGISTER_ONLY`,
-`SIMDLIB_FORCE_INLINE`, and `SIMDLIB_FLATTEN` under `include`, `tests`, and
-`examples`.
+The method-flags source audit maintains two generated ledgers:
 
-The inventory deliberately treats the return type as ordinary, independent C++
-syntax. `TargetFlags` contains only the attribute and calling-convention macro
-that belongs immediately before the function name. For example:
+- `MethodFlagsInventory.csv` records active uses of the retired declaration
+  macros under `include`, `tests`, and `examples`. Its normal completed state is
+  a header-only CSV: any new record represents declaration boilerplate that
+  must be removed or explicitly rejected by the audit.
+- `MethodFlagsRegisterOnly.csv` lists every canonical `SIMD_FLAGS(...)`
+  declaration containing `RegisterOnly`, with its path, line, symbol, and full
+  flag list. This makes the promise reviewable without claiming that a source
+  scanner can prove the function body or its transitive callees are free of
+  memory writes.
 
-```cpp
-Register SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten)
-combine(Register rhs) const noexcept;
-```
-
-The generator removes comments while retaining source positions, groups all
-legacy tokens belonging to one declaration, and verifies that the sum of
-`LegacyOccurrenceCount` equals the complete active-token count. Regenerate or
-verify the ledger with:
+Generate or verify both ledgers with:
 
 ```powershell
 ./tools/Generate-MethodFlagsInventory.ps1
 ./tools/Generate-MethodFlagsInventory.ps1 -Verify
 ```
 
-## Classification totals
+The repository audit runs the verifier and binds the count and SHA-256 digest
+of each ledger into its result. A source change cannot reuse an audit result
+whose inventories do not match.
 
-The ledger contains 88 reviewed exception records accounting for all 186 active
-legacy occurrences. All individually classified migratable declarations have
-left the active ledger; the implementation plan retains their completed-group
-counts and validation evidence.
+## Enforced source policy
 
-| Classification | Count |
-| --- | ---: |
-| Deferred runtime-path repairs | 24 |
-| Compiler-adapter definitions | 19 |
-| Intentional legacy comparison baselines | 17 |
-| Grammar exceptions | 15 |
-| Low-level configuration probes | 13 |
+The scanner removes C++ comments while preserving line positions, then rejects:
 
-Migrated declarations no longer appear in this active exception ledger. Their
-independently reviewed input/output directions and exact unified spellings are
-preserved by the implementation-plan evidence.
+- active `VECTORCALL`, `SIMDLIB_REGISTER_ONLY`, `SIMDLIB_FORCE_INLINE`, or
+  `SIMDLIB_FLATTEN` tokens;
+- object-like macros named `Neither`, `In`, `Out`, `InOut`, `RegisterOnly`,
+  `ForceInline`, or `Flatten`;
+- unknown, duplicated, reordered, or otherwise noncanonical
+  `SIMD_FLAGS(...)` token lists;
+- internal compiler-adapter use outside the configuration and raw compiler
+  fixtures that require it;
+- internal method-flags helper names exposed through Doxygen comments.
 
-## Modifier decisions
+Intentional compile-failure fixtures named `Invalid*.cpp` remain available to
+exercise the public preprocessor diagnostics. They are not treated as
+production declarations by the inventory.
 
-All 88 active records are reviewed exceptions, so their target-modifier fields
-remain `Exception`. Completed modifier decisions and their validation evidence
-are retained in the implementation plan rather than duplicated in the active
-ledger.
+`Test-MethodFlagsSourceAudit.ps1` creates isolated disposable source trees and
+proves that the scanner accepts canonical syntax while rejecting each policy
+violation above.
 
-Twenty-four exceptions use `KeepLegacyPendingSourceRepair`. They retain the
-existing `RegisterOnly` promise and legacy declaration spelling; the inventory
-does not silently relax the promise or misrepresent them as migrated. Their
-runtime paths are the deferred immediate-control blend and shuffle families:
+## Internal compiler fixtures
 
-- implementation `blend`, `blend_slow`, and `shuffle_32_slow` methods that reach
-  reference-writing or array-backed portable helpers;
-- the corresponding generic `Api::shuffle`, `Api::blend`,
-  `Api::shuffle_lo_slow`, and `Api::shuffle_hi_slow` forwarding declarations.
+`SIMD_FLAGS(...)` is the only supported declaration spelling. Configuration,
+ABI-placement, and generated-code fixtures may compose the internal
+`SIMDLIB_METHOD_FLAGS_*` adapters directly when the raw compiler spelling is
+the subject of the test. Those files are kept on an exact allowlist; the
+adapters are not downstream API and cannot be used from another source file
+without failing the audit.
 
-These declarations require their separately planned non-storage runtime
-implementations before migration, or explicit approval before any
-`RegisterOnly` promise is relaxed. Focused SSE4.2 and AVX2 tests own correctness
-coverage for the deferred declarations in their retained form.
+## RegisterOnly ledger fields
 
-The exception reasons distinguish compiler adapters, comparison baselines,
-grammar limitations, low-level probes, and declarations pending source repair;
-none of those categories implies a new optimization promise.
-
-## Constant-evaluation and call-path review
-
-For pending source repairs, `ConstexprAudit`, `Memory`, `DirectCalls`, and
-`TransitiveAudit` preserve the distinction between constant-evaluation and
-runtime paths, including direct writes, addressable local storage, and
-transitive writer families. Other exception categories record why those fields
-are not applicable.
-
-## Reviewed exceptions
-
-The unified macro remains inapplicable to constructors, destructors, and
-conversion operators because those declaration categories have no ordinary
-return type before the function name. Compiler-adapter definitions,
-low-level configuration probes, pending runtime-path repairs, and the
-intentional legacy half of ABI or generated-code comparisons keep their legacy
-spelling for their stated test, configuration, or deferred-repair purpose. Each
-exception has its exact reason in `Disposition` and `Reason`.
-
-## CSV fields
-
-- `Path`, `Line`, `Symbol`, `Context`, and `Kind` identify the declaration,
-  containing implementation specialization where applicable, or exception.
-- `Existing` and `LegacyOccurrenceCount` record the present legacy surface.
-- `SimdInput`, `SimdOutput`, and `Boundary` record the call-boundary contract.
-- `Memory`, `ConstexprAudit`, `DirectCalls`, and `TransitiveAudit` record the
-  no-write review evidence.
-- `RegisterOnlyTarget`, `ForceInlineTarget`, and `FlattenTarget` record each
-  modifier decision independently.
-- `ForceInlineAudit` and `FlattenAudit` state why the optimization modifier is
-  retained or omitted.
-- `TargetFlags` provides the exact unified macro invocation while leaving the
-  return type independent.
-- `Disposition` and `Reason` record migration eligibility or the reviewed
-  exception.
+- `Path` and `Line` locate the declaration.
+- `Symbol` identifies the declared function or method.
+- `Flags` preserves the complete canonical invocation so reviewers can assess
+  the boundary mode and the other optimization promises together.

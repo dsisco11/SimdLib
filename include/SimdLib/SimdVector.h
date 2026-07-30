@@ -145,7 +145,7 @@ class SimdVector final
 	/** @brief Constructs a new SIMD vector with all elements set to zero.
 	 *  @return Zero-initialized SIMD vector storage.
 	 */
-	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr SimdVector() noexcept
+	SIMDLIB_METHOD_FLAGS_FLATTEN SIMDLIB_METHOD_FLAGS_FORCE_INLINE constexpr SimdVector() noexcept
 	{
 		m_data = simd::setzero();
 	}
@@ -154,7 +154,7 @@ class SimdVector final
 	 *  @param data Source SIMD register.
 	 *  @return SIMD vector that wraps `data` unchanged.
 	 */
-	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr SimdVector(vector_t data) noexcept
+	SIMDLIB_METHOD_FLAGS_FLATTEN SIMDLIB_METHOD_FLAGS_FORCE_INLINE constexpr SimdVector(vector_t data) noexcept
 	{
 		m_data = data;
 	};
@@ -163,7 +163,7 @@ class SimdVector final
 	 *  @param v Scalar value broadcast into every register lane.
 	 *  @return SIMD vector whose lanes are all initialized from `v`.
 	 */
-	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr explicit SimdVector(element_t v) noexcept
+	SIMDLIB_METHOD_FLAGS_FLATTEN SIMDLIB_METHOD_FLAGS_FORCE_INLINE constexpr explicit SimdVector(element_t v) noexcept
 	{
 		if constexpr (element_count == simd::element_count)
 		{
@@ -180,7 +180,7 @@ class SimdVector final
 	 *  @param data Source span containing one full register worth of elements.
 	 *  @return SIMD vector loaded from `data`.
 	 */
-	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr explicit SimdVector(std::span<element_t, simd::element_count> data) noexcept
+	SIMDLIB_METHOD_FLAGS_FLATTEN SIMDLIB_METHOD_FLAGS_FORCE_INLINE constexpr explicit SimdVector(std::span<element_t, simd::element_count> data) noexcept
 	{
 		m_data = simd::load(std::span<const element_t, simd::element_count>(data.data(), data.size()));
 	};
@@ -189,7 +189,7 @@ class SimdVector final
 	 *  @param data Source span containing one full register worth of elements.
 	 *  @return SIMD vector loaded from `data`.
 	 */
-	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr explicit SimdVector(std::span<const element_t, simd::element_count> data) noexcept
+	SIMDLIB_METHOD_FLAGS_FLATTEN SIMDLIB_METHOD_FLAGS_FORCE_INLINE constexpr explicit SimdVector(std::span<const element_t, simd::element_count> data) noexcept
 	{
 		m_data = simd::load(data);
 	};
@@ -198,7 +198,7 @@ class SimdVector final
 	 *  @param data Source span containing exactly the active logical elements.
 	 *  @return SIMD vector loaded from `data` without requiring caller-side padding.
 	 */
-	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr explicit SimdVector(std::span<element_t, element_count> data) noexcept
+	SIMDLIB_METHOD_FLAGS_FLATTEN SIMDLIB_METHOD_FLAGS_FORCE_INLINE constexpr explicit SimdVector(std::span<element_t, element_count> data) noexcept
 		requires(element_count != simd::element_count)
 	{
 		m_data = simd::template load_partial<element_count>(std::span<const element_t, element_count>(data));
@@ -208,7 +208,7 @@ class SimdVector final
 	 *  @param data Source span containing exactly the active logical elements.
 	 *  @return SIMD vector loaded from `data` without requiring caller-side padding.
 	 */
-	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr explicit SimdVector(std::span<const element_t, element_count> data) noexcept
+	SIMDLIB_METHOD_FLAGS_FLATTEN SIMDLIB_METHOD_FLAGS_FORCE_INLINE constexpr explicit SimdVector(std::span<const element_t, element_count> data) noexcept
 		requires(element_count != simd::element_count)
 	{
 		m_data = simd::template load_partial<element_count>(data);
@@ -218,7 +218,8 @@ class SimdVector final
 	 *  @param data Source array containing one full register worth of elements.
 	 *  @return SIMD vector loaded from `data`.
 	 */
-	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr explicit SimdVector(const std::array<element_t, simd::element_count> &data) noexcept
+	SIMDLIB_METHOD_FLAGS_FLATTEN SIMDLIB_METHOD_FLAGS_FORCE_INLINE constexpr explicit SimdVector(
+		const std::array<element_t, simd::element_count> &data) noexcept
 	{
 		m_data = simd::construct(data);
 	};
@@ -227,7 +228,7 @@ class SimdVector final
 	 *  @param data Source array containing exactly the active logical elements.
 	 *  @return SIMD vector loaded from `data` without requiring caller-side padding.
 	 */
-	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr explicit SimdVector(const std::array<element_t, element_count> &data) noexcept
+	SIMDLIB_METHOD_FLAGS_FLATTEN SIMDLIB_METHOD_FLAGS_FORCE_INLINE constexpr explicit SimdVector(const std::array<element_t, element_count> &data) noexcept
 		requires(element_count != simd::element_count)
 	{
 		m_data = simd::template load_partial<element_count>(std::span<const element_t, element_count>(data));
@@ -240,7 +241,7 @@ class SimdVector final
 	 */
 	template <class source_t>
 		requires(std::is_integral_v<source_t> && std::is_integral_v<element_t> && sizeof(source_t) < sizeof(element_t))
-	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr explicit SimdVector(const SimdVector<source_t, element_count> &other) noexcept
+	SIMDLIB_METHOD_FLAGS_FLATTEN SIMDLIB_METHOD_FLAGS_FORCE_INLINE constexpr explicit SimdVector(const SimdVector<source_t, element_count> &other) noexcept
 	{
 		using source_simd = typename SimdVector<source_t, element_count>::simd;
 		m_data = source_simd::template widen<simd>(other.getRegister());
@@ -252,7 +253,7 @@ class SimdVector final
 	 */
 	template <std::convertible_to<element_t>... Args>
 		requires(sizeof...(Args) == element_count)
-	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr explicit SimdVector(Args &&...args) noexcept
+	SIMDLIB_METHOD_FLAGS_FLATTEN SIMDLIB_METHOD_FLAGS_FORCE_INLINE constexpr explicit SimdVector(Args &&...args) noexcept
 	{
 		m_data = simd::setr_partial(static_cast<element_t>(std::forward<Args>(args))...);
 	}
@@ -1181,7 +1182,7 @@ class SimdVector final
 	/** @brief Implicitly converts this wrapper to the underlying SIMD register.
 	 *  @return Copy of the wrapped SIMD register.
 	 */
-	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE VECTORCALL operator vector_t() const noexcept
+	SIMDLIB_METHOD_FLAGS_FLATTEN SIMDLIB_METHOD_FLAGS_FORCE_INLINE SIMDLIB_METHOD_FLAGS_VECTORCALL operator vector_t() const noexcept
 	{
 		return m_data;
 	}
@@ -1189,7 +1190,7 @@ class SimdVector final
 	/** @brief Returns a mutable span view over the underlying register storage.
 	 *  @return Mutable span covering every hardware lane in the register.
 	 */
-	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE operator std::span<element_t, simd::element_count>() noexcept
+	SIMDLIB_METHOD_FLAGS_FLATTEN SIMDLIB_METHOD_FLAGS_FORCE_INLINE operator std::span<element_t, simd::element_count>() noexcept
 	{
 		return std::span<element_t, simd::element_count>(Detail::register_data<element_t>(m_data), simd::element_count);
 	}
@@ -1197,7 +1198,7 @@ class SimdVector final
 	/** @brief Returns a readonly span view over the underlying register storage.
 	 *  @return Readonly span covering every hardware lane in the register.
 	 */
-	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE operator std::span<const element_t, simd::element_count>() const noexcept
+	SIMDLIB_METHOD_FLAGS_FLATTEN SIMDLIB_METHOD_FLAGS_FORCE_INLINE operator std::span<const element_t, simd::element_count>() const noexcept
 	{
 		return std::span<const element_t, simd::element_count>(Detail::register_data<element_t>(m_data), simd::element_count);
 	}
@@ -1205,7 +1206,7 @@ class SimdVector final
 	/** @brief Converts the wrapped SIMD register to a fixed array.
 	 *  @return Array containing the full underlying register contents in lane order.
 	 */
-	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr explicit operator std::array<element_t, simd::element_count>() const noexcept
+	SIMDLIB_METHOD_FLAGS_FLATTEN SIMDLIB_METHOD_FLAGS_FORCE_INLINE constexpr explicit operator std::array<element_t, simd::element_count>() const noexcept
 	{
 		return simd::to_array(m_data);
 	}

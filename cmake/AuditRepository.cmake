@@ -1,7 +1,9 @@
 cmake_minimum_required(VERSION 4.4)
 
 foreach(required_variable IN ITEMS
-    SOURCE_DIRECTORY SOURCE_DIGEST SOURCE_REVISION RESULT_FILE)
+    SOURCE_DIRECTORY SOURCE_DIGEST SOURCE_REVISION RESULT_FILE
+    METHOD_FLAGS_LEGACY_COUNT METHOD_FLAGS_LEGACY_SHA256
+    METHOD_FLAGS_REGISTER_ONLY_COUNT METHOD_FLAGS_REGISTER_ONLY_SHA256)
     if(NOT DEFINED ${required_variable} OR "${${required_variable}}" STREQUAL "")
         message(FATAL_ERROR "${required_variable} is required")
     endif()
@@ -36,9 +38,15 @@ file(WRITE "${RESULT_FILE}"
     "  \"sourceRevision\": \"${SOURCE_REVISION}\",\n"
     "  \"publicHeaderStaticAssertions\": ${assertion_count},\n"
     "  \"staticAssertionAllowlistEntries\": ${allowlist_count},\n"
-    "  \"publicConsumerSources\": ${public_consumer_source_count}\n"
+    "  \"publicConsumerSources\": ${public_consumer_source_count},\n"
+    "  \"legacyMethodFlagDeclarations\": ${METHOD_FLAGS_LEGACY_COUNT},\n"
+    "  \"legacyMethodFlagInventorySha256\": \"${METHOD_FLAGS_LEGACY_SHA256}\",\n"
+    "  \"registerOnlyDeclarations\": ${METHOD_FLAGS_REGISTER_ONLY_COUNT},\n"
+    "  \"registerOnlyInventorySha256\": \"${METHOD_FLAGS_REGISTER_ONLY_SHA256}\"\n"
     "}\n")
 
 message(STATUS
-    "Repository audit recorded ${assertion_count} public-header assertions and "
-    "${public_consumer_source_count} public consumer sources")
+    "Repository audit recorded ${assertion_count} public-header assertions, "
+    "${public_consumer_source_count} public consumer sources, "
+    "${METHOD_FLAGS_LEGACY_COUNT} legacy method-flag declarations, and "
+    "${METHOD_FLAGS_REGISTER_ONLY_COUNT} RegisterOnly declarations")

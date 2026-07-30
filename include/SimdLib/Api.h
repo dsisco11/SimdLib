@@ -1085,7 +1085,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @return Register containing the shuffled result.
 	 */
 	template <class... Args>
-	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL shuffle(Args &&...args) noexcept
+	static auto SIMD_FLAGS(Out, RegisterOnly, ForceInline, Flatten) shuffle(Args &&...args) noexcept
 		requires IImpl::Shuffle<impl, Args...>
 	{
 		return impl::shuffle(std::forward<Args>(args)...);
@@ -1127,7 +1127,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @note `_slow` marks runtime emulation of an immediate control byte and may require a longer synthesized sequence.
 	 */
 	template <class... Args>
-	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL shuffle_lo_slow(Args &&...args) noexcept
+	static auto SIMD_FLAGS(Out, RegisterOnly, ForceInline, Flatten) shuffle_lo_slow(Args &&...args) noexcept
 		requires IImpl::ShuffleLowSlow<impl, Args...>
 	{
 		return impl::shuffle_lo_slow(std::forward<Args>(args)...);
@@ -1155,7 +1155,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @note `_slow` marks runtime emulation of an immediate control byte and may require a longer synthesized sequence.
 	 */
 	template <class... Args>
-	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL shuffle_hi_slow(Args &&...args) noexcept
+	static auto SIMD_FLAGS(Out, RegisterOnly, ForceInline, Flatten) shuffle_hi_slow(Args &&...args) noexcept
 		requires IImpl::ShuffleHighSlow<impl, Args...>
 	{
 		return impl::shuffle_hi_slow(std::forward<Args>(args)...);
@@ -1185,7 +1185,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @return Register containing the blended result.
 	 */
 	template <class... Args>
-	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL blend(Args &&...args) noexcept
+	static auto SIMD_FLAGS(Out, RegisterOnly, ForceInline, Flatten) blend(Args &&...args) noexcept
 		requires IImpl::Blend<impl, Args...>
 	{
 		return impl::blend(std::forward<Args>(args)...);

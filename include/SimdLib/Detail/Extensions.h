@@ -312,15 +312,23 @@ constexpr Vector SIMD_FLAGS(Neither, ForceInline) register_blend_slow(Vector lhs
 	return lhs;
 }
 
-template <class Vector> constexpr Vector SIMD_FLAGS(Neither, ForceInline) register_blend_bytes(Vector lhs, const Vector rhs, const Vector mask) noexcept
+template <class Vector>
+constexpr Vector SIMD_FLAGS(InOut, RegisterOnly, ForceInline) register_blend_bytes(Vector lhs, const Vector rhs, const Vector mask) noexcept
 {
-	constexpr std::size_t count = sizeof(Vector);
-	for (std::size_t index = 0; index < count; ++index)
+	if (std::is_constant_evaluated())
 	{
-		if ((register_get_constexpr<std::uint8_t>(mask, index) & 0x80u) != 0)
-			register_set_constexpr<std::uint8_t>(lhs, index, register_get_constexpr<std::uint8_t>(rhs, index));
+		constexpr std::size_t count = sizeof(Vector);
+		for (std::size_t index = 0; index < count; ++index)
+		{
+			if ((register_get_constexpr<std::uint8_t>(mask, index) & 0x80u) != 0)
+				register_set_constexpr<std::uint8_t>(lhs, index, register_get_constexpr<std::uint8_t>(rhs, index));
+		}
+		return lhs;
 	}
-	return lhs;
+	if constexpr (sizeof(Vector) == 16)
+		return _mm_blendv_epi8(lhs, rhs, mask);
+	else
+		return _mm256_blendv_epi8(lhs, rhs, mask);
 }
 
 /** @brief Emulates a floating shuffle with a runtime control byte.
@@ -374,16 +382,37 @@ constexpr Vector SIMD_FLAGS(Neither, ForceInline) register_shuffle_double_slow(c
  *  @param control Runtime control byte.
  *  @return Register with each four-lane group shuffled.
  */
-template <class Vector> constexpr Vector SIMD_FLAGS(Neither, ForceInline) register_shuffle_32_slow(const Vector value, const unsigned int control) noexcept
+template <class Vector>
+constexpr Vector SIMD_FLAGS(InOut, RegisterOnly, ForceInline) register_shuffle_32_slow(const Vector value, const unsigned int control) noexcept
 {
-	const auto source = register_to_array<std::uint32_t>(value);
-	std::array<std::uint32_t, sizeof(Vector) / sizeof(std::uint32_t)> result{};
-	for (std::size_t lane = 0; lane < result.size(); lane += 4)
+	if (std::is_constant_evaluated())
 	{
-		for (std::size_t index = 0; index < 4; ++index)
-			result[lane + index] = source[lane + ((control >> (index * 2)) & 0x3u)];
+		const auto source = register_to_array<std::uint32_t>(value);
+		std::array<std::uint32_t, sizeof(Vector) / sizeof(std::uint32_t)> result{};
+		for (std::size_t lane = 0; lane < result.size(); lane += 4)
+		{
+			for (std::size_t index = 0; index < 4; ++index)
+				result[lane + index] = source[lane + ((control >> (index * 2)) & 0x3u)];
+		}
+		return register_from_array<Vector>(result);
 	}
-	return register_from_array<Vector>(result);
+
+	const int index0 = static_cast<int>(control & 0x3u);
+	const int index1 = static_cast<int>((control >> 2) & 0x3u);
+	const int index2 = static_cast<int>((control >> 4) & 0x3u);
+	const int index3 = static_cast<int>((control >> 6) & 0x3u);
+	if constexpr (sizeof(Vector) == 16)
+	{
+		const __m128i dword_indices = _mm_set_epi32(index3 * 4, index2 * 4, index1 * 4, index0 * 4);
+		const __m128i byte_indices =
+			_mm_add_epi8(_mm_shuffle_epi8(dword_indices, _mm_set_epi32(0x0C0C0C0C, 0x08080808, 0x04040404, 0x00000000)), _mm_set1_epi32(0x03020100));
+		return _mm_shuffle_epi8(value, byte_indices);
+	}
+	else
+	{
+		const __m256i dword_indices = _mm256_set_epi32(4 + index3, 4 + index2, 4 + index1, 4 + index0, index3, index2, index1, index0);
+		return _mm256_permutevar8x32_epi32(value, dword_indices);
+	}
 }
 
 /** @brief Emulates a low- or high-half 16-bit shuffle with a runtime control byte.
@@ -394,17 +423,47 @@ template <class Vector> constexpr Vector SIMD_FLAGS(Neither, ForceInline) regist
  *  @return Register containing the shuffled half groups.
  */
 template <class Vector>
-constexpr Vector SIMD_FLAGS(Neither, ForceInline) register_shuffle_half_16_slow(const Vector value, const unsigned int control, const bool high_half) noexcept
+constexpr Vector SIMD_FLAGS(InOut, RegisterOnly, ForceInline)
+	register_shuffle_half_16_slow(const Vector value, const unsigned int control, const bool high_half) noexcept
 {
-	const auto source = register_to_array<std::uint16_t>(value);
-	auto result = source;
-	for (std::size_t lane = 0; lane < result.size(); lane += 8)
+	if (std::is_constant_evaluated())
 	{
-		const std::size_t base = lane + (high_half ? 4 : 0);
-		for (std::size_t index = 0; index < 4; ++index)
-			result[base + index] = source[base + ((control >> (index * 2)) & 0x3u)];
+		const auto source = register_to_array<std::uint16_t>(value);
+		auto result = source;
+		for (std::size_t lane = 0; lane < result.size(); lane += 8)
+		{
+			const std::size_t base = lane + (high_half ? 4 : 0);
+			for (std::size_t index = 0; index < 4; ++index)
+				result[base + index] = source[base + ((control >> (index * 2)) & 0x3u)];
+		}
+		return register_from_array<Vector>(result);
 	}
-	return register_from_array<Vector>(result);
+
+	const int index0 = static_cast<int>(control & 0x3u);
+	const int index1 = static_cast<int>((control >> 2) & 0x3u);
+	const int index2 = static_cast<int>((control >> 4) & 0x3u);
+	const int index3 = static_cast<int>((control >> 6) & 0x3u);
+	const int word0 = high_half ? 0 : index0;
+	const int word1 = high_half ? 1 : index1;
+	const int word2 = high_half ? 2 : index2;
+	const int word3 = high_half ? 3 : index3;
+	const int word4 = high_half ? 4 + index0 : 4;
+	const int word5 = high_half ? 4 + index1 : 5;
+	const int word6 = high_half ? 4 + index2 : 6;
+	const int word7 = high_half ? 4 + index3 : 7;
+	const int pair0 = (word0 * 2) | ((word0 * 2 + 1) << 8);
+	const int pair1 = (word1 * 2) | ((word1 * 2 + 1) << 8);
+	const int pair2 = (word2 * 2) | ((word2 * 2 + 1) << 8);
+	const int pair3 = (word3 * 2) | ((word3 * 2 + 1) << 8);
+	const int pair4 = (word4 * 2) | ((word4 * 2 + 1) << 8);
+	const int pair5 = (word5 * 2) | ((word5 * 2 + 1) << 8);
+	const int pair6 = (word6 * 2) | ((word6 * 2 + 1) << 8);
+	const int pair7 = (word7 * 2) | ((word7 * 2 + 1) << 8);
+	const __m128i byte_indices = _mm_set_epi32((pair7 << 16) | pair6, (pair5 << 16) | pair4, (pair3 << 16) | pair2, (pair1 << 16) | pair0);
+	if constexpr (sizeof(Vector) == 16)
+		return _mm_shuffle_epi8(value, byte_indices);
+	else
+		return _mm256_shuffle_epi8(value, _mm256_broadcastsi128_si256(byte_indices));
 }
 
 template <class Element, class Vector, class Operation>

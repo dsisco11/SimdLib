@@ -19,11 +19,11 @@ if(SIMDLIB_BUILD_CONFIGURATION_PROBES
 		message(FATAL_ERROR "Method-flags generated-code gates require an objdump-compatible disassembler")
 	endif()
 
-	add_library(MethodFlagsCodegenLegacy OBJECT
-		tests/method_flags/codegen/MethodFlagsLegacy.cpp)
+	add_library(MethodFlagsCodegenRaw OBJECT
+		tests/method_flags/codegen/MethodFlagsRaw.cpp)
 	add_library(MethodFlagsCodegenFlagged OBJECT
 		tests/method_flags/codegen/MethodFlagsFlagged.cpp)
-	foreach(method_flags_target IN ITEMS MethodFlagsCodegenLegacy MethodFlagsCodegenFlagged)
+	foreach(method_flags_target IN ITEMS MethodFlagsCodegenRaw MethodFlagsCodegenFlagged)
 		simdlib_register_development_target(${method_flags_target}
 			OPTIMIZED_CODEGEN)
 		target_link_libraries(${method_flags_target} PRIVATE SimdLib::SimdLib)
@@ -60,7 +60,7 @@ if(SIMDLIB_BUILD_CONFIGURATION_PROBES
 		COMMAND ${CMAKE_COMMAND} -E rm -f "${method_flags_verification}"
 		COMMAND ${CMAKE_COMMAND}
 			-DWRAPPER_OBJECT=$<TARGET_OBJECTS:MethodFlagsCodegenFlagged>
-			-DRAW_OBJECT=$<TARGET_OBJECTS:MethodFlagsCodegenLegacy>
+			-DRAW_OBJECT=$<TARGET_OBJECTS:MethodFlagsCodegenRaw>
 			-DOBJDUMP=${CMAKE_OBJDUMP}
 			-DARTIFACT_DIRECTORY=${method_flags_artifact_directory}
 			-DRECORD_FILE=${method_flags_record}
@@ -79,7 +79,7 @@ if(SIMDLIB_BUILD_CONFIGURATION_PROBES
 			-P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/CompareRegisterCodegen.cmake
 		COMMAND ${CMAKE_COMMAND}
 			-DFLAGGED_OBJECT=$<TARGET_OBJECTS:MethodFlagsCodegenFlagged>
-			-DLEGACY_OBJECT=$<TARGET_OBJECTS:MethodFlagsCodegenLegacy>
+			-DRAW_OBJECT=$<TARGET_OBJECTS:MethodFlagsCodegenRaw>
 			-DOBJDUMP=${CMAKE_OBJDUMP}
 			-DCOMPILER_ID=${CMAKE_CXX_COMPILER_ID}
 			-DSTACK_PROTECTOR_MODE=${method_flags_stack_protector_mode}
@@ -87,7 +87,7 @@ if(SIMDLIB_BUILD_CONFIGURATION_PROBES
 			-P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/VerifyMethodFlagsCodegen.cmake
 		DEPENDS
 			$<TARGET_OBJECTS:MethodFlagsCodegenFlagged>
-			$<TARGET_OBJECTS:MethodFlagsCodegenLegacy>
+			$<TARGET_OBJECTS:MethodFlagsCodegenRaw>
 			cmake/CompareRegisterCodegen.cmake
 			cmake/VerifyMethodFlagsCodegen.cmake
 		COMMENT "Verifying method-flags generated code and stack contract"
@@ -96,7 +96,7 @@ if(SIMDLIB_BUILD_CONFIGURATION_PROBES
 		DEPENDS "${method_flags_record}" "${method_flags_verification}")
 	simdlib_register_development_target(MethodFlagsCodegen OPTIMIZED_CODEGEN)
 	add_dependencies(MethodFlagsCodegen
-		MethodFlagsCodegenLegacy
+		MethodFlagsCodegenRaw
 		MethodFlagsCodegenFlagged)
 
 	set(method_flags_record_index

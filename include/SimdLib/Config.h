@@ -164,59 +164,8 @@
 #endif
 #endif
 
-// VECTORCALL is intentionally unprefixed: it is the library's externally
-// configurable ABI-affecting calling convention. MSVC and Clang both accept
-// the __vectorcall keyword in the same declarator positions. For a
-// caller-supplied empty VECTORCALL also set
-// SIMDLIB_VECTORCALL_ENABLED=0.
-#ifndef VECTORCALL
-#if SIMDLIB_VECTORCALL_ENABLED
-#define VECTORCALL __vectorcall
-#else
-#define VECTORCALL
-#endif
-#endif
-
-// Declares that a function's runtime path can only produce register or scalar
-// results and cannot write through pointers, references, spans, arrays, or
-// addressable local buffers. On MSVC this suppresses /GS after an explicit
-// audit; it remains separate from the public calling-convention macro so
-// memory-writing functions retain their normal protection.
-#ifndef SIMDLIB_REGISTER_ONLY
-#if SIMDLIB_COMPILER_MSVC
-#define SIMDLIB_REGISTER_ONLY __declspec(safebuffers)
-#else
-#define SIMDLIB_REGISTER_ONLY
-#endif
-#endif
-
-#ifndef SIMDLIB_FORCE_INLINE
-#if SIMDLIB_COMPILER_MSVC
-#define SIMDLIB_FORCE_INLINE [[msvc::forceinline]] inline
-#elif SIMDLIB_COMPILER_CLANG
-#define SIMDLIB_FORCE_INLINE [[clang::always_inline]] inline
-#elif SIMDLIB_COMPILER_GCC
-#define SIMDLIB_FORCE_INLINE [[gnu::always_inline]] inline
-#else
-#define SIMDLIB_FORCE_INLINE inline
-#endif
-#endif
-
-// Requests recursive inlining of calls made from the annotated function.
-// Unlike SIMDLIB_FORCE_INLINE, this does not request that the annotated
-// function itself be inlined into its caller.
-#ifndef SIMDLIB_FLATTEN
-#if SIMDLIB_COMPILER_MSVC
-#define SIMDLIB_FLATTEN [[msvc::flatten]]
-#elif SIMDLIB_COMPILER_CLANG || SIMDLIB_COMPILER_GCC
-#define SIMDLIB_FLATTEN [[gnu::flatten]]
-#else
-#define SIMDLIB_FLATTEN
-#endif
-#endif
-
-/**
- * @def SIMDLIB_METHOD_FLAGS_HAS_VECTORCALL
+/*
+ * Internal adapter: SIMDLIB_METHOD_FLAGS_HAS_VECTORCALL
  * @brief Reports whether the method-flags vector calling-convention adapter is active.
  * @details A custom toolchain may override this capability together with
  * SIMDLIB_METHOD_FLAGS_VECTORCALL before including this header.
@@ -225,8 +174,8 @@
 #define SIMDLIB_METHOD_FLAGS_HAS_VECTORCALL SIMDLIB_VECTORCALL_ENABLED
 #endif
 
-/**
- * @def SIMDLIB_METHOD_FLAGS_HAS_SAFE_BUFFERS
+/*
+ * Internal adapter: SIMDLIB_METHOD_FLAGS_HAS_SAFE_BUFFERS
  * @brief Reports whether RegisterOnly can suppress compiler stack-cookie instrumentation.
  * @details A custom toolchain may override this capability together with
  * SIMDLIB_METHOD_FLAGS_SAFE_BUFFERS before including this header.
@@ -235,8 +184,8 @@
 #define SIMDLIB_METHOD_FLAGS_HAS_SAFE_BUFFERS SIMDLIB_COMPILER_MSVC
 #endif
 
-/**
- * @def SIMDLIB_METHOD_FLAGS_HAS_FORCE_INLINE
+/*
+ * Internal adapter: SIMDLIB_METHOD_FLAGS_HAS_FORCE_INLINE
  * @brief Reports whether ForceInline has an active compiler enforcement attribute.
  * @details The adapter retains ordinary inline semantics when this capability is zero.
  * A custom toolchain may override this capability together with
@@ -250,8 +199,8 @@
 #endif
 #endif
 
-/**
- * @def SIMDLIB_METHOD_FLAGS_HAS_FLATTEN
+/*
+ * Internal adapter: SIMDLIB_METHOD_FLAGS_HAS_FLATTEN
  * @brief Reports whether Flatten has an active recursive-inlining attribute.
  * @details A custom toolchain may override this capability together with
  * SIMDLIB_METHOD_FLAGS_FLATTEN before including this header.
@@ -264,32 +213,32 @@
 #endif
 #endif
 
-/**
- * @def SIMDLIB_METHOD_FLAGS_VECTORCALL
+/*
+ * Internal adapter: SIMDLIB_METHOD_FLAGS_VECTORCALL
  * @brief Placement-safe vector calling-convention adapter used by SIMD_FLAGS.
  */
 #ifndef SIMDLIB_METHOD_FLAGS_VECTORCALL
 #if SIMDLIB_METHOD_FLAGS_HAS_VECTORCALL
-#define SIMDLIB_METHOD_FLAGS_VECTORCALL VECTORCALL
+#define SIMDLIB_METHOD_FLAGS_VECTORCALL __vectorcall
 #else
 #define SIMDLIB_METHOD_FLAGS_VECTORCALL
 #endif
 #endif
 
-/**
- * @def SIMDLIB_METHOD_FLAGS_SAFE_BUFFERS
+/*
+ * Internal adapter: SIMDLIB_METHOD_FLAGS_SAFE_BUFFERS
  * @brief Placement-safe safe-buffer adapter used by the RegisterOnly flag.
  */
 #ifndef SIMDLIB_METHOD_FLAGS_SAFE_BUFFERS
 #if SIMDLIB_METHOD_FLAGS_HAS_SAFE_BUFFERS
-#define SIMDLIB_METHOD_FLAGS_SAFE_BUFFERS SIMDLIB_REGISTER_ONLY
+#define SIMDLIB_METHOD_FLAGS_SAFE_BUFFERS __declspec(safebuffers)
 #else
 #define SIMDLIB_METHOD_FLAGS_SAFE_BUFFERS
 #endif
 #endif
 
-/**
- * @def SIMDLIB_METHOD_FLAGS_FORCE_INLINE
+/*
+ * Internal adapter: SIMDLIB_METHOD_FLAGS_FORCE_INLINE
  * @brief Placement-safe force-inline adapter used by the ForceInline flag.
  */
 #ifndef SIMDLIB_METHOD_FLAGS_FORCE_INLINE
@@ -300,12 +249,12 @@
 #elif SIMDLIB_COMPILER_CLANG || SIMDLIB_COMPILER_GCC
 #define SIMDLIB_METHOD_FLAGS_FORCE_INLINE inline __attribute__((always_inline))
 #else
-#define SIMDLIB_METHOD_FLAGS_FORCE_INLINE SIMDLIB_FORCE_INLINE
+#define SIMDLIB_METHOD_FLAGS_FORCE_INLINE inline
 #endif
 #endif
 
-/**
- * @def SIMDLIB_METHOD_FLAGS_FLATTEN
+/*
+ * Internal adapter: SIMDLIB_METHOD_FLAGS_FLATTEN
  * @brief Placement-safe recursive-inlining adapter used by the Flatten flag.
  */
 #ifndef SIMDLIB_METHOD_FLAGS_FLATTEN
@@ -316,7 +265,7 @@
 #elif SIMDLIB_COMPILER_CLANG || SIMDLIB_COMPILER_GCC
 #define SIMDLIB_METHOD_FLAGS_FLATTEN __attribute__((flatten))
 #else
-#define SIMDLIB_METHOD_FLAGS_FLATTEN SIMDLIB_FLATTEN
+#define SIMDLIB_METHOD_FLAGS_FLATTEN
 #endif
 #endif
 

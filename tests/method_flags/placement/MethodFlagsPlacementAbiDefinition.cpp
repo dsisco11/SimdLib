@@ -3,7 +3,7 @@
 namespace SimdLibMethodFlagsPlacement
 {
 /// Defines a flagged declaration with the legacy spelling in another translation unit.
-SIMDLIB_REGISTER_ONLY vector_type VECTORCALL flagged_abi(vector_type value) noexcept
+SIMDLIB_METHOD_FLAGS_SAFE_BUFFERS vector_type SIMDLIB_METHOD_FLAGS_VECTORCALL flagged_abi(vector_type value) noexcept
 {
 	return value;
 }
@@ -15,7 +15,7 @@ vector_type SIMD_FLAGS(InOut, RegisterOnly) legacy_abi(vector_type value) noexce
 }
 
 /// Defines a flagged In declaration with the legacy spelling.
-SIMDLIB_REGISTER_ONLY int VECTORCALL flagged_in_abi(vector_type value) noexcept
+SIMDLIB_METHOD_FLAGS_SAFE_BUFFERS int SIMDLIB_METHOD_FLAGS_VECTORCALL flagged_in_abi(vector_type value) noexcept
 {
 	return static_cast<int>(_mm_cvtss_f32(value));
 }
@@ -27,7 +27,7 @@ int SIMD_FLAGS(In, RegisterOnly) legacy_in_abi(vector_type value) noexcept
 }
 
 /// Defines a flagged Out declaration with the legacy spelling.
-SIMDLIB_REGISTER_ONLY vector_type VECTORCALL flagged_out_abi(float value) noexcept
+SIMDLIB_METHOD_FLAGS_SAFE_BUFFERS vector_type SIMDLIB_METHOD_FLAGS_VECTORCALL flagged_out_abi(float value) noexcept
 {
 	return _mm_set1_ps(value);
 }

@@ -8,18 +8,29 @@ the intended SIMD boundary and optimization disposition.
 #>
 [CmdletBinding()]
 param(
+    [string]$RepositoryRoot = '',
     [string]$OutputPath = '',
+    [string]$RegisterOnlyOutputPath = '',
     [switch]$Verify
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-$repositoryRoot = Split-Path -Parent $PSScriptRoot
+$repositoryRoot = if ($RepositoryRoot) {
+    [System.IO.Path]::GetFullPath($RepositoryRoot)
+} else {
+    Split-Path -Parent $PSScriptRoot
+}
 if (-not $OutputPath) {
     $OutputPath = Join-Path $repositoryRoot 'docs/MethodFlagsInventory.csv'
 } elseif (-not [System.IO.Path]::IsPathRooted($OutputPath)) {
     $OutputPath = Join-Path $repositoryRoot $OutputPath
+}
+if (-not $RegisterOnlyOutputPath) {
+    $RegisterOnlyOutputPath = Join-Path $repositoryRoot 'docs/MethodFlagsRegisterOnly.csv'
+} elseif (-not [System.IO.Path]::IsPathRooted($RegisterOnlyOutputPath)) {
+    $RegisterOnlyOutputPath = Join-Path $repositoryRoot $RegisterOnlyOutputPath
 }
 $utf8NoBom = [System.Text.UTF8Encoding]::new($false)
 $legacyTokenPattern = '\b(VECTORCALL|SIMDLIB_REGISTER_ONLY|SIMDLIB_FORCE_INLINE|SIMDLIB_FLATTEN)\b'
@@ -228,6 +239,7 @@ function Get-DeclarationSymbol {
 
     if ($Header -match '^\s*#') { return '' }
     $withoutLegacy = [regex]::Replace($Header, $legacyTokenPattern, ' ')
+    $withoutLegacy = [regex]::Replace($withoutLegacy, '\bSIMD_FLAGS\s*\([^()]*\)', ' ')
     $operatorMatch = [regex]::Match(
         $withoutLegacy,
         'operator\s*(?:\[\]|[+\-*/%&|^~!=<>]+|[A-Za-z_][A-Za-z0-9_:<>,\s]*)\s*\(')
@@ -805,8 +817,116 @@ function Get-MethodFlagsInventory {
     return $records.ToArray()
 }
 
+<#
+.SYNOPSIS
+Audits unified method-flag usage and returns every RegisterOnly declaration.
+.PARAMETER RepositoryRoot
+Absolute repository root containing include, tests, and examples.
+#>
+function Get-RegisterOnlyInventory {
+    param([Parameter(Mandatory)][string]$RepositoryRoot)
+
+    $canonicalFlags = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+    $boundaries = @('Neither', 'In', 'Out', 'InOut')
+    $modifiers = @('RegisterOnly', 'ForceInline', 'Flatten')
+    foreach ($boundary in $boundaries) {
+        for ($mask = 0; $mask -lt 8; ++$mask) {
+            $tokens = [System.Collections.Generic.List[string]]::new()
+            $tokens.Add($boundary)
+            for ($index = 0; $index -lt $modifiers.Count; ++$index) {
+                if (($mask -band (1 -shl $index)) -ne 0) { $tokens.Add($modifiers[$index]) }
+            }
+            [void]$canonicalFlags.Add(($tokens -join ','))
+        }
+    }
+
+    $negativeFixturePattern = '^tests/method_flags/(?:placement/)?Invalid[^/]*\.cpp$'
+    $internalAdapterPaths = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+    foreach ($allowedPath in @(
+            'include/SimdLib/Config.h',
+            'include/SimdLib/SimdVector.h',
+            'tests/config/MethodFlagsConfigOverrideProbe.cpp',
+            'tests/method_flags/codegen/MethodFlagsRaw.cpp',
+            'tests/method_flags/placement/MethodFlagsPlacementAbiDefinition.cpp',
+            'tests/method_flags/placement/MethodFlagsPlacementFixture.h')) {
+        [void]$internalAdapterPaths.Add($allowedPath)
+    }
+
+    $records = [System.Collections.Generic.List[object]]::new()
+    $errors = [System.Collections.Generic.List[string]]::new()
+    foreach ($directory in @('include', 'tests', 'examples')) {
+        foreach ($sourceFile in Get-ChildItem -LiteralPath (Join-Path $RepositoryRoot $directory) -Recurse -File |
+            Where-Object Extension -in $sourceExtensions) {
+            $relativePath = [System.IO.Path]::GetRelativePath($RepositoryRoot, $sourceFile.FullName).Replace('\', '/')
+            $sourceText = [System.IO.File]::ReadAllText($sourceFile.FullName)
+            $cleanText = Remove-CxxCommentsPreservePositions -Text $sourceText
+            $isNegativeFixture = $relativePath -match $negativeFixturePattern
+
+            if (-not $isNegativeFixture) {
+                foreach ($shortMacro in [regex]::Matches(
+                        $cleanText,
+                        '(?m)^\s*#\s*define\s+(Neither|In|Out|InOut|RegisterOnly|ForceInline|Flatten)(?:\s|$)')) {
+                    $line = Get-SourceLine -Text $cleanText -Position $shortMacro.Index
+                    $errors.Add("$relativePath`:$line defines prohibited short object-like flag macro $($shortMacro.Groups[1].Value)")
+                }
+            }
+
+            $internalAdapterMatches = [regex]::Matches(
+                $cleanText,
+                '\bSIMDLIB_METHOD_FLAGS_(VECTORCALL|SAFE_BUFFERS|FORCE_INLINE|FLATTEN)\b')
+            if ($internalAdapterMatches.Count -gt 0 -and -not $internalAdapterPaths.Contains($relativePath)) {
+                $line = Get-SourceLine -Text $cleanText -Position $internalAdapterMatches[0].Index
+                $errors.Add("$relativePath`:$line uses an internal method-flags adapter outside the reviewed allowlist")
+            }
+
+            foreach ($doxygenComment in [regex]::Matches($sourceText, '(?s)/\*\*.*?\*/')) {
+                if ($doxygenComment.Value -match '\bSIMDLIB_(?:DETAIL|METHOD)_FLAGS_') {
+                    $line = Get-SourceLine -Text $sourceText -Position $doxygenComment.Index
+                    $errors.Add("$relativePath`:$line exposes an internal method-flags macro through a Doxygen comment")
+                }
+            }
+
+            if ($isNegativeFixture) { continue }
+            foreach ($match in [regex]::Matches($cleanText, '\bSIMD_FLAGS\s*\(([^()]*)\)')) {
+                $lineStart = $cleanText.LastIndexOf("`n", [Math]::Max(0, $match.Index - 1))
+                $lineStart = if ($lineStart -lt 0) { 0 } else { $lineStart + 1 }
+                $lineEnd = $cleanText.IndexOf("`n", $match.Index)
+                if ($lineEnd -lt 0) { $lineEnd = $cleanText.Length }
+                $sourceLine = $cleanText.Substring($lineStart, $lineEnd - $lineStart)
+                if ($sourceLine -match '^\s*#\s*define\s+SIMD_FLAGS\b') { continue }
+
+                $tokens = @($match.Groups[1].Value -split ',' | ForEach-Object Trim)
+                $canonical = $tokens -join ','
+                $line = Get-SourceLine -Text $cleanText -Position $match.Index
+                if (-not $canonicalFlags.Contains($canonical)) {
+                    $errors.Add("$relativePath`:$line uses noncanonical or unrecognized SIMD_FLAGS tokens: $canonical")
+                    continue
+                }
+                if ('RegisterOnly' -notin $tokens) { continue }
+
+                $extent = Get-DeclarationExtent -Text $cleanText -Start $match.Index
+                $header = $cleanText.Substring($extent.Start, $extent.HeaderEnd - $extent.Start)
+                $header = ($header -replace '\s+', ' ').Trim()
+                $records.Add([pscustomobject][ordered]@{
+                        Path = $relativePath
+                        Line = $line
+                        Symbol = Get-DeclarationSymbol -Header $header
+                        Flags = 'SIMD_FLAGS(' + ($tokens -join ', ') + ')'
+                    })
+            }
+        }
+    }
+    if ($errors.Count -gt 0) {
+        throw "Method-flags source audit failed:`n$($errors -join "`n")"
+    }
+    return @($records | Sort-Object Path, @{ Expression = { [int]$_.Line } }, Symbol)
+}
 $inventory = @(Get-MethodFlagsInventory -RepositoryRoot $repositoryRoot)
-$recordedOccurrenceCount = ($inventory | Measure-Object LegacyOccurrenceCount -Sum).Sum
+$recordedOccurrenceCount = if ($inventory.Count -eq 0) {
+    0
+} else {
+    ($inventory | Measure-Object LegacyOccurrenceCount -Sum).Sum
+}
 $activeOccurrenceCount = 0
 foreach ($directory in @('include', 'tests', 'examples')) {
     foreach ($sourceFile in Get-ChildItem -LiteralPath (Join-Path $repositoryRoot $directory) -Recurse -File |
@@ -895,7 +1015,12 @@ if ($errors.Count -gt 0) {
     throw "Method-flags inventory contains $($errors.Count) unresolved or contradictory records"
 }
 
-$csv = (($inventory | ConvertTo-Csv -NoTypeInformation) -join "`n") + "`n"
+$csvHeader = '"Path","Line","Symbol","Context","Kind","Existing","LegacyOccurrenceCount","SimdInput","SimdOutput","Boundary","Memory","RegisterOnlyTarget","ForceInlineTarget","ForceInlineAudit","FlattenTarget","FlattenAudit","TargetFlags","ConstexprAudit","DirectCalls","TransitiveAudit","Disposition","Reason"'
+$csv = if ($inventory.Count -eq 0) {
+    $csvHeader + "`n"
+} else {
+    (($inventory | ConvertTo-Csv -NoTypeInformation) -join "`n") + "`n"
+}
 if ($Verify) {
     if (-not (Test-Path -LiteralPath $OutputPath -PathType Leaf)) {
         throw "Method-flags inventory is missing: $OutputPath"
@@ -908,6 +1033,24 @@ if ($Verify) {
     [System.IO.File]::WriteAllText($OutputPath, $csv, $utf8NoBom)
 }
 
+$registerOnlyInventory = @(Get-RegisterOnlyInventory -RepositoryRoot $repositoryRoot)
+$registerOnlyHeader = '"Path","Line","Symbol","Flags"'
+$registerOnlyCsv = if ($registerOnlyInventory.Count -eq 0) {
+    $registerOnlyHeader + "`n"
+} else {
+    (($registerOnlyInventory | ConvertTo-Csv -NoTypeInformation) -join "`n") + "`n"
+}
+if ($Verify) {
+    if (-not (Test-Path -LiteralPath $RegisterOnlyOutputPath -PathType Leaf)) {
+        throw "RegisterOnly inventory is missing: $RegisterOnlyOutputPath"
+    }
+    $existingRegisterOnly = [System.IO.File]::ReadAllText($RegisterOnlyOutputPath)
+    if ($existingRegisterOnly -ne $registerOnlyCsv) {
+        throw "RegisterOnly inventory is stale; regenerate $RegisterOnlyOutputPath"
+    }
+} else {
+    [System.IO.File]::WriteAllText($RegisterOnlyOutputPath, $registerOnlyCsv, $utf8NoBom)
+}
 $migrateCount = @($inventory | Where-Object Disposition -eq 'Migrate').Count
 $exceptionCount = $inventory.Count - $migrateCount
 $registerOnlyCandidates = @($inventory | Where-Object RegisterOnlyTarget -eq 'ReviewCandidate').Count
@@ -920,3 +1063,4 @@ Write-Host (
         "{3} RegisterOnly candidates, {4} existing RegisterOnly reviews"
     ) -f $inventory.Count, $migrateCount, $exceptionCount,
         $registerOnlyCandidates, $registerOnlyReviewRequired)
+Write-Host "RegisterOnly inventory: $($registerOnlyInventory.Count) declarations"

@@ -541,13 +541,13 @@ template <> struct SimdImpl128<int8_t>
 
 	// misc
 	/** @brief Shuffles bytes through the native runtime selector-register instruction. */
-	static auto SIMD_FLAGS(InOut, ForceInline) shuffle(auto lhs, auto rhs) noexcept
+	static auto SIMD_FLAGS(InOut, RegisterOnly, ForceInline) shuffle(auto lhs, auto rhs) noexcept
 		requires(std::same_as<decltype(lhs), __m128i> && std::same_as<decltype(rhs), __m128i>)
 	{
 		return _mm_shuffle_epi8(lhs, rhs);
 	}
 	/** @brief Selects bytes through the native runtime mask-register operation. */
-	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m128i VECTORCALL blend(const __m128i lhs, const __m128i rhs, const __m128i mask) noexcept
+	static __m128i SIMD_FLAGS(InOut, RegisterOnly, ForceInline) blend(const __m128i lhs, const __m128i rhs, const __m128i mask) noexcept
 	{
 		return register_blend_bytes(lhs, rhs, mask);
 	}
@@ -897,13 +897,13 @@ template <> struct SimdImpl128<uint8_t>
 
 	// misc
 	/** @brief Shuffles bytes through the native runtime selector-register instruction. */
-	static auto SIMD_FLAGS(InOut, ForceInline) shuffle(auto lhs, auto rhs) noexcept
+	static auto SIMD_FLAGS(InOut, RegisterOnly, ForceInline) shuffle(auto lhs, auto rhs) noexcept
 		requires(std::same_as<decltype(lhs), __m128i> && std::same_as<decltype(rhs), __m128i>)
 	{
 		return _mm_shuffle_epi8(lhs, rhs);
 	}
 	/** @brief Selects bytes through the native runtime mask-register operation. */
-	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m128i VECTORCALL blend(const __m128i lhs, const __m128i rhs, const __m128i mask) noexcept
+	static __m128i SIMD_FLAGS(InOut, RegisterOnly, ForceInline) blend(const __m128i lhs, const __m128i rhs, const __m128i mask) noexcept
 	{
 		return register_blend_bytes(lhs, rhs, mask);
 	}
@@ -1251,7 +1251,7 @@ template <> struct SimdImpl128<int16_t>
 	 *  @param rhs Runtime control byte.
 	 *  @return Register with each low four-lane group shuffled.
 	 */
-	static auto SIMD_FLAGS(InOut, ForceInline) shuffle_lo_slow(auto lhs, auto rhs) noexcept
+	static auto SIMD_FLAGS(InOut, RegisterOnly, ForceInline) shuffle_lo_slow(auto lhs, auto rhs) noexcept
 	{
 		return register_shuffle_half_16_slow(lhs, static_cast<unsigned int>(rhs), false);
 	}
@@ -1265,7 +1265,7 @@ template <> struct SimdImpl128<int16_t>
 	 *  @param rhs Runtime control byte.
 	 *  @return Register with each high four-lane group shuffled.
 	 */
-	static auto SIMD_FLAGS(InOut, ForceInline) shuffle_hi_slow(auto lhs, auto rhs) noexcept
+	static auto SIMD_FLAGS(InOut, RegisterOnly, ForceInline) shuffle_hi_slow(auto lhs, auto rhs) noexcept
 	{
 		return register_shuffle_half_16_slow(lhs, static_cast<unsigned int>(rhs), true);
 	}
@@ -1285,7 +1285,7 @@ template <> struct SimdImpl128<int16_t>
 		return register_blend_slow<std::int16_t>(lhs, rhs, static_cast<unsigned int>(imm8));
 	}
 	/** @brief Selects signed 16-bit lanes from two registers with an immediate control. */
-	template <int imm8> SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static auto VECTORCALL blend(auto lhs, auto rhs) noexcept
+	template <int imm8> constexpr static auto SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) blend(const __m128i lhs, const __m128i rhs) noexcept
 	{
 		if (std::is_constant_evaluated())
 			return register_blend_slow<std::int16_t>(lhs, rhs, static_cast<unsigned int>(imm8));
@@ -1635,7 +1635,7 @@ template <> struct SimdImpl128<uint16_t>
 	 *  @param rhs Runtime control byte.
 	 *  @return Register with each low four-lane group shuffled.
 	 */
-	static auto SIMD_FLAGS(InOut, ForceInline) shuffle_lo_slow(auto lhs, auto rhs) noexcept
+	static auto SIMD_FLAGS(InOut, RegisterOnly, ForceInline) shuffle_lo_slow(auto lhs, auto rhs) noexcept
 	{
 		return register_shuffle_half_16_slow(lhs, static_cast<unsigned int>(rhs), false);
 	}
@@ -1649,7 +1649,7 @@ template <> struct SimdImpl128<uint16_t>
 	 *  @param rhs Runtime control byte.
 	 *  @return Register with each high four-lane group shuffled.
 	 */
-	static auto SIMD_FLAGS(InOut, ForceInline) shuffle_hi_slow(auto lhs, auto rhs) noexcept
+	static auto SIMD_FLAGS(InOut, RegisterOnly, ForceInline) shuffle_hi_slow(auto lhs, auto rhs) noexcept
 	{
 		return register_shuffle_half_16_slow(lhs, static_cast<unsigned int>(rhs), true);
 	}
@@ -1669,7 +1669,7 @@ template <> struct SimdImpl128<uint16_t>
 		return register_blend_slow<std::int16_t>(lhs, rhs, static_cast<unsigned int>(imm8));
 	}
 	/** @brief Selects unsigned 16-bit lanes from two registers with an immediate control. */
-	template <int imm8> SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static auto VECTORCALL blend(auto lhs, auto rhs) noexcept
+	template <int imm8> constexpr static auto SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) blend(const __m128i lhs, const __m128i rhs) noexcept
 	{
 		if (std::is_constant_evaluated())
 			return register_blend_slow<std::uint16_t>(lhs, rhs, static_cast<unsigned int>(imm8));
@@ -1963,7 +1963,7 @@ template <> struct SimdImpl128<int32_t>
 	 *  @param rhs Runtime control byte.
 	 *  @return Register with each low four-lane group shuffled.
 	 */
-	static auto SIMD_FLAGS(InOut, ForceInline) shuffle_lo_slow(auto lhs, auto rhs) noexcept
+	static auto SIMD_FLAGS(InOut, RegisterOnly, ForceInline) shuffle_lo_slow(auto lhs, auto rhs) noexcept
 	{
 		return register_shuffle_half_16_slow(lhs, static_cast<unsigned int>(rhs), false);
 	}
@@ -1972,7 +1972,7 @@ template <> struct SimdImpl128<int32_t>
 	 *  @param rhs Runtime control byte.
 	 *  @return Register with each high four-lane group shuffled.
 	 */
-	static auto SIMD_FLAGS(InOut, ForceInline) shuffle_hi_slow(auto lhs, auto rhs) noexcept
+	static auto SIMD_FLAGS(InOut, RegisterOnly, ForceInline) shuffle_hi_slow(auto lhs, auto rhs) noexcept
 	{
 		return register_shuffle_half_16_slow(lhs, static_cast<unsigned int>(rhs), true);
 	}
@@ -1987,7 +1987,7 @@ template <> struct SimdImpl128<int32_t>
 		return register_blend_slow<std::int32_t>(lhs, rhs, static_cast<unsigned int>(imm8));
 	}
 	/** @brief Selects signed 32-bit lanes from two registers with an immediate control. */
-	template <int imm8> SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static auto VECTORCALL blend(auto lhs, auto rhs) noexcept
+	template <int imm8> constexpr static auto SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) blend(const __m128i lhs, const __m128i rhs) noexcept
 	{
 		if (std::is_constant_evaluated())
 			return register_blend_slow<std::int32_t>(lhs, rhs, static_cast<unsigned int>(imm8));
@@ -2298,7 +2298,7 @@ template <> struct SimdImpl128<uint32_t>
 	 *  @param rhs Runtime control byte.
 	 *  @return Register with each low four-lane group shuffled.
 	 */
-	static auto SIMD_FLAGS(InOut, ForceInline) shuffle_lo_slow(auto lhs, auto rhs) noexcept
+	static auto SIMD_FLAGS(InOut, RegisterOnly, ForceInline) shuffle_lo_slow(auto lhs, auto rhs) noexcept
 	{
 		return register_shuffle_half_16_slow(lhs, static_cast<unsigned int>(rhs), false);
 	}
@@ -2307,7 +2307,7 @@ template <> struct SimdImpl128<uint32_t>
 	 *  @param rhs Runtime control byte.
 	 *  @return Register with each high four-lane group shuffled.
 	 */
-	static auto SIMD_FLAGS(InOut, ForceInline) shuffle_hi_slow(auto lhs, auto rhs) noexcept
+	static auto SIMD_FLAGS(InOut, RegisterOnly, ForceInline) shuffle_hi_slow(auto lhs, auto rhs) noexcept
 	{
 		return register_shuffle_half_16_slow(lhs, static_cast<unsigned int>(rhs), true);
 	}
@@ -2322,7 +2322,7 @@ template <> struct SimdImpl128<uint32_t>
 		return register_blend_slow<std::int32_t>(lhs, rhs, static_cast<unsigned int>(imm8));
 	}
 	/** @brief Selects unsigned 32-bit lanes from two registers with an immediate control. */
-	template <int imm8> SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static auto VECTORCALL blend(auto lhs, auto rhs) noexcept
+	template <int imm8> constexpr static auto SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) blend(const __m128i lhs, const __m128i rhs) noexcept
 	{
 		if (std::is_constant_evaluated())
 			return register_blend_slow<std::uint32_t>(lhs, rhs, static_cast<unsigned int>(imm8));
@@ -3065,12 +3065,15 @@ template <> struct SimdImpl128<float>
 	 *  @param imm8 Runtime control byte.
 	 *  @return Register containing the selected lanes.
 	 */
-	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL blend_slow(auto lhs, auto rhs, const int imm8) noexcept
+	static auto SIMD_FLAGS(InOut, RegisterOnly, ForceInline) blend_slow(auto lhs, auto rhs, const int imm8) noexcept
 	{
-		return register_blend_slow<float>(lhs, rhs, static_cast<unsigned int>(imm8));
+		const unsigned int control = static_cast<unsigned int>(imm8);
+		const __m128 mask = _mm_castsi128_ps(_mm_set_epi32(-static_cast<int>((control >> 3) & 0x1u), -static_cast<int>((control >> 2) & 0x1u),
+														   -static_cast<int>((control >> 1) & 0x1u), -static_cast<int>(control & 0x1u)));
+		return _mm_blendv_ps(lhs, rhs, mask);
 	}
 	/** @brief Selects 32-bit floating-point lanes from two registers with an immediate control. */
-	template <int imm8> SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static auto VECTORCALL blend(auto lhs, auto rhs) noexcept
+	template <int imm8> constexpr static auto SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) blend(const __m128 lhs, const __m128 rhs) noexcept
 	{
 		if (std::is_constant_evaluated())
 			return register_blend_slow<float>(lhs, rhs, static_cast<unsigned int>(imm8));
@@ -3296,12 +3299,14 @@ template <> struct SimdImpl128<double>
 	 *  @param imm8 Runtime control byte.
 	 *  @return Register containing the selected lanes.
 	 */
-	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static auto VECTORCALL blend_slow(auto lhs, auto rhs, const int imm8) noexcept
+	static auto SIMD_FLAGS(InOut, RegisterOnly, ForceInline) blend_slow(auto lhs, auto rhs, const int imm8) noexcept
 	{
-		return register_blend_slow<double>(lhs, rhs, static_cast<unsigned int>(imm8));
+		const unsigned int control = static_cast<unsigned int>(imm8);
+		const __m128d mask = _mm_castsi128_pd(_mm_set_epi64x(-static_cast<long long>((control >> 1) & 0x1u), -static_cast<long long>(control & 0x1u)));
+		return _mm_blendv_pd(lhs, rhs, mask);
 	}
 	/** @brief Selects 64-bit floating-point lanes from two registers with an immediate control. */
-	template <int imm8> SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static auto VECTORCALL blend(auto lhs, auto rhs) noexcept
+	template <int imm8> constexpr static auto SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) blend(const __m128d lhs, const __m128d rhs) noexcept
 	{
 		if (std::is_constant_evaluated())
 			return register_blend_slow<double>(lhs, rhs, static_cast<unsigned int>(imm8));
@@ -3727,7 +3732,7 @@ template <class element_t> struct SimdMappings<128, element_t> : public SimdImpl
 	 *  @param imm8 Runtime control byte.
 	 *  @return Register with each four-lane group shuffled.
 	 */
-	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static int_vector_t VECTORCALL shuffle_32_slow(int_vector_t lhs, std::uint32_t imm8) noexcept
+	static int_vector_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shuffle_32_slow(int_vector_t lhs, std::uint32_t imm8) noexcept
 		requires std::is_integral_v<element_t>
 	{
 		return register_shuffle_32_slow(lhs, imm8);
@@ -4176,13 +4181,13 @@ template <> struct SimdImpl256<int8_t>
 
 	// misc
 	/** @brief Shuffles bytes through the native runtime selector-register instruction. */
-	static auto SIMD_FLAGS(InOut, ForceInline) shuffle(auto lhs, auto rhs) noexcept
+	static auto SIMD_FLAGS(InOut, RegisterOnly, ForceInline) shuffle(auto lhs, auto rhs) noexcept
 		requires(std::same_as<decltype(lhs), __m256i> && std::same_as<decltype(rhs), __m256i>)
 	{
 		return _mm256_shuffle_epi8(lhs, rhs);
 	}
 	/** @brief Selects bytes through the native runtime mask-register operation. */
-	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m256i VECTORCALL blend(const __m256i lhs, const __m256i rhs, const __m256i mask) noexcept
+	static __m256i SIMD_FLAGS(InOut, RegisterOnly, ForceInline) blend(const __m256i lhs, const __m256i rhs, const __m256i mask) noexcept
 	{
 		return register_blend_bytes(lhs, rhs, mask);
 	}
@@ -4471,13 +4476,13 @@ template <> struct SimdImpl256<uint8_t>
 
 	// misc
 	/** @brief Shuffles bytes through the native runtime selector-register instruction. */
-	static auto SIMD_FLAGS(InOut, ForceInline) shuffle(auto lhs, auto rhs) noexcept
+	static auto SIMD_FLAGS(InOut, RegisterOnly, ForceInline) shuffle(auto lhs, auto rhs) noexcept
 		requires(std::same_as<decltype(lhs), __m256i> && std::same_as<decltype(rhs), __m256i>)
 	{
 		return _mm256_shuffle_epi8(lhs, rhs);
 	}
 	/** @brief Selects bytes through the native runtime mask-register operation. */
-	SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static __m256i VECTORCALL blend(const __m256i lhs, const __m256i rhs, const __m256i mask) noexcept
+	static __m256i SIMD_FLAGS(InOut, RegisterOnly, ForceInline) blend(const __m256i lhs, const __m256i rhs, const __m256i mask) noexcept
 	{
 		return register_blend_bytes(lhs, rhs, mask);
 	}
@@ -4792,7 +4797,7 @@ template <> struct SimdImpl256<int16_t>
 	 *  @param rhs Runtime control byte.
 	 *  @return Register with each low four-lane group shuffled.
 	 */
-	static auto SIMD_FLAGS(InOut, ForceInline) shuffle_lo_slow(auto lhs, auto rhs) noexcept
+	static auto SIMD_FLAGS(InOut, RegisterOnly, ForceInline) shuffle_lo_slow(auto lhs, auto rhs) noexcept
 	{
 		return register_shuffle_half_16_slow(lhs, static_cast<unsigned int>(rhs), false);
 	}
@@ -4806,7 +4811,7 @@ template <> struct SimdImpl256<int16_t>
 	 *  @param rhs Runtime control byte.
 	 *  @return Register with each high four-lane group shuffled.
 	 */
-	static auto SIMD_FLAGS(InOut, ForceInline) shuffle_hi_slow(auto lhs, auto rhs) noexcept
+	static auto SIMD_FLAGS(InOut, RegisterOnly, ForceInline) shuffle_hi_slow(auto lhs, auto rhs) noexcept
 	{
 		return register_shuffle_half_16_slow(lhs, static_cast<unsigned int>(rhs), true);
 	}
@@ -4826,7 +4831,7 @@ template <> struct SimdImpl256<int16_t>
 		return register_blend_slow<std::int16_t>(lhs, rhs, static_cast<unsigned int>(imm8));
 	}
 	/** @brief Selects signed 16-bit lanes from two 256-bit registers with a repeated immediate control. */
-	template <int imm8> SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static auto VECTORCALL blend(auto lhs, auto rhs) noexcept
+	template <int imm8> constexpr static auto SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) blend(const __m256i lhs, const __m256i rhs) noexcept
 	{
 		if (std::is_constant_evaluated())
 			return register_blend_slow<std::int16_t>(lhs, rhs, static_cast<unsigned int>(imm8));
@@ -5154,7 +5159,7 @@ template <> struct SimdImpl256<uint16_t>
 	 *  @param rhs Runtime control byte.
 	 *  @return Register with each low four-lane group shuffled.
 	 */
-	static auto SIMD_FLAGS(InOut, ForceInline) shuffle_lo_slow(auto lhs, auto rhs) noexcept
+	static auto SIMD_FLAGS(InOut, RegisterOnly, ForceInline) shuffle_lo_slow(auto lhs, auto rhs) noexcept
 	{
 		return register_shuffle_half_16_slow(lhs, static_cast<unsigned int>(rhs), false);
 	}
@@ -5168,7 +5173,7 @@ template <> struct SimdImpl256<uint16_t>
 	 *  @param rhs Runtime control byte.
 	 *  @return Register with each high four-lane group shuffled.
 	 */
-	static auto SIMD_FLAGS(InOut, ForceInline) shuffle_hi_slow(auto lhs, auto rhs) noexcept
+	static auto SIMD_FLAGS(InOut, RegisterOnly, ForceInline) shuffle_hi_slow(auto lhs, auto rhs) noexcept
 	{
 		return register_shuffle_half_16_slow(lhs, static_cast<unsigned int>(rhs), true);
 	}
@@ -5188,7 +5193,7 @@ template <> struct SimdImpl256<uint16_t>
 		return register_blend_slow<std::int16_t>(lhs, rhs, static_cast<unsigned int>(imm8));
 	}
 	/** @brief Selects unsigned 16-bit lanes from two 256-bit registers with a repeated immediate control. */
-	template <int imm8> SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static auto VECTORCALL blend(auto lhs, auto rhs) noexcept
+	template <int imm8> constexpr static auto SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) blend(const __m256i lhs, const __m256i rhs) noexcept
 	{
 		if (std::is_constant_evaluated())
 			return register_blend_slow<std::uint16_t>(lhs, rhs, static_cast<unsigned int>(imm8));
@@ -5442,7 +5447,7 @@ template <> struct SimdImpl256<int32_t>
 	 *  @param rhs Runtime control byte.
 	 *  @return Register with each low four-lane group shuffled.
 	 */
-	static auto SIMD_FLAGS(InOut, ForceInline) shuffle_lo_slow(auto lhs, auto rhs) noexcept
+	static auto SIMD_FLAGS(InOut, RegisterOnly, ForceInline) shuffle_lo_slow(auto lhs, auto rhs) noexcept
 	{
 		return register_shuffle_32_slow(lhs, static_cast<unsigned int>(rhs));
 	}
@@ -5451,7 +5456,7 @@ template <> struct SimdImpl256<int32_t>
 	 *  @param rhs Runtime control byte.
 	 *  @return Register with each high four-lane group shuffled.
 	 */
-	static auto SIMD_FLAGS(InOut, ForceInline) shuffle_hi_slow(auto lhs, auto rhs) noexcept
+	static auto SIMD_FLAGS(InOut, RegisterOnly, ForceInline) shuffle_hi_slow(auto lhs, auto rhs) noexcept
 	{
 		return register_shuffle_32_slow(lhs, static_cast<unsigned int>(rhs));
 	}
@@ -5466,7 +5471,7 @@ template <> struct SimdImpl256<int32_t>
 		return register_blend_slow<std::int32_t>(lhs, rhs, static_cast<unsigned int>(imm8));
 	}
 	/** @brief Selects signed 32-bit lanes from two 256-bit registers with an immediate control. */
-	template <int imm8> SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static auto VECTORCALL blend(auto lhs, auto rhs) noexcept
+	template <int imm8> constexpr static auto SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) blend(const __m256i lhs, const __m256i rhs) noexcept
 	{
 		if (std::is_constant_evaluated())
 			return register_blend_slow<std::int32_t>(lhs, rhs, static_cast<unsigned int>(imm8));
@@ -5735,7 +5740,7 @@ template <> struct SimdImpl256<uint32_t>
 	 *  @param rhs Runtime control byte.
 	 *  @return Register with each low four-lane group shuffled.
 	 */
-	static auto SIMD_FLAGS(InOut, ForceInline) shuffle_lo_slow(auto lhs, auto rhs) noexcept
+	static auto SIMD_FLAGS(InOut, RegisterOnly, ForceInline) shuffle_lo_slow(auto lhs, auto rhs) noexcept
 	{
 		return register_shuffle_32_slow(lhs, static_cast<unsigned int>(rhs));
 	}
@@ -5744,7 +5749,7 @@ template <> struct SimdImpl256<uint32_t>
 	 *  @param rhs Runtime control byte.
 	 *  @return Register with each high four-lane group shuffled.
 	 */
-	static auto SIMD_FLAGS(InOut, ForceInline) shuffle_hi_slow(auto lhs, auto rhs) noexcept
+	static auto SIMD_FLAGS(InOut, RegisterOnly, ForceInline) shuffle_hi_slow(auto lhs, auto rhs) noexcept
 	{
 		return register_shuffle_32_slow(lhs, static_cast<unsigned int>(rhs));
 	}
@@ -5759,7 +5764,7 @@ template <> struct SimdImpl256<uint32_t>
 		return register_blend_slow<std::int32_t>(lhs, rhs, static_cast<unsigned int>(imm8));
 	}
 	/** @brief Selects unsigned 32-bit lanes from two 256-bit registers with an immediate control. */
-	template <int imm8> SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static auto VECTORCALL blend(auto lhs, auto rhs) noexcept
+	template <int imm8> constexpr static auto SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) blend(const __m256i lhs, const __m256i rhs) noexcept
 	{
 		if (std::is_constant_evaluated())
 			return register_blend_slow<std::uint32_t>(lhs, rhs, static_cast<unsigned int>(imm8));
@@ -6449,7 +6454,7 @@ template <> struct SimdImpl256<float>
 		return register_blend_slow<float>(lhs, rhs, static_cast<unsigned int>(imm8));
 	}
 	/** @brief Selects 32-bit floating-point lanes from two 256-bit registers with an immediate control. */
-	template <int imm8> SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static auto VECTORCALL blend(auto lhs, auto rhs) noexcept
+	template <int imm8> constexpr static auto SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) blend(const __m256 lhs, const __m256 rhs) noexcept
 	{
 		if (std::is_constant_evaluated())
 			return register_blend_slow<float>(lhs, rhs, static_cast<unsigned int>(imm8));
@@ -6699,7 +6704,7 @@ template <> struct SimdImpl256<double>
 		return register_blend_slow<double>(lhs, rhs, static_cast<unsigned int>(imm8));
 	}
 	/** @brief Selects 64-bit floating-point lanes from two 256-bit registers with an immediate control. */
-	template <int imm8> SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY constexpr static auto VECTORCALL blend(auto lhs, auto rhs) noexcept
+	template <int imm8> constexpr static auto SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) blend(const __m256d lhs, const __m256d rhs) noexcept
 	{
 		if (std::is_constant_evaluated())
 			return register_blend_slow<double>(lhs, rhs, static_cast<unsigned int>(imm8));
@@ -7062,7 +7067,7 @@ template <class element_t> struct SimdMappings<256, element_t> : public SimdImpl
 	 *  @param imm8 Runtime control byte.
 	 *  @return Register with each four-lane group shuffled.
 	 */
-	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY static int_vector_t VECTORCALL shuffle_32_slow(int_vector_t lhs, std::uint32_t imm8) noexcept
+	static int_vector_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shuffle_32_slow(int_vector_t lhs, std::uint32_t imm8) noexcept
 		requires std::is_integral_v<element_t>
 	{
 		return register_shuffle_32_slow(lhs, imm8);

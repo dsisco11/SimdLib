@@ -104,8 +104,9 @@ settings. Use explicit `Register<T, Bits>` for stable storage, interfaces, and
 ABI contracts.
 
 On platforms where SimdLib enables a vector calling convention, a non-inlined
-consumer function must declare `VECTORCALL` itself. The annotations on Register
-members do not propagate to a surrounding function:
+consumer function must declare the appropriate `SIMD_FLAGS(...)` boundary mode
+itself. The annotations on Register members do not propagate to a surrounding
+function:
 
 ```cpp
 using StableFloatRegister = SimdLib::Register<float, 128>;
@@ -115,7 +116,7 @@ using StableFloatRegister = SimdLib::Register<float, 128>;
  * @param value Input register.
  * @return Transformed register.
  */
-StableFloatRegister VECTORCALL add_one(StableFloatRegister value) noexcept
+StableFloatRegister SIMD_FLAGS(InOut) add_one(StableFloatRegister value) noexcept
 {
     return value + StableFloatRegister::broadcast(1.0F);
 }
@@ -213,16 +214,18 @@ and formatting.
 > value entirely in SIMD registers. This is compiler-generated overhead, not a
 > spill required by the `Register` representation.
 
-SimdLib marks narrowly audited functions with `SIMDLIB_REGISTER_ONLY` when
+SimdLib marks narrowly audited functions with the `RegisterOnly` modifier when
 their runtime path cannot write through pointers, references, spans, arrays,
-or addressable local buffers. The macro expands to
+or addressable local buffers. On MSVC, `SIMD_FLAGS(..., RegisterOnly, ...)`
+expands to
 [`__declspec(safebuffers)`](https://learn.microsoft.com/en-us/cpp/cpp/safebuffers?view=msvc-170)
-on MSVC and to nothing on other compilers. It is deliberately separate from
-`VECTORCALL`: stores, transforms, dynamic array-backed fallbacks, and other
-memory-writing functions retain normal `/GS` protection.
+and the attribute mapping is empty on other compilers. `RegisterOnly` remains
+independent from the `In`, `Out`, and `InOut` boundary modes: stores,
+transforms, dynamic array-backed fallbacks, and other memory-writing functions
+retain normal `/GS` protection.
 
 The operational methods in the `Api`, `Register`, `RegisterMask`, and legacy
-`SimdVector` facades use `SIMDLIB_FLATTEN` to make their transitive-inlining
+`SimdVector` facades use the `Flatten` modifier to make their transitive-inlining
 intent explicit. The mapping facades do the same for paths inherited directly
 by `Api`. Flattening is an optimization request rather than proof of generated
 code, so the mandatory codegen gates still compare wrapper and raw-intrinsic

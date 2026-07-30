@@ -18,9 +18,6 @@ if(SIMDLIB_BUILD_CONFIGURATION_PROBES)
 
     foreach(config_probe IN ITEMS
         ConfigDefaultProbe
-        ConfigOverrideVectorcallProbe
-        ConfigOverrideForceInlineProbe
-        ConfigOverrideFlattenProbe
         ConfigOverridePreconditionProbe
         ConfigDisabledInstructionsProbe
         ConfigDisabledPublicHeadersProbe

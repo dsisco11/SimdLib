@@ -3,7 +3,7 @@
 SimdLib uses repository-owned Linux images for GCC 13, GCC 14, and GNU-like
 Clang 22 validation. The same Dockerfiles, Compose definition, entrypoint, and
 PowerShell runner are used locally and in GitHub Actions. Native jobs remain
-authoritative for MSVC, clang-cl, Windows ABI behavior, and `VECTORCALL`.
+authoritative for MSVC, clang-cl, Windows ABI behavior, and vector calling-convention behavior.
 
 ## Environment contract
 
