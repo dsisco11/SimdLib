@@ -11,7 +11,7 @@ Code Architecture:
         It should also provide methods for broadcasting, reshaping, and slicing tensors, as well as performing element-wise operations and reductions.
 
 Build Pipeline:
-    ☐ Implement the validation ownership and matrix deduplication contract described in `docs/ValidationMatrixDeduplication.todo` and `docs/ValidationMatrixOwnership.md`.
+    ☒ Implement the validation ownership and matrix deduplication contract documented in `docs/BuildPipeline.md` and enforced by `tools/validation-matrix.json`.
     ☒ Keep optimized Release wrapper/raw and ABI comparisons as the mandatory zero-overhead gates, and preserve unoptimized Debug or sanitizer comparisons as explicit diagnostic operations rather than default-build requirements.
 
 Testing:

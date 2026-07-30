@@ -156,7 +156,7 @@ Documentation references have these roles:
 | `UnifiedBuildPipelineBaseline.md` and `UnifiedBuildPipelineCMakeProfiles.md` | Pipeline ownership, current record counts, and historical baseline distinction. |
 | `UnifiedBuildPipelineExpectedTargets.txt` and `UnifiedBuildPipelineExpectedTests.txt` | Frozen pre-refactor evidence, not the current generated inventory. |
 | `MethodFlagsInventory.csv` and `MethodFlagsInventory.md` | Declaration migration and method-flag audit evidence. |
-| `RegisterImplementation.todo`, `RuntimeArrayRegisterConstruction.todo`, `MethodFlagsImplementation.todo`, `TestCoverageExpansion.todo`, and `project.todo` | Planning and completed-work traceability; not normative pass claims. |
+| `MethodFlagsImplementation.todo`, `TestCoverageExpansion.todo`, and `project.todo` | Active planning and project backlog; not normative pass claims. |
 | `README.md` and `wiki/Technical-Reference.md` | User-facing support and performance guidance. |
 
 ## Removed redundant fixtures

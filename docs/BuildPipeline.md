@@ -111,6 +111,33 @@ test-only reuse without creating a new toolchain directory.
 
 ## Scoped CMake artifact graph
 
+### Validation ownership policy
+
+Every validation artifact has one logical category and the narrowest compiler,
+configuration, and instrumentation scope that proves its contract. Repository
+audits are source-revision contracts; compiler-front-end and compile-time
+contracts belong to applicable Release compiler identities; runtime and
+checks/precondition contracts additionally run in the representative MSVC
+Debug and Clang ASan+UBSan cells; public examples, smoke, ODR, external
+consumer, and optimized generated-code contracts belong to applicable Release
+cells. Coverage and sanitizer describe how runtime contracts are compiled and
+executed rather than creating duplicate logical owners.
+
+MSVC Debug is the sole ordinary Debug cell in the default matrix because it
+owns the distinct unoptimized Windows and default-check configuration
+contract. The clang-cl, GCC 13, GCC 14, and Clang ordinary Debug cells remain
+available only for focused troubleshooting: their compiler, language, ABI,
+runtime, consumer, and optimizer contracts are already owned by their Release
+cells, while the Clang ASan+UBSan cell owns instrumented Linux Debug behavior.
+
+`tools/validation-matrix.json` is the machine-readable authority for cell,
+profile, category, test-owner, consumer, and generated-code policy. A new
+compiler, configuration, instrumentation mode, target, or test may join the
+default matrix only when it proves a stated contract that no existing owner
+proves. New development targets must declare one scoped category; generated
+inventory audits reject missing ownership, duplicate ownership, and profile
+membership outside the matrix contract.
+
 Every top-level development target declares exactly one validation category
 when it is created. Configuration fails if a project-owned target is unowned,
 is assigned more than once, or belongs to a category forbidden by the selected

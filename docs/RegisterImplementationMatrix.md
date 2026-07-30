@@ -2,9 +2,9 @@
 
 This document makes the accepted design in `RegisterProposal.md` executable and
 traceable. The proposal controls semantics; `ApiOperationMatrix.md` controls the
-current backend availability matrix; `RegisterImplementation.todo` controls the
-order and completion gates. A disagreement is resolved by correcting these
-documents before implementing the affected operation.
+current backend availability matrix; and this matrix records the implemented
+operation coverage. A disagreement is resolved by correcting the controlling
+semantic or availability document before implementing the affected operation.
 
 The supported compiler, configuration, generated-code, ABI, and exception
 boundaries are defined by `RegisterQualification.md`.
