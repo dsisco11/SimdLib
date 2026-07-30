@@ -7,24 +7,39 @@
     },
     "configurePresets": [
         {
-            "name": "development-common",
+            "name": "development-base-options",
             "hidden": true,
             "cacheVariables": {
                 "BUILD_TESTING": "ON",
-                "SIMDLIB_BUILD_SMOKE_TESTS": "ON",
-                "SIMDLIB_BUILD_CONFIGURATION_PROBES": "ON",
-                "SIMDLIB_BUILD_HEADER_PROBES": "ON",
+                "SIMDLIB_BUILD_SMOKE_TESTS": "OFF",
+                "SIMDLIB_BUILD_RUNTIME_TESTS": "OFF",
+                "SIMDLIB_BUILD_API_SSE42_TESTS": "OFF",
+                "SIMDLIB_BUILD_API_AVX2_TESTS": "OFF",
+                "SIMDLIB_BUILD_FMA_TESTS": "OFF",
+                "SIMDLIB_BUILD_BMI_TESTS": "OFF",
+                "SIMDLIB_BUILD_VECTOR_ALGORITHM_TESTS": "OFF",
+                "SIMDLIB_BUILD_BENCHMARKS": "OFF",
+                "SIMDLIB_BUILD_EXAMPLES": "OFF",
+                "SIMDLIB_BUILD_CONFIGURATION_PROBES": "OFF",
+                "SIMDLIB_BUILD_CONSTEXPR_PROBES": "OFF",
+                "SIMDLIB_BUILD_HEADER_PROBES": "OFF",
                 "SIMDLIB_FETCH_TEST_DEPENDENCIES": "ON",
                 "SIMDLIB_STRICT_WARNINGS": "ON",
                 "SIMDLIB_ENABLE_COVERAGE": "OFF",
-                "SIMDLIB_DEFAULT_CHECKS_PROBE": "NONE"
+                "SIMDLIB_DEFAULT_CHECKS_PROBE": "NONE",
+                "SIMDLIB_BUILD_METHOD_FLAGS_CODEGEN_GATES": "OFF",
+                "SIMDLIB_BUILD_REGISTER_CODEGEN_GATES": "OFF",
+                "SIMDLIB_REGISTER_CODEGEN_MODE": "OFF",
+                "SIMDLIB_VALIDATION_PROFILE": "CUSTOM",
+                "SIMDLIB_VALIDATE_EXHAUSTIVE_TARGETS": "ON"
             }
         },
         {
             "name": "release-exhaustive-options",
             "hidden": true,
-            "inherits": "development-common",
+            "inherits": "development-base-options",
             "cacheVariables": {
+                "SIMDLIB_BUILD_SMOKE_TESTS": "ON",
                 "SIMDLIB_BUILD_RUNTIME_TESTS": "ON",
                 "SIMDLIB_BUILD_API_SSE42_TESTS": "ON",
                 "SIMDLIB_BUILD_API_AVX2_TESTS": "ON",
@@ -33,8 +48,11 @@
                 "SIMDLIB_BUILD_VECTOR_ALGORITHM_TESTS": "ON",
                 "SIMDLIB_BUILD_BENCHMARKS": "ON",
                 "SIMDLIB_BUILD_EXAMPLES": "ON",
+                "SIMDLIB_BUILD_CONFIGURATION_PROBES": "ON",
                 "SIMDLIB_BUILD_CONSTEXPR_PROBES": "ON",
+                "SIMDLIB_BUILD_HEADER_PROBES": "ON",
                 "SIMDLIB_DEFAULT_CHECKS_PROBE": "RELEASE",
+                "SIMDLIB_BUILD_METHOD_FLAGS_CODEGEN_GATES": "ON",
                 "SIMDLIB_BUILD_REGISTER_CODEGEN_GATES": "ON",
                 "SIMDLIB_REGISTER_CODEGEN_MODE": "ENFORCE",
                 "SIMDLIB_VALIDATION_PROFILE": "RELEASE",
@@ -44,7 +62,7 @@
         {
             "name": "debug-diagnostics-options",
             "hidden": true,
-            "inherits": "development-common",
+            "inherits": "development-base-options",
             "cacheVariables": {
                 "SIMDLIB_BUILD_RUNTIME_TESTS": "ON",
                 "SIMDLIB_BUILD_API_SSE42_TESTS": "ON",
@@ -59,16 +77,17 @@
                 "SIMDLIB_BUILD_CONFIGURATION_PROBES": "OFF",
                 "SIMDLIB_BUILD_HEADER_PROBES": "OFF",
                 "SIMDLIB_DEFAULT_CHECKS_PROBE": "DEBUG",
+                "SIMDLIB_BUILD_METHOD_FLAGS_CODEGEN_GATES": "OFF",
                 "SIMDLIB_BUILD_REGISTER_CODEGEN_GATES": "OFF",
                 "SIMDLIB_REGISTER_CODEGEN_MODE": "OFF",
                 "SIMDLIB_VALIDATION_PROFILE": "DEBUG",
-                "SIMDLIB_VALIDATE_EXHAUSTIVE_TARGETS": "OFF"
+                "SIMDLIB_VALIDATE_EXHAUSTIVE_TARGETS": "ON"
             }
         },
         {
             "name": "codegen-diagnostic-options",
             "hidden": true,
-            "inherits": "development-common",
+            "inherits": "development-base-options",
             "cacheVariables": {
                 "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
                 "SIMDLIB_BUILD_RUNTIME_TESTS": "OFF",
@@ -102,7 +121,7 @@
         {
             "name": "debug-asan-ubsan-options",
             "hidden": true,
-            "inherits": "development-common",
+            "inherits": "development-base-options",
             "cacheVariables": {
                 "CMAKE_CXX_FLAGS_DEBUG": "-fsanitize=address,undefined -fno-omit-frame-pointer",
                 "CMAKE_EXE_LINKER_FLAGS_DEBUG": "-fsanitize=address,undefined",
@@ -119,15 +138,17 @@
                 "SIMDLIB_BUILD_CONSTEXPR_PROBES": "OFF",
                 "SIMDLIB_BUILD_HEADER_PROBES": "OFF",
                 "SIMDLIB_DEFAULT_CHECKS_PROBE": "DEBUG",
+                "SIMDLIB_BUILD_METHOD_FLAGS_CODEGEN_GATES": "OFF",
                 "SIMDLIB_BUILD_REGISTER_CODEGEN_GATES": "OFF",
                 "SIMDLIB_REGISTER_CODEGEN_MODE": "OFF",
-                "SIMDLIB_VALIDATION_PROFILE": "SANITIZER"
+                "SIMDLIB_VALIDATION_PROFILE": "SANITIZER",
+                "SIMDLIB_VALIDATE_EXHAUSTIVE_TARGETS": "ON"
             }
         },
         {
             "name": "coverage-options",
             "hidden": true,
-            "inherits": "development-common",
+            "inherits": "development-base-options",
             "cacheVariables": {
                 "SIMDLIB_BUILD_RUNTIME_TESTS": "ON",
                 "SIMDLIB_BUILD_API_SSE42_TESTS": "ON",
@@ -141,11 +162,25 @@
                 "SIMDLIB_BUILD_CONFIGURATION_PROBES": "OFF",
                 "SIMDLIB_BUILD_CONSTEXPR_PROBES": "OFF",
                 "SIMDLIB_BUILD_HEADER_PROBES": "OFF",
+                "SIMDLIB_BUILD_METHOD_FLAGS_CODEGEN_GATES": "OFF",
                 "SIMDLIB_BUILD_REGISTER_CODEGEN_GATES": "OFF",
                 "SIMDLIB_REGISTER_CODEGEN_MODE": "OFF",
                 "SIMDLIB_ENABLE_COVERAGE": "ON",
                 "SIMDLIB_VALIDATION_PROFILE": "COVERAGE",
-                "SIMDLIB_VALIDATE_EXHAUSTIVE_TARGETS": "OFF"
+                "SIMDLIB_VALIDATE_EXHAUSTIVE_TARGETS": "ON"
+            }
+        },
+        {
+            "name": "compiler-contract-options",
+            "hidden": true,
+            "inherits": "development-base-options",
+            "cacheVariables": {
+                "SIMDLIB_BUILD_CONFIGURATION_PROBES": "ON",
+                "SIMDLIB_BUILD_HEADER_PROBES": "ON",
+                "SIMDLIB_FETCH_TEST_DEPENDENCIES": "OFF",
+                "SIMDLIB_DEFAULT_CHECKS_PROBE": "RELEASE",
+                "SIMDLIB_VALIDATION_PROFILE": "COMPILER_CONTRACTS",
+                "SIMDLIB_VALIDATE_EXHAUSTIVE_TARGETS": "ON"
             }
         },
         {
@@ -238,6 +273,15 @@
             }
         },
         {
+            "name": "msvc-compiler-contracts",
+            "displayName": "MSVC compiler contracts",
+            "description": "Focused MSVC preprocessing, header, configuration, and language contracts",
+            "inherits": ["msvc-common", "compiler-contract-options"],
+            "cacheVariables": {
+                "CMAKE_CONFIGURATION_TYPES": "Release"
+            }
+        },
+        {
             "name": "msvc-debug-codegen-diagnostic",
             "displayName": "MSVC Debug codegen diagnostic",
             "description": "Optional MSVC Debug record-only Register generated-code diagnostic",
@@ -262,6 +306,15 @@
             "inherits": ["clangcl-common", "debug-diagnostics-options"],
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Debug"
+            }
+        },
+        {
+            "name": "clangcl-compiler-contracts",
+            "displayName": "clang-cl compiler contracts",
+            "description": "Focused clang-cl preprocessing, header, configuration, and language contracts",
+            "inherits": ["clangcl-common", "compiler-contract-options"],
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release"
             }
         },
         {
@@ -357,7 +410,7 @@
             "name": "container-release-contracts",
             "displayName": "Container Release contracts",
             "description": "Narrow Linux Release contract preset for direct container-environment diagnostics",
-            "inherits": ["container-common", "development-common"],
+            "inherits": ["container-common", "compiler-contract-options"],
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Release",
                 "SIMDLIB_BUILD_RUNTIME_TESTS": "OFF",
@@ -365,6 +418,7 @@
                 "SIMDLIB_BUILD_BENCHMARKS": "OFF",
                 "SIMDLIB_BUILD_EXAMPLES": "OFF",
                 "SIMDLIB_BUILD_CONSTEXPR_PROBES": "OFF",
+                "SIMDLIB_BUILD_METHOD_FLAGS_CODEGEN_GATES": "OFF",
                 "SIMDLIB_BUILD_REGISTER_CODEGEN_GATES": "OFF",
                 "SIMDLIB_REGISTER_CODEGEN_MODE": "OFF",
                 "SIMDLIB_DEFAULT_CHECKS_PROBE": "RELEASE",
@@ -376,10 +430,12 @@
         { "name": "msvc-release-exhaustive", "description": "Build the MSVC Release exhaustive validation artifacts", "configurePreset": "msvc-release-exhaustive", "configuration": "Release", "targets": ["ExhaustiveArtifacts"], "jobs": 0 },
         { "name": "msvc-release-benchmarks", "description": "Build only benchmark executables in the existing MSVC Release tree", "configurePreset": "msvc-release-exhaustive", "configuration": "Release", "targets": ["BenchmarkArtifacts"], "jobs": 0 },
         { "name": "msvc-debug-diagnostics", "description": "Build the MSVC Debug diagnostic artifacts", "configurePreset": "msvc-debug-diagnostics", "configuration": "Debug", "targets": ["ExhaustiveArtifacts"], "jobs": 0 },
+        { "name": "msvc-compiler-contracts", "description": "Build only MSVC compiler-front-end contracts", "configurePreset": "msvc-compiler-contracts", "configuration": "Release", "targets": ["SimdLibCompilerContractArtifacts"], "jobs": 0 },
         { "name": "msvc-debug-codegen-diagnostic", "description": "Record only MSVC Debug Register generated code", "configurePreset": "msvc-debug-codegen-diagnostic", "targets": ["SimdLibDebugDiagnosticArtifacts"], "jobs": 0 },
         { "name": "clangcl-release-exhaustive", "description": "Build the clang-cl Release exhaustive validation artifacts", "configurePreset": "clangcl-release-exhaustive", "targets": ["ExhaustiveArtifacts"], "jobs": 0 },
         { "name": "clangcl-release-benchmarks", "description": "Build only benchmark executables in the existing clang-cl Release tree", "configurePreset": "clangcl-release-exhaustive", "targets": ["BenchmarkArtifacts"], "jobs": 0 },
         { "name": "clangcl-debug-diagnostics", "description": "Build the clang-cl Debug diagnostic artifacts", "configurePreset": "clangcl-debug-diagnostics", "targets": ["ExhaustiveArtifacts"], "jobs": 0 },
+        { "name": "clangcl-compiler-contracts", "description": "Build only clang-cl compiler-front-end contracts", "configurePreset": "clangcl-compiler-contracts", "targets": ["SimdLibCompilerContractArtifacts"], "jobs": 0 },
         { "name": "clangcl-debug-codegen-diagnostic", "description": "Record only clang-cl Debug Register generated code", "configurePreset": "clangcl-debug-codegen-diagnostic", "targets": ["SimdLibDebugDiagnosticArtifacts"], "jobs": 0 },
         { "name": "gcc13-core-release-exhaustive", "description": "Build the GCC 13.2 core-only Release validation artifacts", "configurePreset": "gcc13-core-release-exhaustive", "targets": ["ExhaustiveArtifacts"], "jobs": 0 },
         { "name": "gcc13-core-release-benchmarks", "description": "Build only core benchmark executables in the existing GCC 13.2 Release tree", "configurePreset": "gcc13-core-release-exhaustive", "targets": ["BenchmarkArtifacts"], "jobs": 0 },
@@ -395,7 +451,7 @@
         { "name": "clang22-asan-ubsan-codegen-diagnostic", "description": "Record only Clang 22 sanitizer-instrumented Register generated code", "configurePreset": "clang22-asan-ubsan-codegen-diagnostic", "targets": ["SimdLibDebugDiagnosticArtifacts"], "jobs": 0 },
         { "name": "clang22-debug-asan-ubsan", "description": "Build the Clang 22 ASan and UBSan validation artifacts", "configurePreset": "clang22-debug-asan-ubsan", "targets": ["ExhaustiveArtifacts"], "jobs": 0 },
         { "name": "clang-debug-coverage", "description": "Build the native Clang coverage validation artifacts", "configurePreset": "clang-debug-coverage", "targets": ["ExhaustiveArtifacts"], "jobs": 0 },
-        { "name": "container-release-contracts", "description": "Build the narrow container Release contract artifacts", "configurePreset": "container-release-contracts", "targets": ["ExhaustiveArtifacts"], "jobs": 0 }
+        { "name": "container-release-contracts", "description": "Build the narrow container Release contract artifacts", "configurePreset": "container-release-contracts", "targets": ["SimdLibCompilerContractArtifacts"], "jobs": 0 }
     ],
     "testPresets": [
         { "name": "msvc-release-exhaustive", "description": "Run the MSVC Release runtime and artifact-validation inventory", "configurePreset": "msvc-release-exhaustive", "configuration": "Release", "output": { "outputOnFailure": true }, "execution": { "jobs": 0 } },

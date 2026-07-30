@@ -95,7 +95,7 @@ set(simdlib_profile_allowed_CODEGEN_DIAGNOSTIC
 set(simdlib_profile_selected_CODEGEN_DIAGNOSTIC
     ${simdlib_profile_allowed_CODEGEN_DIAGNOSTIC})
 set(simdlib_profile_allowed_COMPILER_CONTRACTS
-    COMPILER_CONTRACT OPTIMIZED_CODEGEN)
+    COMPILER_CONTRACT)
 set(simdlib_profile_selected_COMPILER_CONTRACTS
     ${simdlib_profile_allowed_COMPILER_CONTRACTS})
 
@@ -123,7 +123,8 @@ if(SIMDLIB_VALIDATION_PROFILE STREQUAL "RELEASE")
     foreach(simdlib_release_contract_option IN ITEMS
         SIMDLIB_BUILD_CONFIGURATION_PROBES
         SIMDLIB_BUILD_CONSTEXPR_PROBES
-        SIMDLIB_BUILD_HEADER_PROBES)
+        SIMDLIB_BUILD_HEADER_PROBES
+        SIMDLIB_BUILD_METHOD_FLAGS_CODEGEN_GATES)
         if(NOT ${simdlib_release_contract_option})
             message(FATAL_ERROR
                 "Release validation requires ${simdlib_release_contract_option}=ON")
@@ -155,12 +156,17 @@ elseif(SIMDLIB_VALIDATION_PROFILE STREQUAL "COMPILER_CONTRACTS")
         message(FATAL_ERROR
             "Compiler-contract validation requires the Release default-checks probe")
     endif()
+    if(SIMDLIB_BUILD_METHOD_FLAGS_CODEGEN_GATES)
+        message(FATAL_ERROR
+            "Compiler-contract validation excludes method-flags generated-code gates")
+    endif()
 elseif(SIMDLIB_VALIDATION_PROFILE MATCHES
         "^(DEBUG|SANITIZER|COVERAGE|CODEGEN_DIAGNOSTIC)$")
     foreach(simdlib_forbidden_contract_option IN ITEMS
         SIMDLIB_BUILD_CONFIGURATION_PROBES
         SIMDLIB_BUILD_CONSTEXPR_PROBES
-        SIMDLIB_BUILD_HEADER_PROBES)
+        SIMDLIB_BUILD_HEADER_PROBES
+        SIMDLIB_BUILD_METHOD_FLAGS_CODEGEN_GATES)
         if(${simdlib_forbidden_contract_option})
             message(FATAL_ERROR
                 "Validation profile ${SIMDLIB_VALIDATION_PROFILE} excludes "

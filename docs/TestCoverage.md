@@ -314,7 +314,7 @@ From the SimdLib repository root:
 
 ```powershell
 tools/Build.ps1 -Scope Native -Compiler ClangCoverage
-tools/Run-Tests.ps1 -Scope Native -Compiler ClangCoverage -SkipBuild
+tools/Run-Tests.ps1 -Scope Native -Compiler ClangCoverage
 ```
 
 The coverage operation resets profiles, runs the instrumented CTest inventory,

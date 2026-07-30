@@ -196,23 +196,31 @@ SimdLib Validation Matrix Deduplication Plan:
       ☒ A focused container receipt recorded `consumer_owner=none`, `consumer_scope=none`, an empty hashed consumer inventory, and no consumer CTest metadata; manifest consumption validated those fields before the narrow compiler-contract preset reached its unrelated runtime-inventory audit.
 
   Phase 7 - Refactor Presets and Unified Pipeline Orchestration:
-    ☐ Replace misleading Release/Debug preset inheritance with profile-specific option bundles that express owned validation categories directly.
-    ☐ Ensure sanitizer and coverage profiles do not inherit unrelated Debug diagnostic targets.
-    ☐ Remove retired ordinary Debug presets from the default `Build` cell list while retaining only approved explicit diagnostic entry points.
-    ☐ Remove obsolete presets and options rather than keeping temporary compatibility aliases.
-    ☐ Update `tools/Build.ps1`, `tools/Run-NativeMatrix.ps1`, and `tools/Run-ContainerMatrix.ps1` to construct the approved default and optional cell sets.
-    ☐ Keep `Build` and `Run-Tests` as the user-facing full-pipeline commands.
-    ☐ Keep benchmark operations separate and Release-only.
-    ☐ Add explicit operations for compiler contracts, Debug codegen diagnostics, and any retained ordinary Debug troubleshooting cells when independent invocation is useful.
-    ☐ Keep source/configuration fingerprints distinct for every profile whose target inventory or compiler flags differ.
-    ☐ Use one canonical relative-path source-digest byte stream on the host and in containers, and reject any manifest whose embedded source digest differs from the unified receipt and current source digest.
-    ☐ Include the scoped aggregate, target inventory, test inventory, configuration, instrumentation, generated-code mode, consumer scope, and source-audit receipt in provenance.
-    ☐ Reject `Run-Tests` when the build receipt does not cover the exact required test inventories, but do not rebuild automatically.
-    ☐ Preserve deterministic readable build directories with their existing short fingerprint suffix policy.
-    ☐ Validate that removed cells cannot reappear through `All`, default parameter expansion, preset inheritance, Compose service defaults, or aggregate dependencies.
-    ☐ Update Docker Compose orchestration so the reduced compiler matrix does not launch services or cells with no owned work.
-    ☐ End Phase 7 only when the public commands produce exactly the approved matrix and all optional diagnostics remain discoverable without contaminating the default receipt.
+    ☒ Replace misleading Release/Debug preset inheritance with profile-specific option bundles that express owned validation categories directly.
+    ☒ Ensure sanitizer and coverage profiles do not inherit unrelated Debug diagnostic targets.
+    ☒ Remove retired ordinary Debug presets from the default `Build` cell list while retaining only approved explicit diagnostic entry points.
+    ☒ Remove obsolete presets and options rather than keeping temporary compatibility aliases.
+    ☒ Update `tools/Build.ps1`, `tools/Run-NativeMatrix.ps1`, and `tools/Run-ContainerMatrix.ps1` to construct the approved default and optional cell sets.
+    ☒ Keep `Build` and `Run-Tests` as the user-facing full-pipeline commands.
+    ☒ Keep benchmark operations separate and Release-only.
+    ☒ Add explicit operations for compiler contracts, Debug codegen diagnostics, and any retained ordinary Debug troubleshooting cells when independent invocation is useful.
+    ☒ Keep source/configuration fingerprints distinct for every profile whose target inventory or compiler flags differ.
+    ☒ Use one canonical relative-path source-digest byte stream on the host and in containers, and reject any manifest whose embedded source digest differs from the unified receipt and current source digest.
+    ☒ Include the scoped aggregate, target inventory, test inventory, configuration, instrumentation, generated-code mode, consumer scope, and source-audit receipt in provenance.
+    ☒ Reject `Run-Tests` when the build receipt does not cover the exact required test inventories, but do not rebuild automatically.
+    ☒ Preserve deterministic readable build directories with their existing short fingerprint suffix policy.
+    ☒ Validate that removed cells cannot reappear through `All`, default parameter expansion, preset inheritance, Compose service defaults, or aggregate dependencies.
+    ☒ Update Docker Compose orchestration so the reduced compiler matrix does not launch services or cells with no owned work.
+    ☒ End Phase 7 only when the public commands produce exactly the approved matrix and all optional diagnostics remain discoverable without contaminating the default receipt.
 
+    Evidence:
+      ☒ The canonical resolver exposes exactly eight default cells, four opt-in ordinary Debug cells, five isolated codegen diagnostics, and five focused compiler-contract cells; optional operations use scoped aggregates outside the default receipt.
+      ☒ Every managed profile inherits an all-disabled neutral base and explicitly owns its categories; the verifier resolves required Release compiler, constexpr, header, and method-codegen controls to `ON` for every default Release preset.
+      ☒ Focused MSVC and GCC 13 compiler-contract workflows each built only their compiler-contract aggregate and passed all nine owned CTests; the container test-only process trace rejected artifact-tree configure/build work while allowing isolated negative-test fixtures.
+      ☒ A configure-only GCC 13 core Release run completed with the corrected Release option bundle, proving the core-only preset does not contradict the Release profile contract.
+      ☒ Host and container source hashing produced the same canonical relative-path digest, and manifests bind the scoped aggregate plus target, test, configuration, instrumentation, generated-code, and consumer provenance.
+      ☒ `Run-Tests` rejected a missing exact receipt without starting a build, and current CI callers no longer pass the retired `-SkipBuild` compatibility option.
+      ☒ JSON parsing, PowerShell parsing, POSIX shell parsing, Docker Compose expansion, matrix verification, and diff-integrity checks cover the refactored orchestration; the complete clean compiler matrix remains assigned to Phase 9.
   Phase 8 - Add Matrix-Ownership and No-Rebuild Regression Coverage:
     ☐ Add a machine-readable expected cell matrix covering default build, default tests, coverage, sanitizer, benchmarks, compiler contracts, and optional diagnostics.
     ☐ Add tests that compare every generated target inventory with the allowed categories for its profile.

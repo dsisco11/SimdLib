@@ -133,4 +133,141 @@ foreach ($debugSelection in @(
     }
 }
 
-Write-Host "Validated $($defaultPresets.Count) default validation presets and four opt-in ordinary Debug cells."
+Assert-MatrixSequence -Name 'Native scoped aggregates' `
+    -Actual @($nativeDefaultCells.Aggregate) `
+    -Expected @('ExhaustiveArtifacts', 'ExhaustiveArtifacts', 'ExhaustiveArtifacts', 'ExhaustiveArtifacts')
+Assert-MatrixSequence -Name 'Container scoped aggregates' `
+    -Actual @($containerDefaultCells.Aggregate) `
+    -Expected @('ExhaustiveArtifacts', 'ExhaustiveArtifacts', 'ExhaustiveArtifacts', 'ExhaustiveArtifacts')
+
+$nativeContractCells = @(Resolve-NativeCells -CompilerName All -CellScope Release -Operation BuildCompilerContracts)
+Assert-MatrixSequence -Name 'Native compiler-contract cells' `
+    -Actual @($nativeContractCells.Preset) `
+    -Expected @('msvc-compiler-contracts', 'clangcl-compiler-contracts')
+Assert-MatrixSequence -Name 'Native compiler-contract aggregates' `
+    -Actual @($nativeContractCells.Aggregate) `
+    -Expected @('SimdLibCompilerContractArtifacts', 'SimdLibCompilerContractArtifacts')
+$containerContractCells = @(Resolve-Cells -Services @('gcc13', 'gcc14', 'clang22') -CellScope Release -Operation BuildCompilerContracts)
+Assert-MatrixSequence -Name 'Container compiler-contract cells' `
+    -Actual @($containerContractCells.Preset) `
+    -Expected @('container-release-contracts', 'container-release-contracts', 'container-release-contracts')
+Assert-MatrixSequence -Name 'Container compiler-contract aggregates' `
+    -Actual @($containerContractCells.Aggregate) `
+    -Expected @('SimdLibCompilerContractArtifacts', 'SimdLibCompilerContractArtifacts', 'SimdLibCompilerContractArtifacts')
+
+Assert-MatrixSequence -Name 'Native compiler-contract test cells' `
+    -Actual @((Resolve-NativeCells -CompilerName All -CellScope Release -Operation TestCompilerContracts).Preset) `
+    -Expected @($nativeContractCells.Preset)
+Assert-MatrixSequence -Name 'Container compiler-contract test cells' `
+    -Actual @((Resolve-Cells -Services @('gcc13', 'gcc14', 'clang22') -CellScope Release -Operation TestCompilerContracts).Preset) `
+    -Expected @($containerContractCells.Preset)
+
+$nativeDiagnosticCells = @(Resolve-NativeCells -CompilerName All -CellScope Debug -Operation RecordCodegen)
+Assert-MatrixSequence -Name 'Native optional codegen diagnostics' `
+    -Actual @($nativeDiagnosticCells.Preset) `
+    -Expected @('msvc-debug-codegen-diagnostic', 'clangcl-debug-codegen-diagnostic')
+$containerDiagnosticCells = @(Resolve-Cells -Services @('gcc13', 'gcc14', 'clang22') -CellScope All -Operation RecordCodegen)
+Assert-MatrixSequence -Name 'Container optional codegen diagnostics' `
+    -Actual @($containerDiagnosticCells.Preset) `
+    -Expected @('gcc14-debug-codegen-diagnostic', 'clang22-debug-codegen-diagnostic', 'clang22-asan-ubsan-codegen-diagnostic')
+foreach ($diagnosticCell in @($nativeDiagnosticCells) + @($containerDiagnosticCells)) {
+    if ($diagnosticCell.Preset -in $defaultPresets -or $diagnosticCell.Aggregate -ne 'SimdLibDebugDiagnosticArtifacts') {
+        throw "Optional codegen diagnostic contaminates the default matrix: $($diagnosticCell.Preset)"
+    }
+}
+
+$presetPath = Join-Path (Get-PipelineRepositoryRoot) 'CMakePresets.json'
+$presetDocument = Get-Content -LiteralPath $presetPath -Raw | ConvertFrom-Json
+$presetByName = @{}
+foreach ($preset in $presetDocument.configurePresets) {
+    if ($presetByName.ContainsKey($preset.name)) { throw "Duplicate configure preset: $($preset.name)" }
+    $presetByName[$preset.name] = $preset
+}
+if ($presetByName.ContainsKey('development-common')) {
+    throw 'Retired development-common option inheritance remains available'
+}
+foreach ($bundleName in @('release-exhaustive-options', 'debug-diagnostics-options', 'debug-asan-ubsan-options', 'coverage-options', 'compiler-contract-options', 'codegen-diagnostic-options')) {
+    $bundle = $presetByName[$bundleName]
+    if (-not $bundle -or @($bundle.inherits) -notcontains 'development-base-options') {
+        throw "Validation option bundle does not inherit the neutral development base: $bundleName"
+    }
+}
+$releaseContractOptions = @(
+    'SIMDLIB_BUILD_CONFIGURATION_PROBES',
+    'SIMDLIB_BUILD_CONSTEXPR_PROBES',
+    'SIMDLIB_BUILD_HEADER_PROBES',
+    'SIMDLIB_BUILD_METHOD_FLAGS_CODEGEN_GATES'
+)
+foreach ($releasePresetName in @(
+        'msvc-release-exhaustive', 'clangcl-release-exhaustive',
+        'gcc13-core-release-exhaustive', 'gcc14-release-exhaustive',
+        'clang22-release-exhaustive')) {
+    foreach ($optionName in $releaseContractOptions) {
+        $resolvedValue = $null
+        $visited = [System.Collections.Generic.HashSet[string]]::new()
+        $pending = [System.Collections.Generic.Stack[string]]::new()
+        $pending.Push($releasePresetName)
+        while ($pending.Count -ne 0 -and $null -eq $resolvedValue) {
+            $name = $pending.Pop()
+            if (-not $visited.Add($name)) { continue }
+            $preset = $presetByName[$name]
+            if (-not $preset) { throw "Configure preset inheritance references missing preset $name" }
+            $cacheProperty = $preset.PSObject.Properties['cacheVariables']
+            if ($cacheProperty -and $cacheProperty.Value.PSObject.Properties[$optionName]) {
+                $resolvedValue = [string]$cacheProperty.Value.$optionName
+                break
+            }
+            $inheritsProperty = $preset.PSObject.Properties['inherits']
+            if ($inheritsProperty) {
+                $parents = @($inheritsProperty.Value)
+                for ($index = $parents.Count - 1; $index -ge 0; --$index) {
+                    $pending.Push([string]$parents[$index])
+                }
+            }
+        }
+        if ($resolvedValue -ne 'ON') {
+            throw "Release preset $releasePresetName resolves $optionName=$resolvedValue instead of ON"
+        }
+    }
+}
+
+foreach ($profilePreset in @{
+        'msvc-release-exhaustive' = 'RELEASE'; 'msvc-debug-diagnostics' = 'DEBUG'
+        'clangcl-release-exhaustive' = 'RELEASE'; 'clang-debug-coverage' = 'COVERAGE'
+        'gcc13-core-release-exhaustive' = 'RELEASE'; 'gcc14-release-exhaustive' = 'RELEASE'
+        'clang22-release-exhaustive' = 'RELEASE'; 'clang22-debug-asan-ubsan' = 'SANITIZER'
+    }.GetEnumerator()) {
+    $visited = [System.Collections.Generic.HashSet[string]]::new()
+    $pending = [System.Collections.Generic.Stack[string]]::new()
+    $pending.Push($profilePreset.Key)
+    $resolvedProfile = $null
+    while ($pending.Count -ne 0) {
+        $name = $pending.Pop()
+        if (-not $visited.Add($name)) { continue }
+        $preset = $presetByName[$name]
+        if (-not $preset) { throw "Configure preset inheritance references missing preset $name" }
+        $cacheProperty = $preset.PSObject.Properties['cacheVariables']
+        if ($null -eq $resolvedProfile -and $cacheProperty -and
+                $cacheProperty.Value.PSObject.Properties['SIMDLIB_VALIDATION_PROFILE']) {
+            $resolvedProfile = [string]$cacheProperty.Value.SIMDLIB_VALIDATION_PROFILE
+        }
+        $inheritsProperty = $preset.PSObject.Properties['inherits']
+        if ($inheritsProperty) {
+            foreach ($parent in @($inheritsProperty.Value)) { $pending.Push([string]$parent) }
+        }
+    }
+    if ($resolvedProfile -ne $profilePreset.Value) {
+        throw "Default preset $($profilePreset.Key) resolves validation profile $resolvedProfile instead of $($profilePreset.Value)"
+    }
+}
+
+$compose = Get-Content -LiteralPath (Join-Path (Get-PipelineRepositoryRoot) 'compose.yml') -Raw
+if ($compose -notmatch 'SIMDLIB_CONTAINER_PRESET:-container-release-contracts') {
+    throw 'Compose defaults do not select the owned compiler-contract profile'
+}
+$runTestsSource = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'Run-Tests.ps1') -Raw
+if ($runTestsSource -match "&\s*\(Join-Path[^\r\n]*Build\.ps1|--build") {
+    throw 'Run-Tests contains an automatic configure or build path'
+}
+
+Write-Host "Validated $($defaultPresets.Count) default presets, four opt-in Debug cells, five codegen diagnostics, and five focused compiler-contract cells."

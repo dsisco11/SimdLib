@@ -103,6 +103,22 @@ tools/Record-Codegen.ps1 -Scope Containers -Compiler Clang22 -Cell AsanUbsan
 The operation builds only the selected fixture/comparison graph and records its
 own provenance; it is not part of the unified default build receipt.
 
+Focused compiler contracts use the same compiler identities without building
+runtime, constexpr, smoke, consumer, or generated-code categories:
+
+```powershell
+tools/Run-NativeMatrix.ps1 -Action BuildCompilerContracts -Compiler Msvc -Cell Release
+tools/Run-NativeMatrix.ps1 -Action TestCompilerContracts -Compiler Msvc -Cell Release
+tools/Run-NativeMatrix.ps1 -Action BuildCompilerContracts -Compiler ClangCl -Cell Release
+tools/Run-NativeMatrix.ps1 -Action TestCompilerContracts -Compiler ClangCl -Cell Release
+tools/Run-ContainerMatrix.ps1 -Action BuildCompilerContracts -Compiler Gcc13 -Cell Release
+tools/Run-ContainerMatrix.ps1 -Action TestCompilerContracts -Compiler Gcc13 -Cell Release
+tools/Run-ContainerMatrix.ps1 -Action BuildCompilerContracts -Compiler Gcc14 -Cell Release
+tools/Run-ContainerMatrix.ps1 -Action TestCompilerContracts -Compiler Gcc14 -Cell Release
+tools/Run-ContainerMatrix.ps1 -Action BuildCompilerContracts -Compiler Clang22 -Cell Release
+tools/Run-ContainerMatrix.ps1 -Action TestCompilerContracts -Compiler Clang22 -Cell Release
+```
+
 Ordinary Debug troubleshooting uses the lower-level matrix runners explicitly:
 
 ```powershell

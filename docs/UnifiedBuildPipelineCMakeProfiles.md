@@ -74,9 +74,9 @@ default matrix. `Pipeline.Common.psm1` defines the default preset set: MSVC
 Release and Debug, clang-cl Release, GCC 13 core Release, GCC 14 Release,
 Clang 22 Release and ASan+UBSan Debug, and native Clang coverage.
 
-Hidden presets own common development controls, exhaustive Release controls,
+Hidden presets inherit a neutral all-disabled development base and then own complete profile-specific Release controls,
 ordinary Debug controls, optional codegen-diagnostic controls, sanitizer flags,
-coverage controls, compiler-driver selection, and container defaults. Every
+coverage controls, focused compiler-contract controls, compiler-driver selection, and container defaults. Every
 visible configure preset has its own stable binary directory. MSVC Release and
 ordinary Debug additionally restrict `CMAKE_CONFIGURATION_TYPES` to `Release`
 and `Debug`, respectively.

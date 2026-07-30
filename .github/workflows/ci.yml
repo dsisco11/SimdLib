@@ -21,7 +21,7 @@ jobs:
       - name: Build every MSVC validation cell
         run: tools/Build.ps1 -Scope Native -Compiler Msvc
       - name: Test the exact MSVC build receipt
-        run: tools/Run-Tests.ps1 -Scope Native -Compiler Msvc -SkipBuild
+        run: tools/Run-Tests.ps1 -Scope Native -Compiler Msvc
       - name: Build MSVC benchmark artifacts explicitly
         run: tools/Build-Benchmarks.ps1 -Scope Native -Compiler Msvc
       - name: Upload MSVC evidence
@@ -56,7 +56,7 @@ jobs:
       - name: Build every Clang validation cell
         run: tools/Build.ps1 -Scope Native -Compiler ClangCl,ClangCoverage
       - name: Test the exact Clang build receipt
-        run: tools/Run-Tests.ps1 -Scope Native -Compiler ClangCl,ClangCoverage -SkipBuild
+        run: tools/Run-Tests.ps1 -Scope Native -Compiler ClangCl,ClangCoverage
       - name: Build clang-cl benchmark artifacts explicitly
         run: tools/Build-Benchmarks.ps1 -Scope Native -Compiler ClangCl
       - name: Upload Clang evidence
@@ -92,7 +92,7 @@ jobs:
         run: tools/Build.ps1 -Scope Containers
       - name: Test the exact Linux build receipt
         shell: pwsh
-        run: tools/Run-Tests.ps1 -Scope Containers -SkipBuild
+        run: tools/Run-Tests.ps1 -Scope Containers
       - name: Build Linux benchmark artifacts explicitly
         shell: pwsh
         run: tools/Build-Benchmarks.ps1 -Scope Containers

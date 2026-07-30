@@ -9,7 +9,7 @@ the existing Release trees. Coverage is an independent Clang Debug cell.
 #>
 [CmdletBinding()]
 param(
-    [ValidateSet('Build', 'Test', 'RecordCodegen', 'BuildBenchmarks', 'RunBenchmarks')]
+    [ValidateSet('Build', 'Test', 'BuildCompilerContracts', 'TestCompilerContracts', 'RecordCodegen', 'BuildBenchmarks', 'RunBenchmarks')]
     [string]$Action = 'Build',
     [ValidateSet('All', 'Release', 'Debug', 'Coverage')]
     [string]$Cell = 'All',
@@ -59,6 +59,17 @@ function Resolve-NativeCells {
     }
     $cells = [System.Collections.Generic.List[object]]::new()
     foreach ($compilerKey in $compilers) {
+        if ($Operation -in @('BuildCompilerContracts', 'TestCompilerContracts')) {
+            if ($compilerKey -ne 'clang-coverage' -and $CellScope -in @('All', 'Release')) {
+                $presetPrefix = if ($compilerKey -eq 'msvc') { 'msvc' } else { 'clangcl' }
+                $cells.Add([pscustomobject]@{
+                        Compiler = $compilerKey; Key = 'compiler-contracts'; Preset = "$presetPrefix-compiler-contracts"
+                        BuildProfile = 'Release'; Generator = if ($compilerKey -eq 'msvc') { 'Visual Studio 17 2022' } else { 'Ninja' }
+                        Consumer = $false; Coverage = $false; Sanitizer = 'none'; CodegenMode = 'OFF'
+                    })
+            }
+            continue
+        }
         if ($compilerKey -eq 'clang-coverage') {
             if ($Operation -notin @('RecordCodegen', 'BuildBenchmarks', 'RunBenchmarks') -and $CellScope -in @('All', 'Coverage')) {
                 $cells.Add([pscustomobject]@{
@@ -101,6 +112,14 @@ function Resolve-NativeCells {
                 })
         }
     }
+    $aggregate = switch ($Operation) {
+        { $_ -in @('BuildCompilerContracts', 'TestCompilerContracts') } { 'SimdLibCompilerContractArtifacts' }
+        'RecordCodegen' { 'SimdLibDebugDiagnosticArtifacts' }
+        default { 'ExhaustiveArtifacts' }
+    }
+    foreach ($cell in $cells) {
+        Add-Member -InputObject $cell -NotePropertyName Aggregate -NotePropertyValue $aggregate
+    }
     return $cells.ToArray()
 }
 
@@ -139,6 +158,7 @@ function Initialize-NativeArtifact {
             key = $BuildCell.Key; preset = $BuildCell.Preset; buildProfile = $BuildCell.BuildProfile
             sanitizer = $BuildCell.Sanitizer; coverage = $BuildCell.Coverage; generator = $BuildCell.Generator
             codegenMode = $BuildCell.CodegenMode
+            aggregate = $BuildCell.Aggregate
             consumerScope = if ($BuildCell.Consumer) { 'compiler-release' } else { 'none' }
             cxxStandard = '20-and-23-register'
         }
@@ -324,7 +344,9 @@ function Write-NativeManifest {
     $mainInventory = Join-Path $Artifact.Provenance 'main-test-artifacts.inventory'
     $consumerInventory = Join-Path $Artifact.Provenance 'consumer-test-artifacts.inventory'
     $codegenIndex = Join-Path $Artifact.Provenance 'codegen-records.index'
+    $targetInventory = Join-Path $Artifact.Build 'development-profile-targets.txt'
     $consumerScope = Get-NativeConsumerScope -Artifact $Artifact
+    $aggregate = if ($Operation -eq 'build-benchmarks') { 'BenchmarkArtifacts' } else { $Artifact.Definition.Aggregate }
     $mainMetadata = Join-Path $Artifact.Build 'CTestTestfile.cmake'
     $consumerMetadata = Join-Path $Artifact.Consumer 'CTestTestfile.cmake'
     $manifestName = if ($Operation -eq 'build-benchmarks') { 'benchmark-build.manifest' } else { 'validation-build.manifest' }
@@ -337,7 +359,8 @@ function Write-NativeManifest {
         "compiler_id=$($Artifact.Definition.Compiler)", "compiler=$($Artifact.CompilerIdentity.version)", 'base_image=none',
         "preset=$($Artifact.Definition.Preset)", "build_profile=$($Artifact.Definition.BuildProfile)",
         "sanitizer=$($Artifact.Definition.Sanitizer)", "codegen_mode=$($Artifact.Definition.CodegenMode)",
-        "consumer_scope=$consumerScope",
+        "aggregate=$aggregate", "consumer_scope=$consumerScope",
+        "target_inventory=$targetInventory", "target_inventory_sha256=$(Get-OptionalFileHash -Path $targetInventory)",
         "build_directory=$($Artifact.Build)", "consumer_directory=$($Artifact.Consumer)",
         "cmake_cache_sha256=$(Get-OptionalFileHash -Path (Join-Path $Artifact.Build 'CMakeCache.txt'))",
         'required_cpu_features=sse4.2,avx2,fma,bmi1,bmi2',
@@ -369,6 +392,7 @@ function Assert-NativeManifest {
         compiler_id = $Artifact.Definition.Compiler; preset = $Artifact.Definition.Preset
         build_profile = $Artifact.Definition.BuildProfile; sanitizer = $Artifact.Definition.Sanitizer
         codegen_mode = $Artifact.Definition.CodegenMode
+        aggregate = if ($Operation -eq 'build-benchmarks') { 'BenchmarkArtifacts' } else { $Artifact.Definition.Aggregate }
         consumer_scope = Get-NativeConsumerScope -Artifact $Artifact
     }
     foreach ($key in $expected.Keys) {
@@ -378,6 +402,7 @@ function Assert-NativeManifest {
     if ($manifest.source_digest -ne $sourceDigest) { throw "Build manifest is stale for current source inputs: $path" }
     $cache = Join-Path $Artifact.Build 'CMakeCache.txt'
     if ($manifest.cmake_cache_sha256 -ne (Get-OptionalFileHash -Path $cache)) { throw "Build manifest is stale for CMake cache: $path" }
+    if ($manifest.target_inventory_sha256 -ne (Get-OptionalFileHash -Path $manifest.target_inventory)) { throw "Configured target inventory is missing or stale: $($manifest.target_inventory)" }
     if ($Operation -eq 'build-validation') {
         foreach ($pair in @(
                 @('main_test_inventory', 'main_test_inventory_sha256'),
@@ -411,7 +436,7 @@ function Build-NativeValidationCell {
     $configureArguments = @('--preset', $Artifact.Definition.Preset, '-S', $repositoryRoot)
     if (Test-CiEnvironment) { $configureArguments = @('--fresh') + $configureArguments }
     Invoke-PipelineCommand -FilePath $cmake -ArgumentList $configureArguments -LogPath (Join-Path $Artifact.Reports 'main-configure.log')
-    $buildArguments = @('--build', $Artifact.Build, '--parallel', '--target', 'ExhaustiveArtifacts')
+    $buildArguments = @('--build', $Artifact.Build, '--parallel', '--target', $Artifact.Definition.Aggregate)
     if ($Artifact.Definition.Compiler -eq 'msvc') { $buildArguments += @('--config', $Artifact.Definition.BuildProfile) }
     Invoke-PipelineCommand -FilePath $cmake -ArgumentList $buildArguments -LogPath (Join-Path $Artifact.Reports 'main-build.log')
 
@@ -444,6 +469,22 @@ function Build-NativeValidationCell {
     $allowEmptyCodegen = $Artifact.Definition.CodegenMode -eq 'OFF'
     Write-CodegenRecordIndex -BuildDirectory $Artifact.Build -OutputPath (Join-Path $Artifact.Provenance 'codegen-records.index') -AllowEmpty:$allowEmptyCodegen
     Write-NativeManifest -Artifact $Artifact -Operation 'build-validation'
+}
+
+<#
+.SYNOPSIS
+Runs the focused compiler-contract CTest inventory without building.
+.PARAMETER Artifact
+Resolved compiler-contract artifact.
+#>
+function Test-NativeCompilerContractCell {
+    param([Parameter(Mandatory)]$Artifact)
+    [void](Assert-NativeManifest -Artifact $Artifact -Operation 'build-validation')
+    $arguments = @('--test-dir', $Artifact.Build, '--output-on-failure')
+    if ($Artifact.Definition.Compiler -eq 'msvc') { $arguments += @('-C', $Artifact.Definition.BuildProfile) }
+    if ($TestRegex) { $arguments += @('--tests-regex', $TestRegex) }
+    if ($TestLabel) { $arguments += @('--label-regex', $TestLabel) }
+    Invoke-PipelineCommand -FilePath $ctest -ArgumentList $arguments -LogPath (Join-Path $Artifact.Reports 'compiler-contract-tests.log')
 }
 
 <#
@@ -710,9 +751,12 @@ function Run-NativeBenchmarks {
     Invoke-PipelineCommand -FilePath $benchmark.FullName -ArgumentList @('[simdlib][benchmark]', '--benchmark-samples', '25') -LogPath (Join-Path $Artifact.Reports 'benchmark-execution.txt')
 }
 
-if (($TestRegex -or $TestLabel) -and $Action -ne 'Test') { throw '-TestRegex and -TestLabel are valid only for Test.' }
+if (($TestRegex -or $TestLabel) -and $Action -notin @('Test', 'TestCompilerContracts')) { throw '-TestRegex and -TestLabel are valid only for Test and TestCompilerContracts.' }
 if ($Cell -eq 'Coverage' -and $Compiler -notin @('All', 'ClangCoverage')) { throw 'Coverage is owned by the native Clang coverage compiler.' }
 if ($Action -in @('BuildBenchmarks', 'RunBenchmarks') -and $Cell -notin @('All', 'Release')) { throw 'Benchmark operations use Release cells only.' }
+if ($Action -in @('BuildCompilerContracts', 'TestCompilerContracts') -and $Cell -notin @('All', 'Release')) {
+    throw 'Focused compiler-contract operations use Release compiler identities.'
+}
 if ($Action -eq 'RecordCodegen') {
     if ($Cell -notin @('All', 'Debug')) { throw 'Native codegen diagnostics use Debug cells only.' }
     if ($Compiler -eq 'ClangCoverage') { throw 'Native coverage does not own a Register codegen diagnostic.' }
@@ -727,6 +771,8 @@ foreach ($artifact in $artifacts) {
         Write-Host "Native operation: action=$Action cell=$($artifact.Id) root=$($artifact.Root)"
         switch ($Action) {
             'Build' { Build-NativeValidationCell -Artifact $artifact }
+            'BuildCompilerContracts' { Build-NativeValidationCell -Artifact $artifact }
+            'TestCompilerContracts' { Test-NativeCompilerContractCell -Artifact $artifact }
             'Test' { Test-NativeCell -Artifact $artifact }
             'RecordCodegen' { Record-NativeCodegenDiagnostic -Artifact $artifact }
             'BuildBenchmarks' { Build-NativeBenchmarks -Artifact $artifact }

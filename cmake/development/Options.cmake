@@ -61,6 +61,8 @@ option(SIMDLIB_STRICT_WARNINGS
     "Treat warnings in SimdLib-owned development targets as errors" OFF)
 option(SIMDLIB_ENABLE_COVERAGE
     "Instrument SimdLib-owned development targets for source coverage" OFF)
+option(SIMDLIB_BUILD_METHOD_FLAGS_CODEGEN_GATES
+    "Build method-attribute generated-code comparisons" OFF)
 option(SIMDLIB_BUILD_REGISTER_CODEGEN_GATES
     "Build Register generated-code comparisons" OFF)
 option(SIMDLIB_VALIDATE_EXHAUSTIVE_TARGETS

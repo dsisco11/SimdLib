@@ -172,7 +172,7 @@ Image refreshes are deliberate review changes:
 2. Update every exact package version, CMake checksum, and Catch2 commit.
 3. Run `InspectEnvironment` with `-NoImageCache` and review the identities.
 4. Run `tools/Build.ps1 -Scope Containers`, then
-   `tools/Run-Tests.ps1 -Scope Containers -SkipBuild` and
+   `tools/Run-Tests.ps1 -Scope Containers` and
    `tools/Build-Benchmarks.ps1 -Scope Containers` followed by
    `tools/Run-Benchmarks.ps1 -Scope Containers`.
 5. Confirm the native MSVC and clang-cl configurations separately.

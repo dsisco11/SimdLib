@@ -151,9 +151,9 @@ Debug and sanitizer fingerprints contain no Register generated-code workload:
 
 ```powershell
 tools/Build.ps1 -Scope Native -Compiler Msvc,ClangCl
-tools/Run-Tests.ps1 -Scope Native -Compiler Msvc,ClangCl -SkipBuild
+tools/Run-Tests.ps1 -Scope Native -Compiler Msvc,ClangCl
 tools/Build.ps1 -Scope Containers -Compiler Gcc14,Clang22
-tools/Run-Tests.ps1 -Scope Containers -Compiler Gcc14,Clang22 -SkipBuild
+tools/Run-Tests.ps1 -Scope Containers -Compiler Gcc14,Clang22
 tools/Record-Codegen.ps1 -Scope Native -Compiler Msvc -Cell Debug
 tools/Record-Codegen.ps1 -Scope Containers -Compiler Clang22 -Cell Debug
 tools/Record-Codegen.ps1 -Scope Containers -Compiler Clang22 -Cell AsanUbsan

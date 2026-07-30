@@ -1,10 +1,10 @@
 <#
 .SYNOPSIS
-Builds once and runs the requested SimdLib validation matrix.
+Runs the requested SimdLib validation matrix from an exact build receipt.
 .DESCRIPTION
-The default path invokes Build.ps1 exactly once, validates its exact manifest
-receipt, and then runs only test operations. SkipBuild is intended for CI or
-advanced local use and is rejected unless the matching receipt is current.
+The command validates the exact receipt produced by Build.ps1 and then runs only
+test operations. A missing, stale, incomplete, or mismatched receipt is rejected
+without configuring or rebuilding any target.
 #>
 [CmdletBinding()]
 param(
@@ -12,7 +12,6 @@ param(
     [string]$Scope = 'All',
     [ValidateSet('All', 'Msvc', 'ClangCl', 'ClangCoverage', 'Gcc13', 'Gcc14', 'Clang22')]
     [string[]]$Compiler = @('All'),
-    [switch]$SkipBuild,
     [string]$TestRegex = '',
     [string]$TestLabel = ''
 )
@@ -56,7 +55,7 @@ function Assert-BuildReceipt {
     $receiptPath = Join-Path $pipelineRoot "provenance/build-$selectionId.json"
     if (-not (Test-Path -LiteralPath $receiptPath -PathType Leaf)) { throw "Required unified build receipt is missing: $receiptPath" }
     $receipt = Get-Content -LiteralPath $receiptPath -Raw | ConvertFrom-Json
-    if ($receipt.schema -ne 'simdlib.unified-build-receipt.v2' -or $receipt.status -ne 'complete' -or $receipt.scope -ne $Scope) {
+    if ($receipt.schema -ne 'simdlib.unified-build-receipt.v3' -or $receipt.status -ne 'complete' -or $receipt.scope -ne $Scope) {
         throw "Unified build receipt is incomplete or incompatible: $receiptPath"
     }
     $receiptCompilers = @($receipt.compilers)
@@ -75,14 +74,31 @@ function Assert-BuildReceipt {
         if (-not (Test-Path -LiteralPath $manifestPath -PathType Leaf)) { throw "Receipt manifest is missing: $manifestPath" }
         $hash = (Get-FileHash -LiteralPath $manifestPath -Algorithm SHA256).Hash.ToLowerInvariant()
         if ($hash -ne $entry.sha256) { throw "Receipt manifest changed after the unified build: $manifestPath" }
+        $manifest = Read-PipelineManifest -Path $manifestPath
+        if ($manifest.source_digest -ne $currentDigest -or $manifest.source_digest -ne $entry.sourceDigest) {
+            throw "Receipt manifest source digest does not match the unified receipt and current sources: $manifestPath"
+        }
+        $provenancePairs = @{
+            aggregate = 'aggregate'; target_inventory_sha256 = 'targetInventorySha256'
+            main_test_inventory_sha256 = 'testInventorySha256'; build_profile = 'configuration'
+            sanitizer = 'instrumentation'; codegen_mode = 'generatedCodeMode'; consumer_scope = 'consumerScope'
+        }
+        foreach ($manifestKey in $provenancePairs.Keys) {
+            $receiptValue = [string]$entry.($provenancePairs[$manifestKey])
+            if ($manifest[$manifestKey] -ne $receiptValue) {
+                throw "Receipt manifest provenance $manifestKey does not match the unified receipt: $manifestPath"
+            }
+        }
+        if ($manifest.aggregate -ne 'ExhaustiveArtifacts' -or
+            $manifest.target_inventory_sha256 -eq 'none' -or
+            $manifest.main_test_inventory_sha256 -eq 'none') {
+            throw "Receipt manifest does not cover the required default target and test inventories: $manifestPath"
+        }
     }
     return $receiptPath
 }
 
 $selectedCompilers = @(Resolve-TestSelection)
-if (-not $SkipBuild) {
-    & (Join-Path $PSScriptRoot 'Build.ps1') -Scope $Scope -Compiler $selectedCompilers
-}
 $receiptPath = Assert-BuildReceipt -SelectedCompilers $selectedCompilers
 
 $operations = [System.Collections.Generic.List[object]]::new()

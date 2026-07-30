@@ -290,7 +290,7 @@ The accepted scopes and compiler filters are:
 | `Containers` | `Gcc13`, `Gcc14`, `Clang22`        | Linux Release/Debug plus Clang ASan+UBSan           |
 
 For example, a Linux-only CI worker uses `tools/Build.ps1 -Scope Containers`
-followed by `tools/Run-Tests.ps1 -Scope Containers -SkipBuild`. A focused local
+followed by `tools/Run-Tests.ps1 -Scope Containers`. A focused local
 diagnostic can use `tools/Run-Tests.ps1 -Scope Native -Compiler Msvc` or
 `tools/Run-Tests.ps1 -Scope Containers -Compiler Gcc14`.
 
@@ -303,8 +303,7 @@ incompatible artifacts and never configure or compile. The explicit benchmark
 build requires completed validation manifests and targets only
 `BenchmarkArtifacts` in the owning Release trees. Objects are reusable only
 when their complete compilation fingerprint matches. See [Unified build and
-validation](../docs/BuildPipeline.md) for the complete identity and guarded
-`-SkipBuild` contract.
+validation](../docs/BuildPipeline.md) for the complete identity and receipt-consumption contract.
 
 Instrumentation boundaries are explicit. Release and Debug use separate trees;
 Clang ASan+UBSan has its own instrumented Debug fingerprint; source coverage has
@@ -341,6 +340,7 @@ project. They are not declared for an `add_subdirectory` consumer:
   contracts. Exhaustive Release profiles own the compiler and feature matrix;
   Debug and sanitizer profiles disable duplicate evaluation, while native
   Clang coverage retains its distinct driver and platform contract.
+- `SIMDLIB_BUILD_METHOD_FLAGS_CODEGEN_GATES=ON` builds the method-attribute generated-code comparison owned by Release profiles.
 - `SIMDLIB_BUILD_REGISTER_CODEGEN_GATES=ON` builds the Register wrapper/raw
   generated-code and ABI comparison corpus when the compiler supports the
   C++23 Register interface.
@@ -363,7 +363,7 @@ for example
 ## Continuous validation
 
 `.github/workflows/ci.yml` delegates to the same scoped `Build.ps1` and
-`Run-Tests.ps1 -SkipBuild` commands used locally. Native MSVC, native clang-cl
+`Run-Tests.ps1` commands used locally. Native MSVC, native clang-cl
 plus coverage, and Linux container compilers each build their assigned
 fingerprints once and then run test-only operations. Each benchmark-owning CI
 job invokes `Build-Benchmarks.ps1` explicitly after correctness testing; the

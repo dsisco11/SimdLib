@@ -76,10 +76,12 @@ function Get-PipelineSourceDigest {
     }
     $stream = [System.IO.MemoryStream]::new()
     try {
-        $orderedFiles = $files.ToArray()
-        [Array]::Sort($orderedFiles, [System.StringComparer]::Ordinal)
-        foreach ($file in $orderedFiles) {
-            $relative = [System.IO.Path]::GetRelativePath($root, $file).Replace('\', '/')
+        $relativeFiles = @($files | ForEach-Object {
+                [System.IO.Path]::GetRelativePath($root, $_).Replace('\', '/')
+            })
+        [Array]::Sort($relativeFiles, [System.StringComparer]::Ordinal)
+        foreach ($relative in $relativeFiles) {
+            $file = Join-Path $root $relative.Replace('/', [System.IO.Path]::DirectorySeparatorChar)
             $relativeBytes = $script:Utf8NoBom.GetBytes($relative)
             $stream.Write($relativeBytes, 0, $relativeBytes.Length)
             $stream.WriteByte(0)

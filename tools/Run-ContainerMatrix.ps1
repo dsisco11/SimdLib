@@ -9,7 +9,7 @@ InspectEnvironment performs no project build.
 #>
 [CmdletBinding()]
 param(
-    [ValidateSet('Build', 'Test', 'RecordCodegen', 'BuildBenchmarks', 'RunBenchmarks', 'InspectEnvironment', 'Clean')]
+    [ValidateSet('Build', 'Test', 'BuildCompilerContracts', 'TestCompilerContracts', 'RecordCodegen', 'BuildBenchmarks', 'RunBenchmarks', 'InspectEnvironment', 'Clean')]
     [string]$Action = 'Build',
     [ValidateSet('All', 'Release', 'Debug', 'AsanUbsan')]
     [string]$Cell = 'All',
@@ -96,6 +96,15 @@ function Resolve-Cells {
     )
     $cells = [System.Collections.Generic.List[object]]::new()
     foreach ($service in $Services) {
+        if ($Operation -in @('BuildCompilerContracts', 'TestCompilerContracts')) {
+            if ($CellScope -in @('All', 'Release')) {
+                $cells.Add([pscustomobject]@{
+                        Service = $service; Key = 'compiler-contracts'; Preset = 'container-release-contracts'
+                        BuildProfile = 'Release'; Sanitizer = 'none'; CodegenMode = 'OFF'; Consumer = $false
+                    })
+            }
+            continue
+        }
         if ($Operation -eq 'RecordCodegen') {
             if ($service -ne 'gcc13' -and $CellScope -in @('All', 'Debug')) {
                 $cells.Add([pscustomobject]@{
@@ -125,6 +134,14 @@ function Resolve-Cells {
         if ($service -eq 'clang22' -and $CellScope -in @('All', 'AsanUbsan')) {
             $cells.Add([pscustomobject]@{ Service = $service; Key = 'debug-asan-ubsan'; Preset = 'clang22-debug-asan-ubsan'; BuildProfile = 'Debug'; Sanitizer = 'asan-ubsan'; CodegenMode = 'OFF'; Consumer = $false })
         }
+    }
+    $aggregate = switch ($Operation) {
+        { $_ -in @('BuildCompilerContracts', 'TestCompilerContracts') } { 'SimdLibCompilerContractArtifacts' }
+        'RecordCodegen' { 'SimdLibDebugDiagnosticArtifacts' }
+        default { 'ExhaustiveArtifacts' }
+    }
+    foreach ($cell in $cells) {
+        Add-Member -InputObject $cell -NotePropertyName Aggregate -NotePropertyValue $aggregate
     }
     return $cells.ToArray()
 }
@@ -203,6 +220,7 @@ function New-FingerprintDocument {
             buildProfile = $BuildCell.BuildProfile
             sanitizer = $BuildCell.Sanitizer
             codegenMode = $BuildCell.CodegenMode
+            aggregate = $BuildCell.Aggregate
             consumerScope = if ($BuildCell.Consumer) { 'compiler-release' } else { 'none' }
             generator = 'Ninja'
             cxxStandard = 20
@@ -242,6 +260,7 @@ function Initialize-CellArtifact {
         BuildProfile = $BuildCell.BuildProfile
         Sanitizer = $BuildCell.Sanitizer
         CodegenMode = $BuildCell.CodegenMode
+        Aggregate = $BuildCell.Aggregate
         Consumer = $BuildCell.Consumer
         Fingerprint = $digest
         HostRoot = $hostRoot
@@ -287,6 +306,7 @@ function Start-CellOperation {
                 '--build-profile', $CellArtifact.BuildProfile,
                 '--sanitizer', $CellArtifact.Sanitizer,
                 '--codegen-mode', $CellArtifact.CodegenMode,
+                '--aggregate', $CellArtifact.Aggregate,
                 '--consumer-scope', $(if ($CellArtifact.Consumer) { 'compiler-release' } else { 'none' }),
                 '--artifact-root', $CellArtifact.ContainerRoot,
                 '--fingerprint-sha256', $CellArtifact.Fingerprint
@@ -445,17 +465,20 @@ if ($Action -eq 'Clean') {
     Remove-PipelineState -Services $services
     exit 0
 }
-if ($NoImageCache -and ($SkipImageBuild -or $Action -notin @('Build', 'RecordCodegen', 'InspectEnvironment'))) {
+if ($NoImageCache -and ($SkipImageBuild -or $Action -notin @('Build', 'BuildCompilerContracts', 'RecordCodegen', 'InspectEnvironment'))) {
     throw '-NoImageCache is only valid when Build, RecordCodegen, or InspectEnvironment owns the image build.'
 }
-if ($SkipImageBuild -and $Action -notin @('Build', 'RecordCodegen', 'InspectEnvironment')) {
+if ($SkipImageBuild -and $Action -notin @('Build', 'BuildCompilerContracts', 'RecordCodegen', 'InspectEnvironment')) {
     throw '-SkipImageBuild is only valid for Build, RecordCodegen, or InspectEnvironment.'
 }
-if (($TestRegex -or $TestLabel) -and $Action -ne 'Test') {
-    throw '-TestRegex and -TestLabel are optional Test-only diagnostics.'
+if (($TestRegex -or $TestLabel) -and $Action -notin @('Test', 'TestCompilerContracts')) {
+    throw '-TestRegex and -TestLabel are valid only for Test and TestCompilerContracts.'
 }
 if ($Cell -eq 'AsanUbsan' -and 'clang22' -notin $services) {
     throw 'The ASan+UBSan cell is owned by Clang 22.'
+}
+if ($Action -in @('BuildCompilerContracts', 'TestCompilerContracts') -and $Cell -notin @('All', 'Release')) {
+    throw 'Focused compiler-contract operations use Release compiler identities.'
 }
 if ($Action -eq 'RecordCodegen') {
     if ($Cell -notin @('All', 'Debug', 'AsanUbsan')) {
@@ -466,7 +489,9 @@ if ($Action -eq 'RecordCodegen') {
     }
 }
 
-$selectedCellScope = if ($Action -eq 'InspectEnvironment') {
+$selectedCellScope = if ($Action -in @('BuildCompilerContracts', 'TestCompilerContracts')) {
+    'Release'
+} elseif ($Action -eq 'InspectEnvironment') {
     if ($Cell -notin @('All', 'Release')) { throw 'Environment inspection is compiler-scoped and uses one Release identity per compiler.' }
     'Release'
 } elseif ($Action -in @('BuildBenchmarks', 'RunBenchmarks')) {
@@ -485,7 +510,7 @@ $logDirectory = Join-Path $pipelineRoot "logs/$runId"
 New-Item -ItemType Directory -Path $logDirectory -Force | Out-Null
 Write-Host "Container operation: action=$Action cells=$($cells.Count) maxParallel=$MaxParallel"
 
-if ($Action -in @('Build', 'RecordCodegen', 'InspectEnvironment') -and -not $SkipImageBuild) {
+if ($Action -in @('Build', 'BuildCompilerContracts', 'RecordCodegen', 'InspectEnvironment') -and -not $SkipImageBuild) {
     $buildArguments = @(
         'compose', '--file', $composeFile, '--project-name', $imageBuildProjectName,
         '--profile', 'compilers', 'build', '--provenance=false'
@@ -507,6 +532,8 @@ $cellArtifacts = @(
 )
 $operation = switch ($Action) {
     'Build' { 'build-validation' }
+    'BuildCompilerContracts' { 'build-validation' }
+    'TestCompilerContracts' { 'test-compiler-contracts' }
     'Test' { 'test' }
     'RecordCodegen' { 'record-codegen' }
     'BuildBenchmarks' { 'build-benchmarks' }

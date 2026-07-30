@@ -72,18 +72,38 @@ function Write-BuildReceipt {
         if ($matches.Count -eq 0) { throw "Build completed without the required manifest for preset $preset" }
         $manifest = Read-PipelineManifest -Path $matches[0].FullName
         if ($manifest.operation -ne 'build-validation' -or $manifest.status -ne 'complete') { throw "Incomplete validation manifest for preset $preset" }
+        if ($manifest.source_digest -ne $currentSourceDigest) { throw "Validation manifest has a stale source digest for preset $preset" }
+        if ($manifest.aggregate -ne 'ExhaustiveArtifacts') { throw "Default validation manifest has an unexpected scoped aggregate for preset $preset" }
+        foreach ($requiredManifestField in @('target_inventory_sha256', 'main_test_inventory_sha256', 'build_profile', 'sanitizer', 'codegen_mode', 'consumer_scope')) {
+            if (-not $manifest.ContainsKey($requiredManifestField) -or [string]::IsNullOrWhiteSpace($manifest[$requiredManifestField])) {
+                throw "Validation manifest omits required provenance $requiredManifestField for preset $preset"
+            }
+        }
+        foreach ($requiredInventoryField in @('target_inventory_sha256', 'main_test_inventory_sha256')) {
+            if ($manifest[$requiredInventoryField] -eq 'none') {
+                throw "Validation manifest has no required $requiredInventoryField for preset $preset"
+            }
+        }
         $entries.Add([ordered]@{
                 preset = $preset
                 path = [System.IO.Path]::GetRelativePath($repositoryRoot, $matches[0].FullName).Replace('\', '/')
                 sha256 = (Get-FileHash -LiteralPath $matches[0].FullName -Algorithm SHA256).Hash.ToLowerInvariant()
                 fingerprint = $manifest.fingerprint_sha256
+                sourceDigest = $manifest.source_digest
+                aggregate = $manifest.aggregate
+                targetInventorySha256 = $manifest.target_inventory_sha256
+                testInventorySha256 = $manifest.main_test_inventory_sha256
+                configuration = $manifest.build_profile
+                instrumentation = $manifest.sanitizer
+                generatedCodeMode = $manifest.codegen_mode
+                consumerScope = $manifest.consumer_scope
             })
     }
     $selectionText = "$Scope|$($SelectedCompilers -join ',')"
     $selectionId = (Get-PipelineTextDigest -Text $selectionText).Substring(0, 16)
     $receiptPath = Join-Path $pipelineRoot "provenance/build-$selectionId.json"
     $document = [ordered]@{
-        schema = 'simdlib.unified-build-receipt.v2'; status = 'complete'; scope = $Scope
+        schema = 'simdlib.unified-build-receipt.v3'; status = 'complete'; scope = $Scope
         compilers = @($SelectedCompilers); sourceDigest = $currentSourceDigest
         sourceRevision = Get-PipelineRevision -RepositoryRoot $repositoryRoot
         repositoryAudit = $repositoryAuditEntry

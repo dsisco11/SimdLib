@@ -9,6 +9,7 @@ test_label=
 build_profile=
 sanitizer=none
 codegen_mode=OFF
+aggregate=ExhaustiveArtifacts
 consumer_scope=none
 artifact_root="/workspace/out/${SIMDLIB_COMPILER_ID:-unknown}"
 fingerprint_sha256=
@@ -18,7 +19,7 @@ print_usage()
 {
 	cat <<'EOF'
 Usage: simdlib-container --operation OPERATION [options]
-  --operation NAME       build-validation, test, record-codegen,
+  --operation NAME       build-validation, test, test-compiler-contracts, record-codegen,
                          build-benchmarks, run-benchmarks, or inspect-environment
   --preset NAME          Owning CMake configure preset
   --test-regex REGEX     Run only matching CTest tests during test
@@ -26,6 +27,7 @@ Usage: simdlib-container --operation OPERATION [options]
   --build-profile NAME   Release or Debug; must agree with the selected preset
   --sanitizer MODE       none or asan-ubsan
   --codegen-mode MODE    OFF, ENFORCE, or RECORD
+  --aggregate NAME       Scoped CMake aggregate owned by this operation
   --consumer-scope SCOPE none or compiler-release
   --artifact-root PATH   Writable compiler-specific artifact root
   --fingerprint-sha256   Full SHA256 of the canonical build-cell fingerprint
@@ -42,6 +44,7 @@ while [ "$#" -gt 0 ]; do
 		--build-profile) build_profile=$2; shift 2 ;;
 		--sanitizer) sanitizer=$2; shift 2 ;;
 		--codegen-mode) codegen_mode=$2; shift 2 ;;
+		--aggregate) aggregate=$2; shift 2 ;;
 		--consumer-scope) consumer_scope=$2; shift 2 ;;
 		--artifact-root) artifact_root=$2; shift 2 ;;
 		--fingerprint-sha256) fingerprint_sha256=$2; shift 2 ;;
@@ -51,7 +54,7 @@ while [ "$#" -gt 0 ]; do
 done
 
 case "$operation" in
-	build-validation|test|record-codegen|build-benchmarks|run-benchmarks|inspect-environment) ;;
+	build-validation|test|test-compiler-contracts|record-codegen|build-benchmarks|run-benchmarks|inspect-environment) ;;
 	*) echo "A supported --operation is required: ${operation:-<missing>}" >&2; exit 2 ;;
 esac
 case "$artifact_root" in
@@ -77,6 +80,10 @@ esac
 case "$codegen_mode" in
 	OFF|ENFORCE|RECORD) ;;
 	*) echo "Unsupported codegen mode: $codegen_mode" >&2; exit 2 ;;
+esac
+case "$aggregate" in
+	ExhaustiveArtifacts|SimdLibCompilerContractArtifacts|SimdLibDebugDiagnosticArtifacts) ;;
+	*) echo "Unsupported scoped aggregate: $aggregate" >&2; exit 2 ;;
 esac
 case "$consumer_scope" in
 	none|compiler-release) ;;
@@ -118,6 +125,7 @@ benchmark_manifest="$provenance_directory/benchmark-build.manifest"
 main_inventory="$provenance_directory/main-test-artifacts.inventory"
 consumer_inventory="$provenance_directory/consumer-test-artifacts.inventory"
 codegen_record_index="$provenance_directory/codegen-records.index"
+target_inventory="$build_directory/development-profile-targets.txt"
 codegen_diagnostic_provenance="$provenance_directory/codegen-diagnostic.json"
 mkdir -p "$report_directory" "$provenance_directory"
 [ -f "$fingerprint_document" ] || {
@@ -135,9 +143,10 @@ run_traced_test_operation()
 	trace_temporary="$report_directory/test-only.execve.trace.tmp"
 	trace_file="$report_directory/test-only.execve.trace"
 	rm -f "$trace_temporary"
-	set -- --operation test --preset "$preset" --build-profile "$build_profile" \
+	set -- --operation "$operation" --preset "$preset" --build-profile "$build_profile" \
 		--sanitizer "$sanitizer" --artifact-root "$artifact_root" \
-		--codegen-mode "$codegen_mode" \
+		--codegen-mode "$codegen_mode" --aggregate "$aggregate" \
+		--consumer-scope "$consumer_scope" \
 		--fingerprint-sha256 "$fingerprint_sha256"
 	[ -z "$test_regex" ] || set -- "$@" --test-regex "$test_regex"
 	[ -z "$test_label" ] || set -- "$@" --test-label "$test_label"
@@ -146,11 +155,13 @@ run_traced_test_operation()
 		env SIMDLIB_TEST_TRACE_ACTIVE=1 "$0" "$@"
 	test_status=$?
 	set -e
-	if grep -E 'execve\("([^"]*/)?cmake(\.exe)?", \[[^]]*"(--build|--preset|-S|--fresh)"' \
+	if grep -E 'execve\("([^"]*/)?cmake(\.exe)?", \[[^]]*"(--build|--preset)"' \
 		"$trace_temporary" >/dev/null ||
+		grep -E 'execve\("([^"]*/)?cmake(\.exe)?", \[[^]]*"-S", "/workspace/source"' \
+			"$trace_temporary" >/dev/null ||
 		grep -E 'execve\("([^"]*/)?(ninja|make|msbuild)(\.exe)?"' "$trace_temporary" |
 			grep -v -- '"--version"' >/dev/null; then
-		echo "Test-only process trace contains a configure or build invocation" >&2
+		echo "Test-only process trace contains an artifact-tree configure or build invocation" >&2
 		test_status=5
 	fi
 	mv "$trace_temporary" "$trace_file"
@@ -159,7 +170,7 @@ run_traced_test_operation()
 
 # LeakSanitizer refuses to execute under ptrace. Sanitizer cells retain the same
 # inner test-only operation without tracing; ordinary cells own the trace gate.
-if [ "$operation" = test ] &&
+if { [ "$operation" = test ] || [ "$operation" = test-compiler-contracts ]; } &&
 	[ -z "${SIMDLIB_TEST_TRACE_ACTIVE:-}" ] &&
 	[ "$sanitizer" != asan-ubsan ]; then
 	run_traced_test_operation
@@ -179,7 +190,7 @@ compute_source_digest()
 	} | LC_ALL=C sort | while IFS= read -r source_file; do
 		relative_file=${source_file#"$source_directory/"}
 		printf '%s\0' "$relative_file"
-		sha256sum "$source_file"
+		printf '%s\n' "$(sha256sum "$source_file" | cut -d ' ' -f 1)"
 	done | sha256sum | cut -d ' ' -f 1
 }
 
@@ -248,6 +259,7 @@ write_provenance()
 		echo "preset=$preset"
 		echo "sanitizer=$sanitizer"
 		echo "codegen_mode=$codegen_mode"
+		echo "aggregate=$aggregate"
 		echo "base_image=${SIMDLIB_BASE_IMAGE:-unknown}"
 		echo "architecture=$(uname -m)"
 		echo "os_release=$(tr '\n' ' ' </etc/os-release)"
@@ -407,11 +419,16 @@ write_completed_manifest()
 	if [ "$source_revision" = unknown ]; then
 		source_revision=$(git -C "$source_directory" rev-parse HEAD 2>/dev/null || printf '%s' unknown)
 	fi
+	manifest_aggregate=$aggregate
+	[ "$manifest_operation" != build-benchmarks ] || manifest_aggregate=BenchmarkArtifacts
+	target_inventory_hash=none
 	main_inventory_hash=none
 	consumer_inventory_hash=none
 	codegen_record_index_hash=none
 	main_ctest_metadata_hash=none
 	consumer_ctest_metadata_hash=none
+	[ ! -f "$target_inventory" ] ||
+		target_inventory_hash=$(sha256sum "$target_inventory" | cut -d ' ' -f 1)
 	[ ! -f "$main_inventory" ] ||
 		main_inventory_hash=$(sha256sum "$main_inventory" | cut -d ' ' -f 1)
 	[ ! -f "$consumer_inventory" ] ||
@@ -439,7 +456,10 @@ write_completed_manifest()
 		echo "build_profile=$build_profile"
 		echo "sanitizer=$sanitizer"
 		echo "codegen_mode=$codegen_mode"
+		echo "aggregate=$manifest_aggregate"
 		echo "consumer_owner=$consumer_scope"
+		echo "target_inventory=$target_inventory"
+		echo "target_inventory_sha256=$target_inventory_hash"
 		echo "consumer_scope=$concrete_consumer_scope"
 		echo "build_directory=$build_directory"
 		echo "consumer_directory=$consumer_directory"
@@ -477,6 +497,7 @@ validate_validation_manifest()
 		[ "$(manifest_value "$validation_manifest" build_profile)" = "$build_profile" ] &&
 		[ "$(manifest_value "$validation_manifest" sanitizer)" = "$sanitizer" ] &&
 		[ "$(manifest_value "$validation_manifest" codegen_mode)" = "$codegen_mode" ] &&
+		[ "$(manifest_value "$validation_manifest" aggregate)" = "$aggregate" ] &&
 		[ "$(manifest_value "$validation_manifest" consumer_owner)" = "$consumer_scope" ] &&
 		[ "$(manifest_value "$validation_manifest" compiler_id)" = "${SIMDLIB_COMPILER_ID:-unknown}" ] &&
 		[ "$(manifest_value "$validation_manifest" base_image)" = "${SIMDLIB_BASE_IMAGE:-unknown}" ] ||
@@ -503,7 +524,9 @@ validate_validation_manifest()
 		echo "Validation consumer scope does not match compiler capabilities" >&2
 		exit 6
 	}
-	[ "$(manifest_value "$validation_manifest" main_test_inventory_sha256)" = \
+	[ "$(manifest_value "$validation_manifest" target_inventory_sha256)" = \
+		"$(sha256sum "$target_inventory" | cut -d ' ' -f 1)" ] &&
+		[ "$(manifest_value "$validation_manifest" main_test_inventory_sha256)" = \
 		"$(sha256sum "$main_inventory" | cut -d ' ' -f 1)" ] &&
 		[ "$(manifest_value "$validation_manifest" consumer_test_inventory_sha256)" = \
 			"$(sha256sum "$consumer_inventory" | cut -d ' ' -f 1)" ] &&
@@ -552,6 +575,9 @@ validate_benchmark_manifest()
 		[ "$(manifest_value "$benchmark_manifest" fingerprint_document)" = "$fingerprint_document" ] &&
 		[ "$(manifest_value "$benchmark_manifest" build_profile)" = "$build_profile" ] &&
 		[ "$(manifest_value "$benchmark_manifest" sanitizer)" = "$sanitizer" ] &&
+		[ "$(manifest_value "$benchmark_manifest" aggregate)" = BenchmarkArtifacts ] &&
+		[ "$(manifest_value "$benchmark_manifest" target_inventory_sha256)" = \
+			"$(sha256sum "$target_inventory" | cut -d ' ' -f 1)" ] &&
 		[ "$(manifest_value "$benchmark_manifest" compiler_id)" = "${SIMDLIB_COMPILER_ID:-unknown}" ] &&
 		[ "$(manifest_value "$benchmark_manifest" base_image)" = "${SIMDLIB_BASE_IMAGE:-unknown}" ] ||
 		{
@@ -587,6 +613,7 @@ can_reuse_validation_configuration()
 		[ "$(manifest_value "$validation_manifest" build_profile)" = "$build_profile" ] &&
 		[ "$(manifest_value "$validation_manifest" sanitizer)" = "$sanitizer" ] &&
 		[ "$(manifest_value "$validation_manifest" codegen_mode)" = "$codegen_mode" ] &&
+		[ "$(manifest_value "$validation_manifest" aggregate)" = "$aggregate" ] &&
 		[ "$(manifest_value "$validation_manifest" consumer_owner)" = "$consumer_scope" ] &&
 		[ "$(manifest_value "$validation_manifest" compiler_id)" = "${SIMDLIB_COMPILER_ID:-unknown}" ] &&
 		[ "$(manifest_value "$validation_manifest" base_image)" = "${SIMDLIB_BASE_IMAGE:-unknown}" ] &&
@@ -605,7 +632,7 @@ case "$operation" in
 		source_digest=$(compute_source_digest)
 		configure_main_project
 		run_reported "$report_directory/main-build.log" \
-			cmake --build "$build_directory" --parallel --target ExhaustiveArtifacts
+			cmake --build "$build_directory" --parallel --target "$aggregate"
 		concrete_consumer_scope=$(resolve_external_consumer_scope)
 		if [ "$concrete_consumer_scope" != none ]; then
 			build_external_consumer "$concrete_consumer_scope"
@@ -671,6 +698,14 @@ case "$operation" in
 		run_reported "$report_directory/benchmark-build.log" \
 			cmake --build "$build_directory" --parallel --target BenchmarkArtifacts
 		write_completed_manifest "$benchmark_manifest" build-benchmarks "$source_digest"
+		;;
+	test-compiler-contracts)
+		validate_validation_manifest
+		set -- --test-dir "$build_directory" --output-on-failure \
+			--output-junit "$report_directory/compiler-contract-tests.xml"
+		[ -z "$test_regex" ] || set -- "$@" --tests-regex "$test_regex"
+		[ -z "$test_label" ] || set -- "$@" --label-regex "$test_label"
+		ctest "$@"
 		;;
 	test)
 		validate_validation_manifest

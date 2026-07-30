@@ -30,8 +30,10 @@ The corresponding complete validation command is:
 tools/Run-Tests.ps1 -Scope All
 ```
 
-`Run-Tests.ps1` invokes `Build.ps1` exactly once, validates the exact set of
-completed manifests, and then starts test-only operations. The coverage cell
+`Run-Tests.ps1` requires the matching receipt from a prior `Build.ps1`
+invocation, validates its exact manifest and source ownership, and then starts
+test-only operations. It rejects missing, stale, incomplete, or mismatched
+evidence without configuring or building. The coverage cell
 resets profiles, runs its instrumented tests, and generates `coverage.info`
 plus `coverage-provenance.tsv`. The provenance file records the executable
 identity and profile count used for every independently merged coverage target.
@@ -174,18 +176,24 @@ targets are the only deliberate default-check configuration probes.
 failure hook before including the Register API, so their contracts do not
 depend on the selected build type.
 
-For CI or advanced local reuse, tests may skip their one build invocation:
+`Run-Tests.ps1` always consumes existing artifacts. It succeeds only when the
+matching unified-build receipt contains exactly the requested cells, its
+source-input digest matches the current tree and every embedded manifest, every
+manifest is unchanged, and the repository-audit result remains current and
+unchanged. Receipt schema v3 binds each cell's scoped aggregate; target and test
+inventories; configuration and instrumentation; generated-code mode; and
+consumer scope. Test operations contain no artifact-tree configure or build
+command.
+
+Focused compiler-front-end diagnosis has explicit lower-level operations that
+do not enter the default receipt:
 
 ```powershell
-tools/Run-Tests.ps1 -Scope All -SkipBuild
+tools/Run-NativeMatrix.ps1 -Action BuildCompilerContracts -Compiler Msvc -Cell Release
+tools/Run-NativeMatrix.ps1 -Action TestCompilerContracts -Compiler Msvc -Cell Release
+tools/Run-ContainerMatrix.ps1 -Action BuildCompilerContracts -Compiler Clang22 -Cell Release
+tools/Run-ContainerMatrix.ps1 -Action TestCompilerContracts -Compiler Clang22 -Cell Release
 ```
-
-This succeeds only when the matching unified-build receipt contains exactly
-the requested cells, its source-input digest matches the current tree, every
-manifest is unchanged, the repository-audit result remains current and
-unchanged, and each cell's cache, test inventory, consumer inventory, and
-generated-code records remain valid. Test operations contain no configure or
-build command.
 
 Benchmark compilation and execution are intentionally isolated:
 

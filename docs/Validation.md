@@ -15,9 +15,8 @@ tools/Run-Tests.ps1 -Scope All
 tools/Run-Benchmarks.ps1 -Scope All
 ```
 
-The default test command invoked the unified build exactly once, validated its
-receipt, and then ran the native and container test-only operations. A separate
-`tools/Run-Tests.ps1 -Scope All -SkipBuild` run validated reuse without a
+The build command produced the unified receipt, and the subsequent test command
+validated it before running native and container test-only operations without a
 configure or build invocation. Benchmarks remained outside correctness testing.
 
 ## Compiler and configuration ownership
@@ -206,7 +205,7 @@ The final validation used:
 
 ```powershell
 tools/Build.ps1 -Scope All
-tools/Run-Tests.ps1 -Scope All -SkipBuild
+tools/Run-Tests.ps1 -Scope All
 ```
 
 The completed receipt matched the current source digest and owned all twelve
