@@ -3,7 +3,7 @@
 Regression-tests the method-flags source audit against isolated source trees.
 .DESCRIPTION
 Creates disposable repositories containing valid and deliberately invalid
-declarations, then verifies that the production inventory generator accepts
+declarations, then verifies that the production source-audit generator accepts
 only the supported declaration surface.
 #>
 [CmdletBinding()]
@@ -41,7 +41,7 @@ function Set-AuditFixture {
 .SYNOPSIS
 Runs the production audit generator against the isolated repository.
 .PARAMETER Verify
-Verifies the existing generated ledgers instead of regenerating them.
+Verifies the existing generated RegisterOnly ledger instead of regenerating it.
 .OUTPUTS
 An object containing the child process exit code and captured diagnostics.
 #>
@@ -55,7 +55,6 @@ function Invoke-AuditFixture {
         '-NoProfile',
         '-File', $generator,
         '-RepositoryRoot', $temporaryRoot,
-        '-OutputPath', 'docs/legacy.csv',
         '-RegisterOnlyOutputPath', 'docs/register-only.csv')
     if ($Verify) { $arguments += '-Verify' }
     $process = Start-Process -FilePath (Get-Process -Id $PID).Path `
@@ -120,7 +119,7 @@ try {
 int SIMD_FLAGS(Neither, RegisterOnly) valid_method() noexcept;
 '@
     Assert-AuditSucceeds -Name 'canonical RegisterOnly declaration'
-    Assert-AuditSucceeds -Name 'canonical generated inventories' -Verify
+    Assert-AuditSucceeds -Name 'canonical generated RegisterOnly ledger' -Verify
     $registerOnlyRows = @(Import-Csv -LiteralPath (Join-Path $temporaryRoot 'docs/register-only.csv'))
     if ($registerOnlyRows.Count -ne 1 -or $registerOnlyRows[0].Symbol -ne 'valid_method') {
         throw 'Canonical RegisterOnly declaration was not recorded exactly once'

@@ -1,27 +1,23 @@
-# Method-flags source inventories
+# Method-flags source inventory
 
-The method-flags source audit maintains two generated ledgers:
+The method-flags source audit maintains one generated ledger:
 
-- `MethodFlagsInventory.csv` records active uses of the retired declaration
-  macros under `include`, `tests`, and `examples`. Its normal completed state is
-  a header-only CSV: any new record represents declaration boilerplate that
-  must be removed or explicitly rejected by the audit.
 - `MethodFlagsRegisterOnly.csv` lists every canonical `SIMD_FLAGS(...)`
   declaration containing `RegisterOnly`, with its path, line, symbol, and full
   flag list. This makes the promise reviewable without claiming that a source
   scanner can prove the function body or its transitive callees are free of
   memory writes.
 
-Generate or verify both ledgers with:
+Generate or verify the ledger with:
 
 ```powershell
 ./tools/Generate-MethodFlagsInventory.ps1
 ./tools/Generate-MethodFlagsInventory.ps1 -Verify
 ```
 
-The repository audit runs the verifier and binds the count and SHA-256 digest
-of each ledger into its result. A source change cannot reuse an audit result
-whose inventories do not match.
+The repository audit runs the verifier and binds the ledger count and SHA-256
+digest into its result. Retired declaration spellings are rejected directly by
+the source audit and do not require a generated migration inventory.
 
 ## Enforced source policy
 
