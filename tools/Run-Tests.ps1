@@ -98,7 +98,9 @@ function Assert-BuildReceipt {
         if ($manifest.matrix_contract_sha256 -ne $matrixHash) {
             throw "Receipt manifest uses a stale validation matrix contract: $manifestPath"
         }
-        $inventoryAuditPath = [string]$manifest.validation_inventory_audit
+        $inventoryAuditPath = Resolve-PipelineArtifactPath `
+            -RepositoryRoot $repositoryRoot `
+            -Path ([string]$manifest.validation_inventory_audit)
         if (-not (Test-Path -LiteralPath $inventoryAuditPath -PathType Leaf)) {
             throw "Receipt validation inventory audit is missing: $inventoryAuditPath"
         }

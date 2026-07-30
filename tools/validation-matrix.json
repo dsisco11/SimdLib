@@ -45,17 +45,14 @@
     },
     "DEBUG": {
       "allowedTargetCategories": [
-        "COMPILER_CONTRACT",
         "RUNTIME_VALIDATION",
         "CHECKS_VALIDATION"
       ],
       "selectedTargetCategories": [
-        "COMPILER_CONTRACT",
         "RUNTIME_VALIDATION",
         "CHECKS_VALIDATION"
       ],
       "allowedTestOwners": [
-        "COMPILER_CONTRACT",
         "RUNTIME_VALIDATION",
         "CHECKS_VALIDATION",
         "PROFILE_AUDIT"

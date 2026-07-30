@@ -1,8 +1,8 @@
 # Validation matrix ownership
 
-This document defines the accepted ownership of SimdLib validation work. It is
-the design contract for the validation-matrix deduplication work; it does not
-claim that every current preset already implements this distribution.
+This document defines the implemented ownership of SimdLib validation work.
+The generated inventory audits and `tools/Verify-ValidationMatrix.ps1` enforce
+this distribution against the machine-readable matrix contract.
 
 The user-facing workflow remains unified:
 
@@ -152,7 +152,7 @@ zero-multiple-owner audit.
 | --- | --- | --- |
 | `SimdLib`, `SimdLibRegister`, `DevelopmentWarnings`, `ExhaustiveArtifacts`, `SimdLib*Artifacts` | Production/support aggregate | Profile-local build graph |
 | `Header*Probe` | Compiler-front-end contract | Each supported Release compiler identity |
-| `Config*Probe` | Compiler-front-end contract | Each supported Release compiler identity; a new narrow Debug-state probe belongs to MSVC Debug |
+| `Config*Probe` | Compiler-front-end contract or checks/preconditions | Release configuration probes belong to each supported Release compiler identity; `ConfigDefaultChecksDebugProbe` belongs to the retained Debug and sanitizer checks category |
 | `Availability*Probe`, `ImmediateControlSlowPathProbe` | Compiler-front-end contract | Each supported Release compiler identity |
 | `MethodFlagsConfig*Probe`, `MethodFlagsContractPass`, `MethodFlagsPlacement` | Compiler-front-end contract | Each supported Release compiler identity |
 | `RegisterClangClFallbackExclusionProbe`, `RegisterMsvcFallbackProbe`, `RegisterCxx20UmbrellaProbe`, `RegisterEnabledProbe`, `RegisterRepresentation128`, `RegisterRepresentation256` | Compiler-front-end contract | Applicable Release compiler identity |

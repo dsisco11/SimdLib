@@ -283,16 +283,20 @@ tools/Run-Benchmarks.ps1 -Scope All
 
 The accepted scopes and compiler filters are:
 
-| Scope        | Compiler filters                   | Owned cells                                         |
-| ------------ | ---------------------------------- | --------------------------------------------------- |
-| `All`        | `All` or any compatible subset     | Every native and container cell                     |
-| `Native`     | `Msvc`, `ClangCl`, `ClangCoverage` | MSVC and clang-cl Release/Debug plus Clang coverage |
-| `Containers` | `Gcc13`, `Gcc14`, `Clang22`        | Linux Release/Debug plus Clang ASan+UBSan           |
+| Scope        | Compiler filters                   | Default owned cells                                      |
+| ------------ | ---------------------------------- | -------------------------------------------------------- |
+| `All`        | `All` or any compatible subset     | Every retained native and container cell                 |
+| `Native`     | `Msvc`, `ClangCl`, `ClangCoverage` | MSVC and clang-cl Release, MSVC Debug, and Clang coverage |
+| `Containers` | `Gcc13`, `Gcc14`, `Clang22`        | Linux Release plus Clang ASan+UBSan                       |
 
 For example, a Linux-only CI worker uses `tools/Build.ps1 -Scope Containers`
 followed by `tools/Run-Tests.ps1 -Scope Containers`. A focused local
 diagnostic can use `tools/Run-Tests.ps1 -Scope Native -Compiler Msvc` or
-`tools/Run-Tests.ps1 -Scope Containers -Compiler Gcc14`.
+`tools/Run-Tests.ps1 -Scope Containers -Compiler Gcc14`. Ordinary clang-cl,
+GCC 13, GCC 14, and Clang Debug cells are opt-in troubleshooting configurations,
+not default-matrix members. Record-only Debug or sanitizer generated-code work
+uses an explicit `tools/Record-Codegen.ps1` compiler and cell selection and
+cannot satisfy the mandatory optimized Release gate.
 
 Each compiler/configuration owns a fingerprinted tree below `out/pipeline`.
 The fingerprint includes compiler and image identity, generator, configuration,

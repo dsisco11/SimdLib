@@ -149,6 +149,40 @@ function Read-PipelineManifest {
 
 <#
 .SYNOPSIS
+Resolves a manifest artifact path into the host repository.
+.PARAMETER RepositoryRoot
+Absolute SimdLib source tree.
+.PARAMETER Path
+Host, repository-relative, or canonical `/workspace` container path.
+#>
+function Resolve-PipelineArtifactPath {
+    param(
+        [Parameter(Mandatory)][string]$RepositoryRoot,
+        [Parameter(Mandatory)][string]$Path
+    )
+
+    $root = [System.IO.Path]::GetFullPath($RepositoryRoot)
+    if (Test-Path -LiteralPath $Path) {
+        $candidate = $Path
+    } elseif ($Path -match '^/workspace/out/(?<relative>.+)$') {
+        $candidate = Join-Path (
+            Join-Path $root 'out/pipeline') $Matches.relative
+    } elseif (-not [System.IO.Path]::IsPathRooted($Path)) {
+        $candidate = Join-Path $root $Path
+    } else {
+        throw "Manifest artifact path is not host-accessible: $Path"
+    }
+    $resolved = [System.IO.Path]::GetFullPath($candidate)
+    if (-not $resolved.StartsWith(
+            $root + [System.IO.Path]::DirectorySeparatorChar,
+            [System.StringComparison]::OrdinalIgnoreCase)) {
+        throw "Manifest artifact path escapes the repository: $Path"
+    }
+    return $resolved
+}
+
+<#
+.SYNOPSIS
 Creates the unified-receipt entry for a completed repository audit.
 .PARAMETER RepositoryRoot
 Absolute SimdLib source tree.
@@ -336,6 +370,7 @@ Export-ModuleMember -Function @(
     'Get-PipelineTextDigest',
     'Set-PipelineTextFile',
     'Read-PipelineManifest',
+    'Resolve-PipelineArtifactPath',
     'New-PipelineRepositoryAuditEntry',
     'Assert-PipelineRepositoryAuditEntry',
     'Invoke-PipelineCommand',

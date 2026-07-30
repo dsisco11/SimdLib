@@ -12,7 +12,7 @@ Code Architecture:
 
 Build Pipeline:
     ☐ Implement the validation ownership and matrix deduplication contract described in `docs/ValidationMatrixDeduplication.todo` and `docs/ValidationMatrixOwnership.md`.
-    ☐ Keep optimized Release wrapper/raw and ABI comparisons as the mandatory zero-overhead gates, and preserve unoptimized Debug or sanitizer comparisons as explicit diagnostic operations rather than default-build requirements.
+    ☒ Keep optimized Release wrapper/raw and ABI comparisons as the mandatory zero-overhead gates, and preserve unoptimized Debug or sanitizer comparisons as explicit diagnostic operations rather than default-build requirements.
 
 Testing:
     ☐ Ensure test coverage of all `SimdImplementation::negate()` methods.

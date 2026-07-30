@@ -72,6 +72,41 @@ if ($matrix.schema -ne 'simdlib.validation-matrix.v1') {
 
 <#
 .SYNOPSIS
+Reads one CMake validation profile's declared category list.
+.PARAMETER Source
+Artifact aggregate CMake source.
+.PARAMETER Profile
+Validation profile name.
+#>
+function Get-CMakeProfileCategories {
+    param(
+        [Parameter(Mandatory)][string]$Source,
+        [Parameter(Mandatory)][string]$Profile
+    )
+
+    $match = [regex]::Match(
+        $Source,
+        "set\(simdlib_profile_allowed_$Profile\s+(?<categories>[^)]*)\)")
+    if (-not $match.Success) {
+        throw "Artifact aggregates do not declare allowed categories for $Profile"
+    }
+    return @($match.Groups['categories'].Value -split '\s+' |
+        Where-Object { $_ })
+}
+
+$artifactAggregatesPath = Join-Path (
+    Get-PipelineRepositoryRoot) 'cmake/development/ArtifactAggregates.cmake'
+$artifactAggregatesSource = Get-Content -LiteralPath $artifactAggregatesPath -Raw
+foreach ($profileProperty in $matrix.profiles.PSObject.Properties) {
+    Assert-MatrixSequence -Name "$($profileProperty.Name) CMake category ownership" `
+        -Actual @(Get-CMakeProfileCategories `
+            -Source $artifactAggregatesSource `
+            -Profile $profileProperty.Name) `
+        -Expected @($profileProperty.Value.allowedTargetCategories)
+}
+
+<#
+.SYNOPSIS
 Returns the canonical cell objects assigned to one matrix operation.
 .PARAMETER Operation
 Operation property from the machine-readable matrix.

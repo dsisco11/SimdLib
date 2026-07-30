@@ -1,221 +1,173 @@
 # Validation evidence
 
-This document records execution evidence for the unified build and validation
-pipeline completed on 2026-07-26. Command semantics and prerequisites belong in
+This document records execution evidence for the validation-matrix ownership
+refactor completed on 2026-07-29. Command semantics and prerequisites belong in
 [Unified build and validation](BuildPipeline.md); the measurements and outcomes
 below describe this execution only and are not timeless performance promises.
 
 ## Executed commands
 
-The acceptance run used the formal repository interfaces:
+The final acceptance run used the repository interfaces:
 
 ```powershell
 tools/Build.ps1 -Scope All
+tools/Build.ps1 -Scope All
 tools/Run-Tests.ps1 -Scope All
+tools/Run-NativeMatrix.ps1 -Action BuildCompilerContracts -Compiler All -Cell Release
+tools/Run-ContainerMatrix.ps1 -Action BuildCompilerContracts -Compiler All -Cell Release
+tools/Run-NativeMatrix.ps1 -Action TestCompilerContracts -Compiler All -Cell Release
+tools/Run-ContainerMatrix.ps1 -Action TestCompilerContracts -Compiler All -Cell Release
+tools/Build-Benchmarks.ps1 -Scope All
 tools/Run-Benchmarks.ps1 -Scope All
+tools/Record-Codegen.ps1 -Scope Native -Compiler Msvc -Cell Debug
 ```
 
-The build command produced the unified receipt, and the subsequent test command
-validated it before running native and container test-only operations without a
-configure or build invocation. Benchmarks remained outside correctness testing.
+The first `Build` followed removal of only `out/pipeline`; the second was an
+immediate cached run. `Run-Tests` consumed the second build's exact completed
+receipt. Compiler-contract, benchmark, and diagnostic operations remained
+supplemental and did not become default-receipt requirements.
 
-## Compiler and configuration ownership
+## Default ownership inventory
 
-| Fingerprint owner | Configuration and instrumentation | Main tests | Consumer tests | Result |
-| --- | --- | ---: | ---: | --- |
-| MSVC 19.44 | Release exhaustive | 246 | 2 | No failures |
-| MSVC 19.44 | Debug diagnostics | 207 | 2 | No failures |
-| clang-cl 22.1.8 | Release exhaustive | 249 | 2 | No failures |
-| clang-cl 22.1.8 | Debug diagnostics | 210 | 2 | No failures |
-| native Clang 22.1.8 | Debug source coverage | 240 | 0 | No failures |
-| GCC 13.2.1 | Alpine x64 core-only Release | 200 | 1 | No failures |
-| GCC 13.2.1 | Alpine x64 core-only Debug | 161 | 1 | No failures |
-| GCC 14.2.0 | Alpine x64 Release exhaustive | 249 | 2 | No failures |
-| GCC 14.2.0 | Alpine x64 Debug diagnostics | 210 | 2 | No failures |
-| Clang 22.1.3 | Alpine x64 Release exhaustive | 249 | 2 | No failures |
-| Clang 22.1.3 | Alpine x64 Debug diagnostics | 210 | 2 | No failures |
-| Clang 22.1.3 | Alpine x64 Debug, ASan+UBSan | 210 | 2 | No failures or sanitizer diagnostics |
+The final receipt references exactly eight default cells:
 
-GCC 13 is deliberately core-only and does not claim `SimdLib::Register`
-support. The coverage fingerprint owns instrumented project tests but does not
-repeat the external consumer; consumer isolation is exercised by the other 11
-fingerprints. The standalone parent fixture additionally proved that
-`add_subdirectory` adds only the four production interface targets, introduces
-no development cache options or Catch2 targets, and registers no SimdLib tests
-in the parent's CTest inventory.
+| Cell | Profile | Configured targets | Selected targets | Main tests |
+| --- | --- | ---: | ---: | ---: |
+| MSVC Release | Release | 149 | 148 | 269 |
+| MSVC Debug | Debug | 19 | 19 | 216 |
+| clang-cl Release | Release | 149 | 148 | 272 |
+| Native Clang coverage | Coverage | 23 | 21 | 258 |
+| GCC 13 core Release | Release | 76 | 75 | 225 |
+| GCC 14 Release | Release | 148 | 147 | 272 |
+| Clang 22 Release | Release | 148 | 147 | 272 |
+| Clang 22 ASan+UBSan | Sanitizer | 22 | 22 | 258 |
+| **Total** |  | **734** | **727** | **2,042** |
 
-Every exhaustive build includes strict warnings, configuration and constexpr
-probes, first-and-only header probes, ODR executables, examples, runtime scalar
-oracles, instruction-family variants, generated-code records, and ABI gates as
-applicable to its owner. The runtime inventory audit requires AVX2, FMA, BMI,
-and scalar labels plus their mandatory test families before CTest runs.
+The five applicable Release cells also ran nine external-consumer tests:
+core plus Register on MSVC, clang-cl, GCC 14, and Clang 22, and core-only on
+GCC 13. The repository audit ran once for source digest
+`7c3ffe3c2f67bdb2caec2bd777c01378d0add0b6f15fd2090ba8aedc069b5a79`
+and was hash-bound into the unified receipt.
 
-## Receipt-bound artifacts
+## Controlled timing comparison
 
-The final `All` receipt references exactly:
+The baseline used the same unified orchestration boundary before ownership
+deduplication: twelve default cells, 1,485 configured targets, 2,837 main tests,
+a 937.904-second clean build, a 102.191-second immediate cached build, and an
+86.897-second build-free test run.
 
-- 12 completed validation manifests and canonical fingerprint documents;
-- 12 main-test inventories and JUnit reports;
-- 11 nonempty external-consumer inventories and JUnit reports;
-- five Release benchmark manifests and executables;
-- 282 generated-code and ABI records; and
-- 2,637 object files across 17,820 artifact files.
+| Measurement | Baseline | Final | Change |
+| --- | ---: | ---: | ---: |
+| Default cells | 12 | 8 | -4 (-33.3%) |
+| Configured targets | 1,485 | 734 | -751 (-50.6%) |
+| Main tests | 2,837 | 2,042 | -795 (-28.0%) |
+| Clean `Build` wall time | 937.904 s | 451.745 s | -486.159 s (-51.8%) |
+| Cached `Build` wall time | 102.191 s | 74.095 s | -28.096 s (-27.5%) |
+| Build-free `Run-Tests` wall time | 86.897 s | 62.026 s | -24.871 s (-28.6%) |
+| Clean build plus tests | 1,024.801 s | 513.771 s | -511.030 s (-49.9%) |
 
-The receipt is stored below `out/pipeline/provenance`. Each referenced cell uses
-the following stable layout:
+The clean run rebuilt every retained tree after its generated root was removed.
+All eight inventory audits were complete, every expected test remained
+registered, all compiler/container operations completed, and the source digest
+matched the receipt. The reduction therefore does not depend on a warm cache,
+a missing manifest, a skipped compiler service, or a failed operation.
 
-```text
-out/pipeline/<platform>-<compiler>/<configuration>-<fingerprint>/
-  build/
-  consumer/
-  reports/
-  provenance/
-```
+### Configure, build, discovery, and consumer boundaries
 
-Native MSVC, clang-cl, and coverage cells use `windows-*` platform prefixes.
-The GCC and GNU-like Clang containers use `linux-*`. Console output for each
-aggregate operation is retained under `out/pipeline/logs/<run-id>`.
+The top-level clean time includes image validation, configure, compile/link,
+Catch2 `POST_BUILD` discovery, external-consumer work, inventory auditing, and
+receipt creation. Preserved file-creation boundaries provide the following
+per-cell attribution. These cells ran concurrently, so the rows and columns
+must not be added to predict top-level wall time.
 
-## Incremental and incompatibility evidence
+| Cell | Configure boundary | Build + discovery boundary | Consumer configure | Consumer build + audit | Cell boundary |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| MSVC Release | 98.5 s | 186.2 s | 4.0 s | 18.6 s | 307.3 s |
+| MSVC Debug | 9.3 s | 104.9 s | — | — | 114.2 s |
+| clang-cl Release | 54.6 s | 63.1 s | 11.6 s | 11.4 s | 140.6 s |
+| Native Clang coverage | 10.3 s | 34.1 s | — | — | 44.3 s |
+| GCC 13 Release | 34.1 s | 88.1 s | 4.9 s | 14.3 s | 141.4 s |
+| GCC 14 Release | 135.0 s | 204.9 s | 7.0 s | 52.0 s | 398.9 s |
+| Clang 22 Release | 272.1 s | 146.0 s | 1.2 s | 10.8 s | 430.1 s |
+| Clang 22 ASan+UBSan | 27.1 s | 263.6 s | — | — | 290.7 s |
 
-The clean unified build completed in 951.999 seconds. An unchanged second build
-completed in 101.473 seconds while validating the complete graph. Before/after
-hashing and timestamps showed all 2,637 object files unchanged: no SimdLib,
-test, example, benchmark, consumer, or Catch2 translation unit recompiled. All
-three local compiler image IDs and filesystem layers also remained unchanged.
+Container orchestration occupied approximately 448 seconds of the 451.745-second
+critical path. External-consumer configure/build/audit boundaries totalled
+135.8 seconds across five concurrently scheduled owners. The eight main JUnit
+reports recorded 73 seconds of summed per-cell CTest wall time; the nine
+consumer tests completed below the reports' one-second precision.
 
-The test-only command completed in 82.328 seconds. Process tracing for ordinary
-container cells contained no CMake configure, `cmake --build`, Ninja, Make, or
-MSBuild execution. LeakSanitizer cannot run under `ptrace`, so the ASan+UBSan
-cell used the same manifest-validated inner test operation without tracing.
+Catch2 discovery remains part of the build because `POST_BUILD` output is needed
+for the receipt inventory. Ninja recorded 18 to 21 logical discovery commands
+per applicable runtime tree, represented by paired relative/absolute log
+outputs. The longest discovery edge was 74.21 seconds on GCC 14 Release and
+27.26 seconds on GCC 13 Release; the other Ninja cells' longest discovery edges
+ranged from 1.79 to 3.40 seconds. Host CTest cannot rediscover container trees
+directly because their generated include paths intentionally use
+`/workspace/out`; container-side inventory audits verified those trees.
 
-A controlled public-header edit recompiled 599 affected objects across exactly
-the ten Register-capable fingerprints. Both GCC 13 core-only fingerprints and
-all compiler-image layers remained unchanged. Restoring the header made the old
-receipt stale until the affected build manifests were refreshed.
+## Compiler work and critical outputs
 
-A controlled GCC 14 image-identity change produced a new fingerprint. Test-only
-execution rejected the original artifacts because the new fingerprint had no
-completed validation manifest. Building the affected Release cell created only
-that new fingerprint; the original image tag was then restored.
+Before test execution, the clean default build contained 1,682 object outputs
+totalling 424,209,873 bytes:
 
-## Generated-code and ABI policy
+| Cell | Object outputs | Size |
+| --- | ---: | ---: |
+| MSVC Release | 266 | 54.5 MiB |
+| MSVC Debug | 143 | 121.4 MiB |
+| clang-cl Release | 266 | 19.2 MiB |
+| Native Clang coverage | 144 | 105.7 MiB |
+| GCC 13 Release | 189 | 7.1 MiB |
+| GCC 14 Release | 263 | 11.9 MiB |
+| Clang 22 Release | 265 | 11.1 MiB |
+| Clang 22 ASan+UBSan | 146 | 73.7 MiB |
 
-The 282 final records contain:
+Ninja's longest non-benchmark edges identify the retained critical outputs:
 
-| Result | Records |
-| --- | ---: |
-| Exact parity | 110 |
-| Recorded diagnostic | 27 |
-| Recorded Debug or sanitizer difference | 143 |
-| Accepted compiler exception | 2 |
+| Cell | Critical output | Edge time |
+| --- | --- | ---: |
+| clang-cl Release | `RegisterAvx2Tests` / `Register.tests.cpp` | 24.48 s |
+| Native Clang coverage | `RegisterAvx2Tests` / `Register.tests.cpp` | 15.93 s |
+| GCC 13 Release | `ApiAvx2Tests` / `Api256.tests.cpp` | 48.91 s |
+| GCC 14 Release | `RegisterAvx2Tests` / `Register.tests.cpp` | 105.93 s |
+| Clang 22 Release | `RegisterAvx2Tests` / `Register.tests.cpp` | 62.28 s |
+| Clang 22 ASan+UBSan | Catch2 debug archive | 107.50 s |
 
-The two accepted records represent one MSVC 19.44 behavior observed in the
-SSE4.2 and AVX2 128-bit profiles: `/GS` inserts the recognized security-cookie
-sequence for `Register<double>::from_array`. The comparator still requires the
-remaining wrapper instructions to match the raw fixture. The pure AVX2
-register-only subset accepts no cookie exception.
+MSBuild's text log does not expose a comparable scheduler critical path.
+Target/object counts and the controlled cell boundary are reported for MSVC
+instead of inferring one.
 
-AVX2 Release is the strict zero-overhead profile. SSE4.2 remains diagnostic;
-Debug and sanitizer fingerprints record differences rather than importing the
-Release optimization policy. Windows non-inline Register boundaries use
-`VECTORCALL`. Platform-default aggregate return behavior remains diagnostic.
-The full exception and exclusion rationale is maintained in
-[Register qualification](RegisterQualification.md).
+## No-rebuild and supplemental evidence
 
-## Failure, cleanup, and downstream evidence
+The immediate cached build emitted no translation-unit compilation and every
+Ninja owner reported no work. Before `Run-Tests`, hashes, sizes, and timestamps
+were recorded for all 1,682 default objects. Afterwards all 1,682 were
+unchanged, none were missing, and the test log contained no build invocation.
+Ten new tiny objects were expected: the five Release owners each compile a raw
+and wrapper object for the `CodegenPolicy.RejectRecordAsEnforced` negative
+fixture. Those test-owned objects are not rebuilt project targets.
 
-Intentional single-service and two-service failures started all selected
-compiler operations, reported every started result, named every failing cell,
-and preserved the per-cell logs. Timed cancellation and a simulated interactive
-PowerShell stop removed their invocation-owned containers and networks.
+The focused compiler-contract workflow retained one owner per compiler
+identity: 224 configured and selected targets across five cells, with nine
+tests per cell. All five contract inventories completed.
 
-Additional negative probes produced exact failures for:
+Benchmark compilation reused the five matching Release trees and stayed outside
+the default build. The native and container benchmark executions completed from
+their benchmark manifests.
 
-- a stale unified receipt before any test executable changed;
-- Docker absent from `PATH`;
-- a configured C++ compiler absent from the image;
-- a host CPU inventory without the required SSE4.2 flag; and
-- a mandatory runtime-test family absent from a configured tree.
+The selected MSVC Debug codegen diagnostic used its independent
+`debug-codegen-5240ba90331fe415` fingerprint. Its provenance records
+`codegenMode=RECORD`, MSVC `/GS`, 35 indexed records, and 12.289 seconds of
+measured compile/comparison work. The records remain below
+`out/pipeline/windows-msvc/debug-codegen-5240ba90331fe415` and cannot satisfy
+the mandatory optimized Release gate.
 
-The clean external consumer and parent-project fixtures configured, built, and
-tested independently. Development targets, options, dependencies, coverage,
-and SimdLib-owned tests did not leak through `add_subdirectory`.
+Coverage generated `coverage.info` and `coverage-provenance.tsv` from 256
+profiles mapped to 21 executable identities. The Clang sanitizer cell completed
+its 258-test runtime/checks inventory without sanitizer diagnostics. Release
+cells retained optimized generated-code enforcement, examples, smoke/ODR,
+constexpr, compiler-facing, and external-consumer ownership.
 
-## Measured comparison with the frozen baseline
-
-The frozen pre-refactor scenarios in
-[UnifiedBuildPipelineBaseline.md](UnifiedBuildPipelineBaseline.md) totalled
-2,492.967 seconds when their separately owned clean operations were added,
-with 3,449 compile outputs and 3,580.72 MiB of artifacts. The unified clean run
-used 951.999 seconds, 2,637 object outputs, and 3,731.11 MiB.
-
-The wall-time comparison is directional rather than perfectly like-for-like:
-the baseline is a serial sum of separate scenarios, while the unified command
-is one parallel aggregate covering 12 fingerprints, consumers, generated-code
-and ABI gates, and benchmark compilation. It nevertheless demonstrates the
-structural result: 812 fewer compile outputs, a 23.54% reduction, with no
-duplicate Feature tree. Artifact storage increased by 150.39 MiB, or 4.20%,
-because the final receipt retains the broader complete compiler and
-instrumentation matrix rather than a smaller sampled scenario set.
-
-The final unchanged build completed in 99.93 seconds, the default build-and-test
-command in 164.93 seconds, and benchmark-only execution in 27.12 seconds. These
-measurements are execution evidence for this machine and revision; they are not
-thresholds or guarantees.
-
-## Interface migration audit
-
-The final interface audit parsed all seven PowerShell scripts and modules, the
-four workspace and preset JSON files, both GitHub Actions workflows,
-`compose.yml`, and the POSIX container entrypoint. CMake accepted every preset,
-Docker Compose accepted the resolved service configuration, and all relative
-targets in the repository's 30 Markdown files existed.
-
-Current commands, examples, workflows, presets, VS Code tasks, and CTest
-documentation contain only the canonical action, scope, compiler, target, and
-fingerprint vocabulary. Retired names remain only where their text is required:
-the planning rename ledger, frozen pre-refactor inventories, and CMake's focused
-failure diagnostics for explicitly supplied retired cache options. Those cache
-entries are rejected and are not compatibility aliases.
-
-Representative object, log, coverage-profile, disassembly, and temporary-probe
-paths were all covered by repository ignore rules. A complete tracked-path audit
-found no generated build tree, binary, object, log, profile, disassembly, or
-temporary probe. The interface corrections described in this subsection changed
-documentation only, so that audit reused the completed compiler evidence above.
-The later supported-platform cleanup below changed top-level CMake qualification
-and was therefore rebuilt and retested separately.
-
-## Supported-platform cleanup evidence
-
-The published support contract now assigns MSVC and clang-cl to Windows x64 and
-assigns Clang and GCC to Linux x64. GCC 13.2 remains core-only, while GCC 14 or
-newer owns the Linux Register surface. Top-level CMake likewise recognizes GNU
-Register qualification only for a 64-bit Linux system; generic GNU compiler
-handling remains available for the supported Linux GCC cells.
-
-A case-insensitive scan of every tracked file found zero occurrences of the
-retired platform's conventional name. A separate scan found no non-planning
-reference or platform association and no unified command, compiler filter,
-preset, Compose profile, workflow, or failure diagnostic that recognizes the
-retired target.
-
-The final validation used:
-
-```powershell
-tools/Build.ps1 -Scope All
-tools/Run-Tests.ps1 -Scope All
-```
-
-The completed receipt matched the current source digest and owned all twelve
-required fingerprints. All five native cells and all seven container cells
-completed, including Linux GCC 13 core-only Release and Debug, Linux GCC 14
-Release and Debug, and the Linux Clang Release, Debug, and ASan+UBSan cells.
-
-## Supplemental benchmarks
-
-All five Release benchmark owners completed the runtime-derived wrapper/raw
-suite with 25 samples per entry. The suite covers 128-bit and 256-bit floating
-addition, mask selection, and unsigned integer division. Benchmark timing is
-supplemental and cannot override correctness, ABI, or generated-code gates.
+These values are execution evidence for revision
+`8caa6d2efd582f23d70c989b30122ac391cdac1f`; they do not assert that future
+revisions retain the same timing or outcome.

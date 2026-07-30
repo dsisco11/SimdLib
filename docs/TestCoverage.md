@@ -14,7 +14,7 @@ execution evidence recorded in [Validation.md](Validation.md).
 | Configuration | Default detection, caller overrides, all instruction families disabled, FMA enabled/disabled, BMI1/BMI2 independently enabled, and portable/optimized/scalar UInt128 profiles |
 | Formatter and ODR | Scalar-formatter parity, vector and UInt128 formatting, umbrella/focused-header probes, and a two-translation-unit formatter executable |
 | Oracle/property testing | Deterministic scalar oracles for comparisons, transfers, BMI operations, UInt128 arithmetic/bit operations, algorithms, and resampling |
-| Compiler/runtime diagnostics | Strict MSVC and clang-cl Release cells plus the independent Clang ASan/UBSan Debug cell |
+| Compiler/runtime diagnostics | Every applicable supported Release compiler, representative MSVC Debug, and the independent Clang ASan/UBSan Debug cell |
 | External consumer | `tests/consumer` validates source-tree import, the interface-library target, public includes, and header-only linkage |
 
 Benchmarks are intentionally excluded from correctness counts. They exercise
@@ -23,11 +23,13 @@ acceptance rules.
 
 ## Test inventory
 
-The Clang coverage preset discovers individual Catch2 cases with
-`catch_discover_tests()` and registers direct CTest audit, compile, example,
-and equivalence tests. Terminating precondition cases are discovered Catch2
-cases, not direct CTest driver scenarios. Catch2 executables remain grouped by
-these stable name prefixes:
+Every runtime profile discovers individual Catch2 cases with
+`catch_discover_tests()`. The Clang coverage profile owns only execution-bearing
+runtime and checks/precondition targets; applicable Release compiler cells own
+header, compiler-contract, constexpr, example, smoke, and ODR validation.
+Terminating precondition cases are discovered Catch2 cases, not direct CTest
+driver scenarios. Catch2 executables remain grouped by these stable name
+prefixes:
 
 | Entry | Coverage role |
 | --- | --- |
@@ -226,11 +228,12 @@ padding, and insufficient widths. `Format.h` remains the first include in its
 standalone header probe, and the formatter specializations remain linked and run
 from two translation units by `FormatOdr`.
 
-The formatter and ODR inventory is owned by both MSVC Release and Clang Debug
-coverage. The `Format.h` first-include probe is compiled in both cells. A
-dedicated Clang profile exercises checked width overflow, both trailing-input
-outcomes, alternate-octal zero and nonzero outcomes, explicit and default
-alignment, and both insufficient-width zero-padding outcomes.
+The formatter runtime inventory executes in every applicable Release cell and
+the representative Debug, sanitizer, and coverage profiles. Applicable Release
+compiler cells alone own `FormatOdr` and the `Format.h` first-include probe. The
+dedicated Clang coverage profile exercises checked width overflow, both
+trailing-input outcomes, alternate-octal zero and nonzero outcomes, explicit
+and default alignment, and both insufficient-width zero-padding outcomes.
 
 ## SimdAlgo outcome and boundary matrix
 

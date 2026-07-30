@@ -80,8 +80,7 @@ set(simdlib_profile_selected_RELEASE
     RUNTIME_VALIDATION CHECKS_VALIDATION SMOKE_VALIDATION
     OPTIMIZED_CODEGEN)
 set(simdlib_profile_allowed_DEBUG
-    COMPILER_CONTRACT RUNTIME_VALIDATION
-    CHECKS_VALIDATION)
+    RUNTIME_VALIDATION CHECKS_VALIDATION)
 set(simdlib_profile_selected_DEBUG ${simdlib_profile_allowed_DEBUG})
 set(simdlib_profile_allowed_SANITIZER
     RUNTIME_VALIDATION CHECKS_VALIDATION)

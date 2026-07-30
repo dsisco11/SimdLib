@@ -100,6 +100,18 @@ function Write-BuildReceipt {
                 throw "Validation manifest has no required $requiredInventoryField for preset $preset"
             }
         }
+        $inventoryAuditPath = Resolve-PipelineArtifactPath `
+            -RepositoryRoot $repositoryRoot `
+            -Path ([string]$manifest.validation_inventory_audit)
+        if (-not (Test-Path -LiteralPath $inventoryAuditPath -PathType Leaf)) {
+            throw "Validation manifest inventory audit is missing for preset $preset`: $inventoryAuditPath"
+        }
+        $inventoryAuditHash = (
+            Get-FileHash -LiteralPath $inventoryAuditPath -Algorithm SHA256
+        ).Hash.ToLowerInvariant()
+        if ($inventoryAuditHash -ne $manifest.validation_inventory_audit_sha256) {
+            throw "Validation manifest inventory audit changed for preset $preset`: $inventoryAuditPath"
+        }
         $entries.Add([ordered]@{
                 preset = $preset
                 path = [System.IO.Path]::GetRelativePath($repositoryRoot, $matches[0].FullName).Replace('\', '/')

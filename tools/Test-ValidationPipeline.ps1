@@ -279,6 +279,34 @@ try {
         $receipt | ConvertTo-Json -Depth 8)
     [void](Assert-BuildReceipt -SelectedCompilers @('ClangCl'))
 
+    $containerAuditPath = '/workspace/out/' + (
+        [System.IO.Path]::GetRelativePath(
+            (Join-Path $repositoryRoot 'out/pipeline'),
+            $inventoryAuditPath).Replace('\', '/'))
+    $containerManifestLines = @($manifestLines | ForEach-Object {
+            if ($_ -like 'validation_inventory_audit=*') {
+                "validation_inventory_audit=$containerAuditPath"
+            } else {
+                $_
+            }
+        })
+    Set-PipelineTextFile -Path $manifestPath -Content (
+        ($containerManifestLines -join "`n") + "`n")
+    $receipt.manifests[0].sha256 = (
+        Get-FileHash -LiteralPath $manifestPath -Algorithm SHA256
+    ).Hash.ToLowerInvariant()
+    Set-PipelineTextFile -Path $script:receiptPath -Content (
+        $receipt | ConvertTo-Json -Depth 8)
+    [void](Assert-BuildReceipt -SelectedCompilers @('ClangCl'))
+
+    Set-PipelineTextFile -Path $manifestPath -Content (
+        ($manifestLines -join "`n") + "`n")
+    $receipt.manifests[0].sha256 = (
+        Get-FileHash -LiteralPath $manifestPath -Algorithm SHA256
+    ).Hash.ToLowerInvariant()
+    Set-PipelineTextFile -Path $script:receiptPath -Content (
+        $receipt | ConvertTo-Json -Depth 8)
+
     $case = $receipt | ConvertTo-Json -Depth 8 | ConvertFrom-Json
     $case.sourceDigest = 'stale'
     Assert-ReceiptRejected -Name stale -Receipt $case `
@@ -342,7 +370,7 @@ try {
 
     Write-Host (
         'Validation pipeline regressions passed: six inventory cases, ' +
-        'one valid receipt, six rejected receipts, and no-rebuild ownership checks.')
+        'two valid receipts, six rejected receipts, and no-rebuild ownership checks.')
 } finally {
     $resolvedRegressionRoot = [System.IO.Path]::GetFullPath($regressionRoot)
     $resolvedPipelineRoot = [System.IO.Path]::GetFullPath(

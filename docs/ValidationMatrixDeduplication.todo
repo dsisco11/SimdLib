@@ -246,22 +246,30 @@ SimdLib Validation Matrix Deduplication Plan:
       - PowerShell parsing, JSON parsing, POSIX shell parsing with LF-only enforcement, Docker Compose expansion, CMake preset listing, matrix verification, focused regression tests, and `git diff --check` passed.
 
   Phase 9 - Measure, Qualify, and Document:
-    ☐ Run focused configuration and inventory tests after each relevant refactor without running the complete compiler matrix after every phase.
-    ☐ Run one final clean default `Build` across all retained native and container cells.
-    ☐ Run `Run-Tests` against the final build receipt and verify that it performs no rebuild.
-    ☐ Run the final coverage, sanitizer, compiler-contract, optimized-codegen, external-consumer, and benchmark workflows according to their new ownership.
-    ☐ Run at least one selected Debug codegen diagnostic operation and verify its records remain available outside the default build.
-    ☐ Compare clean configure, build, discovery, test, and total pipeline times against the Phase 0 baseline.
-    ☐ Compare cached incremental build and build-free test times against the baseline.
-    ☐ Report target counts, test counts, compiler-process work, critical-path outputs, container time, and consumer time separately.
-    ☐ Confirm that any observed reduction comes from removed work rather than a warm cache, missing target, skipped test, or failed service.
-    ☐ Update build, validation, support-matrix, coverage, codegen, sanitizer, and contributor documentation with the enduring ownership rules and user-facing commands.
-    ☐ Remove stale statements that imply every supported compiler must run a complete ordinary Debug suite.
-    ☐ Reconcile `docs/project.todo`, Register qualification requirements, and any other planning documents with the final default-versus-diagnostic codegen policy.
-    ☐ Avoid recording transient claims such as tests presently passing in enduring documentation; keep execution results in completion evidence.
-    ☐ Run formatting and `git diff --check` on all modified source, CMake, script, and documentation files.
-    ☐ Review the final diff for accidental compatibility aliases, stale preset names, unreferenced options, duplicate aggregates, and unrelated changes.
-    ☐ End Phase 9 only when the reduced matrix preserves every approved contract, the default pipeline is measurably faster, optional diagnostics remain usable, and the enduring documentation describes the implemented workflow accurately.
+    ☒ Run focused configuration and inventory tests after each relevant refactor without running the complete compiler matrix after every phase.
+    ☒ Run one final clean default `Build` across all retained native and container cells.
+    ☒ Run `Run-Tests` against the final build receipt and verify that it performs no rebuild.
+    ☒ Run the final coverage, sanitizer, compiler-contract, optimized-codegen, external-consumer, and benchmark workflows according to their new ownership.
+    ☒ Run at least one selected Debug codegen diagnostic operation and verify its records remain available outside the default build.
+    ☒ Compare clean configure, build, discovery, test, and total pipeline times against the Phase 0 baseline.
+    ☒ Compare cached incremental build and build-free test times against the baseline.
+    ☒ Report target counts, test counts, compiler-process work, critical-path outputs, container time, and consumer time separately.
+    ☒ Confirm that any observed reduction comes from removed work rather than a warm cache, missing target, skipped test, or failed service.
+    ☒ Update build, validation, support-matrix, coverage, codegen, sanitizer, and contributor documentation with the enduring ownership rules and user-facing commands.
+    ☒ Remove stale statements that imply every supported compiler must run a complete ordinary Debug suite.
+    ☒ Reconcile `docs/project.todo`, Register qualification requirements, and any other planning documents with the final default-versus-diagnostic codegen policy.
+    ☒ Avoid recording transient claims such as tests presently passing in enduring documentation; keep execution results in completion evidence.
+    ☒ Run formatting and `git diff --check` on all modified source, CMake, script, and documentation files.
+    ☒ Review the final diff for accidental compatibility aliases, stale preset names, unreferenced options, duplicate aggregates, and unrelated changes.
+    ☒ End Phase 9 only when the reduced matrix preserves every approved contract, the default pipeline is measurably faster, optional diagnostics remain usable, and the enduring documentation describes the implemented workflow accurately.
+
+    Evidence:
+      - The final clean eight-cell `Build -Scope All` completed in 451.745 seconds versus the 937.904-second twelve-cell baseline; configured targets fell from 1,485 to 734 and main tests from 2,837 to 2,042 without an incomplete inventory.
+      - The immediate cached build completed in 74.095 seconds without translation-unit compilation, and receipt-bound `Run-Tests -Scope All` completed in 62.026 seconds without changing any of the 1,682 pre-existing object hashes or timestamps.
+      - Coverage mapped 256 profiles to 21 executables, the sanitizer cell retained 258 runtime/checks tests, five compiler-contract owners retained 224 targets and 45 tests, five Release owners built and ran benchmarks, Release generated-code enforcement remained mandatory, and all five external-consumer owners ran.
+      - The selected MSVC Debug diagnostic retained 35 record-only outputs under its independent fingerprint and provenance while remaining ineligible to satisfy the optimized Release gate.
+      - `docs/Validation.md` records configuration, build/discovery, test, container, consumer, object, critical-output, clean, cached, and total measurements as execution evidence; canonical documentation contains only enduring ownership and command rules.
+      - PowerShell and JSON parsing, matrix verification, receipt/inventory regressions, Docker Compose expansion, CMake preset listing, stale-wording searches, newline normalization, and `git diff --check` passed.
 
   Phase 10 - Remove Temporary Planning and Evidence Documentation:
     ☐ Inventory every planning document, baseline report, measurement note, scratch script, generated report, and temporary artifact added or retained for this work.

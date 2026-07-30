@@ -1248,11 +1248,12 @@ explicitly excluded from the zero-overhead support claim.
 The zero-overhead support claim is configuration-specific. Each accepted result
 records the compiler and version, target architecture, ISA switches, SimdLib
 configuration, optimization mode, and calling convention used for both wrapper
-and raw baselines. Optimized Release builds are the mandatory machine-code gate.
-Debug and sanitizer builds run correctness and wrapper-versus-raw differential
-checks under identical flags; they are not claimed to have optimized Release
-assembly. Any wrapper-only overhead found in those builds is still recorded and
-discussed explicitly rather than hidden by the narrower Release claim.
+and raw baselines. Optimized Release builds are the mandatory machine-code
+gate. The representative ordinary Debug and ASan+UBSan cells run their assigned
+correctness contracts but do not build generated-code fixtures. Explicitly
+selected Debug or sanitizer diagnostics can record wrapper-versus-raw
+differences under identical flags; they are not claimed to have optimized
+Release assembly and cannot satisfy the mandatory Release gate.
 
 ## Error and precondition policy
 
@@ -1368,8 +1369,8 @@ The implementation requires evidence in each of these areas:
 - Rearrangement tests that document lane order and selector behavior.
 - `constexpr` probes for every operation whose `Api` counterpart supports
   constant evaluation.
-- Debug-contract and sanitizer runs that confirm full-register access does not
-  read beyond caller storage.
+- Representative Debug-contract and sanitizer runs that confirm full-register
+  access does not read beyond caller storage.
 - Separate validation of the core C++20 matrix and the narrower Register matrix:
   Windows x64 uses MSVC 19.44 and clang-cl 22.
   Linux x64 uses Clang 22 and GCC 14 or newer; GCC 13.2 is a required
@@ -1417,8 +1418,8 @@ The implementation requires evidence in each of these areas:
 - Configuration-provenance records accompany every code-generation and ABI
   artifact, including compiler version, architecture, ISA switches, SimdLib
   configuration, optimization mode, calling convention, stack-protector mode,
-  exact symbol filter, and raw baseline. Debug and sanitizer results are
-  reported separately from optimized Release evidence.
+  exact symbol filter, and raw baseline. Explicit Debug and sanitizer diagnostic
+  results are reported separately from optimized Release evidence.
 
 Tests use the current `Api` as the permanent generated-code parity baseline.
 Independent scalar references remain necessary in behavioral tests and
