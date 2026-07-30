@@ -1,23 +1,15 @@
-# Method-flags source inventory
+# Method-flags source audit
 
-The method-flags source audit maintains one generated ledger:
+`tools/Audit-MethodFlagsSource.ps1` scans active C++ declarations under
+`include`, `tests`, and `examples`. It enforces the canonical method-flags
+surface directly; no generated declaration inventory is required.
 
-- `MethodFlagsRegisterOnly.csv` lists every canonical `SIMD_FLAGS(...)`
-  declaration containing `RegisterOnly`, with its path, line, symbol, and full
-  flag list. This makes the promise reviewable without claiming that a source
-  scanner can prove the function body or its transitive callees are free of
-  memory writes.
-
-Generate or verify the ledger with:
+`tools/Run-RepositoryAudit.ps1` invokes the source audit once for the canonical
+source digest. Run it directly for a focused check:
 
 ```powershell
-./tools/Generate-MethodFlagsInventory.ps1
-./tools/Generate-MethodFlagsInventory.ps1 -Verify
+./tools/Audit-MethodFlagsSource.ps1
 ```
-
-The repository audit runs the verifier and binds the ledger count and SHA-256
-digest into its result. Retired declaration spellings are rejected directly by
-the source audit and do not require a generated migration inventory.
 
 ## Enforced source policy
 
@@ -34,8 +26,7 @@ The scanner removes C++ comments while preserving line positions, then rejects:
 - internal method-flags helper names exposed through Doxygen comments.
 
 Intentional compile-failure fixtures named `Invalid*.cpp` remain available to
-exercise the public preprocessor diagnostics. They are not treated as
-production declarations by the inventory.
+exercise the public preprocessor diagnostics. They are excluded from production-source policy checks.
 
 `Test-MethodFlagsSourceAudit.ps1` creates isolated disposable source trees and
 proves that the scanner accepts canonical syntax while rejecting each policy
@@ -49,10 +40,3 @@ ABI-placement, and generated-code fixtures may compose the internal
 the subject of the test. Those files are kept on an exact allowlist; the
 adapters are not downstream API and cannot be used from another source file
 without failing the audit.
-
-## RegisterOnly ledger fields
-
-- `Path` and `Line` locate the declaration.
-- `Symbol` identifies the declared function or method.
-- `Flags` preserves the complete canonical invocation so reviewers can assess
-  the boundary mode and the other optimization promises together.

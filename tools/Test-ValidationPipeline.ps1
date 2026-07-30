@@ -210,7 +210,7 @@ try {
     $sourceDigest = Get-PipelineSourceDigest -RepositoryRoot $repositoryRoot
     $auditPath = Join-Path $regressionRoot 'repository-audit.json'
     $auditDocument = [ordered]@{
-        schema = 'simdlib.repository-audit.v2'
+        schema = 'simdlib.repository-audit.v3'
         status = 'complete'
         sourceDigest = $sourceDigest
         sourceRevision = Get-PipelineRevision -RepositoryRoot $repositoryRoot

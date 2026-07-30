@@ -1,16 +1,13 @@
 <#
 .SYNOPSIS
-Generates or verifies the canonical RegisterOnly declaration ledger.
+Audits the canonical method-flags declaration surface.
 .DESCRIPTION
-Audits the unified method-flags declaration surface, rejects retired declaration
-spellings and invalid flag combinations, and records every RegisterOnly promise.
+Rejects retired declaration spellings, invalid `SIMD_FLAGS(...)` combinations,
+unreviewed internal adapters, prohibited short flag macros, and public Doxygen
+references to internal method-flags helpers.
 #>
 [CmdletBinding()]
-param(
-    [string]$RepositoryRoot = '',
-    [string]$RegisterOnlyOutputPath = '',
-    [switch]$Verify
-)
+param([string]$RepositoryRoot = '')
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
@@ -20,12 +17,6 @@ $repositoryRoot = if ($RepositoryRoot) {
 } else {
     Split-Path -Parent $PSScriptRoot
 }
-if (-not $RegisterOnlyOutputPath) {
-    $RegisterOnlyOutputPath = Join-Path $repositoryRoot 'docs/MethodFlagsRegisterOnly.csv'
-} elseif (-not [System.IO.Path]::IsPathRooted($RegisterOnlyOutputPath)) {
-    $RegisterOnlyOutputPath = Join-Path $repositoryRoot $RegisterOnlyOutputPath
-}
-$utf8NoBom = [System.Text.UTF8Encoding]::new($false)
 $retiredDeclarationPattern = '\b(VECTORCALL|SIMDLIB_REGISTER_ONLY|SIMDLIB_FORCE_INLINE|SIMDLIB_FLATTEN)\b'
 $sourceExtensions = @('.h', '.hpp', '.cpp', '.cc', '.cxx')
 
@@ -126,140 +117,11 @@ function Get-SourceLine {
 
 <#
 .SYNOPSIS
-Finds the end of one preprocessor line or C++ declaration and definition.
-.PARAMETER Text
-Comment-free source text.
-.PARAMETER Start
-Character position of the `SIMD_FLAGS(...)` invocation.
-#>
-function Get-DeclarationExtent {
-    param(
-        [Parameter(Mandatory)][string]$Text,
-        [Parameter(Mandatory)][int]$Start
-    )
-
-    $lineStart = $Text.LastIndexOf("`n", [Math]::Max(0, $Start - 1))
-    $lineStart = if ($lineStart -lt 0) { 0 } else { $lineStart + 1 }
-    $lineEnd = $Text.IndexOf("`n", $Start)
-    if ($lineEnd -lt 0) { $lineEnd = $Text.Length }
-    if ($Text.Substring($lineStart, $lineEnd - $lineStart) -match '^\s*#') {
-        return [pscustomobject]@{
-            Start = $lineStart
-            HeaderEnd = $lineEnd
-            End = $lineEnd
-            HasBody = $false
-        }
-    }
-
-    $parentheses = 0
-    $brackets = 0
-    $requiresBraces = 0
-    $bodyStart = -1
-    for ($index = $lineStart; $index -lt $Text.Length; ++$index) {
-        $character = $Text[$index]
-        switch ($character) {
-            '(' { ++$parentheses }
-            ')' { if ($parentheses -gt 0) { --$parentheses } }
-            '[' { ++$brackets }
-            ']' { if ($brackets -gt 0) { --$brackets } }
-            '{' {
-                if ($parentheses -eq 0 -and $brackets -eq 0) {
-                    $prefixStart = [Math]::Max($lineStart, $index - 512)
-                    $prefix = $Text.Substring($prefixStart, $index - $prefixStart)
-                    if ($requiresBraces -gt 0 -or $prefix -match 'requires\s+requires\b[^{}]*$') {
-                        ++$requiresBraces
-                    } else {
-                        $bodyStart = $index
-                        break
-                    }
-                }
-            }
-            '}' {
-                if ($requiresBraces -gt 0 -and $parentheses -eq 0 -and $brackets -eq 0) {
-                    --$requiresBraces
-                }
-            }
-            ';' {
-                if ($parentheses -eq 0 -and $brackets -eq 0 -and $requiresBraces -eq 0) {
-                    return [pscustomobject]@{
-                        Start = $lineStart
-                        HeaderEnd = $index + 1
-                        End = $index + 1
-                        HasBody = $false
-                    }
-                }
-            }
-        }
-        if ($bodyStart -ge 0) { break }
-    }
-
-    if ($bodyStart -lt 0) {
-        return [pscustomobject]@{
-            Start = $lineStart
-            HeaderEnd = $lineEnd
-            End = $lineEnd
-            HasBody = $false
-        }
-    }
-
-    $depth = 0
-    for ($index = $bodyStart; $index -lt $Text.Length; ++$index) {
-        if ($Text[$index] -eq '{') {
-            ++$depth
-        } elseif ($Text[$index] -eq '}') {
-            --$depth
-            if ($depth -eq 0) {
-                return [pscustomobject]@{
-                    Start = $lineStart
-                    HeaderEnd = $bodyStart
-                    End = $index + 1
-                    HasBody = $true
-                }
-            }
-        }
-    }
-    throw "Unterminated function body beginning on line $(Get-SourceLine -Text $Text -Position $lineStart)"
-}
-
-<#
-.SYNOPSIS
-Extracts the declared function name from a method-flags declaration header.
-.PARAMETER Header
-Declaration header containing a canonical `SIMD_FLAGS(...)` invocation.
-#>
-function Get-DeclarationSymbol {
-    param([Parameter(Mandatory)][string]$Header)
-
-    if ($Header -match '^\s*#') { return '' }
-    $withoutFlags = [regex]::Replace($Header, $retiredDeclarationPattern, ' ')
-    $withoutFlags = [regex]::Replace($withoutFlags, '\bSIMD_FLAGS\s*\([^()]*\)', ' ')
-    $operatorMatch = [regex]::Match(
-        $withoutFlags,
-        'operator\s*(?:\[\]|[+\-*/%&|^~!=<>]+|[A-Za-z_][A-Za-z0-9_:<>,\s]*)\s*\(')
-    if ($operatorMatch.Success) {
-        return ($operatorMatch.Value -replace '\s*\($', '').Trim()
-    }
-
-    $excluded = @(
-        'alignas', 'decltype', 'for', 'if', 'noexcept', 'requires',
-        'sizeof', 'static_assert', 'switch', 'while')
-    $matches = [regex]::Matches(
-        $withoutFlags,
-        '(~?[A-Za-z_][A-Za-z0-9_]*)(?:\s*<[^<>]*(?:<[^<>]*>[^<>]*)*>)?\s*\(')
-    foreach ($match in $matches) {
-        $candidate = $match.Groups[1].Value
-        if ($candidate -notin $excluded) { return $candidate }
-    }
-    return ''
-}
-
-<#
-.SYNOPSIS
-Audits unified method-flag usage and returns every RegisterOnly declaration.
+Audits unified method-flag usage across production and consumer-facing sources.
 .PARAMETER RepositoryRoot
 Absolute repository root containing include, tests, and examples.
 #>
-function Get-RegisterOnlyInventory {
+function Invoke-MethodFlagsSourceAudit {
     param([Parameter(Mandatory)][string]$RepositoryRoot)
 
     $canonicalFlags = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
@@ -288,7 +150,6 @@ function Get-RegisterOnlyInventory {
         [void]$internalAdapterPaths.Add($allowedPath)
     }
 
-    $records = [System.Collections.Generic.List[object]]::new()
     $errors = [System.Collections.Generic.List[string]]::new()
     foreach ($directory in @('include', 'tests', 'examples')) {
         foreach ($sourceFile in Get-ChildItem -LiteralPath (Join-Path $RepositoryRoot $directory) -Recurse -File |
@@ -342,41 +203,12 @@ function Get-RegisterOnlyInventory {
                     $errors.Add("$relativePath`:$line uses noncanonical or unrecognized SIMD_FLAGS tokens: $canonical")
                     continue
                 }
-                if ('RegisterOnly' -notin $tokens) { continue }
-
-                $extent = Get-DeclarationExtent -Text $cleanText -Start $match.Index
-                $header = $cleanText.Substring($extent.Start, $extent.HeaderEnd - $extent.Start)
-                $header = ($header -replace '\s+', ' ').Trim()
-                $records.Add([pscustomobject][ordered]@{
-                        Path = $relativePath
-                        Line = $line
-                        Symbol = Get-DeclarationSymbol -Header $header
-                        Flags = 'SIMD_FLAGS(' + ($tokens -join ', ') + ')'
-                    })
             }
         }
     }
     if ($errors.Count -gt 0) {
         throw "Method-flags source audit failed:`n$($errors -join "`n")"
     }
-    return @($records | Sort-Object Path, @{ Expression = { [int]$_.Line } }, Symbol)
 }
-$registerOnlyInventory = @(Get-RegisterOnlyInventory -RepositoryRoot $repositoryRoot)
-$registerOnlyHeader = '"Path","Line","Symbol","Flags"'
-$registerOnlyCsv = if ($registerOnlyInventory.Count -eq 0) {
-    $registerOnlyHeader + "`n"
-} else {
-    (($registerOnlyInventory | ConvertTo-Csv -NoTypeInformation) -join "`n") + "`n"
-}
-if ($Verify) {
-    if (-not (Test-Path -LiteralPath $RegisterOnlyOutputPath -PathType Leaf)) {
-        throw "RegisterOnly inventory is missing: $RegisterOnlyOutputPath"
-    }
-    $existingRegisterOnly = [System.IO.File]::ReadAllText($RegisterOnlyOutputPath)
-    if ($existingRegisterOnly -ne $registerOnlyCsv) {
-        throw "RegisterOnly inventory is stale; regenerate $RegisterOnlyOutputPath"
-    }
-} else {
-    [System.IO.File]::WriteAllText($RegisterOnlyOutputPath, $registerOnlyCsv, $utf8NoBom)
-}
-Write-Host "RegisterOnly inventory: $($registerOnlyInventory.Count) declarations"
+Invoke-MethodFlagsSourceAudit -RepositoryRoot $repositoryRoot
+Write-Host 'Method-flags source audit passed.'

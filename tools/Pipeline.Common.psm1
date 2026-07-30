@@ -201,7 +201,7 @@ function New-PipelineRepositoryAuditEntry {
         throw "Repository audit result is missing: $AuditPath"
     }
     $audit = Get-Content -LiteralPath $AuditPath -Raw | ConvertFrom-Json
-    if ($audit.schema -ne 'simdlib.repository-audit.v2' -or
+    if ($audit.schema -ne 'simdlib.repository-audit.v3' -or
         $audit.status -ne 'complete' -or
         $audit.sourceDigest -ne $ExpectedSourceDigest) {
         throw "Repository audit result is stale or incompatible: $AuditPath"
@@ -241,7 +241,7 @@ function Assert-PipelineRepositoryAuditEntry {
         throw "Receipt repository audit changed after the unified build: $auditPath"
     }
     $audit = Get-Content -LiteralPath $auditPath -Raw | ConvertFrom-Json
-    if ($audit.schema -ne 'simdlib.repository-audit.v2' -or
+    if ($audit.schema -ne 'simdlib.repository-audit.v3' -or
         $audit.status -ne 'complete' -or
         $audit.sourceDigest -ne $ExpectedSourceDigest) {
         throw "Receipt repository audit is incomplete or stale: $auditPath"

@@ -153,7 +153,7 @@ Documentation references have these roles:
 | `RegisterImplementationMatrix.md` | Public-operation-to-generated-code traceability. |
 | `MethodFlagsContract.md` | Compiler-attribute promises, compiler mappings, and extension policy. |
 | `BuildPipeline.md` and `ContainerValidation.md` | Reproduction commands and execution-reporting boundaries. |
-| `MethodFlagsRegisterOnly.csv` and `MethodFlagsInventory.md` | RegisterOnly declaration review and method-flag source-audit policy. |
+| `MethodFlagsSourceAudit.md` | Canonical method-flags declaration policy and repository source-audit ownership. |
 | `SimdLibDevelopment.todo`, `TestCoverageExpansion.todo`, and `project.todo` | Active planning and project backlog; not normative pass claims. |
 | `README.md` and `wiki/Technical-Reference.md` | User-facing support and performance guidance. |
 
