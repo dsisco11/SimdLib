@@ -173,23 +173,26 @@ first SimdLib include.
   `SIMDLIB_HAS_FMA`, `SIMDLIB_HAS_BMI1`, and `SIMDLIB_HAS_BMI2` describe
   compiler-enabled instruction families. They do not provide runtime CPU
   detection.
-- `SIMDLIB_FORCE_INLINE` selects the supported compiler attribute together
-  with `inline` and may be replaced with ordinary `inline`.
-- `SIMDLIB_FLATTEN` selects the supported recursive-inlining attribute and
-  may be replaced with an empty definition.
+- `SIMD_FLAGS(..., ForceInline)` selects the supported compiler attribute
+  together with `inline`.
+- `SIMD_FLAGS(..., Flatten)` selects the supported recursive-inlining
+  attribute independently from `ForceInline`.
 - `SIMDLIB_PRECONDITION(condition, message)` is the assertion replacement
   point and defaults to standard `assert`.
 - `SIMDLIB_ENABLE_CHECKS` defaults to enabled without `NDEBUG` and disabled
   with `NDEBUG`.
-- `VECTORCALL` affects the ABI. It is `__vectorcall` on supported MSVC and
-  Clang Windows x64 targets and empty on non-Windows Clang and other
-  unsupported targets.
+- The `In`, `Out`, and `InOut` boundary modes affect the ABI. They emit the
+  configured vector-calling-convention adapter on supported MSVC and Clang
+  Windows x64 targets and emit no calling-convention token on unsupported
+  targets.
 
-A caller that overrides `VECTORCALL` with an empty definition must also set
-`SIMDLIB_VECTORCALL_ENABLED=0` consistently in every translation unit. An
-empty `VECTORCALL` changes only the calling convention; it does not disable
-SSE, AVX, FMA, BMI, or any other target-specific instruction. Those remain
-controlled by compiler flags and the corresponding `SIMDLIB_HAS_*` values.
+A custom toolchain may override the paired
+`SIMDLIB_METHOD_FLAGS_HAS_VECTORCALL` and
+`SIMDLIB_METHOD_FLAGS_VECTORCALL` definitions consistently in every
+translation unit. An empty adapter changes only the calling convention; it
+does not disable SSE, AVX, FMA, BMI, or any other target-specific instruction.
+Those remain controlled by compiler flags and the corresponding
+`SIMDLIB_HAS_*` values.
 
 All linked translation units must use the same ABI-affecting configuration.
 See [CompilerConfiguration.md](../cmake/CompilerConfiguration.md) for compiler

@@ -157,22 +157,25 @@ class RegisterMask final
 	 * Prefer `lhs = lhs & rhs`, `lhs = lhs | rhs`, or `lhs = lhs ^ rhs`.
 	 *
 	/// @brief Intersects this predicate with another predicate.
-	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr RegisterMask &operator&=(this RegisterMask
-	&lhs, RegisterMask rhs) noexcept
+	constexpr auto SIMD_FLAGS(In, ForceInline, Flatten) operator&=(
+		this RegisterMask &lhs,
+		RegisterMask rhs) noexcept -> RegisterMask &
 	{
 		return lhs = lhs & rhs;
 	}
 
 	/// @brief Unites this predicate with another predicate.
-	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr RegisterMask &operator|=(this RegisterMask &lhs,
-	RegisterMask rhs) noexcept
+	constexpr auto SIMD_FLAGS(In, ForceInline, Flatten) operator|=(
+		this RegisterMask &lhs,
+		RegisterMask rhs) noexcept -> RegisterMask &
 	{
 		return lhs = lhs | rhs;
 	}
 
 	/// @brief Exclusively combines this predicate with another predicate.
-	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr RegisterMask &operator^=(this
-	RegisterMask &lhs, RegisterMask rhs) noexcept
+	constexpr auto SIMD_FLAGS(In, ForceInline, Flatten) operator^=(
+		this RegisterMask &lhs,
+		RegisterMask rhs) noexcept -> RegisterMask &
 	{
 		return lhs = lhs ^ rhs;
 	}

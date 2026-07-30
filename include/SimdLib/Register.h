@@ -281,9 +281,9 @@ class Register final
 	 * Prefer `lhs = lhs + rhs`, `lhs = lhs - rhs`, `lhs = lhs * rhs`, `lhs = lhs / rhs`, or `lhs = lhs % rhs`.
 	 *
 	/// @brief Adds another register into this register.
-	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE Register &VECTORCALL operator+=(
+	auto SIMD_FLAGS(In, ForceInline, Flatten) operator+=(
 		this Register &lhs,
-		Register rhs) noexcept
+		Register rhs) noexcept -> Register &
 		requires IApi::Add<api_type>
 	{
 		lhs.native = api_type::add(lhs.native, rhs.native);
@@ -291,9 +291,9 @@ class Register final
 	}
 
 	/// @brief Subtracts another register from this register.
-	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE Register &VECTORCALL operator-=(
+	auto SIMD_FLAGS(In, ForceInline, Flatten) operator-=(
 		this Register &lhs,
-		Register rhs) noexcept
+		Register rhs) noexcept -> Register &
 		requires IApi::Subtract<api_type>
 	{
 		lhs.native = api_type::subtract(lhs.native, rhs.native);
@@ -301,9 +301,9 @@ class Register final
 	}
 
 	/// @brief Multiplies this register by another register.
-	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE Register &VECTORCALL operator*=(
+	auto SIMD_FLAGS(In, ForceInline, Flatten) operator*=(
 		this Register &lhs,
-		Register rhs) noexcept
+		Register rhs) noexcept -> Register &
 		requires IApi::Multiply<api_type>
 	{
 		lhs.native = api_type::multiply(lhs.native, rhs.native);
@@ -314,9 +314,9 @@ class Register final
 	/// @brief Divides this register by another register.
 	/// @pre Every divisor lane is nonzero and signed minimum is not divided by negative one.
 	///
-	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE Register &VECTORCALL operator/=(
+	auto SIMD_FLAGS(In, ForceInline, Flatten) operator/=(
 		this Register &lhs,
-		Register rhs) noexcept
+		Register rhs) noexcept -> Register &
 		requires IApi::Divide<api_type>
 	{
 		lhs.native = api_type::divide(lhs.native, rhs.native);
@@ -327,9 +327,9 @@ class Register final
 	/// @brief Replaces this register with corresponding-lane remainders.
 	/// @pre Every divisor lane is nonzero and signed minimum is not divided by negative one.
 	///
-	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE Register &VECTORCALL operator%=(
+	auto SIMD_FLAGS(In, ForceInline, Flatten) operator%=(
 		this Register &lhs,
-		Register rhs) noexcept
+		Register rhs) noexcept -> Register &
 		requires IApi::Modulus<api_type>
 	{
 		lhs.native = api_type::modulus(lhs.native, rhs.native);
@@ -713,27 +713,27 @@ class Register final
 	 * Prefer `lhs = lhs & rhs`, `lhs = lhs | rhs`, or `lhs = lhs ^ rhs`.
 	 *
 	/// @brief Intersects this register with another register.
-	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr Register &VECTORCALL operator&=(
+	constexpr auto SIMD_FLAGS(In, ForceInline, Flatten) operator&=(
 		this Register &lhs,
-		Register rhs) noexcept
+		Register rhs) noexcept -> Register &
 	{
 		lhs.native = api_type::bitwise_and(lhs.native, rhs.native);
 		return lhs;
 	}
 
 	/// @brief Unites this register with another register.
-	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr Register &VECTORCALL operator|=(
+	constexpr auto SIMD_FLAGS(In, ForceInline, Flatten) operator|=(
 		this Register &lhs,
-		Register rhs) noexcept
+		Register rhs) noexcept -> Register &
 	{
 		lhs.native = api_type::bitwise_or(lhs.native, rhs.native);
 		return lhs;
 	}
 
 	/// @brief Exclusively combines this register with another register.
-	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr Register &VECTORCALL operator^=(
+	constexpr auto SIMD_FLAGS(In, ForceInline, Flatten) operator^=(
 		this Register &lhs,
-		Register rhs) noexcept
+		Register rhs) noexcept -> Register &
 	{
 		lhs.native = api_type::bitwise_xor(lhs.native, rhs.native);
 		return lhs;
@@ -815,9 +815,9 @@ class Register final
 	 * Prefer `value = value << count` or `value = value >> count`.
 	 *
 	/// @brief Left-shifts every integral lane in this register.
-	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr Register &VECTORCALL operator<<=(
+	constexpr auto SIMD_FLAGS(In, ForceInline, Flatten) operator<<=(
 		this Register &value,
-		int count) noexcept
+		int count) noexcept -> Register &
 		requires std::is_integral_v<element_type>
 	{
 		value.native = api_type::shift_left(value.native, count);
@@ -825,9 +825,9 @@ class Register final
 	}
 
 	/// @brief Right-shifts every integral lane in this register using its signedness.
-	SIMDLIB_FLATTEN SIMDLIB_FORCE_INLINE constexpr Register &VECTORCALL operator>>=(
+	constexpr auto SIMD_FLAGS(In, ForceInline, Flatten) operator>>=(
 		this Register &value,
-		int count) noexcept
+		int count) noexcept -> Register &
 		requires std::is_integral_v<element_type>
 	{
 		if constexpr (std::is_signed_v<element_type>)

@@ -1861,7 +1861,7 @@ __m256d SIMD_FLAGS(InOut, ForceInline) _ext256_cmpgt_pd(const __m256d lhs, const
 	return _mm256_cmp_pd(lhs, rhs, _CMP_GT_OQ);
 }
 
-// SIMDLIB_FORCE_INLINE VECTORCALL __m256 _ext256_insert_ps(__m256 lhs, __m128 rhs, const int imm8) noexcept
+// __m256 SIMD_FLAGS(InOut, ForceInline) _ext256_insert_ps(__m256 lhs, __m128 rhs, const int imm8) noexcept
 //{
 //     return _mm256_insertf128_ps(lhs, rhs, imm8);
 // }

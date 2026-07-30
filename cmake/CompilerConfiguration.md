@@ -1,23 +1,30 @@
 # Compiler configuration probes
 
-`Config.h` owns the standalone compiler configuration surface. Every
-library-controlled macro uses `#ifndef`, so a downstream project may override
-it before including any SimdLib header.
+`Config.h` owns the standalone compiler configuration surface. Public function
+declarations use `SIMD_FLAGS(...)`; downstream toolchains customize its
+placement-safe compiler adapters before including any SimdLib header.
 
-- `VECTORCALL` is ABI-affecting. It defaults to the shared `__vectorcall`
-  keyword for MSVC and Clang x86/x64 targets and is empty elsewhere. A caller
-  that supplies an empty `VECTORCALL` also sets
-  `SIMDLIB_VECTORCALL_ENABLED=0`. The shared keyword preserves one declaration
-  shape for free functions, members, templates, and function pointers.
-  An empty fallback changes only the calling convention; it does not affect
-  `SIMDLIB_HAS_*` instruction availability. Every linked translation unit must
-  use the same definition to avoid an ABI mismatch.
-- `SIMDLIB_FORCE_INLINE` defaults to the supported C++11 vendor attribute plus
-  `inline`; callers may set it to ordinary `inline`.
-- `SIMDLIB_FLATTEN` defaults to the compiler's recursive-inlining attribute;
-  callers may set it to an empty replacement. It requests inlining of calls
-  made from the annotated function, while `SIMDLIB_FORCE_INLINE` requests that
-  the annotated function be inlined into its caller.
+- `Neither`, `In`, `Out`, and `InOut` describe whether native or SimdLib SIMD
+  values cross the function boundary by value. `In`, `Out`, and `InOut` emit
+  the configured vector calling convention exactly once when the selected
+  compiler supports it.
+- `RegisterOnly`, `ForceInline`, and `Flatten` are independent modifiers.
+  `RegisterOnly` maps to safe-buffer suppression only on supported Microsoft
+  configurations. `ForceInline` requests that the annotated function be
+  inlined into its caller; `Flatten` requests recursive inlining of eligible
+  calls made by the annotated function.
+- `SIMDLIB_METHOD_FLAGS_HAS_VECTORCALL`,
+  `SIMDLIB_METHOD_FLAGS_HAS_SAFE_BUFFERS`,
+  `SIMDLIB_METHOD_FLAGS_HAS_FORCE_INLINE`, and
+  `SIMDLIB_METHOD_FLAGS_HAS_FLATTEN` report adapter capabilities. The matching
+  `SIMDLIB_METHOD_FLAGS_VECTORCALL`, `SIMDLIB_METHOD_FLAGS_SAFE_BUFFERS`,
+  `SIMDLIB_METHOD_FLAGS_FORCE_INLINE`, and `SIMDLIB_METHOD_FLAGS_FLATTEN`
+  adapters may be defined by a custom toolchain before the first SimdLib
+  include.
+- Vector calling-convention configuration is ABI-affecting. Every linked
+  translation unit that exchanges flagged functions must use compatible
+  capability and adapter definitions. Empty compiler mappings do not affect
+  `SIMDLIB_HAS_*` instruction availability or erase the source-level promise.
 - `SIMDLIB_PRECONDITION(condition, message)` defaults to `assert` and is the
   sole standalone replacement point for runtime preconditions.
 - `SIMDLIB_TARGET_X86` and `SIMDLIB_TARGET_X64` report the selected compiler
@@ -55,10 +62,11 @@ macros remain the source of truth even on MSVC, where `/arch:AVX2` is used to
 make the intrinsic declarations available to the independently forced probes.
 
 The configuration OBJECT probes cover default declaration placement for
-ordinary/static/template functions and a function pointer; caller overrides;
-disabled instruction families; vendor attributes; and an explicitly forced
-Clang non-x86 configuration. The default probe compiles the same
-`__vectorcall` declaration shapes with MSVC and Clang. See the
+ordinary, static, and template functions; callback types derived with
+`decltype`; caller overrides; disabled instruction families; vendor
+attributes; and an explicitly forced Clang non-x86 configuration. The method
+flags probes compile the same `SIMD_FLAGS(...)` declaration shapes with MSVC
+and Clang. See the
 [MSVC `__vectorcall` reference](https://learn.microsoft.com/en-us/cpp/cpp/vectorcall?view=msvc-170)
 and [Clang vectorcall reference](https://clang.llvm.org/docs/AttributeReference.html#vectorcall).
 The compile-only constexpr matrix builds BMI under all four feature-macro

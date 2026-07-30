@@ -731,8 +731,8 @@ template <> struct SimdImpl128<uint8_t>
 	}
 
 	// arithmetic (horizontal)
-	// static SIMDLIB_FORCE_INLINE auto VECTORCALL hadd (auto lhs, auto rhs) noexcept { return _mm_hadd_epi8(lhs, rhs); }
-	// static SIMDLIB_FORCE_INLINE auto VECTORCALL hsub (auto lhs, auto rhs) noexcept { return _mm_hsub_epi8(lhs, rhs); }
+	// static auto SIMD_FLAGS(InOut, ForceInline) hadd (auto lhs, auto rhs) noexcept { return _mm_hadd_epi8(lhs, rhs); }
+	// static auto SIMD_FLAGS(InOut, ForceInline) hsub (auto lhs, auto rhs) noexcept { return _mm_hsub_epi8(lhs, rhs); }
 
 	// arithmetic (saturated)
 	/** @brief Adds lanes with saturation for this native register specialization. */
@@ -2974,7 +2974,7 @@ template <> struct SimdImpl128<float>
 	{
 		return _mm_cvtps_epi32(lhs, rhs);
 	}
-	// static SIMDLIB_FORCE_INLINE auto VECTORCALL compress (auto lhs, auto rhs) noexcept { return _mm_cvtepi32_ps(lhs, rhs); }
+	// static auto SIMD_FLAGS(InOut, ForceInline) compress (auto lhs, auto rhs) noexcept { return _mm_cvtepi32_ps(lhs, rhs); }
 
 	// extract / insert
 	template <int index> static auto SIMD_FLAGS(In, RegisterOnly, ForceInline) extract(auto lhs) noexcept
@@ -3203,14 +3203,14 @@ template <> struct SimdImpl128<double>
 	{
 		return _mm_cmpgt_pd(lhs, rhs);
 	}
-	// static SIMDLIB_FORCE_INLINE auto VECTORCALL cmplt (auto lhs, auto rhs) noexcept { return _mm_cmplt_pd(lhs, rhs); }
+	// static auto SIMD_FLAGS(InOut, ForceInline) cmplt (auto lhs, auto rhs) noexcept { return _mm_cmplt_pd(lhs, rhs); }
 
 	// conversion
 	static auto SIMD_FLAGS(InOut, ForceInline) expand(auto lhs, auto rhs) noexcept
 	{
 		return _mm_cvtps_epi32(lhs, rhs);
 	}
-	// static SIMDLIB_FORCE_INLINE auto VECTORCALL compress (auto lhs, auto rhs) noexcept { return _mm_cvtepi32_pd(lhs, rhs); }
+	// static auto SIMD_FLAGS(InOut, ForceInline) compress (auto lhs, auto rhs) noexcept { return _mm_cvtepi32_pd(lhs, rhs); }
 
 	// extract / insert
 	template <int index> static auto SIMD_FLAGS(In, RegisterOnly, ForceInline) extract(auto lhs) noexcept
@@ -5936,7 +5936,7 @@ template <> struct SimdImpl256<int64_t>
 	}
 
 	// conversion
-	// static SIMDLIB_FORCE_INLINE auto VECTORCALL expand (auto lhs, auto rhs) noexcept { return _mm256_cvtepi64_epi128(lhs, rhs); }
+	// static auto SIMD_FLAGS(InOut, ForceInline) expand (auto lhs, auto rhs) noexcept { return _mm256_cvtepi64_epi128(lhs, rhs); }
 
 	// extract / insert
 	template <int index> static auto SIMD_FLAGS(In, RegisterOnly, ForceInline) extract(auto lhs) noexcept
@@ -6161,7 +6161,7 @@ template <> struct SimdImpl256<uint64_t>
 	}
 
 	// conversion
-	// static SIMDLIB_FORCE_INLINE auto VECTORCALL expand (auto lhs, auto rhs) noexcept { return _mm256_cvtepu64_epi128(lhs, rhs); }
+	// static auto SIMD_FLAGS(InOut, ForceInline) expand (auto lhs, auto rhs) noexcept { return _mm256_cvtepu64_epi128(lhs, rhs); }
 
 	// extract / insert
 	template <int index> static auto SIMD_FLAGS(In, RegisterOnly, ForceInline) extract(auto lhs) noexcept

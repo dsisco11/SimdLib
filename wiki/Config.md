@@ -23,8 +23,9 @@ SimdLib::Config::version_major; // => 0 for version 0.2.0
 `compiler_clang`, `compiler_msvc`, `compiler_gcc`, `target_x86`, `target_x64`, and `vectorcall_enabled` describe the active compiler and ABI target.
 
 `vectorcall_enabled` is true for supported MSVC and Clang Windows x64
-targets. GNU-like Clang on Linux leaves `VECTORCALL` empty because
-`__vectorcall` is a Windows ABI boundary, not a portable x86 convention.
+targets. GNU-like Clang on Linux leaves the `SIMD_FLAGS(...)`
+vector-calling-convention adapter empty because `__vectorcall` is a Windows ABI
+boundary, not a portable x86 convention.
 
 ```cpp
 SimdLib::Config::target_x64; // => true when compiling for x64
@@ -46,13 +47,19 @@ Unlike the customization macros below, this availability result is not caller-ov
 
 ## Customization macros
 
-Except for the computed `SIMDLIB_REGISTER_INTERFACE_AVAILABLE` result, `SIMDLIB_*` configuration macros are caller-overridable before including SimdLib. `SIMDLIB_PRECONDITION`, `SIMDLIB_ENABLE_CHECKS`, `SIMDLIB_FORCE_INLINE`, `SIMDLIB_FLATTEN`, and `VECTORCALL` control contracts, diagnostics, inlining, and the public calling convention.
+Except for the computed `SIMDLIB_REGISTER_INTERFACE_AVAILABLE` result,
+documented `SIMDLIB_*` configuration macros are caller-overridable before
+including SimdLib. `SIMDLIB_PRECONDITION` and `SIMDLIB_ENABLE_CHECKS` control
+diagnostics. Public function declarations express ABI and optimization
+contracts through `SIMD_FLAGS(...)`.
 
-`SIMDLIB_FORCE_INLINE` requests that an annotated function be inlined into
-its caller. `SIMDLIB_FLATTEN` instead requests recursive inlining of calls
-made from an annotated function. Its default spelling is
-`[[msvc::flatten]]` on MSVC and `[[gnu::flatten]]` on Clang and GCC.
-Either macro may be replaced by a consumer before including SimdLib.
+Custom toolchains may define the paired
+`SIMDLIB_METHOD_FLAGS_HAS_VECTORCALL`/`SIMDLIB_METHOD_FLAGS_VECTORCALL`,
+`SIMDLIB_METHOD_FLAGS_HAS_SAFE_BUFFERS`/`SIMDLIB_METHOD_FLAGS_SAFE_BUFFERS`,
+`SIMDLIB_METHOD_FLAGS_HAS_FORCE_INLINE`/`SIMDLIB_METHOD_FLAGS_FORCE_INLINE`,
+and `SIMDLIB_METHOD_FLAGS_HAS_FLATTEN`/`SIMDLIB_METHOD_FLAGS_FLATTEN`
+capability and token adapters before the first SimdLib include. Downstream
+function declarations still use only `SIMD_FLAGS(...)`.
 
 ```cpp
 #define SIMDLIB_ENABLE_CHECKS 1

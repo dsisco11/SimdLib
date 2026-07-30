@@ -101,9 +101,10 @@ requires them.
   native-vector, scalar-result, native-result, store, mutating-reference, and
   downstream-consumer signatures as separately compiled no-inline functions.
 
-MSVC and clang-cl supported call-boundary claims use `VECTORCALL`. On GCC and
-GNU-like Clang the macro is empty, so the paired raw/default platform ABI is the
-supported boundary. Windows platform-default calling-convention artifacts are
+MSVC and clang-cl supported call-boundary claims use the appropriate
+`SIMD_FLAGS(...)` boundary mode. On GCC and GNU-like Clang its
+vector-calling-convention adapter is empty, so the paired raw/default platform
+ABI is the supported boundary. Windows platform-default calling-convention artifacts are
 recorded separately by `RecordRegisterDefaultAbi.cmake`; they are diagnostic and
 do not participate in the Windows call-boundary guarantee.
 
@@ -130,11 +131,11 @@ the `MethodFlagsCodegen` CTest.
 | --- | --- | --- |
 | SSE4.2 generated-code corpus | Optimized diagnostic; excluded from the zero-overhead claim | Legacy two-operand SSE can expose aggregate-sensitive instruction selection and register coalescing. The complete 128-bit corpus is retained for compiler-by-compiler inspection without treating a recorded difference as an accepted optimized exception. |
 | MSVC 19.44, 128-bit `Register<double>::from_array` under SSE4.2 and AVX2 | Exact accepted Release exception | MSVC adds one `/GS` cookie prologue/epilogue to the wrapper path. The comparator separately recognizes the exact legacy `movdqu` SSE4.2 sequence and exact `vmovdqu` AVX2 sequence, then requires every remaining instruction to match the raw mirror. |
-| MSVC memory-capable aggregate corpus | Recorded, outside the zero-overhead claim when `/GS` differs | Stores, transfers, array returns, mutating references, and other addressable paths intentionally retain `/GS`; applying `SIMDLIB_REGISTER_ONLY` would suppress protection for functions that can write memory. |
+| MSVC memory-capable aggregate corpus | Recorded, outside the zero-overhead claim when `/GS` differs | Stores, transfers, array returns, mutating references, and other addressable paths intentionally retain `/GS`; applying the `RegisterOnly` modifier would suppress protection for functions that can write memory. |
 | MSVC 19.44, AVX2/256 integer modulus | Recorded scheduling diagnostic; excluded from the strict parity claim | The `Register::operator%` and `Api::modulus` paths inline the same scalar lane-remainder algorithm, but MSVC schedules independent extract, divide, and insert operations differently after the aggregate operator boundary. The modulus symbols have their own record so this diagnostic cannot relax any other type-matrix operation. |
 | MSVC constexpr bit-cast value matrix | Frontend evaluation excluded | MSVC 19.44 terminates with an internal compiler error when evaluating the first Register bit-cast cell. MSVC still compiles the complete availability matrix and validates runtime bit-cast values; GCC and both Clang drivers perform the complete constexpr value matrix. |
-| clang-cl Windows platform-default aggregate ABI | Diagnostic only; failing signatures excluded | The platform-default convention may use hidden return storage for aggregate Register results. `VECTORCALL` wrapper/raw parity is the supported clang-cl boundary. |
-| MSVC Windows platform-default aggregate ABI | Diagnostic only; hidden-return signatures excluded | The platform-default convention also returns aggregate Register results through caller-provided storage. The supported non-inline boundary uses `VECTORCALL`; default-convention disassembly remains available without expanding the guarantee. |
+| clang-cl Windows platform-default aggregate ABI | Diagnostic only; failing signatures excluded | The platform-default convention may use hidden return storage for aggregate Register results. `SIMD_FLAGS(...)` wrapper/raw parity is the supported clang-cl boundary. |
+| MSVC Windows platform-default aggregate ABI | Diagnostic only; hidden-return signatures excluded | The platform-default convention also returns aggregate Register results through caller-provided storage. The supported non-inline boundary uses the appropriate `SIMD_FLAGS(...)` mode; default-convention disassembly remains available without expanding the guarantee. |
 | Debug wrapper/raw differences | Optional record, not accepted as Release overhead | Disabled optimization preserves abstraction structure and may add wrapper-only calls, temporaries, or stack traffic. An explicit diagnostic compiles both sides with identical Debug flags when that difference needs investigation. |
 | ASan+UBSan wrapper/raw differences | Optional record, not accepted as Release overhead | An explicit Clang 22 diagnostic exposes instrumentation-induced wrapper/raw memory, control-flow, or ABI differences. Runtime sanitizer tests own correctness and absence of sanitizer diagnostics; instruction identity is not a default requirement. |
 | 32-bit targets, non-x86 architectures, 512-bit registers, AVX-512, and compilers below the listed versions | Unsupported | No complete correctness, ABI, and zero-overhead matrix exists for these cells. |

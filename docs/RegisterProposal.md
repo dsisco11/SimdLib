@@ -256,7 +256,7 @@ links `SimdLib::SimdLib` does not inherit a C++23 requirement.
 Translation units may use different language modes provided no C++20 unit names
 or exchanges a `Register` type. All translation units that exchange `Register`
 or `RegisterMask` values across a function boundary must use compatible ISA,
-`VECTORCALL`, compiler ABI, and SimdLib configuration settings.
+ABI-affecting `SIMD_FLAGS(...)` adapter configuration, compiler ABI, and SimdLib settings.
 
 ## Type shape and specialization availability
 
@@ -385,14 +385,14 @@ class Register final
 	 * @brief Returns a register with every active lane set to zero.
 	 * @return Fully initialized zero register.
 	 */
-	[[nodiscard]] SIMDLIB_FORCE_INLINE constexpr static Register zero() noexcept;
+	[[nodiscard]] static constexpr Register SIMD_FLAGS(Out, ForceInline) zero() noexcept;
 
 	/**
 	 * @brief Broadcasts one scalar value to every active lane.
 	 * @param value Scalar value to broadcast.
 	 * @return Register containing `value` in every lane.
 	 */
-	[[nodiscard]] SIMDLIB_FORCE_INLINE constexpr static Register broadcast(
+	[[nodiscard]] static constexpr Register SIMD_FLAGS(Out, ForceInline) broadcast(
 		element_type value) noexcept;
 
 	/**
@@ -402,7 +402,7 @@ class Register final
 	 */
 	template <std::convertible_to<element_type>... lane_types>
 		requires(sizeof...(lane_types) == lane_count)
-	[[nodiscard]] SIMDLIB_FORCE_INLINE constexpr static Register from_lanes(
+	[[nodiscard]] static constexpr Register SIMD_FLAGS(Out, ForceInline) from_lanes(
 		lane_types &&...lanes) noexcept;
 
 	/**
@@ -410,7 +410,7 @@ class Register final
 	 * @param source Source containing every active lane in logical order.
 	 * @return Register containing all source lane values.
 	 */
-	[[nodiscard]] SIMDLIB_FORCE_INLINE constexpr static Register from_array(
+	[[nodiscard]] static constexpr Register SIMD_FLAGS(Out, ForceInline) from_array(
 		const std::array<element_type, lane_count> &source) noexcept;
 
 	/**
@@ -418,7 +418,7 @@ class Register final
 	 * @param source Source containing exactly one register of elements.
 	 * @return Register loaded from `source`.
 	 */
-	[[nodiscard]] SIMDLIB_FORCE_INLINE static Register load(
+	[[nodiscard]] static Register SIMD_FLAGS(Out, ForceInline) load(
 		std::span<const element_type, lane_count> source) noexcept;
 
 	/**
@@ -426,7 +426,7 @@ class Register final
 	 * @param source Aligned source containing exactly one register of elements.
 	 * @return Register loaded from `source`.
 	 */
-	[[nodiscard]] SIMDLIB_FORCE_INLINE static Register load_aligned(
+	[[nodiscard]] static Register SIMD_FLAGS(Out, ForceInline) load_aligned(
 		std::span<const element_type, lane_count> source) noexcept;
 
 	/**
@@ -434,7 +434,7 @@ class Register final
 	 * @param source Source containing exactly one register of bytes.
 	 * @return Register containing the source bit pattern.
 	 */
-	[[nodiscard]] SIMDLIB_FORCE_INLINE static Register load_bytes(
+	[[nodiscard]] static Register SIMD_FLAGS(Out, ForceInline) load_bytes(
 		std::span<const std::byte, byte_count> source) noexcept;
 
 	/**
@@ -442,7 +442,7 @@ class Register final
 	 * @param value Register to store.
 	 * @param destination Destination for exactly one register of elements.
 	 */
-	SIMDLIB_FORCE_INLINE void VECTORCALL store(
+	void SIMD_FLAGS(In, ForceInline) store(
 		this Register value,
 		std::span<element_type, lane_count> destination) noexcept;
 
@@ -451,7 +451,7 @@ class Register final
 	 * @param value Register to store.
 	 * @param destination Aligned destination for one complete register.
 	 */
-	SIMDLIB_FORCE_INLINE void VECTORCALL store_aligned(
+	void SIMD_FLAGS(In, ForceInline) store_aligned(
 		this Register value,
 		std::span<element_type, lane_count> destination) noexcept;
 
@@ -460,7 +460,7 @@ class Register final
 	 * @param value Register to store.
 	 * @param destination Destination containing exactly one register of bytes.
 	 */
-	SIMDLIB_FORCE_INLINE void VECTORCALL store_bytes(
+	void SIMD_FLAGS(In, ForceInline) store_bytes(
 		this Register value,
 		std::span<std::byte, byte_count> destination) noexcept;
 
@@ -469,8 +469,8 @@ class Register final
 	 * @param value Register to copy.
 	 * @return Array containing all lanes in low-to-high logical order.
 	 */
-	[[nodiscard]] SIMDLIB_FORCE_INLINE constexpr
-	std::array<element_type, lane_count> VECTORCALL to_array(
+	[[nodiscard]] constexpr
+	std::array<element_type, lane_count> SIMD_FLAGS(In, ForceInline) to_array(
 		this Register value) noexcept;
 
 	/**
@@ -481,7 +481,7 @@ class Register final
 	 */
 	template <std::size_t index>
 		requires(index < lane_count)
-	[[nodiscard]] SIMDLIB_FORCE_INLINE constexpr element_type VECTORCALL lane(
+	[[nodiscard]] constexpr element_type SIMD_FLAGS(In, ForceInline) lane(
 		this Register value) noexcept;
 
 	/**
@@ -489,7 +489,7 @@ class Register final
 	 * @param value Register to unwrap.
 	 * @return Complete native register value.
 	 */
-	[[nodiscard]] SIMDLIB_FORCE_INLINE constexpr native_type VECTORCALL native(
+	[[nodiscard]] constexpr native_type SIMD_FLAGS(InOut, ForceInline) native(
 		this Register value) noexcept;
 
 	/**
@@ -498,7 +498,7 @@ class Register final
 	 * @param rhs Right-hand register.
 	 * @return Per-lane sum.
 	 */
-	[[nodiscard]] SIMDLIB_FORCE_INLINE Register VECTORCALL operator+(
+	[[nodiscard]] Register SIMD_FLAGS(InOut, ForceInline) operator+(
 		this Register lhs,
 		Register rhs) noexcept;
 
@@ -508,7 +508,7 @@ class Register final
 	 * @param rhs Right-hand register.
 	 * @return Per-lane difference.
 	 */
-	[[nodiscard]] SIMDLIB_FORCE_INLINE Register VECTORCALL operator-(
+	[[nodiscard]] Register SIMD_FLAGS(InOut, ForceInline) operator-(
 		this Register lhs,
 		Register rhs) noexcept;
 
@@ -518,7 +518,7 @@ class Register final
 	 * @param rhs Right-hand register.
 	 * @return Per-lane product.
 	 */
-	[[nodiscard]] SIMDLIB_FORCE_INLINE Register VECTORCALL operator*(
+	[[nodiscard]] Register SIMD_FLAGS(InOut, ForceInline) operator*(
 		this Register lhs,
 		Register rhs) noexcept;
 
@@ -528,7 +528,7 @@ class Register final
 	 * @param rhs Right-hand register.
 	 * @return Register-shaped lane predicate.
 	 */
-	[[nodiscard]] SIMDLIB_FORCE_INLINE constexpr mask_type VECTORCALL compare_equal(
+	[[nodiscard]] constexpr mask_type SIMD_FLAGS(InOut, ForceInline) compare_equal(
 		this Register lhs,
 		Register rhs) noexcept;
 
@@ -538,7 +538,7 @@ class Register final
 	 * @param rhs Right-hand register.
 	 * @return `true` when all lanes compare equal.
 	 */
-	[[nodiscard]] SIMDLIB_FORCE_INLINE constexpr bool VECTORCALL operator==(
+	[[nodiscard]] constexpr bool SIMD_FLAGS(In, ForceInline) operator==(
 		this Register lhs,
 		Register rhs) noexcept;
 
@@ -548,7 +548,7 @@ class Register final
 	 * @param rhs Right-hand register.
 	 * @return `true` when at least one lane compares unequal.
 	 */
-	[[nodiscard]] SIMDLIB_FORCE_INLINE constexpr bool VECTORCALL operator!=(
+	[[nodiscard]] constexpr bool SIMD_FLAGS(In, ForceInline) operator!=(
 		this Register lhs,
 		Register rhs) noexcept;
 
@@ -655,7 +655,7 @@ class RegisterMask final
 	 * @param value Predicate register to test.
 	 * @return `true` when at least one lane is true.
 	 */
-	[[nodiscard]] SIMDLIB_FORCE_INLINE constexpr bool VECTORCALL any(
+	[[nodiscard]] constexpr bool SIMD_FLAGS(In, ForceInline) any(
 		this RegisterMask value) noexcept;
 
 	/**
@@ -663,7 +663,7 @@ class RegisterMask final
 	 * @param value Predicate register to test.
 	 * @return `true` when every lane is true.
 	 */
-	[[nodiscard]] SIMDLIB_FORCE_INLINE constexpr bool VECTORCALL all(
+	[[nodiscard]] constexpr bool SIMD_FLAGS(In, ForceInline) all(
 		this RegisterMask value) noexcept;
 
 	/**
@@ -671,7 +671,7 @@ class RegisterMask final
 	 * @param value Predicate register to test.
 	 * @return `true` when every lane is false.
 	 */
-	[[nodiscard]] SIMDLIB_FORCE_INLINE constexpr bool VECTORCALL none(
+	[[nodiscard]] constexpr bool SIMD_FLAGS(In, ForceInline) none(
 		this RegisterMask value) noexcept;
 
 	/**
@@ -679,7 +679,7 @@ class RegisterMask final
 	 * @param value Predicate register to reduce.
 	 * @return Bit `i` set exactly when lane `i` is true.
 	 */
-	[[nodiscard]] SIMDLIB_FORCE_INLINE constexpr bits_type VECTORCALL bits(
+	[[nodiscard]] constexpr bits_type SIMD_FLAGS(In, ForceInline) bits(
 		this RegisterMask value) noexcept;
 
 	/**
@@ -688,7 +688,7 @@ class RegisterMask final
 	 * @param value Predicate register to unwrap.
 	 * @return Complete native predicate register value.
 	 */
-	[[nodiscard]] SIMDLIB_FORCE_INLINE constexpr native_type VECTORCALL native(
+	[[nodiscard]] constexpr native_type SIMD_FLAGS(InOut, ForceInline) native(
 		this RegisterMask value) noexcept;
 
 	/**
@@ -698,7 +698,7 @@ class RegisterMask final
 	 * @param when_false Values selected for false predicate lanes.
 	 * @return Register containing the selected values.
 	 */
-	[[nodiscard]] SIMDLIB_FORCE_INLINE register_type VECTORCALL select(
+	[[nodiscard]] register_type SIMD_FLAGS(InOut, ForceInline) select(
 		this RegisterMask condition,
 		register_type when_true,
 		register_type when_false) noexcept;
@@ -709,7 +709,7 @@ class RegisterMask final
 	 * @param rhs Right-hand predicate register.
 	 * @return Predicate that is true where both inputs are true.
 	 */
-	[[nodiscard]] SIMDLIB_FORCE_INLINE constexpr RegisterMask VECTORCALL operator&(
+	[[nodiscard]] constexpr RegisterMask SIMD_FLAGS(InOut, ForceInline) operator&(
 		this RegisterMask lhs,
 		RegisterMask rhs) noexcept;
 
@@ -719,7 +719,7 @@ class RegisterMask final
 	 * @param rhs Right-hand predicate register.
 	 * @return Predicate that is true where either input is true.
 	 */
-	[[nodiscard]] SIMDLIB_FORCE_INLINE constexpr RegisterMask VECTORCALL operator|(
+	[[nodiscard]] constexpr RegisterMask SIMD_FLAGS(InOut, ForceInline) operator|(
 		this RegisterMask lhs,
 		RegisterMask rhs) noexcept;
 
@@ -729,7 +729,7 @@ class RegisterMask final
 	 * @param rhs Right-hand predicate register.
 	 * @return Predicate that is true where exactly one input is true.
 	 */
-	[[nodiscard]] SIMDLIB_FORCE_INLINE constexpr RegisterMask VECTORCALL operator^(
+	[[nodiscard]] constexpr RegisterMask SIMD_FLAGS(InOut, ForceInline) operator^(
 		this RegisterMask lhs,
 		RegisterMask rhs) noexcept;
 
@@ -738,7 +738,7 @@ class RegisterMask final
 	 * @param value Predicate register to invert.
 	 * @return Predicate containing the inverse of every input lane.
 	 */
-	[[nodiscard]] SIMDLIB_FORCE_INLINE constexpr RegisterMask VECTORCALL operator~(
+	[[nodiscard]] constexpr RegisterMask SIMD_FLAGS(InOut, ForceInline) operator~(
 		this RegisterMask value) noexcept;
 
 	/*
@@ -751,25 +751,25 @@ class RegisterMask final
 	/// @param lhs Predicate register to update.
 	/// @param rhs Right-hand predicate register.
 	/// @return Reference to the updated predicate.
-	SIMDLIB_FORCE_INLINE constexpr RegisterMask &operator&=(
+	constexpr auto SIMD_FLAGS(In, ForceInline) operator&=(
 		this RegisterMask &lhs,
-		RegisterMask rhs) noexcept;
+		RegisterMask rhs) noexcept -> RegisterMask &;
 
 	/// @brief Unites this predicate with another predicate.
 	/// @param lhs Predicate register to update.
 	/// @param rhs Right-hand predicate register.
 	/// @return Reference to the updated predicate.
-	SIMDLIB_FORCE_INLINE constexpr RegisterMask &operator|=(
+	constexpr auto SIMD_FLAGS(In, ForceInline) operator|=(
 		this RegisterMask &lhs,
-		RegisterMask rhs) noexcept;
+		RegisterMask rhs) noexcept -> RegisterMask &;
 
 	/// @brief Exclusively combines this predicate with another predicate.
 	/// @param lhs Predicate register to update.
 	/// @param rhs Right-hand predicate register.
 	/// @return Reference to the updated predicate.
-	SIMDLIB_FORCE_INLINE constexpr RegisterMask &operator^=(
+	constexpr auto SIMD_FLAGS(In, ForceInline) operator^=(
 		this RegisterMask &lhs,
-		RegisterMask rhs) noexcept;
+		RegisterMask rhs) noexcept -> RegisterMask &;
 	 */
 };
 ```
@@ -845,8 +845,8 @@ parameter by value, preserving ordinary member-call syntax without an implicit
 `this` pointer. Compound assignment is intentionally absent: its convenience
 does not justify a mutable-reference surface that causes MSVC 19.44 to emit a
 redundant 32-byte stack-alignment frame for 256-bit wrapper mutation. Callers
-use explicit reassignment such as `lhs = lhs + rhs`. All register-shaped
-parameters and results use `VECTORCALL` where enabled.
+use explicit reassignment such as `lhs = lhs + rhs`. All register-shaped parameters and results use the appropriate
+`SIMD_FLAGS(...)` boundary mode.
 
 Aggregate initialization, implicit compiler-generated special members, and
 static factories have no explicit object parameter. They are covered alongside
@@ -1141,12 +1141,13 @@ The preferred implementation uses these mechanisms together:
 
 - Every `Register` and `RegisterMask` contains exactly one native vector and
   remains trivially copyable and destructible.
-- Small operations are defined in the focused header and marked
-  `SIMDLIB_FORCE_INLINE` so an optimized chain becomes one vector expression in
-  the compiler's intermediate representation.
+- Small operations are defined in the focused header and use the `ForceInline`
+  modifier so an optimized chain becomes one vector expression in the
+  compiler's intermediate representation.
 - Every non-mutating operation that consumes an existing wrapper is an
-  explicit-object member taking that object by value. It uses `VECTORCALL`
-  where enabled and returns register-shaped results by value. This includes
+  explicit-object member taking that object by value. It uses the appropriate
+  `SIMD_FLAGS(...)` boundary mode and returns register-shaped results by value.
+  This includes
   named operations as well as overloaded operators. If a call survives
   optimization, its operands and result can use the platform's vector or
   homogeneous-vector-aggregate calling convention without an implicit `this`
@@ -1156,25 +1157,28 @@ The preferred implementation uses these mechanisms together:
   remain disabled; explicit reassignment composes the by-value binary
   operations without adding a mutable-reference boundary.
 - Deliberately out-of-line register operations, if any are later justified,
-  retain their explicit-object parameter and `VECTORCALL` where supported so
-  their ABI does not silently regress to an implicit `this` boundary.
+  retain their explicit-object parameter and appropriate `SIMD_FLAGS(...)`
+  boundary mode so their ABI does not silently regress to an implicit `this`
+  boundary.
 - No operation returns a mutable native reference, mutable span, proxy tied to
   object storage, or other value that requires the wrapper to acquire a stable
   memory address.
 
-`VECTORCALL` controls a surviving function-call boundary; it does not pin a
-value to a physical register and has no effect after a function is inlined. In
-the current configuration it is enabled for MSVC and Clang on x64 targets and
-is empty for GCC. The public aggregate representations of Register and
-RegisterMask allow clang-cl to classify `VECTORCALL` boundaries like the
-corresponding native vector. The platform-default clang-cl convention remains a
+The `In`, `Out`, and `InOut` boundary modes select the configured calling
+convention for a surviving function call; they do not pin a value to a physical
+register and have no effect after a function is inlined. The current adapter
+emits `__vectorcall` for Microsoft C++ and clang-cl on x64 and is empty for GCC
+and GNU-like Clang. The public aggregate representations of Register and
+RegisterMask allow clang-cl to classify flagged vector-convention boundaries
+like the corresponding native vector. The platform-default clang-cl convention remains a
 separately recorded boundary and may use hidden return storage. GCC uses its
 target ABI and is validated against the same raw-vector baseline.
 
 The calling convention on Register members does not propagate into an ordinary
 consumer-defined function. A non-inlined consumer function that passes or
-returns `Register` or `RegisterMask` must declare `VECTORCALL` to participate in
-the vector-calling-convention guarantee where that convention is supported:
+returns `Register` or `RegisterMask` must declare the appropriate
+`SIMD_FLAGS(...)` boundary mode to participate in the vector-calling-convention
+guarantee where that convention is supported:
 
 ```cpp
 using FloatRegister = SimdLib::Register<float, 128>;
@@ -1184,7 +1188,7 @@ using FloatRegister = SimdLib::Register<float, 128>;
  * @param value Input register.
  * @return Transformed register.
  */
-FloatRegister VECTORCALL transform_register(FloatRegister value) noexcept;
+FloatRegister SIMD_FLAGS(InOut) transform_register(FloatRegister value) noexcept;
 ```
 
 Consumer functions using the platform's default convention receive no stronger
@@ -1192,7 +1196,7 @@ call-boundary guarantee than equivalent raw native-vector functions under that
 same convention. The validation suite compares wrapper and raw signatures under
 both the supported vector convention and the platform default. Any wrapper-only
 default-convention overhead is documented explicitly; it cannot be attributed
-to Register member chaining or hidden by a `VECTORCALL` result.
+to Register member chaining or hidden by a flagged vector-convention result.
 
 Ordinary non-static member functions carry an implicit `this` pointer. If such
 a function is not inlined, the left operand may need an addressable object even
@@ -1216,7 +1220,7 @@ The implementation must:
 - Store only the public `native_type native` representation in each `Register` and `RegisterMask`.
 - Add no virtual functions, allocator state, active-lane metadata, or hidden
   heap allocation.
-- Preserve `SIMDLIB_FORCE_INLINE`, `VECTORCALL`, `noexcept`, and `constexpr`
+- Preserve `ForceInline`, the appropriate `SIMD_FLAGS(...)` boundary mode, `noexcept`, and `constexpr`
   where the delegated `Api` operation supports them.
 - Use the native zero-register operation for default construction without
   introducing a memory clear, temporary array, or store/reload sequence.
@@ -1407,7 +1411,7 @@ The implementation requires evidence in each of these areas:
   mask-result, native-result, store, and mutating-reference operations. These
   compare `Register`, `RegisterMask`, `Api::vector_t`, and raw-vector calling
   conventions for every supported compiler, element type, and register width.
-- Paired consumer-defined function probes use `VECTORCALL` and the platform
+- Paired consumer-defined function probes use `SIMD_FLAGS(...)` and the platform
   default convention. The vector-convention gate rejects any wrapper-only ABI
   overhead. Default-convention differences are recorded explicitly and remain
   outside the supported call-boundary guarantee unless that compiler and
@@ -1486,15 +1490,16 @@ The final public surface and its qualification contract follow these decisions:
   moves, spills, reloads, stack traffic, temporaries, branches, or indirection
   relative to equivalent raw-intrinsic code compiled in the same context; it
   does not claim that raw SIMD values can never spill.
-- Every non-static operation uses an explicit object parameter by value and
-  `VECTORCALL` where supported, preserving member-call syntax without an
-  implicit `this` pointer. Compound assignment is intentionally absent; callers
+- Every non-static operation uses an explicit object parameter by value and the
+  appropriate `SIMD_FLAGS(...)` boundary mode, preserving member-call syntax
+  without an implicit `this` pointer. Compound assignment is intentionally absent; callers
   use explicit reassignment through the by-value binary operators.
 - Call-boundary behavior is validated separately for MSVC, clang-cl, Clang,
-  and GCC because `VECTORCALL` is a calling-convention tool, not a physical
-  register-residency guarantee.
-- Non-inlined consumer-defined functions must declare `VECTORCALL` where it is
-  supported to participate in the vector-calling-convention guarantee. Default
+  and GCC because the configured `SIMD_FLAGS(...)` boundary mode is a
+  calling-convention tool, not a physical register-residency guarantee.
+- Non-inlined consumer-defined functions must declare the appropriate
+  `SIMD_FLAGS(...)` boundary mode to participate in the vector-calling-
+  convention guarantee. Default
   convention signatures are compared with raw vectors separately and are not
   included unless they independently pass the zero-overhead gate.
 - Generated-code comparisons are mandatory for every public operation family,
