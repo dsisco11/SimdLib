@@ -63,34 +63,34 @@ template <class element_t, std::size_t bits = SIMDLIB_REGISTER_TEST_WIDTH> using
 
 #define SIMDLIB_DEFINE_REARRANGE_UNARY(operation, token, type, member, api)                                                                                    \
 	/** @brief Compares one unary rearrangement wrapper against its Api expression. */                                                                         \
-	SIMDLIB_REGISTER_ONLY SIMDLIB_REARRANGEMENT_CODEGEN_NOINLINE SimdLibRearrangementCodegen::native_t<type> VECTORCALL                                        \
-	simdlib_rearrangement_codegen_##operation##_##token(SimdLibRearrangementCodegen::native_t<type> value) noexcept                                            \
+	SIMDLIB_REARRANGEMENT_CODEGEN_NOINLINE SimdLibRearrangementCodegen::native_t<type> SIMD_FLAGS(In, RegisterOnly)                                            \
+		simdlib_rearrangement_codegen_##operation##_##token(SimdLibRearrangementCodegen::native_t<type> value) noexcept                                        \
 	{                                                                                                                                                          \
 		return SIMDLIB_REARRANGE_UNARY(type, member, api, value);                                                                                              \
 	}
 
 #define SIMDLIB_DEFINE_REARRANGE_BINARY(operation, token, type, member, api)                                                                                   \
 	/** @brief Compares one binary rearrangement wrapper against its Api expression. */                                                                        \
-	SIMDLIB_REGISTER_ONLY SIMDLIB_REARRANGEMENT_CODEGEN_NOINLINE SimdLibRearrangementCodegen::native_t<type> VECTORCALL                                        \
-	simdlib_rearrangement_codegen_##operation##_##token(SimdLibRearrangementCodegen::native_t<type> lhs,                                                       \
-														SimdLibRearrangementCodegen::native_t<type> rhs) noexcept                                              \
+	SIMDLIB_REARRANGEMENT_CODEGEN_NOINLINE SimdLibRearrangementCodegen::native_t<type> SIMD_FLAGS(In, RegisterOnly)                                            \
+		simdlib_rearrangement_codegen_##operation##_##token(SimdLibRearrangementCodegen::native_t<type> lhs,                                                   \
+															SimdLibRearrangementCodegen::native_t<type> rhs) noexcept                                          \
 	{                                                                                                                                                          \
 		return SIMDLIB_REARRANGE_BINARY(type, member, api, lhs, rhs);                                                                                          \
 	}
 
 #define SIMDLIB_DEFINE_REARRANGE_INDEXED_UNARY(operation, token, type, member, api, immediate)                                                                 \
 	/** @brief Compares one immediate unary rearrangement wrapper against its Api expression. */                                                               \
-	SIMDLIB_REGISTER_ONLY SIMDLIB_REARRANGEMENT_CODEGEN_NOINLINE SimdLibRearrangementCodegen::native_t<type> VECTORCALL                                        \
-	simdlib_rearrangement_codegen_##operation##_##token(SimdLibRearrangementCodegen::native_t<type> value) noexcept                                            \
+	SIMDLIB_REARRANGEMENT_CODEGEN_NOINLINE SimdLibRearrangementCodegen::native_t<type> SIMD_FLAGS(In, RegisterOnly)                                            \
+		simdlib_rearrangement_codegen_##operation##_##token(SimdLibRearrangementCodegen::native_t<type> value) noexcept                                        \
 	{                                                                                                                                                          \
 		return SIMDLIB_REARRANGE_INDEXED_UNARY(type, member, api, immediate, value);                                                                           \
 	}
 
 #define SIMDLIB_DEFINE_REARRANGE_INDEXED_BINARY(operation, token, type, member, api, immediate)                                                                \
 	/** @brief Compares one immediate binary rearrangement wrapper against its Api expression. */                                                              \
-	SIMDLIB_REGISTER_ONLY SIMDLIB_REARRANGEMENT_CODEGEN_NOINLINE SimdLibRearrangementCodegen::native_t<type> VECTORCALL                                        \
-	simdlib_rearrangement_codegen_##operation##_##token(SimdLibRearrangementCodegen::native_t<type> lhs,                                                       \
-														SimdLibRearrangementCodegen::native_t<type> rhs) noexcept                                              \
+	SIMDLIB_REARRANGEMENT_CODEGEN_NOINLINE SimdLibRearrangementCodegen::native_t<type> SIMD_FLAGS(In, RegisterOnly)                                            \
+		simdlib_rearrangement_codegen_##operation##_##token(SimdLibRearrangementCodegen::native_t<type> lhs,                                                   \
+															SimdLibRearrangementCodegen::native_t<type> rhs) noexcept                                          \
 	{                                                                                                                                                          \
 		return SIMDLIB_REARRANGE_INDEXED_BINARY(type, member, api, immediate, lhs, rhs);                                                                       \
 	}
@@ -117,8 +117,8 @@ SIMDLIB_DEFINE_REARRANGE_INDEXED_BINARY(blend, f64, double, blend, blend, 0xA5)
 
 #define SIMDLIB_DEFINE_LOGICAL_SHUFFLE(token, type, ...)                                                                                                       \
 	/** @brief Compares one complete logical shuffle wrapper against its Api expression. */                                                                    \
-	SIMDLIB_REGISTER_ONLY SIMDLIB_REARRANGEMENT_CODEGEN_NOINLINE SimdLibRearrangementCodegen::native_t<type> VECTORCALL                                        \
-	simdlib_rearrangement_codegen_logical_shuffle_##token(SimdLibRearrangementCodegen::native_t<type> value) noexcept                                          \
+	SIMDLIB_REARRANGEMENT_CODEGEN_NOINLINE SimdLibRearrangementCodegen::native_t<type> SIMD_FLAGS(In, RegisterOnly)                                            \
+		simdlib_rearrangement_codegen_logical_shuffle_##token(SimdLibRearrangementCodegen::native_t<type> value) noexcept                                      \
 	{                                                                                                                                                          \
 		return SIMDLIB_REARRANGE_LOGICAL_SHUFFLE(type, value, __VA_ARGS__);                                                                                    \
 	}
@@ -149,8 +149,8 @@ SIMDLIB_DEFINE_LOGICAL_SHUFFLE(f32, float, 7, 6, 5, 4, 3, 2, 1, 0)
 SIMDLIB_DEFINE_LOGICAL_SHUFFLE(f64, double, 3, 2, 1, 0)
 #define SIMDLIB_DEFINE_LOWER(token, type)                                                                                                                      \
 	/** @brief Compares one lower-half wrapper against its Api expression. */                                                                                  \
-	SIMDLIB_REGISTER_ONLY SIMDLIB_REARRANGEMENT_CODEGEN_NOINLINE SimdLibRearrangementCodegen::native_t<type, 128> VECTORCALL                                   \
-	simdlib_rearrangement_codegen_lower_half_##token(SimdLibRearrangementCodegen::native_t<type, 256> value) noexcept                                          \
+	SIMDLIB_REARRANGEMENT_CODEGEN_NOINLINE SimdLibRearrangementCodegen::native_t<type, 128> SIMD_FLAGS(In, RegisterOnly)                                       \
+		simdlib_rearrangement_codegen_lower_half_##token(SimdLibRearrangementCodegen::native_t<type, 256> value) noexcept                                      \
 	{                                                                                                                                                          \
 		return SIMDLIB_REARRANGE_LOWER(type, value);                                                                                                           \
 	}
@@ -169,8 +169,8 @@ SIMDLIB_DEFINE_LOWER(f64, double)
 
 #define SIMDLIB_DEFINE_BYTE_SHUFFLE(token, type, ...)                                                                                                          \
 	/** @brief Compares one complete byte shuffle wrapper against its direct Api expression. */                                                                \
-	SIMDLIB_REGISTER_ONLY SIMDLIB_REARRANGEMENT_CODEGEN_NOINLINE SimdLibRearrangementCodegen::native_t<type> VECTORCALL                                        \
-	simdlib_rearrangement_codegen_byte_shuffle_##token(SimdLibRearrangementCodegen::native_t<type> value) noexcept                                             \
+	SIMDLIB_REARRANGEMENT_CODEGEN_NOINLINE SimdLibRearrangementCodegen::native_t<type> SIMD_FLAGS(In, RegisterOnly)                                            \
+		simdlib_rearrangement_codegen_byte_shuffle_##token(SimdLibRearrangementCodegen::native_t<type> value) noexcept                                         \
 	{                                                                                                                                                          \
 		return SIMDLIB_REARRANGE_BYTE_SHUFFLE(type, value, __VA_ARGS__);                                                                                       \
 	}
@@ -188,8 +188,8 @@ SIMDLIB_DEFINE_BYTE_SHUFFLE(i32_mixed, std::int32_t, 16, 1, 2, 3, 4, 5, 6, 7, 8,
 
 #define SIMDLIB_DEFINE_BIT_CAST(source_token, source_type, target_token, target_type)                                                                          \
 	/** @brief Compares one full-width bit reinterpretation wrapper against its Api expression. */                                                             \
-	SIMDLIB_REGISTER_ONLY SIMDLIB_REARRANGEMENT_CODEGEN_NOINLINE SimdLibRearrangementCodegen::native_t<target_type> VECTORCALL                                 \
-	simdlib_rearrangement_codegen_bit_cast_##source_token##_##target_token(SimdLibRearrangementCodegen::native_t<source_type> value) noexcept                  \
+	SIMDLIB_REARRANGEMENT_CODEGEN_NOINLINE SimdLibRearrangementCodegen::native_t<target_type> SIMD_FLAGS(In, RegisterOnly)                                     \
+		simdlib_rearrangement_codegen_bit_cast_##source_token##_##target_token(SimdLibRearrangementCodegen::native_t<source_type> value) noexcept              \
 	{                                                                                                                                                          \
 		return SIMDLIB_REARRANGE_BIT_CAST(source_type, target_type, value);                                                                                    \
 	}
@@ -214,8 +214,8 @@ SIMDLIB_FOR_EACH_BIT_CAST_TARGET(SIMDLIB_DEFINE_BIT_CAST, f64, double)
 
 #define SIMDLIB_DEFINE_CONVERT(source_token, source_type, target_token, target_type)                                                                           \
 	/** @brief Compares one complete numeric conversion wrapper against its Api expression. */                                                                 \
-	SIMDLIB_REGISTER_ONLY SIMDLIB_REARRANGEMENT_CODEGEN_NOINLINE SimdLibRearrangementCodegen::native_t<target_type> VECTORCALL                                 \
-	simdlib_rearrangement_codegen_convert_##source_token##_##target_token(SimdLibRearrangementCodegen::native_t<source_type> value) noexcept                   \
+	SIMDLIB_REARRANGEMENT_CODEGEN_NOINLINE SimdLibRearrangementCodegen::native_t<target_type> SIMD_FLAGS(In, RegisterOnly)                                     \
+		simdlib_rearrangement_codegen_convert_##source_token##_##target_token(SimdLibRearrangementCodegen::native_t<source_type> value) noexcept               \
 	{                                                                                                                                                          \
 		return SIMDLIB_REARRANGE_CONVERT(source_type, target_type, value);                                                                                     \
 	}
@@ -226,9 +226,9 @@ SIMDLIB_DEFINE_CONVERT(f32, float, i32, std::int32_t)
 #if SIMDLIB_REGISTER_TEST_WIDTH == 128
 #define SIMDLIB_DEFINE_WIDEN(source_token, source_type, target_token, target_type, target_bits)                                                                \
 	/** @brief Compares one explicit low-lane widening wrapper against its Api expression. */                                                                  \
-	SIMDLIB_REGISTER_ONLY SIMDLIB_REARRANGEMENT_CODEGEN_NOINLINE SimdLibRearrangementCodegen::native_t<target_type, target_bits> VECTORCALL                    \
-	simdlib_rearrangement_codegen_widen_##source_token##_##target_token##_##target_bits(                                                                       \
-		SimdLibRearrangementCodegen::native_t<source_type, 128> value) noexcept                                                                                \
+	SIMDLIB_REARRANGEMENT_CODEGEN_NOINLINE SimdLibRearrangementCodegen::native_t<target_type, target_bits> SIMD_FLAGS(In, RegisterOnly)                        \
+		simdlib_rearrangement_codegen_widen_##source_token##_##target_token##_##target_bits(                                                                   \
+			SimdLibRearrangementCodegen::native_t<source_type, 128> value) noexcept                                                                            \
 	{                                                                                                                                                          \
 		return SIMDLIB_REARRANGE_WIDEN(source_type, target_type, target_bits, value);                                                                          \
 	}

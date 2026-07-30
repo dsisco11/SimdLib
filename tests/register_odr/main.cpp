@@ -14,7 +14,7 @@ using RegisterMask = Register::mask_type;
  * @param rhs Right operand.
  * @return Lane-wise sum.
  */
-Register VECTORCALL second_translation_unit_add(Register lhs, Register rhs) noexcept;
+Register SIMD_FLAGS(InOut) second_translation_unit_add(Register lhs, Register rhs) noexcept;
 
 /**
  * @brief Compares two complete registers in a second translation unit.
@@ -22,7 +22,7 @@ Register VECTORCALL second_translation_unit_add(Register lhs, Register rhs) noex
  * @param rhs Right operand.
  * @return Per-lane equality predicate.
  */
-RegisterMask VECTORCALL second_translation_unit_equal(Register lhs, Register rhs) noexcept;
+RegisterMask SIMD_FLAGS(InOut) second_translation_unit_equal(Register lhs, Register rhs) noexcept;
 
 /**
  * @brief Verifies umbrella exposure and inline Register definitions across translation units.

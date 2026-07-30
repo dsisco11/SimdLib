@@ -13,7 +13,7 @@ using StableRegister = SimdLib::Register<float, 128>;
  * @param value Input register.
  * @return Input lanes increased by one.
  */
-StableRegister VECTORCALL add_one(StableRegister value) noexcept
+StableRegister SIMD_FLAGS(InOut) add_one(StableRegister value) noexcept
 {
 	return value + StableRegister::broadcast(1.0F);
 }

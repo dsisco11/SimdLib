@@ -87,8 +87,8 @@ enum class vector_operation
  * @return Native result of the selected operation.
  */
 template <vector_operation operation, class element_t>
-[[nodiscard]] SIMDLIB_FORCE_INLINE native_t<element_t> VECTORCALL vector_result(native_t<element_t> lhs, native_t<element_t> rhs, native_t<element_t> third,
-																				element_t scalar, int count) noexcept
+[[nodiscard]] native_t<element_t> SIMD_FLAGS(InOut, ForceInline)
+	vector_result(native_t<element_t> lhs, native_t<element_t> rhs, native_t<element_t> third, element_t scalar, int count) noexcept
 {
 	using api_type [[maybe_unused]] = api_t<element_t>;
 	using register_type = register_t<element_t>;
@@ -231,7 +231,7 @@ enum class scalar_operation
  * @return Compact scalar result of the selected operation.
  */
 template <scalar_operation operation, class element_t>
-[[nodiscard]] SIMDLIB_FORCE_INLINE typename api_t<element_t>::mask_t VECTORCALL scalar_result(native_t<element_t> lhs, native_t<element_t> rhs) noexcept
+[[nodiscard]] typename api_t<element_t>::mask_t SIMD_FLAGS(In, ForceInline) scalar_result(native_t<element_t> lhs, native_t<element_t> rhs) noexcept
 {
 	using api_type = api_t<element_t>;
 	using register_type [[maybe_unused]] = register_t<element_t>;
@@ -279,7 +279,7 @@ template <scalar_operation operation, class element_t>
 }
 
 /** @brief Returns a register constructed from a fixed array. */
-template <class element_t> [[nodiscard]] SIMDLIB_FORCE_INLINE native_t<element_t> VECTORCALL construct_array(const array_t<element_t> &source) noexcept
+template <class element_t> [[nodiscard]] native_t<element_t> SIMD_FLAGS(Out, ForceInline) construct_array(const array_t<element_t> &source) noexcept
 {
 #if SIMDLIB_CODEGEN_USE_WRAPPER
 	return register_t<element_t>::from_array(source).native;
@@ -289,7 +289,7 @@ template <class element_t> [[nodiscard]] SIMDLIB_FORCE_INLINE native_t<element_t
 }
 
 /** @brief Returns a register loaded from an unaligned fixed-size span. */
-template <class element_t> [[nodiscard]] SIMDLIB_FORCE_INLINE native_t<element_t> VECTORCALL load(const element_t *source) noexcept
+template <class element_t> [[nodiscard]] native_t<element_t> SIMD_FLAGS(Out, ForceInline) load(const element_t *source) noexcept
 {
 #if SIMDLIB_CODEGEN_USE_WRAPPER
 	return register_t<element_t>::load(std::span<const element_t, register_t<element_t>::lane_count>{source, register_t<element_t>::lane_count}).native;
@@ -299,7 +299,7 @@ template <class element_t> [[nodiscard]] SIMDLIB_FORCE_INLINE native_t<element_t
 }
 
 /** @brief Returns a register loaded from an aligned fixed-size span. */
-template <class element_t> [[nodiscard]] SIMDLIB_FORCE_INLINE native_t<element_t> VECTORCALL load_aligned(const element_t *source) noexcept
+template <class element_t> [[nodiscard]] native_t<element_t> SIMD_FLAGS(Out, ForceInline) load_aligned(const element_t *source) noexcept
 {
 #if SIMDLIB_CODEGEN_USE_WRAPPER
 	return register_t<element_t>::load_aligned(std::span<const element_t, register_t<element_t>::lane_count>{source, register_t<element_t>::lane_count}).native;
@@ -309,7 +309,7 @@ template <class element_t> [[nodiscard]] SIMDLIB_FORCE_INLINE native_t<element_t
 }
 
 /** @brief Returns a register loaded from a fixed-size byte span. */
-template <class element_t> [[nodiscard]] SIMDLIB_FORCE_INLINE native_t<element_t> VECTORCALL load_bytes(const std::byte *source) noexcept
+template <class element_t> [[nodiscard]] native_t<element_t> SIMD_FLAGS(Out, ForceInline) load_bytes(const std::byte *source) noexcept
 {
 #if SIMDLIB_CODEGEN_USE_WRAPPER
 	return register_t<element_t>::load_bytes(std::span<const std::byte, register_t<element_t>::byte_count>{source, register_t<element_t>::byte_count}).native;
@@ -319,7 +319,7 @@ template <class element_t> [[nodiscard]] SIMDLIB_FORCE_INLINE native_t<element_t
 }
 
 /** @brief Stores a native register through the unaligned fixed-size span API. */
-template <class element_t> SIMDLIB_FORCE_INLINE void VECTORCALL store(native_t<element_t> value, element_t *destination) noexcept
+template <class element_t> void SIMD_FLAGS(In, ForceInline) store(native_t<element_t> value, element_t *destination) noexcept
 {
 #if SIMDLIB_CODEGEN_USE_WRAPPER
 	register_t<element_t>{value}.store(std::span<element_t, register_t<element_t>::lane_count>{destination, register_t<element_t>::lane_count});
@@ -329,7 +329,7 @@ template <class element_t> SIMDLIB_FORCE_INLINE void VECTORCALL store(native_t<e
 }
 
 /** @brief Stores a native register through the aligned fixed-size span API. */
-template <class element_t> SIMDLIB_FORCE_INLINE void VECTORCALL store_aligned(native_t<element_t> value, element_t *destination) noexcept
+template <class element_t> void SIMD_FLAGS(In, ForceInline) store_aligned(native_t<element_t> value, element_t *destination) noexcept
 {
 #if SIMDLIB_CODEGEN_USE_WRAPPER
 	register_t<element_t>{value}.store_aligned(std::span<element_t, register_t<element_t>::lane_count>{destination, register_t<element_t>::lane_count});
@@ -339,7 +339,7 @@ template <class element_t> SIMDLIB_FORCE_INLINE void VECTORCALL store_aligned(na
 }
 
 /** @brief Stores a native register through the fixed-size byte-span API. */
-template <class element_t> SIMDLIB_FORCE_INLINE void VECTORCALL store_bytes(native_t<element_t> value, std::byte *destination) noexcept
+template <class element_t> void SIMD_FLAGS(In, ForceInline) store_bytes(native_t<element_t> value, std::byte *destination) noexcept
 {
 #if SIMDLIB_CODEGEN_USE_WRAPPER
 	register_t<element_t>{value}.store_bytes(std::span<std::byte, register_t<element_t>::byte_count>{destination, register_t<element_t>::byte_count});
@@ -349,7 +349,7 @@ template <class element_t> SIMDLIB_FORCE_INLINE void VECTORCALL store_bytes(nati
 }
 
 /** @brief Stores a native register through the fixed-array observation API. */
-template <class element_t> SIMDLIB_FORCE_INLINE void VECTORCALL observe_array(native_t<element_t> value, array_t<element_t> &destination) noexcept
+template <class element_t> void SIMD_FLAGS(In, ForceInline) observe_array(native_t<element_t> value, array_t<element_t> &destination) noexcept
 {
 #if SIMDLIB_CODEGEN_USE_WRAPPER
 	destination = register_t<element_t>{value}.to_array();
@@ -360,7 +360,7 @@ template <class element_t> SIMDLIB_FORCE_INLINE void VECTORCALL observe_array(na
 
 /** @brief Expands a complete array through the lane-list construction overload. */
 template <class element_t, std::size_t... indices>
-SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY native_t<element_t> VECTORCALL from_lanes(const array_t<element_t> &source, std::index_sequence<indices...>) noexcept
+native_t<element_t> SIMD_FLAGS(Out, RegisterOnly, ForceInline) from_lanes(const array_t<element_t> &source, std::index_sequence<indices...>) noexcept
 {
 #if SIMDLIB_CODEGEN_USE_WRAPPER
 	return register_t<element_t>::from_lanes(source[indices]...).native;
@@ -373,16 +373,16 @@ SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY native_t<element_t> VECTORCALL from_l
 
 #define SIMDLIB_DEFINE_TYPE_MATRIX_VECTOR(token, element_type, operation)                                                                                      \
 	/** @brief Compares one isolated native-result operation with its raw Api expression. */                                                                   \
-	SIMDLIB_TYPE_MATRIX_NOINLINE SimdLibTypeMatrixCodegen::native_t<element_type> VECTORCALL simdlib_type_matrix_##operation##_##token(                        \
-		SimdLibTypeMatrixCodegen::native_t<element_type> lhs, SimdLibTypeMatrixCodegen::native_t<element_type> rhs,                                            \
-		SimdLibTypeMatrixCodegen::native_t<element_type> third, element_type scalar, int count) noexcept                                                       \
+	SIMDLIB_TYPE_MATRIX_NOINLINE SimdLibTypeMatrixCodegen::native_t<element_type> SIMD_FLAGS(In)                                                               \
+		simdlib_type_matrix_##operation##_##token(SimdLibTypeMatrixCodegen::native_t<element_type> lhs, SimdLibTypeMatrixCodegen::native_t<element_type> rhs,  \
+												  SimdLibTypeMatrixCodegen::native_t<element_type> third, element_type scalar, int count) noexcept             \
 	{                                                                                                                                                          \
 		return SimdLibTypeMatrixCodegen::vector_result<SimdLibTypeMatrixCodegen::vector_operation::operation, element_type>(lhs, rhs, third, scalar, count);   \
 	}
 
 #define SIMDLIB_DEFINE_TYPE_MATRIX_SCALAR(token, element_type, operation)                                                                                      \
 	/** @brief Compares one isolated scalar-result operation with its raw Api expression. */                                                                   \
-	SIMDLIB_TYPE_MATRIX_NOINLINE typename SimdLibTypeMatrixCodegen::api_t<element_type>::mask_t VECTORCALL simdlib_type_matrix_##operation##_##token(          \
+	SIMDLIB_TYPE_MATRIX_NOINLINE typename SimdLibTypeMatrixCodegen::api_t<element_type>::mask_t SIMD_FLAGS(In) simdlib_type_matrix_##operation##_##token(      \
 		SimdLibTypeMatrixCodegen::native_t<element_type> lhs, SimdLibTypeMatrixCodegen::native_t<element_type> rhs) noexcept                                   \
 	{                                                                                                                                                          \
 		return SimdLibTypeMatrixCodegen::scalar_result<SimdLibTypeMatrixCodegen::scalar_operation::operation, element_type>(lhs, rhs);                         \
@@ -422,56 +422,56 @@ SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY native_t<element_t> VECTORCALL from_l
 	SIMDLIB_DEFINE_TYPE_MATRIX_SCALAR(token, element_type, not_equal)                                                                                          \
 	SIMDLIB_DEFINE_TYPE_MATRIX_SCALAR(token, element_type, extract_first)                                                                                      \
 	/** @brief Compares fixed-array construction for one element type. */                                                                                      \
-	SIMDLIB_TYPE_MATRIX_NOINLINE SimdLibTypeMatrixCodegen::native_t<element_type> VECTORCALL simdlib_type_matrix_construct_array_##token(                      \
-		const SimdLibTypeMatrixCodegen::array_t<element_type> &source) noexcept                                                                                \
+	SIMDLIB_TYPE_MATRIX_NOINLINE SimdLibTypeMatrixCodegen::native_t<element_type> SIMD_FLAGS(Neither)                                                          \
+		simdlib_type_matrix_construct_array_##token(const SimdLibTypeMatrixCodegen::array_t<element_type> &source) noexcept                                    \
 	{                                                                                                                                                          \
 		return SimdLibTypeMatrixCodegen::construct_array<element_type>(source);                                                                                \
 	}                                                                                                                                                          \
 	/** @brief Compares lane-list construction for one element type. */                                                                                        \
-	SIMDLIB_TYPE_MATRIX_NOINLINE SimdLibTypeMatrixCodegen::native_t<element_type> VECTORCALL simdlib_type_matrix_construct_lanes_##token(                      \
-		const SimdLibTypeMatrixCodegen::array_t<element_type> &source) noexcept                                                                                \
+	SIMDLIB_TYPE_MATRIX_NOINLINE SimdLibTypeMatrixCodegen::native_t<element_type> SIMD_FLAGS(Neither)                                                          \
+		simdlib_type_matrix_construct_lanes_##token(const SimdLibTypeMatrixCodegen::array_t<element_type> &source) noexcept                                    \
 	{                                                                                                                                                          \
 		return SimdLibTypeMatrixCodegen::from_lanes<element_type>(source,                                                                                      \
 																  std::make_index_sequence<SimdLibTypeMatrixCodegen::register_t<element_type>::lane_count>{}); \
 	}                                                                                                                                                          \
 	/** @brief Compares unaligned loading for one element type. */                                                                                             \
-	SIMDLIB_TYPE_MATRIX_NOINLINE SimdLibTypeMatrixCodegen::native_t<element_type> VECTORCALL simdlib_type_matrix_load_##token(                                 \
-		const element_type *source) noexcept                                                                                                                   \
+	SIMDLIB_TYPE_MATRIX_NOINLINE SimdLibTypeMatrixCodegen::native_t<element_type> SIMD_FLAGS(Neither)                                                          \
+		simdlib_type_matrix_load_##token(const element_type *source) noexcept                                                                                  \
 	{                                                                                                                                                          \
 		return SimdLibTypeMatrixCodegen::load<element_type>(source);                                                                                           \
 	}                                                                                                                                                          \
 	/** @brief Compares aligned loading for one element type. */                                                                                               \
-	SIMDLIB_TYPE_MATRIX_NOINLINE SimdLibTypeMatrixCodegen::native_t<element_type> VECTORCALL simdlib_type_matrix_load_aligned_##token(                         \
-		const element_type *source) noexcept                                                                                                                   \
+	SIMDLIB_TYPE_MATRIX_NOINLINE SimdLibTypeMatrixCodegen::native_t<element_type> SIMD_FLAGS(Neither)                                                          \
+		simdlib_type_matrix_load_aligned_##token(const element_type *source) noexcept                                                                          \
 	{                                                                                                                                                          \
 		return SimdLibTypeMatrixCodegen::load_aligned<element_type>(source);                                                                                   \
 	}                                                                                                                                                          \
 	/** @brief Compares byte-span loading for one element type. */                                                                                             \
-	SIMDLIB_TYPE_MATRIX_NOINLINE SimdLibTypeMatrixCodegen::native_t<element_type> VECTORCALL simdlib_type_matrix_load_bytes_##token(                           \
-		const std::byte *source) noexcept                                                                                                                      \
+	SIMDLIB_TYPE_MATRIX_NOINLINE SimdLibTypeMatrixCodegen::native_t<element_type> SIMD_FLAGS(Neither)                                                          \
+		simdlib_type_matrix_load_bytes_##token(const std::byte *source) noexcept                                                                               \
 	{                                                                                                                                                          \
 		return SimdLibTypeMatrixCodegen::load_bytes<element_type>(source);                                                                                     \
 	}                                                                                                                                                          \
 	/** @brief Compares unaligned storage for one element type. */                                                                                             \
-	SIMDLIB_TYPE_MATRIX_NOINLINE void VECTORCALL simdlib_type_matrix_store_##token(SimdLibTypeMatrixCodegen::native_t<element_type> value,                     \
-																				   element_type *destination) noexcept                                         \
+	SIMDLIB_TYPE_MATRIX_NOINLINE void SIMD_FLAGS(In)                                                                                                           \
+		simdlib_type_matrix_store_##token(SimdLibTypeMatrixCodegen::native_t<element_type> value, element_type *destination) noexcept                          \
 	{                                                                                                                                                          \
 		SimdLibTypeMatrixCodegen::store<element_type>(value, destination);                                                                                     \
 	}                                                                                                                                                          \
 	/** @brief Compares aligned storage for one element type. */                                                                                               \
-	SIMDLIB_TYPE_MATRIX_NOINLINE void VECTORCALL simdlib_type_matrix_store_aligned_##token(SimdLibTypeMatrixCodegen::native_t<element_type> value,             \
-																						   element_type *destination) noexcept                                 \
+	SIMDLIB_TYPE_MATRIX_NOINLINE void SIMD_FLAGS(In)                                                                                                           \
+		simdlib_type_matrix_store_aligned_##token(SimdLibTypeMatrixCodegen::native_t<element_type> value, element_type *destination) noexcept                  \
 	{                                                                                                                                                          \
 		SimdLibTypeMatrixCodegen::store_aligned<element_type>(value, destination);                                                                             \
 	}                                                                                                                                                          \
 	/** @brief Compares byte-span storage for one element type. */                                                                                             \
-	SIMDLIB_TYPE_MATRIX_NOINLINE void VECTORCALL simdlib_type_matrix_store_bytes_##token(SimdLibTypeMatrixCodegen::native_t<element_type> value,               \
-																						 std::byte *destination) noexcept                                      \
+	SIMDLIB_TYPE_MATRIX_NOINLINE void SIMD_FLAGS(In)                                                                                                           \
+		simdlib_type_matrix_store_bytes_##token(SimdLibTypeMatrixCodegen::native_t<element_type> value, std::byte *destination) noexcept                       \
 	{                                                                                                                                                          \
 		SimdLibTypeMatrixCodegen::store_bytes<element_type>(value, destination);                                                                               \
 	}                                                                                                                                                          \
 	/** @brief Compares fixed-array observation for one element type. */                                                                                       \
-	SIMDLIB_TYPE_MATRIX_NOINLINE void VECTORCALL simdlib_type_matrix_observe_array_##token(                                                                    \
+	SIMDLIB_TYPE_MATRIX_NOINLINE void SIMD_FLAGS(In) simdlib_type_matrix_observe_array_##token(                                                                \
 		SimdLibTypeMatrixCodegen::native_t<element_type> value, SimdLibTypeMatrixCodegen::array_t<element_type> &destination) noexcept                         \
 	{                                                                                                                                                          \
 		SimdLibTypeMatrixCodegen::observe_array<element_type>(value, destination);                                                                             \

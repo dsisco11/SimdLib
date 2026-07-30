@@ -37,7 +37,7 @@ using value_type = native_type;
 #endif
 
 /** @brief Converts the fixture value to its native vector representation. */
-SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY native_type VECTORCALL unwrap(value_type value) noexcept
+native_type SIMD_FLAGS(Out, RegisterOnly, ForceInline) unwrap(value_type value) noexcept
 {
 #if SIMDLIB_CODEGEN_USE_WRAPPER
 	return value.native;
@@ -47,7 +47,7 @@ SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY native_type VECTORCALL unwrap(value_t
 }
 
 /** @brief Converts a native vector to the fixture value representation. */
-SIMDLIB_FORCE_INLINE SIMDLIB_REGISTER_ONLY value_type VECTORCALL wrap(native_type value) noexcept
+value_type SIMD_FLAGS(In, RegisterOnly, ForceInline) wrap(native_type value) noexcept
 {
 #if SIMDLIB_CODEGEN_USE_WRAPPER
 	return value_type{value};
@@ -62,10 +62,10 @@ using SimdLibCodegen::native_type;
 using SimdLibCodegen::value_type;
 
 /** @brief Opaque call boundary used to keep a register value live across a separately compiled call. */
-SIMDLIB_CODEGEN_NOINLINE void VECTORCALL simdlib_codegen_opaque_sink(native_type value) noexcept;
+SIMDLIB_CODEGEN_NOINLINE void SIMD_FLAGS(In) simdlib_codegen_opaque_sink(native_type value) noexcept;
 
 /** @brief Forced-inline ternary expression fixture. */
-SIMDLIB_REGISTER_ONLY SIMDLIB_CODEGEN_NOINLINE native_type VECTORCALL simdlib_codegen_ternary(native_type lhs, native_type rhs, native_type addend) noexcept
+SIMDLIB_CODEGEN_NOINLINE native_type SIMD_FLAGS(InOut, RegisterOnly) simdlib_codegen_ternary(native_type lhs, native_type rhs, native_type addend) noexcept
 {
 #if SIMDLIB_CODEGEN_USE_WRAPPER
 	return ((SimdLibCodegen::register_type{lhs} * SimdLibCodegen::register_type{rhs}) + SimdLibCodegen::register_type{addend}).native;
@@ -75,7 +75,7 @@ SIMDLIB_REGISTER_ONLY SIMDLIB_CODEGEN_NOINLINE native_type VECTORCALL simdlib_co
 }
 
 /** @brief Compare-and-combine mask fixture. */
-SIMDLIB_REGISTER_ONLY SIMDLIB_CODEGEN_NOINLINE native_type VECTORCALL simdlib_codegen_mask_combine(native_type lhs, native_type rhs) noexcept
+SIMDLIB_CODEGEN_NOINLINE native_type SIMD_FLAGS(InOut, RegisterOnly) simdlib_codegen_mask_combine(native_type lhs, native_type rhs) noexcept
 {
 #if SIMDLIB_CODEGEN_USE_WRAPPER
 	const SimdLibCodegen::register_type left{lhs};
@@ -87,8 +87,8 @@ SIMDLIB_REGISTER_ONLY SIMDLIB_CODEGEN_NOINLINE native_type VECTORCALL simdlib_co
 }
 
 /** @brief Compare-and-select mask fixture. */
-SIMDLIB_REGISTER_ONLY SIMDLIB_CODEGEN_NOINLINE native_type VECTORCALL simdlib_codegen_mask_select(native_type lhs, native_type rhs, native_type when_true,
-																								  native_type when_false) noexcept
+SIMDLIB_CODEGEN_NOINLINE native_type SIMD_FLAGS(InOut, RegisterOnly)
+	simdlib_codegen_mask_select(native_type lhs, native_type rhs, native_type when_true, native_type when_false) noexcept
 {
 #if SIMDLIB_CODEGEN_USE_WRAPPER
 	return SimdLibCodegen::register_type{lhs}
@@ -102,7 +102,7 @@ SIMDLIB_REGISTER_ONLY SIMDLIB_CODEGEN_NOINLINE native_type VECTORCALL simdlib_co
 }
 
 /** @brief Compact predicate-bit fixture. */
-SIMDLIB_REGISTER_ONLY SIMDLIB_CODEGEN_NOINLINE std::uint32_t VECTORCALL simdlib_codegen_mask_bits(native_type lhs, native_type rhs) noexcept
+SIMDLIB_CODEGEN_NOINLINE std::uint32_t SIMD_FLAGS(In, RegisterOnly) simdlib_codegen_mask_bits(native_type lhs, native_type rhs) noexcept
 {
 #if SIMDLIB_CODEGEN_USE_WRAPPER
 	return SimdLibCodegen::register_type{lhs}.compare_equal(SimdLibCodegen::register_type{rhs}).bits();
@@ -112,7 +112,7 @@ SIMDLIB_REGISTER_ONLY SIMDLIB_CODEGEN_NOINLINE std::uint32_t VECTORCALL simdlib_
 }
 
 /** @brief Any-lane predicate reduction fixture. */
-SIMDLIB_REGISTER_ONLY SIMDLIB_CODEGEN_NOINLINE bool VECTORCALL simdlib_codegen_mask_any(native_type lhs, native_type rhs) noexcept
+SIMDLIB_CODEGEN_NOINLINE bool SIMD_FLAGS(In, RegisterOnly) simdlib_codegen_mask_any(native_type lhs, native_type rhs) noexcept
 {
 #if SIMDLIB_CODEGEN_USE_WRAPPER
 	return SimdLibCodegen::register_type{lhs}.compare_equal(SimdLibCodegen::register_type{rhs}).any();
@@ -122,7 +122,7 @@ SIMDLIB_REGISTER_ONLY SIMDLIB_CODEGEN_NOINLINE bool VECTORCALL simdlib_codegen_m
 }
 
 /** @brief All-lane predicate reduction fixture. */
-SIMDLIB_REGISTER_ONLY SIMDLIB_CODEGEN_NOINLINE bool VECTORCALL simdlib_codegen_mask_all(native_type lhs, native_type rhs) noexcept
+SIMDLIB_CODEGEN_NOINLINE bool SIMD_FLAGS(In, RegisterOnly) simdlib_codegen_mask_all(native_type lhs, native_type rhs) noexcept
 {
 #if SIMDLIB_CODEGEN_USE_WRAPPER
 	return SimdLibCodegen::register_type{lhs}.compare_equal(SimdLibCodegen::register_type{rhs}).all();
@@ -133,13 +133,13 @@ SIMDLIB_REGISTER_ONLY SIMDLIB_CODEGEN_NOINLINE bool VECTORCALL simdlib_codegen_m
 }
 
 /** @brief Native-result fixture. */
-SIMDLIB_REGISTER_ONLY SIMDLIB_CODEGEN_NOINLINE native_type VECTORCALL simdlib_codegen_native(native_type value) noexcept
+SIMDLIB_CODEGEN_NOINLINE native_type SIMD_FLAGS(InOut, RegisterOnly) simdlib_codegen_native(native_type value) noexcept
 {
 	return SimdLibCodegen::unwrap(SimdLibCodegen::wrap(value));
 }
 
 /** @brief Broadcast-reuse fixture. */
-SIMDLIB_REGISTER_ONLY SIMDLIB_CODEGEN_NOINLINE native_type VECTORCALL simdlib_codegen_broadcast_reuse(float value) noexcept
+SIMDLIB_CODEGEN_NOINLINE native_type SIMD_FLAGS(Out, RegisterOnly) simdlib_codegen_broadcast_reuse(float value) noexcept
 {
 #if SIMDLIB_CODEGEN_USE_WRAPPER
 	const auto broadcast = SimdLibCodegen::register_type::broadcast(value);
@@ -151,7 +151,7 @@ SIMDLIB_REGISTER_ONLY SIMDLIB_CODEGEN_NOINLINE native_type VECTORCALL simdlib_co
 }
 
 /** @brief Highest-lane observation fixture. */
-SIMDLIB_REGISTER_ONLY SIMDLIB_CODEGEN_NOINLINE float VECTORCALL simdlib_codegen_lane_last(native_type value) noexcept
+SIMDLIB_CODEGEN_NOINLINE float SIMD_FLAGS(In, RegisterOnly) simdlib_codegen_lane_last(native_type value) noexcept
 {
 #if SIMDLIB_CODEGEN_USE_WRAPPER
 	return SimdLibCodegen::register_type{value}.template lane<SimdLibCodegen::register_type::lane_count - 1>();
@@ -198,7 +198,7 @@ SIMDLIB_CODEGEN_NOINLINE void simdlib_codegen_byte_transfer(const std::byte *sou
 }
 
 /** @brief Copy/move special-member fixture. */
-SIMDLIB_REGISTER_ONLY SIMDLIB_CODEGEN_NOINLINE native_type VECTORCALL simdlib_codegen_special_members(native_type value) noexcept
+SIMDLIB_CODEGEN_NOINLINE native_type SIMD_FLAGS(InOut, RegisterOnly) simdlib_codegen_special_members(native_type value) noexcept
 {
 #if SIMDLIB_CODEGEN_USE_WRAPPER
 	SimdLibCodegen::register_type first{value};
@@ -214,7 +214,7 @@ SIMDLIB_REGISTER_ONLY SIMDLIB_CODEGEN_NOINLINE native_type VECTORCALL simdlib_co
 }
 
 /** @brief Mutating-reference fixture. */
-SIMDLIB_CODEGEN_NOINLINE void VECTORCALL simdlib_codegen_mutate(native_type &lhs, native_type rhs) noexcept
+SIMDLIB_CODEGEN_NOINLINE void SIMD_FLAGS(In) simdlib_codegen_mutate(native_type &lhs, native_type rhs) noexcept
 {
 	value_type wrapped_lhs = SimdLibCodegen::wrap(lhs);
 	const value_type wrapped_rhs = SimdLibCodegen::wrap(rhs);
@@ -227,9 +227,8 @@ SIMDLIB_CODEGEN_NOINLINE void VECTORCALL simdlib_codegen_mutate(native_type &lhs
 }
 
 /** @brief Controlled register-pressure fixture. */
-SIMDLIB_REGISTER_ONLY SIMDLIB_CODEGEN_NOINLINE native_type VECTORCALL simdlib_codegen_pressure(native_type a, native_type b, native_type c, native_type d,
-																							   native_type e, native_type f, native_type g,
-																							   native_type h) noexcept
+SIMDLIB_CODEGEN_NOINLINE native_type SIMD_FLAGS(InOut, RegisterOnly)
+	simdlib_codegen_pressure(native_type a, native_type b, native_type c, native_type d, native_type e, native_type f, native_type g, native_type h) noexcept
 {
 #if SIMDLIB_CODEGEN_USE_WRAPPER
 	const SimdLibCodegen::register_type ab = SimdLibCodegen::register_type{a} + SimdLibCodegen::register_type{b};
@@ -248,7 +247,7 @@ SIMDLIB_REGISTER_ONLY SIMDLIB_CODEGEN_NOINLINE native_type VECTORCALL simdlib_co
 }
 
 /** @brief Chained bitwise-expression fixture including the public andnot polarity. */
-SIMDLIB_REGISTER_ONLY SIMDLIB_CODEGEN_NOINLINE native_type VECTORCALL simdlib_codegen_basic_bitwise(native_type lhs, native_type rhs) noexcept
+SIMDLIB_CODEGEN_NOINLINE native_type SIMD_FLAGS(InOut, RegisterOnly) simdlib_codegen_basic_bitwise(native_type lhs, native_type rhs) noexcept
 {
 #if SIMDLIB_CODEGEN_USE_WRAPPER
 	const SimdLibCodegen::register_type left{lhs};
@@ -262,8 +261,8 @@ SIMDLIB_REGISTER_ONLY SIMDLIB_CODEGEN_NOINLINE native_type VECTORCALL simdlib_co
 }
 
 /** @brief Local reassignment expression fixture. */
-SIMDLIB_REGISTER_ONLY SIMDLIB_CODEGEN_NOINLINE native_type VECTORCALL simdlib_codegen_reassignment_arithmetic(native_type lhs, native_type rhs,
-																											  native_type multiplier) noexcept
+SIMDLIB_CODEGEN_NOINLINE native_type SIMD_FLAGS(InOut, RegisterOnly)
+	simdlib_codegen_reassignment_arithmetic(native_type lhs, native_type rhs, native_type multiplier) noexcept
 {
 #if SIMDLIB_CODEGEN_USE_WRAPPER
 	SimdLibCodegen::register_type result{lhs};
@@ -276,8 +275,8 @@ SIMDLIB_REGISTER_ONLY SIMDLIB_CODEGEN_NOINLINE native_type VECTORCALL simdlib_co
 }
 
 /** @brief Explicit scalar-broadcast arithmetic-chain fixture. */
-SIMDLIB_REGISTER_ONLY SIMDLIB_CODEGEN_NOINLINE native_type VECTORCALL simdlib_codegen_basic_broadcast_chain(native_type value, float scale,
-																											float offset) noexcept
+SIMDLIB_CODEGEN_NOINLINE native_type SIMD_FLAGS(InOut, RegisterOnly)
+	simdlib_codegen_basic_broadcast_chain(native_type value, float scale, float offset) noexcept
 {
 #if SIMDLIB_CODEGEN_USE_WRAPPER
 	return ((SimdLibCodegen::register_type{value} * SimdLibCodegen::register_type::broadcast(scale)) + SimdLibCodegen::register_type::broadcast(offset)).native;
@@ -288,8 +287,8 @@ SIMDLIB_REGISTER_ONLY SIMDLIB_CODEGEN_NOINLINE native_type VECTORCALL simdlib_co
 }
 
 /** @brief Immediate per-lane unsigned left-shift fixture. */
-SIMDLIB_REGISTER_ONLY SIMDLIB_CODEGEN_NOINLINE SimdLibCodegen::uint_native_type VECTORCALL
-simdlib_codegen_basic_shift_left_immediate(SimdLibCodegen::uint_native_type value) noexcept
+SIMDLIB_CODEGEN_NOINLINE SimdLibCodegen::uint_native_type SIMD_FLAGS(InOut, RegisterOnly)
+	simdlib_codegen_basic_shift_left_immediate(SimdLibCodegen::uint_native_type value) noexcept
 {
 #if SIMDLIB_CODEGEN_USE_WRAPPER
 	return (SimdLibCodegen::uint_register_type{value} << 3).native;
@@ -300,7 +299,8 @@ simdlib_codegen_basic_shift_left_immediate(SimdLibCodegen::uint_native_type valu
 
 #if SIMDLIB_REGISTER_TEST_WIDTH == 128
 /** @brief Static complete-register bit-shift fixture. */
-SIMDLIB_CODEGEN_NOINLINE SimdLibCodegen::uint_native_type VECTORCALL simdlib_codegen_complete_shift_static(SimdLibCodegen::uint_native_type value) noexcept
+SIMDLIB_CODEGEN_NOINLINE SimdLibCodegen::uint_native_type SIMD_FLAGS(InOut)
+	simdlib_codegen_complete_shift_static(SimdLibCodegen::uint_native_type value) noexcept
 {
 #if SIMDLIB_CODEGEN_USE_WRAPPER
 	return SimdLibCodegen::uint_register_type{value}.template bit_shift_left<19>().native;
@@ -310,8 +310,8 @@ SIMDLIB_CODEGEN_NOINLINE SimdLibCodegen::uint_native_type VECTORCALL simdlib_cod
 }
 
 /** @brief Runtime complete-register bit-shift fixture. */
-SIMDLIB_CODEGEN_NOINLINE SimdLibCodegen::uint_native_type VECTORCALL simdlib_codegen_complete_shift_runtime(SimdLibCodegen::uint_native_type value,
-																											int count) noexcept
+SIMDLIB_CODEGEN_NOINLINE SimdLibCodegen::uint_native_type SIMD_FLAGS(InOut)
+	simdlib_codegen_complete_shift_runtime(SimdLibCodegen::uint_native_type value, int count) noexcept
 {
 #if SIMDLIB_CODEGEN_USE_WRAPPER
 	return SimdLibCodegen::uint_register_type{value}.bit_shift_right_slow(count).native;
@@ -321,8 +321,8 @@ SIMDLIB_CODEGEN_NOINLINE SimdLibCodegen::uint_native_type VECTORCALL simdlib_cod
 }
 
 /** @brief Runtime complete-register byte-shift fixture. */
-SIMDLIB_CODEGEN_NOINLINE SimdLibCodegen::uint_native_type VECTORCALL simdlib_codegen_complete_byte_shift(SimdLibCodegen::uint_native_type value,
-																										 int count) noexcept
+SIMDLIB_CODEGEN_NOINLINE SimdLibCodegen::uint_native_type SIMD_FLAGS(InOut)
+	simdlib_codegen_complete_byte_shift(SimdLibCodegen::uint_native_type value, int count) noexcept
 {
 #if SIMDLIB_CODEGEN_USE_WRAPPER
 	return SimdLibCodegen::uint_register_type{value}.byte_shift_left_slow(count).native;
@@ -333,7 +333,7 @@ SIMDLIB_CODEGEN_NOINLINE SimdLibCodegen::uint_native_type VECTORCALL simdlib_cod
 #endif
 
 /** @brief Opaque-call fixture used to compare wrapper and raw spill behavior. */
-SIMDLIB_CODEGEN_NOINLINE native_type VECTORCALL simdlib_codegen_opaque(native_type value) noexcept
+SIMDLIB_CODEGEN_NOINLINE native_type SIMD_FLAGS(InOut) simdlib_codegen_opaque(native_type value) noexcept
 {
 	const value_type wrapped = SimdLibCodegen::wrap(value);
 	simdlib_codegen_opaque_sink(SimdLibCodegen::unwrap(wrapped));

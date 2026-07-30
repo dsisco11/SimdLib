@@ -44,48 +44,50 @@ template <class element_t> using native_t = typename SimdLib::Api<SIMDLIB_REGIST
 
 #define SIMDLIB_DEFINE_SPECIALIZED_UNARY(operation, token, type, member, api)                                                                                  \
 	/** @brief Compares one unary Register specialized operation against its raw Api expression. */                                                            \
-	SIMDLIB_REGISTER_ONLY SIMDLIB_SPECIALIZED_CODEGEN_NOINLINE SimdLibSpecializedCodegen::native_t<type> VECTORCALL                                            \
-	simdlib_specialized_codegen_##operation##_##token(SimdLibSpecializedCodegen::native_t<type> value) noexcept                                                \
+	SIMDLIB_SPECIALIZED_CODEGEN_NOINLINE SimdLibSpecializedCodegen::native_t<type> SIMD_FLAGS(In, RegisterOnly)                                                \
+		simdlib_specialized_codegen_##operation##_##token(SimdLibSpecializedCodegen::native_t<type> value) noexcept                                            \
 	{                                                                                                                                                          \
 		return SIMDLIB_SPECIALIZED_UNARY_EXPRESSION(type, member, api, value);                                                                                 \
 	}
 
 #define SIMDLIB_DEFINE_SPECIALIZED_BINARY(operation, token, type, member, api)                                                                                 \
 	/** @brief Compares one binary Register specialized operation against its raw Api expression. */                                                           \
-	SIMDLIB_REGISTER_ONLY SIMDLIB_SPECIALIZED_CODEGEN_NOINLINE SimdLibSpecializedCodegen::native_t<type> VECTORCALL                                            \
-	simdlib_specialized_codegen_##operation##_##token(SimdLibSpecializedCodegen::native_t<type> lhs, SimdLibSpecializedCodegen::native_t<type> rhs) noexcept   \
+	SIMDLIB_SPECIALIZED_CODEGEN_NOINLINE SimdLibSpecializedCodegen::native_t<type> SIMD_FLAGS(In, RegisterOnly)                                                \
+		simdlib_specialized_codegen_##operation##_##token(SimdLibSpecializedCodegen::native_t<type> lhs,                                                       \
+														  SimdLibSpecializedCodegen::native_t<type> rhs) noexcept                                              \
 	{                                                                                                                                                          \
 		return SIMDLIB_SPECIALIZED_BINARY_EXPRESSION(type, member, api, lhs, rhs);                                                                             \
 	}
 
 #define SIMDLIB_DEFINE_SPECIALIZED_SCALAR(operation, token, type, member, api)                                                                                 \
 	/** @brief Compares one scalar-result Register specialized operation against its raw Api expression. */                                                    \
-	SIMDLIB_REGISTER_ONLY SIMDLIB_SPECIALIZED_CODEGEN_NOINLINE std::size_t VECTORCALL simdlib_specialized_codegen_##operation##_##token(                       \
-		SimdLibSpecializedCodegen::native_t<type> value) noexcept                                                                                              \
+	SIMDLIB_SPECIALIZED_CODEGEN_NOINLINE std::size_t SIMD_FLAGS(In, RegisterOnly)                                                                              \
+		simdlib_specialized_codegen_##operation##_##token(SimdLibSpecializedCodegen::native_t<type> value) noexcept                                            \
 	{                                                                                                                                                          \
 		return SIMDLIB_SPECIALIZED_SCALAR_EXPRESSION(type, member, api, value);                                                                                \
 	}
 
 #define SIMDLIB_DEFINE_SPECIALIZED_PROMOTED(operation, token, type, member, api)                                                                               \
 	/** @brief Compares one promoted-result Register specialized operation against its raw Api expression. */                                                  \
-	SIMDLIB_REGISTER_ONLY SIMDLIB_SPECIALIZED_CODEGEN_NOINLINE SimdLibSpecializedCodegen::native_t<type> VECTORCALL                                            \
-	simdlib_specialized_codegen_##operation##_##token(SimdLibSpecializedCodegen::native_t<type> lhs, SimdLibSpecializedCodegen::native_t<type> rhs) noexcept   \
+	SIMDLIB_SPECIALIZED_CODEGEN_NOINLINE SimdLibSpecializedCodegen::native_t<type> SIMD_FLAGS(In, RegisterOnly)                                                \
+		simdlib_specialized_codegen_##operation##_##token(SimdLibSpecializedCodegen::native_t<type> lhs,                                                       \
+														  SimdLibSpecializedCodegen::native_t<type> rhs) noexcept                                              \
 	{                                                                                                                                                          \
 		return SIMDLIB_SPECIALIZED_PROMOTED_EXPRESSION(type, member, api, lhs, rhs);                                                                           \
 	}
 
 #define SIMDLIB_DEFINE_SPECIALIZED_MULTI_SAD(token, type)                                                                                                      \
 	/** @brief Compares immediate-controlled multi-SAD Register code against its raw Api expression. */                                                        \
-	SIMDLIB_REGISTER_ONLY SIMDLIB_SPECIALIZED_CODEGEN_NOINLINE SimdLibSpecializedCodegen::native_t<type> VECTORCALL                                            \
-	simdlib_specialized_codegen_multi_sad_##token(SimdLibSpecializedCodegen::native_t<type> lhs, SimdLibSpecializedCodegen::native_t<type> rhs) noexcept       \
+	SIMDLIB_SPECIALIZED_CODEGEN_NOINLINE SimdLibSpecializedCodegen::native_t<type> SIMD_FLAGS(In, RegisterOnly)                                                \
+		simdlib_specialized_codegen_multi_sad_##token(SimdLibSpecializedCodegen::native_t<type> lhs, SimdLibSpecializedCodegen::native_t<type> rhs) noexcept   \
 	{                                                                                                                                                          \
 		return SIMDLIB_SPECIALIZED_MULTI_SAD_EXPRESSION(type, lhs, rhs);                                                                                       \
 	}
 
 #define SIMDLIB_DEFINE_SPECIALIZED_DOT(token, type)                                                                                                            \
 	/** @brief Compares immediate-controlled dot-product Register code against its raw Api expression. */                                                      \
-	SIMDLIB_REGISTER_ONLY SIMDLIB_SPECIALIZED_CODEGEN_NOINLINE SimdLibSpecializedCodegen::native_t<type> VECTORCALL                                            \
-	simdlib_specialized_codegen_dot_product_##token(SimdLibSpecializedCodegen::native_t<type> lhs, SimdLibSpecializedCodegen::native_t<type> rhs) noexcept     \
+	SIMDLIB_SPECIALIZED_CODEGEN_NOINLINE SimdLibSpecializedCodegen::native_t<type> SIMD_FLAGS(In, RegisterOnly)                                                \
+		simdlib_specialized_codegen_dot_product_##token(SimdLibSpecializedCodegen::native_t<type> lhs, SimdLibSpecializedCodegen::native_t<type> rhs) noexcept \
 	{                                                                                                                                                          \
 		return SIMDLIB_SPECIALIZED_DOT_EXPRESSION(type, lhs, rhs);                                                                                             \
 	}

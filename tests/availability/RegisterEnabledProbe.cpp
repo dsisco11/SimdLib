@@ -27,7 +27,7 @@ struct RegisterExplicitObjectProbe
 	 * @brief Returns the stored value through a by-value explicit object parameter.
 	 * @return Stored probe value.
 	 */
-	[[nodiscard]] constexpr int VECTORCALL get(this RegisterExplicitObjectProbe self) noexcept
+	[[nodiscard]] constexpr int SIMD_FLAGS(Neither) get(this RegisterExplicitObjectProbe self) noexcept
 	{
 		return self.value;
 	}
@@ -37,8 +37,8 @@ struct RegisterExplicitObjectProbe
 	 * @param rhs Right operand.
 	 * @return Sum of both probe values.
 	 */
-	[[nodiscard]] constexpr RegisterExplicitObjectProbe VECTORCALL operator+(this RegisterExplicitObjectProbe lhs,
-																			 const RegisterExplicitObjectProbe rhs) noexcept
+	[[nodiscard]] constexpr RegisterExplicitObjectProbe SIMD_FLAGS(Neither) operator+(this RegisterExplicitObjectProbe lhs,
+																					  const RegisterExplicitObjectProbe rhs) noexcept
 	{
 		return {lhs.value + rhs.value};
 	}
@@ -48,7 +48,8 @@ struct RegisterExplicitObjectProbe
 	 * @param rhs Value added to the probe.
 	 * @return Reference to the mutated probe.
 	 */
-	constexpr RegisterExplicitObjectProbe &VECTORCALL operator+=(this RegisterExplicitObjectProbe &self, const RegisterExplicitObjectProbe rhs) noexcept
+	constexpr auto SIMD_FLAGS(Neither) operator+=(this RegisterExplicitObjectProbe &self, const RegisterExplicitObjectProbe rhs) noexcept
+		-> RegisterExplicitObjectProbe &
 	{
 		self.value += rhs.value;
 		return self;
@@ -59,7 +60,7 @@ struct RegisterExplicitObjectProbe
 	 * @param rhs Right operand.
 	 * @return `true` when both values are equal.
 	 */
-	[[nodiscard]] constexpr bool VECTORCALL operator==(this RegisterExplicitObjectProbe lhs, const RegisterExplicitObjectProbe rhs) noexcept
+	[[nodiscard]] constexpr bool SIMD_FLAGS(Neither) operator==(this RegisterExplicitObjectProbe lhs, const RegisterExplicitObjectProbe rhs) noexcept
 	{
 		return lhs.value == rhs.value;
 	}

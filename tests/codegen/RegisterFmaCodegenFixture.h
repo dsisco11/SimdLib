@@ -26,8 +26,9 @@ using double_native_t = typename SimdLib::Api<SIMDLIB_REGISTER_TEST_WIDTH, doubl
  * @param addend Addend register.
  * @return Per-lane multiply-add result.
  */
-SIMDLIB_REGISTER_ONLY SIMDLIB_FMA_CODEGEN_NOINLINE SimdLibFmaCodegen::float_native_t VECTORCALL simdlib_fma_codegen_multiply_add_f32(
-	SimdLibFmaCodegen::float_native_t lhs, SimdLibFmaCodegen::float_native_t rhs, SimdLibFmaCodegen::float_native_t addend) noexcept
+SIMDLIB_FMA_CODEGEN_NOINLINE SimdLibFmaCodegen::float_native_t SIMD_FLAGS(Neither, RegisterOnly)
+	simdlib_fma_codegen_multiply_add_f32(SimdLibFmaCodegen::float_native_t lhs, SimdLibFmaCodegen::float_native_t rhs,
+										 SimdLibFmaCodegen::float_native_t addend) noexcept
 {
 #if SIMDLIB_CODEGEN_USE_WRAPPER
 	return SimdLib::Register<float, SIMDLIB_REGISTER_TEST_WIDTH>{lhs}
@@ -45,8 +46,9 @@ SIMDLIB_REGISTER_ONLY SIMDLIB_FMA_CODEGEN_NOINLINE SimdLibFmaCodegen::float_nati
  * @param addend Addend register.
  * @return Per-lane multiply-add result.
  */
-SIMDLIB_REGISTER_ONLY SIMDLIB_FMA_CODEGEN_NOINLINE SimdLibFmaCodegen::double_native_t VECTORCALL simdlib_fma_codegen_multiply_add_f64(
-	SimdLibFmaCodegen::double_native_t lhs, SimdLibFmaCodegen::double_native_t rhs, SimdLibFmaCodegen::double_native_t addend) noexcept
+SIMDLIB_FMA_CODEGEN_NOINLINE SimdLibFmaCodegen::double_native_t SIMD_FLAGS(Neither, RegisterOnly)
+	simdlib_fma_codegen_multiply_add_f64(SimdLibFmaCodegen::double_native_t lhs, SimdLibFmaCodegen::double_native_t rhs,
+										 SimdLibFmaCodegen::double_native_t addend) noexcept
 {
 #if SIMDLIB_CODEGEN_USE_WRAPPER
 	return SimdLib::Register<double, SIMDLIB_REGISTER_TEST_WIDTH>{lhs}

@@ -26,43 +26,29 @@ verify the ledger with:
 
 ## Classification totals
 
-The ledger contains 443 declaration records accounting for 1,049 active legacy
-occurrences. Declarations leave this active ledger after migration; the
-implementation plan retains the completed-group counts and validation evidence.
+The ledger contains 88 reviewed exception records accounting for all 186 active
+legacy occurrences. All individually classified migratable declarations have
+left the active ledger; the implementation plan retains their completed-group
+counts and validation evidence.
 
 | Classification | Count |
 | --- | ---: |
-| Migratable ordinary functions | 355 |
 | Deferred runtime-path repairs | 24 |
 | Compiler-adapter definitions | 19 |
 | Intentional legacy comparison baselines | 17 |
 | Grammar exceptions | 15 |
 | Low-level configuration probes | 13 |
 
-The migratable declarations have independently recorded SIMD directions:
-
-| Boundary | Count |
-| --- | ---: |
-| `Neither` | 106 |
-| `In` | 91 |
-| `Out` | 35 |
-| `InOut` | 123 |
-
-`SimdInput` and `SimdOutput` retain the two independent decisions behind each
-boundary. A SIMD input is a native or SimdLib register value entering by value;
-references, pointers, arrays, spans, and an implicit object alone do not make a
-declaration `In`. A SIMD output is a native or SimdLib register value returned
-by value; scalar, array, pointer, and reference results do not make it `Out`.
+Migrated declarations no longer appear in this active exception ledger. Their
+independently reviewed input/output directions and exact unified spellings are
+preserved by the implementation-plan evidence.
 
 ## Modifier decisions
 
-`RegisterOnlyTarget` records 133 resolved existing promises, 87 omissions, 135
-separately reviewable additions, and 88 exceptions. Candidate status never adds
-the promise during mechanical migration. It means that the declaration has no
-authored direct write, no known runtime-storage helper, and no unresolved
-transitive callee in the reviewed source. Generated-code evidence and a separate
-approval are still required before adding `RegisterOnly` because its Microsoft
-mapping can suppress `/GS` instrumentation.
+All 88 active records are reviewed exceptions, so their target-modifier fields
+remain `Exception`. Completed modifier decisions and their validation evidence
+are retained in the implementation plan rather than duplicated in the active
+ledger.
 
 Twenty-four exceptions use `KeepLegacyPendingSourceRepair`. They retain the
 existing `RegisterOnly` promise and legacy declaration spelling; the inventory
@@ -79,26 +65,17 @@ implementations before migration, or explicit approval before any
 `RegisterOnly` promise is relaxed. Focused SSE4.2 and AVX2 tests own correctness
 coverage for the deferred declarations in their retained form.
 
-`ForceInlineTarget` retains 272 current optimized-code-shape promises and omits
-the modifier from 83 declarations; 88 records are exceptions. No retained use
-is classified as ODR-only: templates, in-class definitions, `constexpr`, or an
-ordinary `inline` specifier already provide ODR semantics independently.
-
-`FlattenTarget` retains 196 explicit recursive-inlining contracts and omits the
-modifier from 159 declarations; 88 records are exceptions. Missing `Flatten`
-is not inferred merely from a containing type or neighboring method.
-`FlattenAudit` distinguishes leaf declarations from composed declarations that
-have no separately established recursive-inlining requirement.
+The exception reasons distinguish compiler adapters, comparison baselines,
+grammar limitations, low-level probes, and declarations pending source repair;
+none of those categories implies a new optimization promise.
 
 ## Constant-evaluation and call-path review
 
-`ConstexprAudit` records runtime-only declarations, shared constexpr bodies,
-and explicit constant-evaluation branches separately. `Memory` and
-`TransitiveAudit` distinguish direct writes, addressable local storage,
-read-only inputs, known writer families, reviewed no-write callees, and the
-existing promises pending source repair. `DirectCalls` keeps the reviewed call
-surface visible instead of treating the containing file or operation family as
-evidence.
+For pending source repairs, `ConstexprAudit`, `Memory`, `DirectCalls`, and
+`TransitiveAudit` preserve the distinction between constant-evaluation and
+runtime paths, including direct writes, addressable local storage, and
+transitive writer families. Other exception categories record why those fields
+are not applicable.
 
 ## Reviewed exceptions
 
