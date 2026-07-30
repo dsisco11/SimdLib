@@ -82,6 +82,17 @@ Optional operations remain accessible without becoming prerequisites of
 An optional operation cannot satisfy a missing default manifest. Record-only
 codegen cannot satisfy an enforced optimized codegen result.
 
+Generated-code investigations use an explicit compiler and cell selection:
+
+```powershell
+tools/Record-Codegen.ps1 -Scope Native -Compiler Msvc -Cell Debug
+tools/Record-Codegen.ps1 -Scope Containers -Compiler Clang22 -Cell Debug
+tools/Record-Codegen.ps1 -Scope Containers -Compiler Clang22 -Cell AsanUbsan
+```
+
+The operation builds only the selected fixture/comparison graph and records its
+own provenance; it is not part of the unified default build receipt.
+
 ## Development-target ownership rules
 
 The current logical target union is completely covered by the following ordered

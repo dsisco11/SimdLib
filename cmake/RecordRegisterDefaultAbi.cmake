@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 4.4)
 
+string(TIMESTAMP codegen_start_epoch "%s" UTC)
+
 foreach(required_variable IN ITEMS
 	WRAPPER_OBJECT RAW_OBJECT OBJDUMP ARTIFACT_DIRECTORY COMPILER_ID
 	COMPILER_VERSION COMPILER_PATH SYSTEM_NAME SYSTEM_PROCESSOR CONFIGURATION REGISTER_WIDTH
@@ -72,6 +74,9 @@ if(NOT tool_version_result EQUAL 0)
 	message(FATAL_ERROR "Unable to identify default-ABI recording tool: ${tool_version_error}")
 endif()
 string(REGEX REPLACE "\r?\n.*" "" tool_version "${tool_version_output}")
+string(TIMESTAMP codegen_end_epoch "%s" UTC)
+math(EXPR codegen_total_seconds
+	"${codegen_end_epoch} - ${codegen_start_epoch}")
 foreach(json_value IN ITEMS
 	WRAPPER_OBJECT RAW_OBJECT OBJDUMP tool_version COMPILER_ID COMPILER_VERSION
 	COMPILER_PATH SYSTEM_NAME SYSTEM_PROCESSOR CONFIGURATION ISA_PROFILE STACK_PROTECTOR_MODE)
@@ -94,6 +99,7 @@ file(WRITE "${record_temporary_file}"
 		"\"path\": \"${COMPILER_PATH_json}\"},\n"
 	"  \"platform\": {\"system\": \"${SYSTEM_NAME_json}\", \"processor\": \"${SYSTEM_PROCESSOR_json}\"},\n"
 	"  \"configuration\": \"${CONFIGURATION_json}\",\n"
+	"  \"timing\": {\"total_seconds\": ${codegen_total_seconds}},\n"
 	"  \"register_width\": ${REGISTER_WIDTH},\n"
 	"  \"isa_profile\": \"${ISA_PROFILE_json}\",\n"
 	"  \"vectorcall_enabled\": ${VECTORCALL_ENABLED},\n"

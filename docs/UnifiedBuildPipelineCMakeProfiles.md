@@ -62,27 +62,33 @@ Register compilers.
 | Linux Clang 22 Debug | `clang22-debug-diagnostics` | same name |
 | Linux Clang 22 Debug ASan+UBSan | `clang22-debug-asan-ubsan` | same name |
 | Clang Debug coverage | `clang-debug-coverage` | same name |
+| Selected Debug codegen diagnostic | compiler-specific `*-debug-codegen-diagnostic` | same name |
+| Selected Clang sanitizer codegen diagnostic | `clang22-asan-ubsan-codegen-diagnostic` | same name |
 
 Hidden presets own common development controls, exhaustive Release controls,
-Debug diagnostic controls, sanitizer flags, coverage controls, compiler-driver
-selection, and container defaults. Every visible configure preset has its own
-stable binary directory. MSVC Release and Debug additionally restrict
-`CMAKE_CONFIGURATION_TYPES` to `Release` and `Debug`, respectively.
+ordinary Debug controls, optional codegen-diagnostic controls, sanitizer flags,
+coverage controls, compiler-driver selection, and container defaults. Every
+visible configure preset has its own stable binary directory. MSVC Release and
+ordinary Debug additionally restrict `CMAKE_CONFIGURATION_TYPES` to `Release`
+and `Debug`, respectively.
 
 Release exhaustive caches use strict warnings, BMI variants, examples,
 benchmarks, `SIMDLIB_REGISTER_CODEGEN_MODE=ENFORCE`, and configure-time target
-inventory validation. Debug caches disable benchmarks and BMI, use
-`SIMDLIB_REGISTER_CODEGEN_MODE=RECORD`, and retain `/Od` or the GNU-like Debug
-flags. The sanitizer cache adds `-fsanitize=address,undefined` and
-`-fno-omit-frame-pointer` without inheriting Release optimization or enforcement.
+inventory validation. Ordinary Debug, sanitizer, and coverage caches set
+`SIMDLIB_REGISTER_CODEGEN_MODE=OFF`; they contain no Register codegen targets.
+Explicit diagnostic caches use `SIMDLIB_REGISTER_CODEGEN_MODE=RECORD`, retain
+`/Od` or the GNU-like Debug flags, and build only the selected record-only
+fixtures. The sanitizer cache adds `-fsanitize=address,undefined` and
+`-fno-omit-frame-pointer` without inheriting Release optimization or
+enforcement.
 
 ## Aggregate ownership
 
-`ExhaustiveArtifacts` depends on every buildable target created in the owning
-top-level directory except interface libraries, CTest dashboard utilities,
-benchmarks, and coverage report/reset utilities. It therefore owns runtime-test
-executables without executing them, examples, smoke targets, object probes,
-source audits, and Register generated-code and ABI comparisons.
+`ExhaustiveArtifacts` depends only on the scoped category aggregates selected
+by `SIMDLIB_VALIDATION_PROFILE`. Release includes its compiler, constexpr,
+runtime, checks, smoke, and optimized-codegen owners. Ordinary Debug,
+sanitizer, and coverage select narrower owners and cannot absorb Register
+generated-code targets through inherited development options.
 
 `BenchmarkArtifacts` depends only on `Benchmarks`. Neither aggregate depends on
 the other. Release benchmark presets reuse the Release configure tree, so the

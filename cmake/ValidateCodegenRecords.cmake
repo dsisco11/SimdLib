@@ -22,6 +22,24 @@ function(simdlib_validate_codegen_record record_file)
 	if(result_error OR NOT result MATCHES "^(exact-parity|accepted-compiler-exception|recorded-difference|recorded-diagnostic)$")
 		message(FATAL_ERROR "Generated-code record has an invalid result: ${record_file}")
 	endif()
+	if(DEFINED EXPECTED_POLICY_MODE AND NOT "${EXPECTED_POLICY_MODE}" STREQUAL "")
+		string(JSON policy_mode ERROR_VARIABLE policy_mode_error
+			GET "${record_json}" policy mode)
+		if(policy_mode_error OR NOT policy_mode STREQUAL EXPECTED_POLICY_MODE)
+			message(FATAL_ERROR
+				"Generated-code record policy is ${policy_mode}, expected "
+				"${EXPECTED_POLICY_MODE}: ${record_file}")
+		endif()
+	endif()
+	if(DEFINED EXPECTED_CONFIGURATION AND NOT "${EXPECTED_CONFIGURATION}" STREQUAL "")
+		string(JSON configuration ERROR_VARIABLE configuration_error
+			GET "${record_json}" configuration)
+		if(configuration_error OR NOT configuration STREQUAL EXPECTED_CONFIGURATION)
+			message(FATAL_ERROR
+				"Generated-code record configuration is ${configuration}, expected "
+				"${EXPECTED_CONFIGURATION}: ${record_file}")
+		endif()
+	endif()
 
 	foreach(input_name IN ITEMS wrapper raw)
 		string(JSON input_path ERROR_VARIABLE path_error GET "${record_json}" inputs ${input_name} path)
@@ -47,8 +65,14 @@ function(simdlib_validate_codegen_record record_file)
 endfunction()
 
 file(STRINGS "${RECORD_INDEX}" record_files)
+set(validated_record_count 0)
 foreach(record_file IN LISTS record_files)
 	if(NOT record_file STREQUAL "")
 		simdlib_validate_codegen_record("${record_file}")
+		math(EXPR validated_record_count "${validated_record_count} + 1")
 	endif()
 endforeach()
+if(DEFINED REQUIRE_RECORDS AND REQUIRE_RECORDS AND validated_record_count EQUAL 0)
+	message(FATAL_ERROR
+		"Generated-code record index contains no records: ${RECORD_INDEX}")
+endif()

@@ -10,8 +10,10 @@ tools/Build.ps1 -Scope All
 This builds the Windows MSVC and clang-cl Release and Debug cells, native Clang
 Debug coverage, Linux GCC 13 core-only Release and Debug, Linux GCC 14 Release
 and Debug, and Linux Clang 22 Release, Debug, and ASan+UBSan cells. It builds
-the correctness, ABI, generated-code, sanitizer, consumer, coverage, probe,
-example, and header-validation artifacts, but does not compile benchmark
+the correctness, ABI, sanitizer, consumer, coverage, probe, example, and
+header-validation artifacts, plus the mandatory optimized generated-code gates
+in Release. Ordinary Debug, sanitizer, and coverage cells do not compile
+Register generated-code fixtures. The command does not compile benchmark
 targets or run any executable.
 
 Before starting compiler cells, `Build.ps1` invokes
@@ -95,8 +97,8 @@ Every top-level development target declares exactly one validation category
 when it is created. Configuration fails if a project-owned target is unowned,
 is assigned more than once, or belongs to a category forbidden by the selected
 `SIMDLIB_VALIDATION_PROFILE`. The supported profiles are `RELEASE`, `DEBUG`,
-`SANITIZER`, `COVERAGE`, `COMPILER_CONTRACTS`, and `CUSTOM` for explicitly
-configured local development trees.
+`SANITIZER`, `COVERAGE`, `COMPILER_CONTRACTS`, `CODEGEN_DIAGNOSTIC`, and
+`CUSTOM` for explicitly configured local development trees.
 
 Compiler-tree category targets are exposed through globally unique aggregates:
 
@@ -182,6 +184,23 @@ instrumentation. Native Clang coverage builds execution-bearing runtime,
 checks, and smoke/ODR targets, but does not compile constexpr-only or
 compiler-contract targets. Runtime tests continue to exercise Debug and
 sanitizer behavior.
+
+Register generated-code diagnostics are explicit supplemental operations:
+
+```powershell
+tools/Record-Codegen.ps1 -Scope Native -Compiler Msvc -Cell Debug
+tools/Record-Codegen.ps1 -Scope Containers -Compiler Clang22 -Cell Debug
+tools/Record-Codegen.ps1 -Scope Containers -Compiler Clang22 -Cell AsanUbsan
+```
+
+The command requires one compiler and one cell. It configures a diagnostic-only
+tree, builds only the Register fixture objects and record comparisons, and
+writes dedicated provenance containing the compiler flags, stack-protector
+mode, disassembly tools, source identity, record index, and separate compilation
+and comparison timings. These `RECORD` results cannot satisfy an `ENFORCE`
+Release gate. Debug diagnostics are run only for a compiler involved in an
+active investigation; the sanitizer variant is reserved for investigating how
+instrumentation changes wrapper/raw memory, control-flow, or ABI paths.
 
 Coverage is development infrastructure owned only by a top-level SimdLib
 build. The root CMake boundary does not load development modules for

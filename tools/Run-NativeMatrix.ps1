@@ -3,12 +3,13 @@
 Builds or consumes fingerprinted native compiler cells.
 .DESCRIPTION
 Build creates validation artifacts and manifests. Test validates those manifests
-and runs CTest without configuring or building. Benchmark operations reuse only
+and runs CTest without configuring or building. RecordCodegen creates an
+independent record-only diagnostic fingerprint. Benchmark operations reuse only
 the existing Release trees. Coverage is an independent Clang Debug cell.
 #>
 [CmdletBinding()]
 param(
-    [ValidateSet('Build', 'Test', 'BuildBenchmarks', 'RunBenchmarks')]
+    [ValidateSet('Build', 'Test', 'RecordCodegen', 'BuildBenchmarks', 'RunBenchmarks')]
     [string]$Action = 'Build',
     [ValidateSet('All', 'Release', 'Debug', 'Coverage')]
     [string]$Cell = 'All',
@@ -59,10 +60,22 @@ function Resolve-NativeCells {
     $cells = [System.Collections.Generic.List[object]]::new()
     foreach ($compilerKey in $compilers) {
         if ($compilerKey -eq 'clang-coverage') {
-            if ($Operation -notin @('BuildBenchmarks', 'RunBenchmarks') -and $CellScope -in @('All', 'Coverage')) {
+            if ($Operation -notin @('RecordCodegen', 'BuildBenchmarks', 'RunBenchmarks') -and $CellScope -in @('All', 'Coverage')) {
                 $cells.Add([pscustomobject]@{
                         Compiler = $compilerKey; Key = 'debug-coverage'; Preset = 'clang-debug-coverage'
                         BuildProfile = 'Debug'; Generator = 'Ninja'; Consumer = $false; Coverage = $true
+                        Sanitizer = 'none'; CodegenMode = 'OFF'
+                    })
+            }
+            continue
+        }
+        if ($Operation -eq 'RecordCodegen') {
+            if ($CellScope -in @('All', 'Debug')) {
+                $presetPrefix = if ($compilerKey -eq 'msvc') { 'msvc' } else { 'clangcl' }
+                $cells.Add([pscustomobject]@{
+                        Compiler = $compilerKey; Key = 'debug-codegen'; Preset = "$presetPrefix-debug-codegen-diagnostic"
+                        BuildProfile = 'Debug'; Generator = 'Ninja'; Consumer = $false; Coverage = $false
+                        Sanitizer = 'none'; CodegenMode = 'RECORD'
                     })
             }
             continue
@@ -72,7 +85,7 @@ function Resolve-NativeCells {
             $cells.Add([pscustomobject]@{
                     Compiler = $compilerKey; Key = 'release'; Preset = "$presetPrefix-release-exhaustive"
                     BuildProfile = 'Release'; Generator = if ($compilerKey -eq 'msvc') { 'Visual Studio 17 2022' } else { 'Ninja' }
-                    Consumer = $true; Coverage = $false
+                    Consumer = $true; Coverage = $false; Sanitizer = 'none'; CodegenMode = 'ENFORCE'
                 })
         }
         if ($Operation -notin @('BuildBenchmarks', 'RunBenchmarks') -and $CellScope -in @('All', 'Debug')) {
@@ -80,7 +93,7 @@ function Resolve-NativeCells {
             $cells.Add([pscustomobject]@{
                     Compiler = $compilerKey; Key = 'debug'; Preset = "$presetPrefix-debug-diagnostics"
                     BuildProfile = 'Debug'; Generator = if ($compilerKey -eq 'msvc') { 'Visual Studio 17 2022' } else { 'Ninja' }
-                    Consumer = $true; Coverage = $false
+                    Consumer = $true; Coverage = $false; Sanitizer = 'none'; CodegenMode = 'OFF'
                 })
         }
     }
@@ -120,7 +133,8 @@ function Initialize-NativeArtifact {
         compiler = $compilerIdentity
         configuration = [ordered]@{
             key = $BuildCell.Key; preset = $BuildCell.Preset; buildProfile = $BuildCell.BuildProfile
-            sanitizer = 'none'; coverage = $BuildCell.Coverage; generator = $BuildCell.Generator
+            sanitizer = $BuildCell.Sanitizer; coverage = $BuildCell.Coverage; generator = $BuildCell.Generator
+            codegenMode = $BuildCell.CodegenMode
             cxxStandard = '20-and-23-register'
         }
         dependencies = [ordered]@{
@@ -288,7 +302,8 @@ function Write-NativeManifest {
         "source_digest=$(Get-PipelineSourceDigest -RepositoryRoot $repositoryRoot)",
         "fingerprint_sha256=$($Artifact.Fingerprint)", "fingerprint_document=$($Artifact.FingerprintPath)",
         "compiler_id=$($Artifact.Definition.Compiler)", "compiler=$($Artifact.CompilerIdentity.version)", 'base_image=none',
-        "preset=$($Artifact.Definition.Preset)", "build_profile=$($Artifact.Definition.BuildProfile)", 'sanitizer=none',
+        "preset=$($Artifact.Definition.Preset)", "build_profile=$($Artifact.Definition.BuildProfile)",
+        "sanitizer=$($Artifact.Definition.Sanitizer)", "codegen_mode=$($Artifact.Definition.CodegenMode)",
         "build_directory=$($Artifact.Build)", "consumer_directory=$($Artifact.Consumer)",
         "cmake_cache_sha256=$(Get-OptionalFileHash -Path (Join-Path $Artifact.Build 'CMakeCache.txt'))",
         'required_cpu_features=sse4.2,avx2,fma,bmi1,bmi2',
@@ -318,7 +333,8 @@ function Assert-NativeManifest {
         schema = 'simdlib.build-manifest.v1'; operation = $Operation; status = 'complete'
         fingerprint_sha256 = $Artifact.Fingerprint; fingerprint_document = $Artifact.FingerprintPath
         compiler_id = $Artifact.Definition.Compiler; preset = $Artifact.Definition.Preset
-        build_profile = $Artifact.Definition.BuildProfile; sanitizer = 'none'
+        build_profile = $Artifact.Definition.BuildProfile; sanitizer = $Artifact.Definition.Sanitizer
+        codegen_mode = $Artifact.Definition.CodegenMode
     }
     foreach ($key in $expected.Keys) {
         if ($manifest[$key] -ne $expected[$key]) { throw "Manifest $path has mismatched $key" }
@@ -386,8 +402,188 @@ function Build-NativeValidationCell {
     } else {
         Set-PipelineTextFile -Path $consumerInventory -Content ''
     }
-    Write-CodegenRecordIndex -BuildDirectory $Artifact.Build -OutputPath (Join-Path $Artifact.Provenance 'codegen-records.index') -AllowEmpty:$Artifact.Definition.Coverage
+    $allowEmptyCodegen = $Artifact.Definition.CodegenMode -eq 'OFF'
+    Write-CodegenRecordIndex -BuildDirectory $Artifact.Build -OutputPath (Join-Path $Artifact.Provenance 'codegen-records.index') -AllowEmpty:$allowEmptyCodegen
     Write-NativeManifest -Artifact $Artifact -Operation 'build-validation'
+}
+
+<#
+.SYNOPSIS
+Writes dedicated provenance for one record-only native codegen diagnostic.
+.PARAMETER Artifact
+Resolved diagnostic fingerprint.
+.PARAMETER InvocationCompilationSeconds
+Elapsed fixture-object compilation time for the current invocation.
+.PARAMETER InvocationComparisonSeconds
+Elapsed disassembly and comparison time for the current invocation.
+.PARAMETER MeasuredCompilationSeconds
+Largest source-compatible compilation measurement retained across cached runs.
+.PARAMETER MeasuredComparisonSeconds
+Largest source-compatible comparison measurement retained across cached runs.
+#>
+function Write-NativeCodegenDiagnosticProvenance {
+    param(
+        [Parameter(Mandatory)]$Artifact,
+        [Parameter(Mandatory)][double]$InvocationCompilationSeconds,
+        [Parameter(Mandatory)][double]$InvocationComparisonSeconds,
+        [Parameter(Mandatory)][double]$MeasuredCompilationSeconds,
+        [Parameter(Mandatory)][double]$MeasuredComparisonSeconds
+    )
+    $recordIndex = Join-Path $Artifact.Provenance 'codegen-records.index'
+    $compileCommands = Join-Path $Artifact.Build 'compile_commands.json'
+    if (-not (Test-Path -LiteralPath $compileCommands -PathType Leaf)) {
+        throw "Diagnostic compiler-flag inventory is missing: $compileCommands"
+    }
+    $recordPaths = @(Get-Content -LiteralPath $recordIndex | Where-Object { $_ })
+    $recordTimings = @(
+        foreach ($recordPath in $recordPaths) {
+            $record = Get-Content -LiteralPath $recordPath -Raw | ConvertFrom-Json
+            $profileProperty = $record.policy.PSObject.Properties['codegen_profile']
+            [pscustomobject]@{
+                path = $recordPath
+                profile = if ($profileProperty) { $profileProperty.Value } else { 'default-abi' }
+                result = $record.result
+                seconds = [int]$record.timing.total_seconds
+                stackProtectorMode = $record.stack_protector_mode
+                disassemblyTool = [pscustomobject]@{
+                    path = $record.tool.path
+                    version = $record.tool.version
+                    sha256 = $record.tool.sha256
+                }
+            }
+        }
+    )
+    $slowestRecords = @($recordTimings | Sort-Object seconds -Descending | Select-Object -First 10)
+    $stackProtectorModes = @(
+        $recordTimings | Select-Object -ExpandProperty stackProtectorMode -Unique |
+            Sort-Object
+    )
+    $disassemblyTools = @(
+        $recordTimings | Group-Object {
+            "$($_.disassemblyTool.path)|$($_.disassemblyTool.version)|$($_.disassemblyTool.sha256)"
+        } | ForEach-Object { $_.Group[0].disassemblyTool }
+    )
+    $document = [ordered]@{
+        schema = 'simdlib.codegen-diagnostic-provenance.v1'
+        operation = 'record-codegen'
+        status = 'complete'
+        sourceRevision = Get-PipelineRevision -RepositoryRoot $repositoryRoot
+        sourceDigest = Get-PipelineSourceDigest -RepositoryRoot $repositoryRoot
+        fingerprint = $Artifact.Fingerprint
+        compiler = $Artifact.CompilerIdentity
+        configuration = [ordered]@{
+            preset = $Artifact.Definition.Preset
+            buildProfile = $Artifact.Definition.BuildProfile
+            sanitizer = $Artifact.Definition.Sanitizer
+            codegenMode = $Artifact.Definition.CodegenMode
+        }
+        compilerFlags = [ordered]@{
+            path = $compileCommands
+            sha256 = Get-OptionalFileHash -Path $compileCommands
+        }
+        records = [ordered]@{
+            index = $recordIndex
+            sha256 = Get-OptionalFileHash -Path $recordIndex
+            count = $recordPaths.Count
+            slowest = $slowestRecords
+        }
+        stackProtectorModes = $stackProtectorModes
+        disassemblyTools = $disassemblyTools
+        timing = [ordered]@{
+            invocation = [ordered]@{
+                compilationSeconds = [Math]::Round($InvocationCompilationSeconds, 3)
+                comparisonSeconds = [Math]::Round($InvocationComparisonSeconds, 3)
+                totalSeconds = [Math]::Round(
+                    $InvocationCompilationSeconds + $InvocationComparisonSeconds, 3)
+            }
+            measured = [ordered]@{
+                compilationSeconds = [Math]::Round($MeasuredCompilationSeconds, 3)
+                comparisonSeconds = [Math]::Round($MeasuredComparisonSeconds, 3)
+                totalSeconds = [Math]::Round(
+                    $MeasuredCompilationSeconds + $MeasuredComparisonSeconds, 3)
+            }
+        }
+    }
+    $provenancePath = Join-Path $Artifact.Provenance 'codegen-diagnostic.json'
+    Set-PipelineTextFile -Path $provenancePath -Content ($document | ConvertTo-Json -Depth 10)
+    return $provenancePath
+}
+
+<#
+.SYNOPSIS
+Compiles only native Register fixtures, then records and validates diagnostics.
+.PARAMETER Artifact
+Resolved diagnostic fingerprint.
+#>
+function Record-NativeCodegenDiagnostic {
+    param([Parameter(Mandatory)]$Artifact)
+    if ($InjectFailure -contains 'All' -or $InjectFailure -contains $Artifact.Id) {
+        throw "Intentional native failure: $($Artifact.Id)"
+    }
+    New-Item -ItemType Directory -Path $Artifact.Reports, $Artifact.Provenance -Force | Out-Null
+    $provenancePath = Join-Path $Artifact.Provenance 'codegen-diagnostic.json'
+    $priorProvenance = $null
+    if (Test-Path -LiteralPath $provenancePath -PathType Leaf) {
+        $priorProvenance = Get-Content -LiteralPath $provenancePath -Raw | ConvertFrom-Json
+    }
+    $priorCompilationSeconds = 0.0
+    $priorComparisonSeconds = 0.0
+    $env:SIMDLIB_BUILD_DIRECTORY = $Artifact.Build
+    $configureArguments = @('--preset', $Artifact.Definition.Preset, '-S', $repositoryRoot)
+    if (Test-CiEnvironment) { $configureArguments = @('--fresh') + $configureArguments }
+    Invoke-PipelineCommand -FilePath $cmake -ArgumentList $configureArguments -LogPath (Join-Path $Artifact.Reports 'codegen-configure.log')
+
+    $compilationWatch = [System.Diagnostics.Stopwatch]::StartNew()
+    Invoke-PipelineCommand -FilePath $cmake -ArgumentList @(
+        '--build', $Artifact.Build, '--parallel', '--target', 'RegisterCodegenFixtureObjects'
+    ) -LogPath (Join-Path $Artifact.Reports 'codegen-compilation.log')
+    $compilationWatch.Stop()
+
+    $comparisonWatch = [System.Diagnostics.Stopwatch]::StartNew()
+    Invoke-PipelineCommand -FilePath $cmake -ArgumentList @(
+        '--build', $Artifact.Build, '--parallel', '--target', 'SimdLibDebugDiagnosticArtifacts'
+    ) -LogPath (Join-Path $Artifact.Reports 'codegen-comparison.log')
+    $comparisonWatch.Stop()
+
+    $recordIndex = Join-Path $Artifact.Provenance 'codegen-records.index'
+    Write-CodegenRecordIndex -BuildDirectory $Artifact.Build -OutputPath $recordIndex
+    $compileCommands = Join-Path $Artifact.Build 'compile_commands.json'
+    if ($priorProvenance) {
+        $priorCompilerFlags = $priorProvenance.PSObject.Properties['compilerFlags']
+        $priorRecords = $priorProvenance.PSObject.Properties['records']
+        $sameDiagnosticInputs = $priorCompilerFlags -and $priorRecords -and
+            $priorCompilerFlags.Value.sha256 -eq (Get-OptionalFileHash -Path $compileCommands) -and
+            $priorRecords.Value.sha256 -eq (Get-OptionalFileHash -Path $recordIndex)
+        if ($sameDiagnosticInputs) {
+            $measuredTiming = $priorProvenance.timing.PSObject.Properties['measured']
+            if ($measuredTiming) {
+                $priorCompilationSeconds = [double]$measuredTiming.Value.compilationSeconds
+                $priorComparisonSeconds = [double]$measuredTiming.Value.comparisonSeconds
+            } else {
+                $priorCompilationSeconds = [double]$priorProvenance.timing.compilationSeconds
+                $priorComparisonSeconds = [double]$priorProvenance.timing.comparisonSeconds
+            }
+        }
+    }
+    & $cmake "-DRECORD_INDEX=$recordIndex" '-DEXPECTED_POLICY_MODE=RECORD' `
+        '-DEXPECTED_CONFIGURATION=Debug' '-DREQUIRE_RECORDS=ON' `
+        -P (Join-Path $repositoryRoot 'cmake/ValidateCodegenRecords.cmake')
+    if ($LASTEXITCODE -ne 0) { throw "Diagnostic records are invalid for $($Artifact.Id)" }
+    & $cmake "-DBINARY_DIRECTORY=$($Artifact.Build)" `
+        "-DOWNERSHIP_FILE=$(Join-Path $Artifact.Build 'development-target-ownership.tsv')" `
+        '-DPROFILE=CODEGEN_DIAGNOSTIC' '-DCODEGEN_MODE=RECORD' `
+        -P (Join-Path $repositoryRoot 'cmake/VerifyCodegenProfileIsolation.cmake')
+    if ($LASTEXITCODE -ne 0) { throw "Diagnostic profile isolation failed for $($Artifact.Id)" }
+    $measuredCompilationSeconds = [Math]::Max(
+        $compilationWatch.Elapsed.TotalSeconds, $priorCompilationSeconds)
+    $measuredComparisonSeconds = [Math]::Max(
+        $comparisonWatch.Elapsed.TotalSeconds, $priorComparisonSeconds)
+    $provenance = Write-NativeCodegenDiagnosticProvenance -Artifact $Artifact `
+        -InvocationCompilationSeconds $compilationWatch.Elapsed.TotalSeconds `
+        -InvocationComparisonSeconds $comparisonWatch.Elapsed.TotalSeconds `
+        -MeasuredCompilationSeconds $measuredCompilationSeconds `
+        -MeasuredComparisonSeconds $measuredComparisonSeconds
+    Write-Host "Native codegen diagnostic provenance: $provenance"
 }
 
 <#
@@ -478,6 +674,10 @@ function Run-NativeBenchmarks {
 if (($TestRegex -or $TestLabel) -and $Action -ne 'Test') { throw '-TestRegex and -TestLabel are valid only for Test.' }
 if ($Cell -eq 'Coverage' -and $Compiler -notin @('All', 'ClangCoverage')) { throw 'Coverage is owned by the native Clang coverage compiler.' }
 if ($Action -in @('BuildBenchmarks', 'RunBenchmarks') -and $Cell -notin @('All', 'Release')) { throw 'Benchmark operations use Release cells only.' }
+if ($Action -eq 'RecordCodegen') {
+    if ($Cell -notin @('All', 'Debug')) { throw 'Native codegen diagnostics use Debug cells only.' }
+    if ($Compiler -eq 'ClangCoverage') { throw 'Native coverage does not own a Register codegen diagnostic.' }
+}
 
 $cells = @(Resolve-NativeCells -CompilerName $Compiler -CellScope $Cell -Operation $Action)
 if ($cells.Count -eq 0) { throw 'The native compiler and cell selections identify no operation cells.' }
@@ -489,6 +689,7 @@ foreach ($artifact in $artifacts) {
         switch ($Action) {
             'Build' { Build-NativeValidationCell -Artifact $artifact }
             'Test' { Test-NativeCell -Artifact $artifact }
+            'RecordCodegen' { Record-NativeCodegenDiagnostic -Artifact $artifact }
             'BuildBenchmarks' { Build-NativeBenchmarks -Artifact $artifact }
             'RunBenchmarks' { Run-NativeBenchmarks -Artifact $artifact }
         }

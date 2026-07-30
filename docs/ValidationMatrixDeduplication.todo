@@ -93,21 +93,36 @@ SimdLib Validation Matrix Deduplication Plan:
       ☒ The three method-flags contract CTests and optimized method-flags codegen targets remained Release-owned and were absent from Debug.
 
   Phase 3 - Separate Optimized Codegen Gates from Diagnostic Codegen:
-    ☐ Preserve the optimized Release Register wrapper/raw comparison as a mandatory gate for each supported compiler, width, ISA profile, FMA mode, operation family, ABI boundary, and retained documented exception.
-    ☐ Keep strong stack protection enabled for GNU-like optimized codegen qualification and preserve the MSVC security-cookie exception policy.
-    ☐ Define a separate optional Debug codegen diagnostic operation with an explicit compiler and cell selector.
-    ☐ Decide whether Debug diagnostics must cover every Register-capable compiler or only the compilers associated with an active codegen investigation.
-    ☐ Define a separate optional sanitizer differential diagnostic only if sanitizer-instrumented wrapper/raw comparison has a concrete correctness purpose that runtime sanitizer tests cannot provide.
-    ☐ Disable Register generated-code targets in the default ASan+UBSan profile.
-    ☐ Prevent record-only codegen targets from entering ordinary Debug runtime aggregates.
-    ☐ Preserve diagnostic records, compiler flags, stack-protector mode, disassembly tools, and source revision in dedicated provenance output.
-    ☐ Make it impossible for record-only results to satisfy an enforced Release generated-code gate.
-    ☐ Audit the type-matrix, specialized-operation, rearrangement, FMA, ABI, default-ABI, consumer-ABI, and expression fixtures for retained permanent value before carrying them into the optional diagnostic workflow.
-    ☐ Measure disassembly and comparison time independently from compilation and identify pathological unoptimized or instrumented records.
-    ☐ Add a focused regression that proves the default sanitizer and Debug runtime builds contain no Register codegen target, object, record, or disassembly step.
-    ☐ Add a focused regression that proves the explicit diagnostic command still produces the selected records without rebuilding unrelated runtime suites.
-    ☐ Update any planning or qualification requirement that currently describes Debug/sanitizer codegen evidence as mandatory in the default workflow.
-    ☐ End Phase 3 only when Release codegen remains mandatory, diagnostic codegen remains available, and sanitizer/runtime builds contain no accidental codegen workload.
+    ☒ Preserve the optimized Release Register wrapper/raw comparison as a mandatory gate for each supported compiler, width, ISA profile, FMA mode, operation family, ABI boundary, and retained documented exception.
+    ☒ Keep strong stack protection enabled for GNU-like optimized codegen qualification and preserve the MSVC security-cookie exception policy.
+    ☒ Define a separate optional Debug codegen diagnostic operation with an explicit compiler and cell selector.
+    ☒ Decide whether Debug diagnostics must cover every Register-capable compiler or only the compilers associated with an active codegen investigation.
+    ☒ Define a separate optional sanitizer differential diagnostic only if sanitizer-instrumented wrapper/raw comparison has a concrete correctness purpose that runtime sanitizer tests cannot provide.
+    ☒ Disable Register generated-code targets in the default ASan+UBSan profile.
+    ☒ Prevent record-only codegen targets from entering ordinary Debug runtime aggregates.
+    ☒ Preserve diagnostic records, compiler flags, stack-protector mode, disassembly tools, and source revision in dedicated provenance output.
+    ☒ Make it impossible for record-only results to satisfy an enforced Release generated-code gate.
+    ☒ Audit the type-matrix, specialized-operation, rearrangement, FMA, ABI, default-ABI, consumer-ABI, and expression fixtures for retained permanent value before carrying them into the optional diagnostic workflow.
+    ☒ Measure disassembly and comparison time independently from compilation and identify pathological unoptimized or instrumented records.
+    ☒ Add a focused regression that proves the default sanitizer and Debug runtime builds contain no Register codegen target, object, record, or disassembly step.
+    ☒ Add a focused regression that proves the explicit diagnostic command still produces the selected records without rebuilding unrelated runtime suites.
+    ☒ Update any planning or qualification requirement that currently describes Debug/sanitizer codegen evidence as mandatory in the default workflow.
+    ☒ End Phase 3 only when Release codegen remains mandatory, diagnostic codegen remains available, and sanitizer/runtime builds contain no accidental codegen workload.
+    Evidence:
+      ☒ Release keeps separate enforced and diagnostic record indexes; profile validation requires `ENFORCE` for the former, so `RECORD` output cannot satisfy the mandatory optimized gate.
+      ☒ GNU-like fixtures compile with `-fstack-protector-strong`; MSVC-style fixtures compile with `/GS`, retain the documented cookie recognizers, and record the selected stack-protector mode.
+      ☒ `Record-Codegen.ps1` requires an explicit scope, compiler, and cell and supports selected MSVC, clang-cl, GCC 14, Clang 22, and Clang 22 ASan+UBSan investigations without joining the default receipt.
+      ☒ Ordinary Debug, sanitizer, and coverage profiles reject generated-code gates; `ArtifactAggregates.CodegenIsolation` verifies that they contain no codegen targets or artifacts.
+      ☒ Diagnostic provenance binds source identity, compiler/fingerprint, compile-command hash, record-index hash, tools and flags through the records, record count, slowest records, and separate compilation and comparison timings.
+      ☒ The permanent 810-symbol fixture audit retains the expression, type-matrix, specialized, rearrangement, FMA, ABI, default-ABI, consumer-ABI, and method-attribute contracts with one documented owner each.
+      ☒ A focused current MSVC Release build produced the optimized codegen aggregate; all three Register profile validators and all five artifact-ownership audits passed without rebuilding runtime suites.
+      ☒ Focused clang-cl, GCC 14, and Clang 22 Release builds produced only their optimized codegen aggregates; all Register profile, profile-membership, and codegen-policy checks passed for each compiler.
+      ☒ A focused MSVC Debug diagnostic built only 46 fixture objects and generated 35 record-only comparisons; ordinary MSVC Debug configured no Register codegen targets.
+      ☒ A focused Clang 22 ASan+UBSan diagnostic generated the selected 35 record-only comparisons in its isolated tree without compiling unrelated runtime suites.
+      ☒ Fresh ordinary MSVC Debug and Clang 22 ASan+UBSan trees passed codegen-isolation validation with no Register codegen target or artifact, while explicit diagnostic trees contained only the record-only codegen category.
+      ☒ `CodegenPolicy.RejectRecordAsEnforced` proves a structurally valid `RECORD` result is accepted diagnostically and rejected specifically when presented to `ENFORCE` validation.
+      ☒ Dedicated provenance records compile-command and record-index hashes, compiler and source identity, stack-protector modes, disassembly-tool identity, current-invocation timings, and compatible retained measurements.
+      ☒ Separate timing identified the sanitizer-instrumented common type matrix as pathological: its slowest record required 244 seconds and the 35 records reported 678 cumulative comparison seconds.
 
   Phase 4 - Reduce the Ordinary Debug Compiler Matrix:
     ☐ Treat the full optimized Release suite as the cross-compiler correctness and optimizer matrix.

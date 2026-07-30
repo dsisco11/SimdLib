@@ -8,6 +8,7 @@ test_regex=
 test_label=
 build_profile=
 sanitizer=none
+codegen_mode=OFF
 artifact_root="/workspace/out/${SIMDLIB_COMPILER_ID:-unknown}"
 fingerprint_sha256=
 
@@ -16,13 +17,14 @@ print_usage()
 {
 	cat <<'EOF'
 Usage: simdlib-container --operation OPERATION [options]
-  --operation NAME       build-validation, test, build-benchmarks,
-                         run-benchmarks, or inspect-environment
+  --operation NAME       build-validation, test, record-codegen,
+                         build-benchmarks, run-benchmarks, or inspect-environment
   --preset NAME          Owning CMake configure preset
   --test-regex REGEX     Run only matching CTest tests during test
   --test-label REGEX     Run only matching CTest labels during test
   --build-profile NAME   Release or Debug; must agree with the selected preset
   --sanitizer MODE       none or asan-ubsan
+  --codegen-mode MODE    OFF, ENFORCE, or RECORD
   --artifact-root PATH   Writable compiler-specific artifact root
   --fingerprint-sha256   Full SHA256 of the canonical build-cell fingerprint
   --help                 Show this help
@@ -37,6 +39,7 @@ while [ "$#" -gt 0 ]; do
 		--test-label) test_label=$2; shift 2 ;;
 		--build-profile) build_profile=$2; shift 2 ;;
 		--sanitizer) sanitizer=$2; shift 2 ;;
+		--codegen-mode) codegen_mode=$2; shift 2 ;;
 		--artifact-root) artifact_root=$2; shift 2 ;;
 		--fingerprint-sha256) fingerprint_sha256=$2; shift 2 ;;
 		--help) print_usage; exit 0 ;;
@@ -45,7 +48,7 @@ while [ "$#" -gt 0 ]; do
 done
 
 case "$operation" in
-	build-validation|test|build-benchmarks|run-benchmarks|inspect-environment) ;;
+	build-validation|test|record-codegen|build-benchmarks|run-benchmarks|inspect-environment) ;;
 	*) echo "A supported --operation is required: ${operation:-<missing>}" >&2; exit 2 ;;
 esac
 case "$artifact_root" in
@@ -68,8 +71,16 @@ case "$sanitizer" in
 	none|asan-ubsan) ;;
 	*) echo "Unsupported sanitizer mode: $sanitizer" >&2; exit 2 ;;
 esac
+case "$codegen_mode" in
+	OFF|ENFORCE|RECORD) ;;
+	*) echo "Unsupported codegen mode: $codegen_mode" >&2; exit 2 ;;
+esac
+if [ "$operation" = record-codegen ] && [ "$codegen_mode" != RECORD ]; then
+	echo "The record-codegen operation requires --codegen-mode RECORD" >&2
+	exit 2
+fi
 case "$preset" in
-	*debug*) expected_build_profile=Debug ;;
+	*debug*|*asan-ubsan-codegen-diagnostic) expected_build_profile=Debug ;;
 	*) expected_build_profile=Release ;;
 esac
 [ -n "$build_profile" ] || build_profile=$expected_build_profile
@@ -96,6 +107,7 @@ benchmark_manifest="$provenance_directory/benchmark-build.manifest"
 main_inventory="$provenance_directory/main-test-artifacts.inventory"
 consumer_inventory="$provenance_directory/consumer-test-artifacts.inventory"
 codegen_record_index="$provenance_directory/codegen-records.index"
+codegen_diagnostic_provenance="$provenance_directory/codegen-diagnostic.json"
 mkdir -p "$report_directory" "$provenance_directory"
 [ -f "$fingerprint_document" ] || {
 	echo "Canonical fingerprint document is missing: $fingerprint_document" >&2
@@ -114,6 +126,7 @@ run_traced_test_operation()
 	rm -f "$trace_temporary"
 	set -- --operation test --preset "$preset" --build-profile "$build_profile" \
 		--sanitizer "$sanitizer" --artifact-root "$artifact_root" \
+		--codegen-mode "$codegen_mode" \
 		--fingerprint-sha256 "$fingerprint_sha256"
 	[ -z "$test_regex" ] || set -- "$@" --test-regex "$test_regex"
 	[ -z "$test_label" ] || set -- "$@" --test-label "$test_label"
@@ -223,6 +236,7 @@ write_provenance()
 		echo "build_profile=$build_profile"
 		echo "preset=$preset"
 		echo "sanitizer=$sanitizer"
+		echo "codegen_mode=$codegen_mode"
 		echo "base_image=${SIMDLIB_BASE_IMAGE:-unknown}"
 		echo "architecture=$(uname -m)"
 		echo "os_release=$(tr '\n' ' ' </etc/os-release)"
@@ -314,10 +328,10 @@ write_codegen_record_index()
 			[ ! -f "$owner_index" ] || cat "$owner_index"
 		done
 	} | sed '/^[[:space:]]*$/d' | LC_ALL=C sort -u >"$codegen_record_index"
-	[ "$sanitizer" != none ] || [ -s "$codegen_record_index" ] || {
+	if [ "$codegen_mode" != OFF ] && [ ! -s "$codegen_record_index" ]; then
 		echo "No CMake-owned generated-code records were found under $build_directory" >&2
 		exit 6
-	}
+	fi
 }
 
 ## @brief Validates a recorded CTest executable inventory before running tests.
@@ -386,6 +400,7 @@ write_completed_manifest()
 		echo "preset=$preset"
 		echo "build_profile=$build_profile"
 		echo "sanitizer=$sanitizer"
+		echo "codegen_mode=$codegen_mode"
 		echo "build_directory=$build_directory"
 		echo "consumer_directory=$consumer_directory"
 		echo "cmake_cache_sha256=$cache_hash"
@@ -421,6 +436,7 @@ validate_validation_manifest()
 		[ "$(manifest_value "$validation_manifest" fingerprint_document)" = "$fingerprint_document" ] &&
 		[ "$(manifest_value "$validation_manifest" build_profile)" = "$build_profile" ] &&
 		[ "$(manifest_value "$validation_manifest" sanitizer)" = "$sanitizer" ] &&
+		[ "$(manifest_value "$validation_manifest" codegen_mode)" = "$codegen_mode" ] &&
 		[ "$(manifest_value "$validation_manifest" compiler_id)" = "${SIMDLIB_COMPILER_ID:-unknown}" ] &&
 		[ "$(manifest_value "$validation_manifest" base_image)" = "${SIMDLIB_BASE_IMAGE:-unknown}" ] ||
 		{
@@ -511,6 +527,7 @@ can_reuse_validation_configuration()
 		[ "$(manifest_value "$validation_manifest" preset)" = "$preset" ] &&
 		[ "$(manifest_value "$validation_manifest" build_profile)" = "$build_profile" ] &&
 		[ "$(manifest_value "$validation_manifest" sanitizer)" = "$sanitizer" ] &&
+		[ "$(manifest_value "$validation_manifest" codegen_mode)" = "$codegen_mode" ] &&
 		[ "$(manifest_value "$validation_manifest" compiler_id)" = "${SIMDLIB_COMPILER_ID:-unknown}" ] &&
 		[ "$(manifest_value "$validation_manifest" base_image)" = "${SIMDLIB_BASE_IMAGE:-unknown}" ] &&
 		[ "$(manifest_value "$validation_manifest" source_digest)" = "$(compute_source_digest)" ] &&
@@ -534,6 +551,43 @@ case "$operation" in
 		record_test_inventory "$consumer_directory" "$consumer_inventory"
 		write_codegen_record_index
 		write_completed_manifest "$validation_manifest" build-validation "$source_digest"
+		;;
+	record-codegen)
+		source_digest=$(compute_source_digest)
+		configure_main_project
+		compilation_started=$(date +%s)
+		run_reported "$report_directory/codegen-compilation.log" \
+			cmake --build "$build_directory" --parallel --target RegisterCodegenFixtureObjects
+		compilation_finished=$(date +%s)
+		comparison_started=$(date +%s)
+		run_reported "$report_directory/codegen-comparison.log" \
+			cmake --build "$build_directory" --parallel --target SimdLibDebugDiagnosticArtifacts
+		comparison_finished=$(date +%s)
+		compilation_seconds=$((compilation_finished - compilation_started))
+		comparison_seconds=$((comparison_finished - comparison_started))
+		write_codegen_record_index
+		cmake -DRECORD_INDEX="$codegen_record_index" \
+			-DEXPECTED_POLICY_MODE=RECORD \
+			-DEXPECTED_CONFIGURATION=Debug \
+			-DREQUIRE_RECORDS=ON \
+			-P "$source_directory/cmake/ValidateCodegenRecords.cmake"
+		cmake -DBINARY_DIRECTORY="$build_directory" \
+			-DOWNERSHIP_FILE="$build_directory/development-target-ownership.tsv" \
+			-DPROFILE=CODEGEN_DIAGNOSTIC -DCODEGEN_MODE=RECORD \
+			-P "$source_directory/cmake/VerifyCodegenProfileIsolation.cmake"
+		cmake -DRECORD_INDEX="$codegen_record_index" \
+			-DOUTPUT_FILE="$codegen_diagnostic_provenance" \
+			-DCOMPILE_COMMANDS="$build_directory/compile_commands.json" \
+			-DSOURCE_REVISION="${SIMDLIB_BUILD_REVISION:-unknown}" \
+			-DSOURCE_DIGEST="$source_digest" \
+			-DFINGERPRINT="$fingerprint_sha256" \
+			-DCOMPILER_ID="${SIMDLIB_COMPILER_ID:-unknown}" \
+			-DPRESET="$preset" -DCONFIGURATION="$build_profile" \
+			-DSANITIZER="$sanitizer" \
+			-DCOMPILATION_SECONDS="$compilation_seconds" \
+			-DCOMPARISON_SECONDS="$comparison_seconds" \
+			-P "$source_directory/cmake/SummarizeCodegenDiagnostic.cmake"
+		printf 'Codegen diagnostic provenance: %s\n' "$codegen_diagnostic_provenance"
 		;;
 	build-benchmarks)
 		rm -f "$benchmark_manifest"

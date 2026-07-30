@@ -21,7 +21,8 @@ function(simdlib_collect_project_targets directory output_variable)
         cmake_path(RELATIVE_PATH child_source_directory
             BASE_DIRECTORY "${CMAKE_SOURCE_DIR}"
             OUTPUT_VARIABLE child_source_relative)
-        if(child_source_relative MATCHES "^(out|build|_deps|\\.git)(/|$)")
+        if(child_source_relative MATCHES
+                "^(out|_deps|\\.git)(/|$)|^build($|[-_/])")
             set(child_is_project_owned FALSE)
         endif()
         if(child_is_project_owned)
@@ -80,7 +81,7 @@ set(simdlib_profile_selected_RELEASE
     OPTIMIZED_CODEGEN)
 set(simdlib_profile_allowed_DEBUG
     COMPILER_CONTRACT RUNTIME_VALIDATION
-    CHECKS_VALIDATION SMOKE_VALIDATION DEBUG_DIAGNOSTIC)
+    CHECKS_VALIDATION SMOKE_VALIDATION)
 set(simdlib_profile_selected_DEBUG ${simdlib_profile_allowed_DEBUG})
 set(simdlib_profile_allowed_SANITIZER
     RUNTIME_VALIDATION CHECKS_VALIDATION)
@@ -89,6 +90,10 @@ set(simdlib_profile_allowed_COVERAGE
     RUNTIME_VALIDATION CHECKS_VALIDATION SMOKE_VALIDATION COVERAGE_SUPPORT)
 set(simdlib_profile_selected_COVERAGE
     RUNTIME_VALIDATION CHECKS_VALIDATION SMOKE_VALIDATION)
+set(simdlib_profile_allowed_CODEGEN_DIAGNOSTIC
+    DEBUG_DIAGNOSTIC)
+set(simdlib_profile_selected_CODEGEN_DIAGNOSTIC
+    ${simdlib_profile_allowed_CODEGEN_DIAGNOSTIC})
 set(simdlib_profile_allowed_COMPILER_CONTRACTS
     COMPILER_CONTRACT OPTIMIZED_CODEGEN)
 set(simdlib_profile_selected_COMPILER_CONTRACTS
@@ -102,6 +107,16 @@ if(NOT simdlib_allowed_categories)
     message(FATAL_ERROR
         "No artifact ownership contract exists for profile "
         "${SIMDLIB_VALIDATION_PROFILE}")
+endif()
+
+if(SIMDLIB_BUILD_REGISTER_CODEGEN_GATES AND
+        SIMDLIB_REGISTER_CODEGEN_MODE STREQUAL "OFF")
+    message(FATAL_ERROR
+        "Register generated-code targets require ENFORCE or RECORD policy")
+elseif(NOT SIMDLIB_BUILD_REGISTER_CODEGEN_GATES AND
+        NOT SIMDLIB_REGISTER_CODEGEN_MODE STREQUAL "OFF")
+    message(FATAL_ERROR
+        "Register generated-code policy must be OFF when its targets are disabled")
 endif()
 
 if(SIMDLIB_VALIDATION_PROFILE STREQUAL "RELEASE")
@@ -118,6 +133,18 @@ if(SIMDLIB_VALIDATION_PROFILE STREQUAL "RELEASE")
         message(FATAL_ERROR
             "Release validation requires SIMDLIB_DEFAULT_CHECKS_PROBE=RELEASE")
     endif()
+    if(SIMDLIB_REGISTER_COMPILER_SUPPORTED)
+        if(NOT SIMDLIB_BUILD_REGISTER_CODEGEN_GATES OR
+                NOT SIMDLIB_REGISTER_CODEGEN_MODE STREQUAL "ENFORCE")
+            message(FATAL_ERROR
+                "Register-capable Release validation requires enforced "
+                "Register generated-code gates")
+        endif()
+    elseif(SIMDLIB_BUILD_REGISTER_CODEGEN_GATES OR
+            NOT SIMDLIB_REGISTER_CODEGEN_MODE STREQUAL "OFF")
+        message(FATAL_ERROR
+            "Core-only Release validation cannot enable Register codegen")
+    endif()
 elseif(SIMDLIB_VALIDATION_PROFILE STREQUAL "COMPILER_CONTRACTS")
     if(NOT SIMDLIB_BUILD_CONFIGURATION_PROBES OR
             NOT SIMDLIB_BUILD_HEADER_PROBES)
@@ -128,7 +155,8 @@ elseif(SIMDLIB_VALIDATION_PROFILE STREQUAL "COMPILER_CONTRACTS")
         message(FATAL_ERROR
             "Compiler-contract validation requires the Release default-checks probe")
     endif()
-elseif(SIMDLIB_VALIDATION_PROFILE MATCHES "^(DEBUG|SANITIZER|COVERAGE)$")
+elseif(SIMDLIB_VALIDATION_PROFILE MATCHES
+        "^(DEBUG|SANITIZER|COVERAGE|CODEGEN_DIAGNOSTIC)$")
     foreach(simdlib_forbidden_contract_option IN ITEMS
         SIMDLIB_BUILD_CONFIGURATION_PROBES
         SIMDLIB_BUILD_CONSTEXPR_PROBES
@@ -139,6 +167,18 @@ elseif(SIMDLIB_VALIDATION_PROFILE MATCHES "^(DEBUG|SANITIZER|COVERAGE)$")
                 "${simdlib_forbidden_contract_option}")
         endif()
     endforeach()
+    if(SIMDLIB_VALIDATION_PROFILE STREQUAL "CODEGEN_DIAGNOSTIC")
+        if(NOT SIMDLIB_BUILD_REGISTER_CODEGEN_GATES OR
+                NOT SIMDLIB_REGISTER_CODEGEN_MODE STREQUAL "RECORD")
+            message(FATAL_ERROR
+                "Diagnostic codegen requires record-only Register generated-code targets")
+        endif()
+    elseif(SIMDLIB_BUILD_REGISTER_CODEGEN_GATES OR
+            NOT SIMDLIB_REGISTER_CODEGEN_MODE STREQUAL "OFF")
+        message(FATAL_ERROR
+            "Validation profile ${SIMDLIB_VALIDATION_PROFILE} excludes "
+            "Register generated-code targets and policy")
+    endif()
 endif()
 
 simdlib_collect_project_targets("${CMAKE_CURRENT_SOURCE_DIR}"
@@ -418,6 +458,33 @@ if(BUILD_TESTING)
             ArtifactAggregates.Reject${simdlib_failure_case} PROPERTIES
             LABELS "CONFIGURATION;ARTIFACT_OWNERSHIP")
     endforeach()
+
+	if(SIMDLIB_VALIDATION_PROFILE MATCHES
+			"^(DEBUG|SANITIZER|COVERAGE|CODEGEN_DIAGNOSTIC)$")
+		set(simdlib_codegen_isolation_mode OFF)
+		if(SIMDLIB_VALIDATION_PROFILE STREQUAL "CODEGEN_DIAGNOSTIC")
+			set(simdlib_codegen_isolation_mode RECORD)
+		endif()
+		add_test(NAME ArtifactAggregates.CodegenIsolation
+			COMMAND ${CMAKE_COMMAND}
+				"-DBINARY_DIRECTORY=${CMAKE_BINARY_DIR}"
+				"-DOWNERSHIP_FILE=${CMAKE_BINARY_DIR}/development-target-ownership.tsv"
+				"-DPROFILE=${SIMDLIB_VALIDATION_PROFILE}"
+				"-DCODEGEN_MODE=${simdlib_codegen_isolation_mode}"
+				-P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/VerifyCodegenProfileIsolation.cmake)
+		set_tests_properties(ArtifactAggregates.CodegenIsolation PROPERTIES
+			LABELS "CONFIGURATION;ARTIFACT_OWNERSHIP;CODEGEN_ISOLATION")
+	endif()
+
+	if(SIMDLIB_VALIDATION_PROFILE MATCHES "^(RELEASE|CODEGEN_DIAGNOSTIC)$")
+		add_test(NAME CodegenPolicy.RejectRecordAsEnforced
+			COMMAND ${CMAKE_COMMAND}
+				"-DSOURCE_DIRECTORY=${CMAKE_CURRENT_SOURCE_DIR}"
+				"-DBINARY_DIRECTORY=${CMAKE_CURRENT_BINARY_DIR}/codegen-policy-separation"
+				-P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/VerifyCodegenPolicySeparation.cmake)
+		set_tests_properties(CodegenPolicy.RejectRecordAsEnforced PROPERTIES
+			LABELS "CONFIGURATION;CODEGEN;CODEGEN_POLICY")
+	endif()
 endif()
 
 endblock()

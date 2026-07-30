@@ -20,7 +20,7 @@ commands below reproduce them under `build*/register-codegen` or
 | Windows compilers | MSVC 19.44 and clang-cl 22 |
 | Linux compilers | GCC 14 and Clang 22 on the pinned Alpine/musl images |
 | Optimized configuration | Release with strict wrapper/raw generated-code comparison |
-| Diagnostic configurations | Debug on every supported compiler; ASan+UBSan on Clang 22 |
+| Optional diagnostic configurations | Explicitly selected Debug compiler; ASan+UBSan on Clang 22 only for an instrumentation investigation |
 | FMA profiles | Explicitly disabled under SSE4.2; explicitly enabled and disabled under AVX2 |
 
 Every supported compiler must compile the C++23 interface, the complete runtime
@@ -107,12 +107,12 @@ supported boundary. Windows platform-default calling-convention artifacts are
 recorded separately by `RecordRegisterDefaultAbi.cmake`; they are diagnostic and
 do not participate in the Windows call-boundary guarantee.
 
-SSE4.2, Debug, and sanitizer builds compile the same wrapper/raw objects with
-identical flags and write disassembly, normalized profiles, provenance, and a
-`recorded-difference` result when the profiles diverge. These configurations
-establish visibility of diagnostic-only differences; optimized Release AVX2
-remains the zero-overhead gate except for the exact diagnostic subsets listed
-below. Every artifact records `isa_profile` in addition
+SSE4.2 Release builds compile the same wrapper/raw objects with identical flags
+and record diagnostic-only differences. Debug and sanitizer wrapper/raw
+comparisons are available only through the explicit `Record-Codegen.ps1`
+operation for a selected investigation; ordinary runtime builds do not compile
+their fixtures. Optimized Release AVX2 remains the zero-overhead gate except for
+the exact diagnostic subsets listed below. Every artifact records `isa_profile` in addition
 to the compiler, configuration, width, calling convention, and stack-protector
 mode. Artifacts are separated under `register-codegen/sse42/128`,
 `register-codegen/avx2/128`, and `register-codegen/avx2/256`. Each profile's
@@ -135,8 +135,8 @@ the `MethodFlagsCodegen` CTest.
 | MSVC constexpr bit-cast value matrix | Frontend evaluation excluded | MSVC 19.44 terminates with an internal compiler error when evaluating the first Register bit-cast cell. MSVC still compiles the complete availability matrix and validates runtime bit-cast values; GCC and both Clang drivers perform the complete constexpr value matrix. |
 | clang-cl Windows platform-default aggregate ABI | Diagnostic only; failing signatures excluded | The platform-default convention may use hidden return storage for aggregate Register results. `VECTORCALL` wrapper/raw parity is the supported clang-cl boundary. |
 | MSVC Windows platform-default aggregate ABI | Diagnostic only; hidden-return signatures excluded | The platform-default convention also returns aggregate Register results through caller-provided storage. The supported non-inline boundary uses `VECTORCALL`; default-convention disassembly remains available without expanding the guarantee. |
-| Debug wrapper/raw differences | Recorded, not accepted as Release overhead | Disabled optimization preserves abstraction structure and may add wrapper-only calls, temporaries, or stack traffic. Both sides are compiled with identical Debug flags so the difference remains inspectable. |
-| ASan+UBSan wrapper/raw differences | Recorded, not accepted as Release overhead | Sanitizer instrumentation intentionally changes memory and control-flow code. Correctness and absence of sanitizer diagnostics are required; instruction identity is not. |
+| Debug wrapper/raw differences | Optional record, not accepted as Release overhead | Disabled optimization preserves abstraction structure and may add wrapper-only calls, temporaries, or stack traffic. An explicit diagnostic compiles both sides with identical Debug flags when that difference needs investigation. |
+| ASan+UBSan wrapper/raw differences | Optional record, not accepted as Release overhead | An explicit Clang 22 diagnostic exposes instrumentation-induced wrapper/raw memory, control-flow, or ABI differences. Runtime sanitizer tests own correctness and absence of sanitizer diagnostics; instruction identity is not a default requirement. |
 | 32-bit targets, non-x86 architectures, 512-bit registers, AVX-512, and compilers below the listed versions | Unsupported | No complete correctness, ABI, and zero-overhead matrix exists for these cells. |
 
 No other optimized Release performance exception is accepted. Adding one
@@ -146,17 +146,24 @@ the operation cannot satisfy the supported zero-overhead contract.
 ## Reproduction commands
 
 The formal scoped commands reproduce the native and pinned Linux Register
-qualification. Release fingerprints enforce generated-code policy; Debug and
-sanitizer fingerprints record diagnostics:
+qualification. Release fingerprints enforce generated-code policy; ordinary
+Debug and sanitizer fingerprints contain no Register generated-code workload:
 
 ```powershell
 tools/Build.ps1 -Scope Native -Compiler Msvc,ClangCl
 tools/Run-Tests.ps1 -Scope Native -Compiler Msvc,ClangCl -SkipBuild
 tools/Build.ps1 -Scope Containers -Compiler Gcc14,Clang22
 tools/Run-Tests.ps1 -Scope Containers -Compiler Gcc14,Clang22 -SkipBuild
+tools/Record-Codegen.ps1 -Scope Native -Compiler Msvc -Cell Debug
+tools/Record-Codegen.ps1 -Scope Containers -Compiler Clang22 -Cell Debug
+tools/Record-Codegen.ps1 -Scope Containers -Compiler Clang22 -Cell AsanUbsan
 tools/Build-Benchmarks.ps1 -Scope All -Compiler Msvc,ClangCl,Gcc14,Clang22
 tools/Run-Benchmarks.ps1 -Scope All -Compiler Msvc,ClangCl,Gcc14,Clang22
 ```
+
+The record command requires an explicit compiler and cell, builds only the
+generated-code fixture and comparison targets, and writes dedicated provenance.
+Its record-only outputs cannot satisfy a missing Release enforcement result.
 
 Benchmarks are supplemental and run only after strict generated-code gates. The
 Register benchmark operands derive from a runtime clock seed and are returned

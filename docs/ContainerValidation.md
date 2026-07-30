@@ -97,8 +97,23 @@ unselected compiler. Normal incremental work does not require cleaning.
 | Cell | Services | Configuration | Artifact target |
 | --- | --- | --- | --- |
 | `Release` | GCC 13, GCC 14, Clang 22 | optimized exhaustive validation | `ExhaustiveArtifacts` |
-| `Debug` | GCC 13, GCC 14, Clang 22 | diagnostic, record-only codegen | `ExhaustiveArtifacts` |
-| `AsanUbsan` | Clang 22 | Debug with AddressSanitizer and UndefinedBehaviorSanitizer | `ExhaustiveArtifacts` |
+| `Debug` | GCC 13, GCC 14, Clang 22 | unoptimized runtime validation without Register generated-code work | `ExhaustiveArtifacts` |
+| `AsanUbsan` | Clang 22 | instrumented runtime validation without Register generated-code work | `ExhaustiveArtifacts` |
+
+Record-only generated-code work is selected separately and never joins a
+normal build receipt:
+
+```powershell
+tools/Record-Codegen.ps1 -Scope Containers -Compiler Gcc14 -Cell Debug
+tools/Record-Codegen.ps1 -Scope Containers -Compiler Clang22 -Cell Debug
+tools/Record-Codegen.ps1 -Scope Containers -Compiler Clang22 -Cell AsanUbsan
+```
+
+The Debug operation is intended for an active compiler investigation, rather
+than routine coverage across every compiler. The sanitizer operation has the
+narrow purpose of exposing instrumentation-induced wrapper/raw memory,
+control-flow, or ABI differences that runtime sanitizer execution cannot show.
+It is not a correctness or optimized generated-code gate.
 
 The runner builds selected images once under the stable
 `simdlib-container-images` Compose project, then executes cells with bounded

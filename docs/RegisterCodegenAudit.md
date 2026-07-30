@@ -56,9 +56,12 @@ diagnostic recording rather than an equality gate.
 ## Comparison records and owning validation
 
 Each record appears exactly once in its profile's generated
-`all-records.txt`. `RegisterExpressionCodegen<profile>` and
-`RegisterConsumerAbi<profile>` are build-only orchestration targets and do not
-own validation.
+`all-records.txt`. The profile also writes disjoint `enforced-records.txt` and
+`diagnostic-records.txt` indexes. Release validation requires every enforced
+record to report `ENFORCE`; a record-only result can appear only in the
+diagnostic index and cannot satisfy that gate. `RegisterExpressionCodegen<profile>`
+and `RegisterConsumerAbi<profile>` are build-only orchestration targets and do
+not own validation.
 
 | Record | Symbol selection | Wrapper input | Raw input | Owning validation |
 |---|---|---|---|---|
@@ -80,9 +83,11 @@ SSE4.2/128 owns 11 Register records because it has no FMA-enabled record.
 AVX2/128 and AVX2/256 each own 12. The method-flags comparison is owned by its
 single configuration-probe validation.
 
-Unified native and container runners aggregate only these CMake-owned
-`all-records.txt` indexes. They do not recursively discover residual JSON files
-in reused build trees, so retired artifacts cannot acquire validation ownership.
+Unified native and container runners aggregate only these CMake-owned indexes.
+They do not recursively discover residual JSON files in reused build trees, so
+retired artifacts cannot acquire validation ownership. Ordinary Debug,
+sanitizer, and coverage profiles configure no Register codegen targets or
+indexes. Explicit diagnostic profiles contain only record-only codegen targets.
 
 ## Source and build inventory
 
@@ -98,12 +103,14 @@ in reused build trees, so retired artifacts cannot acquire validation ownership.
 | Method attributes | `tests/method_flags/codegen/MethodFlagsFlagged.cpp` and `MethodFlagsLegacy.cpp` |
 
 `cmake/development/RegisterCodegen.cmake` owns the per-profile object targets,
-records, aggregate build targets, record indexes, and three Register CTests.
+records, aggregate build targets, policy-separated record indexes, and three
+Register CTests.
 `cmake/development/MethodFlagsCodegen.cmake` owns the method-flags pair and its
 CTest. `CompareRegisterCodegen.cmake`, `RecordRegisterDefaultAbi.cmake`,
-`ValidateCodegenRecords.cmake`, `VerifyMethodFlagsCodegen.cmake`, and
+`ValidateCodegenRecords.cmake`, `ValidateRegisterCodegenProfile.cmake`,
+`VerifyCodegenProfileIsolation.cmake`, `VerifyMethodFlagsCodegen.cmake`, and
 `VerifyMethodFlagsCodegenRecords.cmake` are the complete comparison, diagnostic,
-record-integrity, and attribute-verification script inputs.
+record-integrity, profile-isolation, and attribute-verification script inputs.
 
 Every `<profile>` suffix is one of `128Sse42`, `128Avx2`, or `256Avx2`:
 
@@ -131,10 +138,11 @@ Register artifacts live below:
 - `register-codegen/avx2/128`; and
 - `register-codegen/avx2/256`.
 
-Method-attribute artifacts live below `method-flags-codegen`. CI publishes the
-JSON records and text evidence from both roots for every applicable compiler
-tree. Generic recursive publication is intentional so adding or removing a
-record cannot leave a record-specific artifact path behind.
+Method-attribute artifacts live below `method-flags-codegen`. Default pipeline
+publication uses Release roots. `tools/Record-Codegen.ps1` creates a separate
+selected Debug or Clang sanitizer record set and dedicated provenance containing
+compiler flags, stack-protector mode, disassembly tools, source identity, record
+hashes, and separate compilation and comparison timings.
 
 Documentation references have these roles:
 

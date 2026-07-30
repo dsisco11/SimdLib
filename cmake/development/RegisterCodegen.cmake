@@ -50,7 +50,7 @@ function(simdlib_add_register_codegen_gate register_width isa_profile)
 		set(modulus_difference_reason "msvc-scalar-remainder-scheduling")
 	endif()
 	set(vectorcall_enabled 0)
-	set(stack_protector_mode "compiler-default")
+	set(stack_protector_mode "msvc-gs")
 	if(WIN32 AND CMAKE_SYSTEM_PROCESSOR MATCHES "^(AMD64|amd64|x86_64|i[3-6]86)$" AND
 		(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang"))
 		set(vectorcall_enabled 1)
@@ -115,7 +115,9 @@ function(simdlib_add_register_codegen_gate register_width isa_profile)
 		else()
 			simdlib_enable_register_avx2(${target})
 		endif()
-		if(NOT SIMDLIB_MSVC_STYLE_DRIVER)
+		if(SIMDLIB_MSVC_STYLE_DRIVER)
+			target_compile_options(${target} PRIVATE /GS)
+		else()
 			target_compile_options(${target} PRIVATE -fstack-protector-strong)
 		endif()
 		if(SIMDLIB_REGISTER_CODEGEN_MODE STREQUAL "ENFORCE")
@@ -126,6 +128,8 @@ function(simdlib_add_register_codegen_gate register_width isa_profile)
 			endif()
 		endif()
 	endforeach()
+	set_property(GLOBAL APPEND PROPERTY
+		SIMDLIB_REGISTER_CODEGEN_OBJECT_TARGETS ${codegen_object_targets})
 	if(isa_profile STREQUAL "AVX2")
 		foreach(target IN ITEMS ${fma_enabled_wrapper_target} ${fma_enabled_raw_target})
 			target_compile_definitions(${target} PRIVATE SIMDLIB_HAS_FMA=1)
@@ -511,6 +515,50 @@ function(simdlib_add_register_codegen_gate register_width isa_profile)
 		${abi_wrapper_target} ${abi_raw_target})
 	set(codegen_gate_outputs
 		${expression_codegen_gate_outputs} "${consumer_abi_stamp_file}" "${abi_stamp_file}" "${default_abi_stamp_file}")
+	set(codegen_classification_outputs
+		"${composition_stamp_file}"
+		"${register_only_stamp_file}"
+		"${reassignment_stamp_file}"
+		"${specialized_stamp_file}"
+		"${fma_disabled_stamp_file}"
+		"${rearrangement_stamp_file}"
+		"${type_matrix_stamp_file}"
+		"${type_matrix_modulus_stamp_file}"
+		"${consumer_abi_stamp_file}"
+		"${abi_stamp_file}")
+	set(codegen_classification_record_only
+		${composition_record_only}
+		${codegen_comparison_record_only}
+		${codegen_comparison_record_only}
+		${codegen_comparison_record_only}
+		${codegen_comparison_record_only}
+		${codegen_comparison_record_only}
+		${codegen_comparison_record_only}
+		${modulus_record_only}
+		${codegen_comparison_record_only}
+		${codegen_comparison_record_only})
+	if(isa_profile STREQUAL "AVX2")
+		list(APPEND codegen_classification_outputs "${fma_enabled_stamp_file}")
+		list(APPEND codegen_classification_record_only
+			${codegen_comparison_record_only})
+	endif()
+	set(enforced_codegen_gate_outputs "")
+	set(diagnostic_codegen_gate_outputs "${default_abi_stamp_file}")
+	list(LENGTH codegen_classification_outputs codegen_classification_count)
+	math(EXPR codegen_classification_last "${codegen_classification_count} - 1")
+	foreach(codegen_classification_index RANGE ${codegen_classification_last})
+		list(GET codegen_classification_outputs
+			${codegen_classification_index} codegen_classification_output)
+		list(GET codegen_classification_record_only
+			${codegen_classification_index} codegen_classification_is_record_only)
+		if(codegen_classification_is_record_only)
+			list(APPEND diagnostic_codegen_gate_outputs
+				"${codegen_classification_output}")
+		else()
+			list(APPEND enforced_codegen_gate_outputs
+				"${codegen_classification_output}")
+		endif()
+	endforeach()
 	add_custom_target(RegisterCodegen${target_suffix} ALL
 		DEPENDS "${abi_stamp_file}" "${default_abi_stamp_file}")
 	simdlib_register_development_target(RegisterCodegen${target_suffix}
@@ -519,12 +567,29 @@ function(simdlib_add_register_codegen_gate register_width isa_profile)
 		RegisterExpressionCodegen${target_suffix}
 		RegisterConsumerAbi${target_suffix})
 	set(codegen_record_index "${artifact_directory}/all-records.txt")
+	set(enforced_codegen_record_index
+		"${artifact_directory}/enforced-records.txt")
+	set(diagnostic_codegen_record_index
+		"${artifact_directory}/diagnostic-records.txt")
 	file(GENERATE OUTPUT "${codegen_record_index}"
 		CONTENT "$<JOIN:${codegen_gate_outputs},\n>\n")
+	file(GENERATE OUTPUT "${enforced_codegen_record_index}"
+		CONTENT "$<JOIN:${enforced_codegen_gate_outputs},\n>\n")
+	file(GENERATE OUTPUT "${diagnostic_codegen_record_index}"
+		CONTENT "$<JOIN:${diagnostic_codegen_gate_outputs},\n>\n")
+	set(require_enforced_records OFF)
+	if(SIMDLIB_REGISTER_CODEGEN_MODE STREQUAL "ENFORCE" AND
+			isa_profile STREQUAL "AVX2")
+		set(require_enforced_records ON)
+	endif()
 	add_test(NAME RegisterCodegen.${target_suffix}
 		COMMAND ${CMAKE_COMMAND}
-			-DRECORD_INDEX=${codegen_record_index}
-			-P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/ValidateCodegenRecords.cmake)
+			-DENFORCED_RECORD_INDEX=${enforced_codegen_record_index}
+			-DDIAGNOSTIC_RECORD_INDEX=${diagnostic_codegen_record_index}
+			-DCODEGEN_MODE=${SIMDLIB_REGISTER_CODEGEN_MODE}
+			-DCONFIGURATION=$<CONFIG>
+			-DREQUIRE_ENFORCED_RECORDS=${require_enforced_records}
+			-P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/ValidateRegisterCodegenProfile.cmake)
 	set_tests_properties(RegisterCodegen.${target_suffix} PROPERTIES
 		LABELS "REGISTER;CODEGEN;ABI;${isa_profile}" RUN_SERIAL TRUE)
 endfunction()
@@ -539,6 +604,17 @@ if(SIMDLIB_BUILD_REGISTER_CODEGEN_GATES AND SIMDLIB_REGISTER_COMPILER_SUPPORTED)
 	simdlib_add_register_codegen_gate(128 SSE42)
 	simdlib_add_register_codegen_gate(128 AVX2)
 	simdlib_add_register_codegen_gate(256 AVX2)
+	get_property(register_codegen_object_targets GLOBAL PROPERTY
+		SIMDLIB_REGISTER_CODEGEN_OBJECT_TARGETS)
+	add_custom_target(RegisterCodegenFixtureObjects
+		DEPENDS ${register_codegen_object_targets})
+	if(SIMDLIB_REGISTER_CODEGEN_MODE STREQUAL "ENFORCE")
+		simdlib_register_development_target(
+			RegisterCodegenFixtureObjects OPTIMIZED_CODEGEN)
+	else()
+		simdlib_register_development_target(
+			RegisterCodegenFixtureObjects DEBUG_DIAGNOSTIC)
+	endif()
 	add_custom_target(RegisterCodegen DEPENDS
 		RegisterCodegen128Sse42
 		RegisterCodegen128Avx2

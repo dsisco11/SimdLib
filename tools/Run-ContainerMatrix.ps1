@@ -4,11 +4,12 @@ Builds or consumes fingerprinted Linux compiler cells.
 .DESCRIPTION
 Each invocation owns one action. Build creates all selected validation
 artifacts, Test consumes them without compilation, benchmark actions share the
-Release trees, and InspectEnvironment performs no project build.
+Release trees, RecordCodegen creates an isolated diagnostic fingerprint, and
+InspectEnvironment performs no project build.
 #>
 [CmdletBinding()]
 param(
-    [ValidateSet('Build', 'Test', 'BuildBenchmarks', 'RunBenchmarks', 'InspectEnvironment', 'Clean')]
+    [ValidateSet('Build', 'Test', 'RecordCodegen', 'BuildBenchmarks', 'RunBenchmarks', 'InspectEnvironment', 'Clean')]
     [string]$Action = 'Build',
     [ValidateSet('All', 'Release', 'Debug', 'AsanUbsan')]
     [string]$Cell = 'All',
@@ -83,24 +84,43 @@ Returns every build cell owned by the selected compilers and scope.
 Selected Compose services.
 .PARAMETER CellScope
 Requested configuration scope.
+.PARAMETER Operation
+Requested pipeline operation.
 #>
 function Resolve-Cells {
     param(
         [Parameter(Mandatory)][string[]]$Services,
-        [Parameter(Mandatory)][string]$CellScope
+        [Parameter(Mandatory)][string]$CellScope,
+        [Parameter(Mandatory)][string]$Operation
     )
     $cells = [System.Collections.Generic.List[object]]::new()
     foreach ($service in $Services) {
+        if ($Operation -eq 'RecordCodegen') {
+            if ($service -ne 'gcc13' -and $CellScope -in @('All', 'Debug')) {
+                $cells.Add([pscustomobject]@{
+                        Service = $service; Key = 'debug-codegen'; Preset = "$service-debug-codegen-diagnostic"
+                        BuildProfile = 'Debug'; Sanitizer = 'none'; CodegenMode = 'RECORD'
+                    })
+            }
+            if ($service -eq 'clang22' -and $CellScope -in @('All', 'AsanUbsan')) {
+                $cells.Add([pscustomobject]@{
+                        Service = $service; Key = 'asan-ubsan-codegen'; Preset = 'clang22-asan-ubsan-codegen-diagnostic'
+                        BuildProfile = 'Debug'; Sanitizer = 'asan-ubsan'; CodegenMode = 'RECORD'
+                    })
+            }
+            continue
+        }
         if ($CellScope -in @('All', 'Release')) {
             $preset = if ($service -eq 'gcc13') { 'gcc13-core-release-exhaustive' } else { "$service-release-exhaustive" }
-            $cells.Add([pscustomobject]@{ Service = $service; Key = 'release'; Preset = $preset; BuildProfile = 'Release'; Sanitizer = 'none' })
+            $codegenMode = if ($service -eq 'gcc13') { 'OFF' } else { 'ENFORCE' }
+            $cells.Add([pscustomobject]@{ Service = $service; Key = 'release'; Preset = $preset; BuildProfile = 'Release'; Sanitizer = 'none'; CodegenMode = $codegenMode })
         }
         if ($CellScope -in @('All', 'Debug')) {
             $preset = if ($service -eq 'gcc13') { 'gcc13-core-debug-diagnostics' } else { "$service-debug-diagnostics" }
-            $cells.Add([pscustomobject]@{ Service = $service; Key = 'debug'; Preset = $preset; BuildProfile = 'Debug'; Sanitizer = 'none' })
+            $cells.Add([pscustomobject]@{ Service = $service; Key = 'debug'; Preset = $preset; BuildProfile = 'Debug'; Sanitizer = 'none'; CodegenMode = 'OFF' })
         }
         if ($service -eq 'clang22' -and $CellScope -in @('All', 'AsanUbsan')) {
-            $cells.Add([pscustomobject]@{ Service = $service; Key = 'debug-asan-ubsan'; Preset = 'clang22-debug-asan-ubsan'; BuildProfile = 'Debug'; Sanitizer = 'asan-ubsan' })
+            $cells.Add([pscustomobject]@{ Service = $service; Key = 'debug-asan-ubsan'; Preset = 'clang22-debug-asan-ubsan'; BuildProfile = 'Debug'; Sanitizer = 'asan-ubsan'; CodegenMode = 'OFF' })
         }
     }
     return $cells.ToArray()
@@ -179,6 +199,7 @@ function New-FingerprintDocument {
             preset = $BuildCell.Preset
             buildProfile = $BuildCell.BuildProfile
             sanitizer = $BuildCell.Sanitizer
+            codegenMode = $BuildCell.CodegenMode
             generator = 'Ninja'
             cxxStandard = 20
             cxxFlags = $requiredFlags.cxx
@@ -216,6 +237,7 @@ function Initialize-CellArtifact {
         Preset = $BuildCell.Preset
         BuildProfile = $BuildCell.BuildProfile
         Sanitizer = $BuildCell.Sanitizer
+        CodegenMode = $BuildCell.CodegenMode
         Fingerprint = $digest
         HostRoot = $hostRoot
         ContainerRoot = "/workspace/out/$compilerDirectoryName/$cellDirectoryName"
@@ -259,6 +281,7 @@ function Start-CellOperation {
                 '--preset', $CellArtifact.Preset,
                 '--build-profile', $CellArtifact.BuildProfile,
                 '--sanitizer', $CellArtifact.Sanitizer,
+                '--codegen-mode', $CellArtifact.CodegenMode,
                 '--artifact-root', $CellArtifact.ContainerRoot,
                 '--fingerprint-sha256', $CellArtifact.Fingerprint
             )) {
@@ -416,17 +439,25 @@ if ($Action -eq 'Clean') {
     Remove-PipelineState -Services $services
     exit 0
 }
-if ($NoImageCache -and ($SkipImageBuild -or $Action -notin @('Build', 'InspectEnvironment'))) {
-    throw '-NoImageCache is only valid when Build or InspectEnvironment owns the image build.'
+if ($NoImageCache -and ($SkipImageBuild -or $Action -notin @('Build', 'RecordCodegen', 'InspectEnvironment'))) {
+    throw '-NoImageCache is only valid when Build, RecordCodegen, or InspectEnvironment owns the image build.'
 }
-if ($SkipImageBuild -and $Action -notin @('Build', 'InspectEnvironment')) {
-    throw '-SkipImageBuild is only valid for Build or InspectEnvironment.'
+if ($SkipImageBuild -and $Action -notin @('Build', 'RecordCodegen', 'InspectEnvironment')) {
+    throw '-SkipImageBuild is only valid for Build, RecordCodegen, or InspectEnvironment.'
 }
 if (($TestRegex -or $TestLabel) -and $Action -ne 'Test') {
     throw '-TestRegex and -TestLabel are optional Test-only diagnostics.'
 }
 if ($Cell -eq 'AsanUbsan' -and 'clang22' -notin $services) {
     throw 'The ASan+UBSan cell is owned by Clang 22.'
+}
+if ($Action -eq 'RecordCodegen') {
+    if ($Cell -notin @('All', 'Debug', 'AsanUbsan')) {
+        throw 'Container codegen diagnostics use Debug or AsanUbsan cells only.'
+    }
+    if ($Compiler -eq 'Gcc13') {
+        throw 'GCC 13 is core-only and owns no Register codegen diagnostic.'
+    }
 }
 
 $selectedCellScope = if ($Action -eq 'InspectEnvironment') {
@@ -438,7 +469,7 @@ $selectedCellScope = if ($Action -eq 'InspectEnvironment') {
 } else {
     $Cell
 }
-$cells = @(Resolve-Cells -Services $services -CellScope $selectedCellScope)
+$cells = @(Resolve-Cells -Services $services -CellScope $selectedCellScope -Operation $Action)
 if ($cells.Count -eq 0) { throw 'The compiler and cell selections do not identify any operation cells.' }
 
 $runId = "{0}-{1}-{2}" -f (Get-Date -Format 'yyyyMMdd-HHmmssfff'), $Action.ToLowerInvariant(), $PID
@@ -448,7 +479,7 @@ $logDirectory = Join-Path $pipelineRoot "logs/$runId"
 New-Item -ItemType Directory -Path $logDirectory -Force | Out-Null
 Write-Host "Container operation: action=$Action cells=$($cells.Count) maxParallel=$MaxParallel"
 
-if ($Action -in @('Build', 'InspectEnvironment') -and -not $SkipImageBuild) {
+if ($Action -in @('Build', 'RecordCodegen', 'InspectEnvironment') -and -not $SkipImageBuild) {
     $buildArguments = @(
         'compose', '--file', $composeFile, '--project-name', $imageBuildProjectName,
         '--profile', 'compilers', 'build', '--provenance=false'
@@ -471,6 +502,7 @@ $cellArtifacts = @(
 $operation = switch ($Action) {
     'Build' { 'build-validation' }
     'Test' { 'test' }
+    'RecordCodegen' { 'record-codegen' }
     'BuildBenchmarks' { 'build-benchmarks' }
     'RunBenchmarks' { 'run-benchmarks' }
     'InspectEnvironment' { 'inspect-environment' }
