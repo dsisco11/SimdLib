@@ -54,7 +54,7 @@ to that compiler's supported surface.
 | GCC 14 Release | GNU optimizer, core/Register language surface, GNU ABI, and zero-overhead qualification | yes | yes | full | yes | core+Register | enforce | none |
 | Clang 22 Release | GNU-like Clang optimizer, core/Register language surface, GNU ABI, and zero-overhead qualification | yes | yes | full | yes | core+Register | enforce | none |
 | Clang 22 ASan+UBSan Debug | Instrumented Linux runtime correctness and cross-translation-unit consumer boundary | no | no | full | no | core+Register | off | address+undefined |
-| Native Clang coverage | Runtime source-coverage provenance and report generation | no | no | full | only if coverage-producing | none | off | LLVM coverage |
+| Native Clang coverage | Runtime source-coverage provenance and report generation | no | no | full | no | none | off | LLVM coverage |
 | Repository audit | One source-revision-wide source audit represented in the unified receipt | n/a | n/a | n/a | n/a | n/a | n/a | none |
 
 The MSVC Debug cell is the only ordinary Debug cell in the default matrix. Its
@@ -65,6 +65,14 @@ force their hooks where the contract must also be validated in Release.
 The sanitizer consumer remains because it exercises downstream functions and
 cross-translation-unit Register boundaries under instrumentation. It does not
 repeat structural compiler-contract probes.
+
+Coverage owns only runtime correctness and checks/preconditions executables.
+Examples, header smoke tests, and ODR tests are public-surface contracts owned
+by applicable Release compilers. Coverage processing matches every raw profile
+to its executable build identity, merges raw profiles only per executable, and
+records the mapping in `coverage-provenance.tsv` before combining LCOV traces.
+Compile-only constexpr evidence retains its Release compiler and feature
+provenance and does not contribute to runtime coverage percentages.
 
 ## Accepted optional matrix
 

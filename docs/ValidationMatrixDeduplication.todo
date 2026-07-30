@@ -148,19 +148,28 @@ SimdLib Validation Matrix Deduplication Plan:
       ☒ Profile-membership and codegen-isolation checks passed in both retained Debug representatives; the current MSVC Release refresh also preserved the explicit checks contract outside Debug.
 
   Phase 5 - Slim Runtime, Sanitizer, and Coverage Target Sets:
-    ☐ Define the runtime correctness aggregate independently from header, configuration, constexpr, codegen, source-audit, example, and benchmark aggregates.
-    ☐ Keep the complete runtime correctness suite in every supported Release compiler cell.
-    ☐ Decide whether examples, smoke tests, and ODR tests are runtime contracts or public-surface contracts, and assign each to only the necessary cells.
-    ☐ Restrict the default ASan+UBSan cell to runtime targets, required runtime dependencies, and any explicitly justified sanitizer consumer smoke test.
-    ☐ Exclude repository audits, header probes, configuration probes, negative compilation probes, constexpr-only probes, codegen fixtures, and benchmarks from the sanitizer build.
-    ☐ Restrict the coverage cell to targets that can contribute meaningful executed production paths or are required to interpret coverage provenance.
-    ☐ Exclude compile-only constexpr probes from coverage unless native-Clang constant-evaluation qualification is intentionally assigned to the coverage compiler identity.
-    ☐ Exclude header and configuration probes from coverage when they produce no runtime coverage evidence.
-    ☐ Verify mutually exclusive runtime feature profiles still produce compatible isolated coverage data and are never merged across incompatible macro configurations.
-    ☐ Keep constexpr evidence separate from runtime coverage percentages and preserve its compiler/feature provenance.
-    ☐ Compare Catch2 `POST_BUILD` and `PRE_TEST` discovery using complete `Build` plus `Run-Tests` timing, generated test inventories, and receipt reuse.
-    ☐ Change discovery mode only if it improves the intended user workflow or cleanly separates build from test execution without causing hidden rebuilds or stale inventories.
-    ☐ End Phase 5 only when sanitizer and coverage profiles build only evidence-producing targets and the complete runtime inventory remains unchanged where required.
+    ☒ Define the runtime correctness aggregate independently from header, configuration, constexpr, codegen, source-audit, example, and benchmark aggregates.
+    ☒ Keep the complete runtime correctness suite in every supported Release compiler cell.
+    ☒ Decide whether examples, smoke tests, and ODR tests are runtime contracts or public-surface contracts, and assign each to only the necessary cells.
+    ☒ Restrict the default ASan+UBSan cell to runtime targets, required runtime dependencies, and any explicitly justified sanitizer consumer smoke test.
+    ☒ Exclude repository audits, header probes, configuration probes, negative compilation probes, constexpr-only probes, codegen fixtures, and benchmarks from the sanitizer build.
+    ☒ Restrict the coverage cell to targets that can contribute meaningful executed production paths or are required to interpret coverage provenance.
+    ☒ Exclude compile-only constexpr probes from coverage unless native-Clang constant-evaluation qualification is intentionally assigned to the coverage compiler identity.
+    ☒ Exclude header and configuration probes from coverage when they produce no runtime coverage evidence.
+    ☒ Verify mutually exclusive runtime feature profiles still produce compatible isolated coverage data and are never merged across incompatible macro configurations.
+    ☒ Keep constexpr evidence separate from runtime coverage percentages and preserve its compiler/feature provenance.
+    ☒ Compare Catch2 `POST_BUILD` and `PRE_TEST` discovery using complete `Build` plus `Run-Tests` timing, generated test inventories, and receipt reuse.
+    ☒ Change discovery mode only if it improves the intended user workflow or cleanly separates build from test execution without causing hidden rebuilds or stale inventories.
+    ☒ End Phase 5 only when sanitizer and coverage profiles build only evidence-producing targets and the complete runtime inventory remains unchanged where required.
+
+    Evidence:
+      ☒ Coverage selects 18 runtime and 3 checks targets, excludes every compiler-contract, constexpr, smoke/ODR, codegen, and benchmark category, and records 21 independently identified executables in `coverage-provenance.tsv`.
+      ☒ Coverage execution retained 257 tests and the runtime feature-family counts from the 260-test baseline; the three removed identities are `HeaderOnlySmoke`, `FormatOdr`, and `RegisterOdr`.
+      ☒ Clang 22 ASan+UBSan selects 18 runtime and 4 checks targets, excludes every other main-tree category, and retains the two explicitly justified cross-translation-unit consumer tests.
+      ☒ Coverage and sanitizer runtime suites, artifact ownership fixtures, and coverage report generation completed through receipt-consuming `Test` operations without rebuilding targets.
+      ☒ Raw LLVM profiles are matched by embedded executable identity and merged per executable; the resulting per-executable LCOV traces are combined only after profile interpretation.
+      ☒ Warm receipt-compatible discovery measurements averaged 1.106 seconds for `POST_BUILD` and 1.443 seconds for `PRE_TEST`; both produced 24 inventory entries and 260 tests before coverage slimming, so `POST_BUILD` remains explicit.
+      ☒ The temporary PRE_TEST configure tree and measurement inventories were removed after the decision was recorded.
 
   Phase 6 - Deduplicate Examples, ODR, Smoke, and External Consumers:
     ☐ Classify `ApiExamples`, `RegisterExamples`, `HeaderOnlySmoke`, `FormatOdr`, and `RegisterOdr` by their exact public-surface, linking, runtime, and configuration contracts.

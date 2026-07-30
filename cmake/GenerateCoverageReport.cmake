@@ -36,6 +36,7 @@ if(NOT coverage_manifest)
 endif()
 
 set(target_keys "")
+set(seen_target_names "")
 foreach(manifest_entry IN LISTS coverage_manifest)
     if(NOT manifest_entry MATCHES "^([^|]+)[|]([^|]+)[|](.+)$")
         message(FATAL_ERROR "Invalid coverage manifest entry: ${manifest_entry}")
@@ -47,6 +48,11 @@ foreach(manifest_entry IN LISTS coverage_manifest)
         message(FATAL_ERROR
             "Coverage object for ${target_name} does not exist: ${target_object}")
     endif()
+    if(target_name IN_LIST seen_target_names)
+        message(FATAL_ERROR
+            "Coverage manifest contains duplicate target ${target_name}")
+    endif()
+    list(APPEND seen_target_names "${target_name}")
     string(SHA256 target_key "${target_name}")
     list(APPEND target_keys "${target_key}")
     set(target_name_${target_key} "${target_name}")
@@ -77,6 +83,16 @@ foreach(manifest_entry IN LISTS coverage_manifest)
         message(FATAL_ERROR
             "Coverage object has no supported PDB or ELF build identity: ${target_object}")
     endif()
+endforeach()
+
+set(seen_binary_ids "")
+foreach(target_key IN LISTS target_keys)
+    set(target_binary_id "${target_binary_id_${target_key}}")
+    if(target_binary_id IN_LIST seen_binary_ids)
+        message(FATAL_ERROR
+            "Coverage manifest maps more than one executable to binary identity ${target_binary_id}")
+    endif()
+    list(APPEND seen_binary_ids "${target_binary_id}")
 endforeach()
 
 file(GLOB_RECURSE coverage_profiles LIST_DIRECTORIES FALSE
@@ -166,6 +182,11 @@ set(coverage_work_directory "${BINARY_DIRECTORY}/coverage-work")
 file(REMOVE_RECURSE "${coverage_work_directory}")
 file(MAKE_DIRECTORY "${coverage_work_directory}")
 set(object_trace_files "")
+string(CONCAT coverage_provenance
+    "schema\tsimdlib-coverage-provenance-v1\n"
+    "merge_scope\tper-executable\n"
+    "constexpr_evidence\texcluded\n"
+    "target\tbinary_id\tprofile_count\tprofile_prefix\texecutable\n")
 foreach(target_key IN LISTS target_keys)
     set(target_name "${target_name_${target_key}}")
     set(target_profiles "${target_profiles_${target_key}}")
@@ -216,6 +237,8 @@ foreach(target_key IN LISTS target_keys)
     list(APPEND object_trace_files "${target_trace_file}")
 
     list(LENGTH target_profiles target_profile_count)
+    string(APPEND coverage_provenance
+        "${target_name}\t${target_binary_id_${target_key}}\t${target_profile_count}\t${target_prefix_${target_key}}\t${target_object_${target_key}}\n")
     message(STATUS
         "Mapped ${target_profile_count} profiles to ${target_name}")
 endforeach()
@@ -224,6 +247,14 @@ set(TRACE_FILES "${object_trace_files}")
 set(OUTPUT_FILE "${BINARY_DIRECTORY}/coverage.info")
 include("${CMAKE_CURRENT_LIST_DIR}/MergeLcov.cmake")
 
+set(coverage_provenance_file
+    "${BINARY_DIRECTORY}/coverage-provenance.tsv")
+set(coverage_provenance_temporary_file
+    "${coverage_provenance_file}.tmp")
+file(WRITE "${coverage_provenance_temporary_file}" "${coverage_provenance}")
+file(RENAME "${coverage_provenance_temporary_file}"
+    "${coverage_provenance_file}")
+
 list(LENGTH target_keys target_count)
 message(STATUS
-    "Generated ${OUTPUT_FILE} from ${assigned_profile_count} profiles mapped to ${target_count} executables; excluded ${excluded_profile_count} multi-executable/tool profiles")
+    "Generated ${OUTPUT_FILE} and ${coverage_provenance_file} from ${assigned_profile_count} profiles mapped to ${target_count} executables; excluded ${excluded_profile_count} multi-executable/tool profiles")

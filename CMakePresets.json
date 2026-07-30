@@ -136,6 +136,7 @@
                 "SIMDLIB_BUILD_VECTOR_ALGORITHM_TESTS": "ON",
                 "SIMDLIB_BUILD_BENCHMARKS": "OFF",
                 "SIMDLIB_BUILD_EXAMPLES": "OFF",
+                "SIMDLIB_BUILD_SMOKE_TESTS": "OFF",
                 "SIMDLIB_BUILD_CONFIGURATION_PROBES": "OFF",
                 "SIMDLIB_BUILD_CONSTEXPR_PROBES": "OFF",
                 "SIMDLIB_BUILD_HEADER_PROBES": "OFF",

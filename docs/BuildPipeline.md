@@ -32,7 +32,9 @@ tools/Run-Tests.ps1 -Scope All
 
 `Run-Tests.ps1` invokes `Build.ps1` exactly once, validates the exact set of
 completed manifests, and then starts test-only operations. The coverage cell
-resets profiles, runs its instrumented tests, and generates `coverage.info`.
+resets profiles, runs its instrumented tests, and generates `coverage.info`
+plus `coverage-provenance.tsv`. The provenance file records the executable
+identity and profile count used for every independently merged coverage target.
 Benchmark compilation and execution remain separate:
 
 ```powershell
@@ -197,11 +199,23 @@ that reuses an existing fingerprint, and it reuses only validated Release
 trees.
 
 Compile-only constant-evaluation contracts are owned by each compiler's
-exhaustive Release tree instead of being repeated under Debug or sanitizer
-instrumentation. Native Clang coverage builds execution-bearing runtime,
-checks, and smoke/ODR targets, but does not compile constexpr-only or
-compiler-contract targets. Runtime tests continue to exercise Debug and
-sanitizer behavior.
+exhaustive Release tree instead of being repeated under Debug, sanitizer, or
+coverage instrumentation. Native Clang coverage builds only execution-bearing
+runtime and checks targets. Examples, header smoke tests, and ODR tests are
+public-surface contracts owned by applicable Release compiler identities.
+Runtime tests continue to exercise Debug and sanitizer behavior.
+
+Coverage profiles are matched to executable build identities before merging.
+Raw profiles are merged only within one executable identity, so mutually
+exclusive feature configurations never share a raw-profile merge. The
+per-executable LCOV traces are combined only after LLVM has interpreted each
+profile against its owning executable. `coverage-provenance.tsv` records that
+mapping and states that compile-only constexpr evidence is excluded.
+
+Catch2 discovery uses `POST_BUILD` explicitly. Build receipts record the
+complete CTest inventory immediately after compilation; `PRE_TEST` would move
+discovery into that inventory-recording step rather than remove it from the
+receipt-producing workflow.
 
 Register generated-code diagnostics are explicit supplemental operations:
 

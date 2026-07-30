@@ -11,6 +11,10 @@ block(SCOPE_FOR VARIABLES)
 
 if(SIMDLIB_BUILD_RUNTIME_TESTS)
     include(Catch)
+    # Build receipts inventory CTest immediately after compilation, so keeping
+    # discovery at build time avoids hidden discovery work during receipt reuse.
+    set(CMAKE_CATCH_DISCOVER_TESTS_DISCOVERY_MODE POST_BUILD)
+
     # @brief Applies labels after Catch2 has populated its deferred discovery list.
     # @param test_list_variable Name of the Catch2-generated test-list variable.
     # @param labels Semicolon-separated labels applied to every discovered test.

@@ -87,9 +87,9 @@ set(simdlib_profile_allowed_SANITIZER
     RUNTIME_VALIDATION CHECKS_VALIDATION)
 set(simdlib_profile_selected_SANITIZER ${simdlib_profile_allowed_SANITIZER})
 set(simdlib_profile_allowed_COVERAGE
-    RUNTIME_VALIDATION CHECKS_VALIDATION SMOKE_VALIDATION COVERAGE_SUPPORT)
+    RUNTIME_VALIDATION CHECKS_VALIDATION COVERAGE_SUPPORT)
 set(simdlib_profile_selected_COVERAGE
-    RUNTIME_VALIDATION CHECKS_VALIDATION SMOKE_VALIDATION)
+    RUNTIME_VALIDATION CHECKS_VALIDATION)
 set(simdlib_profile_allowed_CODEGEN_DIAGNOSTIC
     DEBUG_DIAGNOSTIC)
 set(simdlib_profile_selected_CODEGEN_DIAGNOSTIC
@@ -249,8 +249,7 @@ add_dependencies(SimdLibSanitizerValidationArtifacts
 add_custom_target(SimdLibCoverageValidationArtifacts)
 add_dependencies(SimdLibCoverageValidationArtifacts
     SimdLibRuntimeValidationArtifacts
-    SimdLibChecksValidationArtifacts
-    SimdLibSmokeValidationArtifacts)
+    SimdLibChecksValidationArtifacts)
 
 add_custom_target(ExhaustiveArtifacts)
 if(SIMDLIB_VALIDATION_PROFILE STREQUAL "SANITIZER")
@@ -501,6 +500,8 @@ if(BUILD_TESTING)
                 "-DCASE=${simdlib_failure_case}"
                 "-DSOURCE_DIRECTORY=${CMAKE_CURRENT_SOURCE_DIR}"
                 "-DBINARY_DIRECTORY=${CMAKE_CURRENT_BINARY_DIR}/artifact-aggregate-negative/${simdlib_failure_case}"
+                "-DGENERATOR=${CMAKE_GENERATOR}"
+                "-DMAKE_PROGRAM=${CMAKE_MAKE_PROGRAM}"
                 -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/VerifyArtifactAggregateFailure.cmake)
         set_tests_properties(
             ArtifactAggregates.Reject${simdlib_failure_case} PROPERTIES

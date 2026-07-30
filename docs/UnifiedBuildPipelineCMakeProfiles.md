@@ -92,9 +92,10 @@ enforcement.
 
 `ExhaustiveArtifacts` depends only on the scoped category aggregates selected
 by `SIMDLIB_VALIDATION_PROFILE`. Release includes its compiler, constexpr,
-runtime, checks, smoke, and optimized-codegen owners. Ordinary Debug,
-sanitizer, and coverage select narrower owners and cannot absorb Register
-generated-code targets through inherited development options.
+runtime, checks, smoke, and optimized-codegen owners. Sanitizer and coverage
+select only runtime and checks owners. Ordinary Debug retains its separately
+assigned configuration behavior, and none of these profiles can absorb
+Register generated-code targets through inherited development options.
 
 `BenchmarkArtifacts` depends only on `Benchmarks`. Neither aggregate depends on
 the other. Release benchmark presets reuse the Release configure tree, so the

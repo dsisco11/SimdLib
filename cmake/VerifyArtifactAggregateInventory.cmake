@@ -116,6 +116,7 @@ foreach(forbidden_membership IN ITEMS
     "SimdLibSanitizerValidationArtifacts\tSimdLibDebugDiagnosticArtifacts"
     "SimdLibCoverageValidationArtifacts\tSimdLibCompilerContractArtifacts"
     "SimdLibCoverageValidationArtifacts\tSimdLibConstexprContractArtifacts"
+    "SimdLibCoverageValidationArtifacts\tSimdLibSmokeValidationArtifacts"
     "SimdLibCoverageValidationArtifacts\tSimdLibOptimizedCodegenArtifacts"
     "SimdLibCoverageValidationArtifacts\tSimdLibDebugDiagnosticArtifacts")
     if(forbidden_membership IN_LIST membership_rows)

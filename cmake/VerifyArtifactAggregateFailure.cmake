@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 4.4)
 
-foreach(required_variable IN ITEMS CASE SOURCE_DIRECTORY BINARY_DIRECTORY)
+foreach(required_variable IN ITEMS
+    CASE SOURCE_DIRECTORY BINARY_DIRECTORY GENERATOR MAKE_PROGRAM)
     if(NOT DEFINED ${required_variable})
         message(FATAL_ERROR "Missing required variable ${required_variable}")
     endif()
@@ -19,8 +20,10 @@ endif()
 execute_process(
     COMMAND "${CMAKE_COMMAND}"
         --fresh
+        -G "${GENERATOR}"
         -S "${SOURCE_DIRECTORY}/tests/cmake/artifact_aggregates"
         -B "${BINARY_DIRECTORY}"
+        "-DCMAKE_MAKE_PROGRAM=${MAKE_PROGRAM}"
         "-DSIMDLIB_SOURCE_DIRECTORY=${SOURCE_DIRECTORY}"
         "-DSIMDLIB_ARTIFACT_FAILURE_CASE=${CASE}"
     RESULT_VARIABLE configure_result

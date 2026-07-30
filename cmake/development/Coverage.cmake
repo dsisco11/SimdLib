@@ -26,6 +26,7 @@ if(SIMDLIB_ENABLE_COVERAGE)
 
     get_property(simdlib_coverage_targets GLOBAL PROPERTY SIMDLIB_COVERAGE_TARGETS)
     list(REMOVE_DUPLICATES simdlib_coverage_targets)
+    list(SORT simdlib_coverage_targets)
     if(NOT simdlib_coverage_targets)
         message(FATAL_ERROR "SIMDLIB_ENABLE_COVERAGE requires at least one executable target")
     endif()
