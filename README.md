@@ -122,6 +122,57 @@ StableFloatRegister SIMD_FLAGS(InOut) add_one(StableFloatRegister value) noexcep
 }
 ```
 
+### Declaring SIMD function contracts
+
+Place `SIMD_FLAGS(...)` after the return type and immediately before the
+function name. Every declaration starts with exactly one boundary mode:
+
+| Mode | Promise | Invocation |
+|---|---|---|
+| `Neither` | No native SIMD value, `Register`, or `RegisterMask` crosses the boundary by value | `SIMD_FLAGS(Neither)` |
+| `In` | At least one SIMD value enters by value, and no SIMD value is returned by value | `SIMD_FLAGS(In)` |
+| `Out` | A SIMD value is returned by value, and none enters by value | `SIMD_FLAGS(Out)` |
+| `InOut` | SIMD values both enter and leave by value | `SIMD_FLAGS(InOut)` |
+
+The optional modifiers follow in the fixed order `RegisterOnly`, `ForceInline`,
+then `Flatten`:
+
+- `SIMD_FLAGS(InOut, RegisterOnly)` promises that every runtime path performs only input reads and
+  register/scalar computation, with no authored write to addressable memory.
+- `SIMD_FLAGS(InOut, ForceInline)` requests that the annotated function be incorporated into its
+  caller.
+- `SIMD_FLAGS(InOut, Flatten)` requests recursive inlining of eligible calls made by the annotated
+  function. It does not request that the function itself be inlined into its
+  caller.
+
+For example, a reviewed header-defined register transform may use all three:
+
+```cpp
+/**
+ * @brief Adds one to every lane without writing addressable memory.
+ * @param value Input register.
+ * @return Transformed register.
+ */
+StableFloatRegister
+SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten)
+add_one_inline(StableFloatRegister value) noexcept
+{
+    return value + StableFloatRegister::broadcast(1.0F);
+}
+```
+
+The flags are developer promises, not inferred properties. Do not apply
+`RegisterOnly` to stores, writable spans, output pointers or references,
+addressable-buffer algorithms, or functions with unreviewed transitive calls.
+Declaration and definition flag lists must be ABI-compatible, and translation
+units that exchange flagged functions must agree on the vectorcall
+configuration. `Out` requests the configured calling convention but cannot
+override a platform ABI that uses hidden return storage.
+
+See the [SIMD method-flag contract](docs/MethodFlagsContract.md) for declaration
+forms, compiler mappings, unsupported categories, custom-toolchain adapters,
+and the qualification required when adding another flag.
+
 ### Runtime controls for immediate-mode operations
 
 Unsuffixed operations use compile-time controls or genuinely native runtime controls such as selector and mask registers. A method ending in `_slow` is the explicit runtime-scalar substitute for an immediate-controlled instruction and may require dispatch, branching, or a longer synthesized sequence. See [Runtime controls for immediate-mode operations](docs/ImmediateControlRuntimeNaming.md) for the complete naming and availability inventory.
@@ -222,7 +273,9 @@ expands to
 and the attribute mapping is empty on other compilers. `RegisterOnly` remains
 independent from the `In`, `Out`, and `InOut` boundary modes: stores,
 transforms, dynamic array-backed fallbacks, and other memory-writing functions
-retain normal `/GS` protection.
+retain normal `/GS` protection. This is a strong developer promise used to
+justify suppressing `/GS` for that function, not a compiler-verified guarantee
+that the function cannot spill or otherwise use the stack.
 
 The operational methods in the `Api`, `Register`, `RegisterMask`, and legacy
 `SimdVector` facades use the `Flatten` modifier to make their transitive-inlining

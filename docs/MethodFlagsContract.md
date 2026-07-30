@@ -369,6 +369,47 @@ Unsupported categories must not be accepted accidentally as a documented
 extension. Compile-failure probes or source audits cover categories that a
 preprocessor macro cannot diagnose directly.
 
+## Downstream declarations and definitions
+
+Downstream functions use the same declaration form as SimdLib. Repeat an
+ABI-compatible flag list on the declaration and definition:
+
+```cpp
+// Transform.h
+/**
+ * @brief Applies a downstream register transformation.
+ * @param value Input register.
+ * @return Transformed register.
+ */
+SimdLib::Register<float, 128>
+SIMD_FLAGS(InOut)
+transform(SimdLib::Register<float, 128> value) noexcept;
+
+// Transform.cpp
+SimdLib::Register<float, 128>
+SIMD_FLAGS(InOut)
+transform(const SimdLib::Register<float, 128> value) noexcept
+{
+    return value + SimdLib::Register<float, 128>::broadcast(1.0F);
+}
+```
+
+All translation units that declare, define, take the address of, or call the
+function must agree on the vectorcall capability and token adapter. A mismatch
+is an ABI disagreement; source-level type similarity does not make it safe.
+Use `decltype(&transform)` when storing the function pointer so the configured
+calling convention remains part of its type where the compiler models it.
+
+`Out` selects the configured calling convention when one exists. It does not
+independently force a value into physical return registers or override a
+platform ABI that uses hidden return storage for an aggregate.
+
+Apply `RegisterOnly` only after reviewing the complete runtime call graph.
+Downstream authors must not use it on stores, writable spans, output pointers
+or references, addressable local buffers, array-backed algorithms, or
+unreviewed transitive calls. Its Microsoft mapping suppresses `/GS` for the
+whole function; an incorrect promise removes a security mitigation.
+
 ## Register-only audit procedure
 
 Every `RegisterOnly` decision is made per function and per reachable runtime
@@ -450,6 +491,14 @@ are recorded:
 6. configuration and downstream override behavior;
 7. compile-pass and compile-failure coverage;
 8. ABI or generated-code evidence when the flag can affect either.
+
+Adding support for another compiler or changing an adapter follows the same
+qualification path: define the semantic mapping, prove the canonical
+post-return-type placement, cover default and overridden configuration, verify
+cross-translation-unit ABI behavior, and retain generated-code evidence for
+every affected optimization or stack-protection property. An empty mapping is
+valid only when the semantic flag remains meaningful to source review and the
+compiler lacks an applicable attribute.
 
 Generic `Read` and `Write` modifiers are not part of the initial vocabulary
 because they do not distinguish SIMD call direction from memory effects. `In`,

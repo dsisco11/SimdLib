@@ -68,9 +68,8 @@ Compile-only targets cover:
 - `ApiDisabledProbe` and `ApiEnabledProbe` for API availability, supported lane
   types, register widths, and conversion constraints;
 - `ConfigDefaultProbe`, `ConfigDisabledInstructionsProbe`,
-  `ConfigDisabledPublicHeadersProbe`, `ConfigOverrideFlattenProbe`,
-  `ConfigOverrideForceInlineProbe`, `ConfigOverridePreconditionProbe`,
-  `ConfigOverrideVectorcallProbe`, `ConfigVendorAttributeProbe`,
+  `ConfigDisabledPublicHeadersProbe`, `MethodFlagsConfigOverrideProbe`,
+  `ConfigOverridePreconditionProbe`, `ConfigVendorAttributeProbe`,
   `ConfigClangUnsupportedTargetProbe`, and `ConstexprProbe` for detection,
   override, disabled, attribute, target, and constant-evaluation paths;
 - first-and-only include probes for `Aliases.h`, `Api.h`, `Bmi.h`, `Config.h`,

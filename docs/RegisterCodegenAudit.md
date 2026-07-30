@@ -77,7 +77,7 @@ not own validation.
 | `abi` | Explicit-object ABI mirrors | `RegisterAbi.cpp` | `RegisterAbiRaw.cpp` | `RegisterCodegen.<profile>` |
 | `consumer-abi` | Real downstream Register and RegisterMask boundaries | `RegisterAbi.cpp` | `RegisterAbiRaw.cpp` | `RegisterCodegen.<profile>` |
 | `default-abi` | Platform-default aggregate boundary | `RegisterDefaultAbi.cpp` | `RegisterDefaultAbiRaw.cpp` | `RegisterCodegen.<profile>` |
-| `method-flags` | `SIMD_FLAGS(...)` declaration fixtures | `MethodFlagsFlagged.cpp` | `MethodFlagsLegacy.cpp` | `MethodFlagsCodegen` |
+| `method-flags` | `SIMD_FLAGS(...)` declaration fixtures | `MethodFlagsFlagged.cpp` | `MethodFlagsRaw.cpp` | `MethodFlagsCodegen` |
 
 SSE4.2/128 owns 11 Register records because it has no FMA-enabled record.
 AVX2/128 and AVX2/256 each own 12. The method-flags comparison is owned by its
@@ -100,7 +100,7 @@ indexes. Explicit diagnostic profiles contain only record-only codegen targets.
 | Type matrix | `tests/codegen/RegisterTypeMatrixCodegen.cpp`, `RegisterTypeMatrixCodegenRaw.cpp`, and `RegisterTypeMatrixCodegenFixture.h` |
 | Explicit-object and consumer ABI | `tests/codegen/RegisterAbi.cpp` and `RegisterAbiRaw.cpp` |
 | Platform-default ABI | `tests/codegen/RegisterDefaultAbi.cpp` and `RegisterDefaultAbiRaw.cpp` |
-| Method attributes | `tests/method_flags/codegen/MethodFlagsFlagged.cpp` and `MethodFlagsLegacy.cpp` |
+| Method attributes | `tests/method_flags/codegen/MethodFlagsFlagged.cpp` and `MethodFlagsRaw.cpp` |
 
 `cmake/development/RegisterCodegen.cmake` owns the per-profile object targets,
 records, aggregate build targets, policy-separated record indexes, and three
@@ -151,7 +151,7 @@ Documentation references have these roles:
 | `RegisterQualification.md` | Supported compiler/profile matrix, enforcement policy, and diagnostic exception ledger. |
 | `RegisterProposal.md` | Public zero-overhead and ABI requirements. |
 | `RegisterImplementationMatrix.md` | Public-operation-to-generated-code traceability. |
-| `MethodFlagsContract.md` and `FunctionFlagsProposal.md` | Compiler-attribute promises and verification policy. |
+| `MethodFlagsContract.md` | Compiler-attribute promises, compiler mappings, and extension policy. |
 | `BuildPipeline.md`, `ContainerValidation.md`, and `Validation.md` | Reproduction commands and execution-reporting boundaries. |
 | `UnifiedBuildPipelineBaseline.md` and `UnifiedBuildPipelineCMakeProfiles.md` | Pipeline ownership, current record counts, and historical baseline distinction. |
 | `UnifiedBuildPipelineExpectedTargets.txt` and `UnifiedBuildPipelineExpectedTests.txt` | Frozen pre-refactor evidence, not the current generated inventory. |

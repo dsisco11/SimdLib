@@ -3,7 +3,7 @@ Code Architecture:
     ☐ Analyze `Implementation::shuffle<...>()` type methods to ensure they handle shuffling optimally, e.g. using `shuffle_lo` and `shuffle_hi` when appropriate, and ensure that the `shuffle<...>()` methods are implemented in a way that is both efficient and maintainable.
     ☐ Implement a `SimdLib::IMask` class to represent compile-time immediate-mode masks for SIMD intrinsics, providing methods for creating and manipulating masks based on compile-time conditions. This class should be compatible with the `SimdLib::Register` and `SimdLib::Tensor` classes, allowing for efficient lane control in SIMD operations.
 
-    ☐ Implement the unified public `SIMD_FLAGS(...)` method-contract and compiler-attribute system described in `docs/MethodFlagsImplementation.todo`.
+    ☒ Implement the unified public `SIMD_FLAGS(...)` method-contract and compiler-attribute system described in `docs/MethodFlagsImplementation.todo`.
 
     ☐ Design a `SimdLib::Tensor` class to represent multi-dimensional arrays (tensors) and provide methods for performing tensor operations in a SIMD context.
         The Tensor type should support various data types and dimensions, allowing for efficient manipulation of large datasets in parallel.

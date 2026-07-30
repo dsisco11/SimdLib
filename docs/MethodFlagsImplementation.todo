@@ -1,10 +1,10 @@
 SimdLib Method Flags Implementation Plan:
 
   Purpose:
-    ☐ Provide one public `SIMD_FLAGS(...)` declaration macro that lets SimdLib and downstream developers state the SIMD ABI and optimization promises of a function without spelling a compiler-specific attribute sequence.
-    ☐ Treat each flag as a developer contract whose compiler expansion is permitted only where the contract makes the corresponding attribute safe.
-    ☐ Replace repeated direct use of `VECTORCALL`, `SIMDLIB_REGISTER_ONLY`, `SIMDLIB_FORCE_INLINE`, and `SIMDLIB_FLATTEN` in function declarations with a readable, auditable flag list.
-    ☐ Preserve the generated code, calling convention, stack-protection policy, and supported compiler behavior of every migrated declaration.
+    ☒ Provide one public `SIMD_FLAGS(...)` declaration macro that lets SimdLib and downstream developers state the SIMD ABI and optimization promises of a function without spelling a compiler-specific attribute sequence.
+    ☒ Treat each flag as a developer contract whose compiler expansion is permitted only where the contract makes the corresponding attribute safe.
+    ☒ Replace repeated direct use of `VECTORCALL`, `SIMDLIB_REGISTER_ONLY`, `SIMDLIB_FORCE_INLINE`, and `SIMDLIB_FLATTEN` in function declarations with a readable, auditable flag list.
+    ☒ Preserve the generated code, calling convention, stack-protection policy, and supported compiler behavior of every migrated declaration.
 
   Controlling Decisions:
     ☒ Use the public spelling `SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten)`, with one required boundary mode followed by only the modifiers required by a particular declaration.
@@ -170,19 +170,20 @@ SimdLib Method Flags Implementation Plan:
       Evidence: `VECTORCALL`, `SIMDLIB_REGISTER_ONLY`, `SIMDLIB_FORCE_INLINE`, and `SIMDLIB_FLATTEN` no longer have public definitions or active source occurrences. `SIMD_FLAGS(...)` is the sole supported declaration spelling; the raw compiler-attribute code-generation fixture is isolated behind exact internal-adapter allowlisting. `Generate-MethodFlagsInventory.ps1 -Verify` requires a zero-record retired-surface ledger, validates every canonical invocation, rejects short object-like flag macros and adapter leakage, and generates `MethodFlagsRegisterOnly.csv` with 1,019 reviewable declarations without claiming semantic body proof. Six isolated source-audit regressions prove canonical acceptance and rejection of unknown flags, short macros, leaked adapters, direct retired tokens, and Doxygen leakage. Compiler-contract targets copy the complete public header tree and compile Config-only, umbrella, disabled-feature, Register, and cross-translation-unit consumers using only that image; the existing first-header, ODR, and external `add_subdirectory` consumers remain part of the Release contract. The repository audit binds both generated ledgers by count and SHA-256 digest. Full Release builds and tests passed with MSVC 19.44 (270 project tests and 2 downstream tests), clang-cl 22.1.8 (273 and 2), GCC 14.2.0 (273 and 2), and Clang 22.1.3 (273 and 2), including SSE4.2/AVX2 runtime, constexpr, ABI, stack-protection, and generated-code gates.
 
   Phase 9 - Document, Qualify, and Close Out:
-    ☐ Add README and reference examples for `Neither`, `In`, `Out`, `InOut`, `RegisterOnly`, `ForceInline`, and `Flatten`.
-    ☐ Document that declaration and definition must use ABI-compatible flags and that all translation units must agree on vectorcall configuration.
-    ☐ Document that `Out` currently affects the calling convention but does not independently force a return-register ABI where the platform ABI uses hidden return storage.
-    ☐ Document that `RegisterOnly` is a strong developer promise used to justify MSVC stack-protection suppression, not a compiler-verified no-spill guarantee.
-    ☐ Document that downstream authors must not apply `RegisterOnly` to stores, writable spans, output pointers/references, addressable-buffer algorithms, or unreviewed transitive calls.
-    ☐ Document the distinct effects of `ForceInline` and `Flatten` and explain why neither implies the other.
-    ☐ Document supported compiler mappings and the behavior of semantically retained flags whose mapping is empty on a compiler.
-    ☐ Document the procedure for adding a future flag or compiler adapter, including contract definition, placement probes, configuration probes, ABI checks, and generated-code evidence.
-    ☐ Run strict header, configuration, external-consumer, runtime, constexpr, compile-failure, ABI, and generated-code validation across MSVC, clang-cl, GCC, and GNU-like Clang.
-    ☐ Run the supported SSE4.2 and AVX2 profiles needed to prove that declaration migration is independent of instruction-family selection.
-    ☐ Verify `git diff --check` and confirm no generated preprocessor output, object code, disassembly, build tree, or temporary probe is tracked.
-    ☐ Reconcile this plan and the top-level project task list with the final supported flag vocabulary and documented exceptions.
-    ☐ End Phase 9 only when SimdLib and a downstream consumer can use one documented flag-based declaration system with unchanged behavior and complete compiler evidence.
+    ☒ Add README and reference examples for `Neither`, `In`, `Out`, `InOut`, `RegisterOnly`, `ForceInline`, and `Flatten`.
+    ☒ Document that declaration and definition must use ABI-compatible flags and that all translation units must agree on vectorcall configuration.
+    ☒ Document that `Out` currently affects the calling convention but does not independently force a return-register ABI where the platform ABI uses hidden return storage.
+    ☒ Document that `RegisterOnly` is a strong developer promise used to justify MSVC stack-protection suppression, not a compiler-verified no-spill guarantee.
+    ☒ Document that downstream authors must not apply `RegisterOnly` to stores, writable spans, output pointers/references, addressable-buffer algorithms, or unreviewed transitive calls.
+    ☒ Document the distinct effects of `ForceInline` and `Flatten` and explain why neither implies the other.
+    ☒ Document supported compiler mappings and the behavior of semantically retained flags whose mapping is empty on a compiler.
+    ☒ Document the procedure for adding a future flag or compiler adapter, including contract definition, placement probes, configuration probes, ABI checks, and generated-code evidence.
+    ☒ Run strict header, configuration, external-consumer, runtime, constexpr, compile-failure, ABI, and generated-code validation across MSVC, clang-cl, GCC, and GNU-like Clang.
+    ☒ Run the supported SSE4.2 and AVX2 profiles needed to prove that declaration migration is independent of instruction-family selection.
+    ☒ Verify `git diff --check` and confirm no generated preprocessor output, object code, disassembly, build tree, or temporary probe is tracked.
+    ☒ Reconcile this plan and the top-level project task list with the final supported flag vocabulary and documented exceptions.
+    ☒ End Phase 9 only when SimdLib and a downstream consumer can use one documented flag-based declaration system with unchanged behavior and complete compiler evidence.
+      Evidence: `README.md` now introduces all four boundary modes and all three modifiers, demonstrates the canonical declaration form, and links the normative `docs/MethodFlagsContract.md` reference. The reference documents declaration/definition and translation-unit ABI agreement, hidden return storage under `Out`, the security consequences and prohibited uses of `RegisterOnly`, the independent `ForceInline` and `Flatten` directions, supported and empty compiler mappings, downstream declarations, custom adapters, and the qualification procedure for future flags. Stale fixture names were corrected in `RegisterCodegenAudit.md` and `TestCoverage.md`; the superseded `FunctionFlagsProposal.md` was removed so it cannot contradict the supported vocabulary. Receipt-bound cached builds and test-only runs on source digest `94ec371cf6d98a9a6053a6516fe7f215badc08660c8009624e8094869050e0a7` passed with MSVC 19.44 (270 project tests and 2 downstream tests), clang-cl 22.1.8 (273 and 2), GCC 14.2.0 (273 and 2), and GNU-like Clang 22.1.3 (273 and 2); the Clang ASan/UBSan diagnostic cell also passed 258 tests. The exhaustive Release cells enforce header, configuration, external-consumer, runtime, constexpr, compile-failure, ABI, stack-protection, and generated-code contracts under SSE4.2 and AVX2. The current repository audit passed its validation-pipeline and six method-flags source-audit regressions, recorded zero legacy declarations and 1,019 `RegisterOnly` declarations, and bound both ledgers. `git diff --check`, the retired-name scan, and tracked/untracked artifact audits passed with no generated build output or temporary probe entering the worktree.
 
   Execution Evidence:
     ☒ Phase 0 boundary-mode grammar, modifier contracts, invalid forms, and audit criteria recorded in `docs/MethodFlagsContract.md`.
@@ -194,4 +195,4 @@ SimdLib Method Flags Implementation Plan:
     ☒ Phase 6 implementation-layer and `Api` migration with focused correctness and code-generation results recorded.
     ☒ Phase 7 Register-facing, remaining public-code, example, and downstream migration results recorded.
     ☒ Phase 8 legacy-surface removal, source audits, installed-header, and inclusion results recorded.
-    ☐ Phase 9 documentation, complete compiler/profile qualification, repository hygiene, and close-out evidence recorded.
+    ☒ Phase 9 documentation, complete compiler/profile qualification, repository hygiene, and close-out evidence recorded.
