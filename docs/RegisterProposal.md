@@ -32,7 +32,7 @@ algorithms and partial-register handling remain outside `Register`.
 | Controlling requirement | Template order is `<T, Bits>`; every hardware lane is active; default construction uses the native zero-register operation; comparison behavior matches the selected hardware intrinsic; the abstraction has zero runtime overhead in supported configurations. |
 | Implemented public design | Explicit register width with `NativeRegister<T>` for target-selected width; C++23 explicit-object members for register-consuming operations; explicit scalar broadcast; `RegisterMask<T, Bits>` predicates; fixed-extent element and byte transfers; operation names and results defined by the migration ledger. |
 | Intentionally excluded | Partial and unsafe loads, automatic lane filling, collection transforms, native-order construction, ambiguous `expand`/`compress`, implementation-specific runtime rearrangements, and multi-register widening results. |
-| Qualification contract | The supported compiler, ISA, type, width, generated-code, and non-inlined calling-boundary cells are defined in `docs/RegisterQualification.md`; execution evidence is recorded in `docs/Validation.md`. |
+| Qualification contract | The supported compiler, ISA, type, width, generated-code, and non-inlined calling-boundary cells are defined in `docs/RegisterQualification.md`; individual outcomes are emitted as build receipts, reports, provenance files, and logs. |
 
 ## Motivation
 

@@ -319,7 +319,7 @@ the complete correctness, layout, ABI, and generated-code gates pass.
 | Checks-enabled preconditions | `tests/RegisterPreconditionFailure.tests.cpp` | Existing precondition death-test infrastructure |
 | Sanitizers | Runtime Register and mask sources | Fresh Clang ASan/UBSan configuration |
 | Supplemental benchmarks | `benchmarks/Register.benchmarks.cpp` | `Benchmarks`; never a correctness/codegen substitute |
-| Final evidence | This document and `docs/Validation.md` | Updated after each completed task |
+| Per-run evidence | Generated build receipts, JUnit reports, provenance files, and logs | Runtime artifacts rather than enduring documentation |
 
 Every production class and method has Doxygen documentation. Test
 and generated-code sources use only public SimdLib declarations except the

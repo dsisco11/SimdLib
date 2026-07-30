@@ -384,6 +384,7 @@ The consumer smoke project under `tests/consumer` imports SimdLib with
 `add_subdirectory`, verifies that `SimdLib` is an `INTERFACE_LIBRARY`, and
 links only the consumer executable. No SimdLib runtime binary is produced.
 
-The completed compiler, sanitizer, consumer, benchmark, and test evidence is
-recorded in [Validation.md](../docs/Validation.md). Broader coverage details
-and known gaps are recorded in [TestCoverage.md](../docs/TestCoverage.md).
+The supported compiler, sanitizer, consumer, benchmark, and test commands are
+documented in [BuildPipeline.md](../docs/BuildPipeline.md). Coverage ownership
+and known gaps are recorded in [TestCoverage.md](../docs/TestCoverage.md);
+individual outcomes remain in generated reports and CI artifacts.

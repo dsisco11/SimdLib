@@ -75,5 +75,5 @@ and the API/vector contracts under SSE4.2, AVX2, and fully disabled profiles.
 `ConstexprProbes` aggregates these targets. The production-header
 assertion audit is a build dependency and a CTest entry; any unallowlisted
 assertion or stale justification fails with its header and assertion text.
-See [`docs/ConstexprCompilerEvidence.md`](../docs/ConstexprCompilerEvidence.md)
-for compiler-specific runtime-path evidence and measurement results.
+The durable target/profile ownership and compiler-specific runtime-path
+assignments are recorded in [`docs/TestCoverage.md`](../docs/TestCoverage.md).

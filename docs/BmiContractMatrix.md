@@ -24,15 +24,3 @@ Signed `int32_t`/`int64_t` object-representation checks protect the signed
 contracts. The portable, BMI1-only, BMI2-only, and combined profiles must
 produce the same deterministic digest; their CTest equivalence tests are the
 configuration proof.
-
-## Validation record
-
-The `clang-debug-coverage` profile owns source-instrumented BMI coverage.
-The BMI subset ran 47 entries: eleven public-contract tests in each of the
-portable, BMI1-only, BMI2-only, and combined configurations, followed by the
-three enabled-versus-portable deterministic-digest equivalence tests. All 47
-passed. The exhaustive 8-bit contracts exposed and fixed narrow-integer
-promotion defects in the AND-NOT and unset/trailing-mask helper families. The
-deterministic seeds remain `0xC001D00D12345678`,
-`0x9E3779B97F4A7C15`, `0xD1B54A32D192ED03`, and
-`0xA0761D6478BD642F`.

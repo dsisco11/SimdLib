@@ -306,8 +306,8 @@ fixtures retain normal `/GS` protection and paired disassembly for review.
   configuration details, formatting, and development commands.
 - [Public namespace and compatibility](docs/PublicNamespace.md) describes the
   supported API boundary.
-- [Validation record](docs/Validation.md) documents the compiler, sanitizer,
-  consumer, and test evidence.
+- [Build and validation](docs/BuildPipeline.md) documents the supported build,
+  test, compiler-matrix, and reporting commands.
 
 ## License
 

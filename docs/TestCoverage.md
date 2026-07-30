@@ -1,8 +1,8 @@
 # Test coverage contract
 
 This document defines SimdLib's enduring behavioral coverage and feature-profile
-ownership. Run-specific percentages, counts, timings, and tool identities are
-execution evidence recorded in [Validation.md](Validation.md).
+ownership. Run-specific percentages, counts, timings, and tool identities belong
+in generated build receipts, reports, coverage artifacts, and CI results.
 
 ## Coverage layers
 
@@ -80,11 +80,27 @@ Compile-only targets cover:
 - dedicated BMI, UInt128, 128/256-bit API/vector, and disabled-feature constexpr
   targets aggregated by `ConstexprProbes`.
 
+The constexpr sources are ordinary object-library probes aggregated by
+`ConstexprProbes`, which is owned by `ExhaustiveArtifacts`. The
+`ConstexprProbes.Artifacts` CTest entry validates their recorded object hashes
+without recompiling them. Profile ownership is:
+
+| Contract source | Compile profiles |
+| --- | --- |
+| `BmiConstexpr.tests.cpp` | Portable, BMI1 only, BMI2 only, and BMI1 with BMI2 |
+| `UInt128Constexpr.tests.cpp` | Compiler carry, portable carry, and scalar with SIMD, BMI, and FMA disabled |
+| `Api128Constexpr.tests.cpp` | SSE4.2 public API and four-lane `SimdVector` |
+| `Api256Constexpr.tests.cpp` | AVX2 public API and eight-lane `SimdVector` |
+| `ApiDisabledConstexpr.tests.cpp` | All instruction families disabled |
+
+Runtime parity targets rebuild deterministic inputs through volatile scalars
+before exercising comparisons, extrema, lane shifts, addition, and subtraction.
+MSVC x64 owns the `_addcarry_u64` and `_subborrow_u64` UInt128 path; Clang and
+GCC own the `__builtin_add_overflow` and `__builtin_sub_overflow` path. Portable
+and scalar profiles disable compiler carry intrinsics.
+
 The retained-assertion classifications and mechanical allowlist are recorded in
-[`StaticAssertionInventory.md`](StaticAssertionInventory.md). The complete
-constexpr/compiler matrix, runtime-path evidence, and consumer compile-time
-measurements are recorded in
-[`ConstexprCompilerEvidence.md`](ConstexprCompilerEvidence.md).
+[`StaticAssertionInventory.md`](StaticAssertionInventory.md).
 
 `tests/consumer` separately imports the source tree through
 `add_subdirectory`, verifies that `SimdLib::SimdLib` is an interface target,
@@ -353,9 +369,9 @@ diagnostic, or an export with no SimdLib source records.
 
 Coverage percentages, test and profile counts, elapsed times, generated-file
 hashes, compiler and tool versions, and line-number-specific exclusion reviews are
-execution evidence. Record them in [Validation.md](Validation.md) and in the
-reports below the owning fingerprint rather than duplicating them as enduring
-claims in this coverage contract.
+execution evidence. Keep them in the generated reports and artifacts below the
+owning fingerprint rather than duplicating them as enduring claims in this
+coverage contract.
 
 LLVM runtime profiles cannot increment constant-evaluation-only branches.
 Compile-time probes therefore own those contracts, while compiler-specific

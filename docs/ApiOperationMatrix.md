@@ -56,6 +56,6 @@ supported test seam.
 The complete one-register mapping is audited by
 `tests/RegisterOperationMatrix.tests.cpp`. Behavioral correctness remains
 independently checked against scalar references so agreement between
-`Register` and `Api` cannot hide a shared defect. Execution results and exact
-compiler counts belong in [Validation.md](Validation.md), not in this enduring
-availability matrix.
+`Register` and `Api` cannot hide a shared defect. Per-run results and exact
+compiler counts belong in generated build reports and CI artifacts, not in this
+enduring availability matrix.

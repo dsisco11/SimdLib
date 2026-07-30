@@ -152,11 +152,9 @@ Documentation references have these roles:
 | `RegisterProposal.md` | Public zero-overhead and ABI requirements. |
 | `RegisterImplementationMatrix.md` | Public-operation-to-generated-code traceability. |
 | `MethodFlagsContract.md` | Compiler-attribute promises, compiler mappings, and extension policy. |
-| `BuildPipeline.md`, `ContainerValidation.md`, and `Validation.md` | Reproduction commands and execution-reporting boundaries. |
-| `UnifiedBuildPipelineBaseline.md` and `UnifiedBuildPipelineCMakeProfiles.md` | Pipeline ownership, current record counts, and historical baseline distinction. |
-| `UnifiedBuildPipelineExpectedTargets.txt` and `UnifiedBuildPipelineExpectedTests.txt` | Frozen pre-refactor evidence, not the current generated inventory. |
+| `BuildPipeline.md` and `ContainerValidation.md` | Reproduction commands and execution-reporting boundaries. |
 | `MethodFlagsInventory.csv` and `MethodFlagsInventory.md` | Declaration migration and method-flag audit evidence. |
-| `MethodFlagsImplementation.todo`, `TestCoverageExpansion.todo`, and `project.todo` | Active planning and project backlog; not normative pass claims. |
+| `SimdLibDevelopment.todo`, `TestCoverageExpansion.todo`, and `project.todo` | Active planning and project backlog; not normative pass claims. |
 | `README.md` and `wiki/Technical-Reference.md` | User-facing support and performance guidance. |
 
 ## Removed redundant fixtures
