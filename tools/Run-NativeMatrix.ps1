@@ -97,7 +97,7 @@ function Resolve-NativeCells {
             $cells.Add([pscustomobject]@{
                     Compiler = $compilerKey; Key = 'debug'; Preset = $preset
                     BuildProfile = 'Debug'; Generator = if ($compilerKey -eq 'msvc') { 'Visual Studio 17 2022' } else { 'Ninja' }
-                    Consumer = $true; Coverage = $false; Sanitizer = 'none'; CodegenMode = 'OFF'
+                    Consumer = $false; Coverage = $false; Sanitizer = 'none'; CodegenMode = 'OFF'
                 })
         }
     }
@@ -139,6 +139,7 @@ function Initialize-NativeArtifact {
             key = $BuildCell.Key; preset = $BuildCell.Preset; buildProfile = $BuildCell.BuildProfile
             sanitizer = $BuildCell.Sanitizer; coverage = $BuildCell.Coverage; generator = $BuildCell.Generator
             codegenMode = $BuildCell.CodegenMode
+            consumerScope = if ($BuildCell.Consumer) { 'compiler-release' } else { 'none' }
             cxxStandard = '20-and-23-register'
         }
         dependencies = [ordered]@{
@@ -285,6 +286,33 @@ function Write-CodegenRecordIndex {
 
 <#
 .SYNOPSIS
+Returns and validates the external-consumer scope owned by one native cell.
+.PARAMETER Artifact
+Resolved cell whose configured capability inventory is inspected.
+#>
+function Get-NativeConsumerScope {
+    param([Parameter(Mandatory)]$Artifact)
+    if (-not $Artifact.Definition.Consumer) { return 'none' }
+
+    $capabilityPath = Join-Path $Artifact.Build 'external-consumer-targets.txt'
+    if (-not (Test-Path -LiteralPath $capabilityPath -PathType Leaf)) {
+        throw "External-consumer capability inventory is missing: $capabilityPath"
+    }
+    $targets = @(
+        Get-Content -LiteralPath $capabilityPath |
+            Where-Object { -not [string]::IsNullOrWhiteSpace($_) } |
+            Sort-Object -Unique
+    )
+    $targetSequence = $targets -join '|'
+    if ($targetSequence -eq 'CoreConsumerSmoke') { return 'core' }
+    if ($targetSequence -eq 'CoreConsumerSmoke|RegisterConsumerSmoke') {
+        return 'core-register'
+    }
+    throw "Unsupported external-consumer capability inventory: $targetSequence"
+}
+
+<#
+.SYNOPSIS
 Writes an atomic completed-operation manifest for one native cell.
 .PARAMETER Artifact
 Resolved cell artifact.
@@ -296,6 +324,7 @@ function Write-NativeManifest {
     $mainInventory = Join-Path $Artifact.Provenance 'main-test-artifacts.inventory'
     $consumerInventory = Join-Path $Artifact.Provenance 'consumer-test-artifacts.inventory'
     $codegenIndex = Join-Path $Artifact.Provenance 'codegen-records.index'
+    $consumerScope = Get-NativeConsumerScope -Artifact $Artifact
     $mainMetadata = Join-Path $Artifact.Build 'CTestTestfile.cmake'
     $consumerMetadata = Join-Path $Artifact.Consumer 'CTestTestfile.cmake'
     $manifestName = if ($Operation -eq 'build-benchmarks') { 'benchmark-build.manifest' } else { 'validation-build.manifest' }
@@ -308,6 +337,7 @@ function Write-NativeManifest {
         "compiler_id=$($Artifact.Definition.Compiler)", "compiler=$($Artifact.CompilerIdentity.version)", 'base_image=none',
         "preset=$($Artifact.Definition.Preset)", "build_profile=$($Artifact.Definition.BuildProfile)",
         "sanitizer=$($Artifact.Definition.Sanitizer)", "codegen_mode=$($Artifact.Definition.CodegenMode)",
+        "consumer_scope=$consumerScope",
         "build_directory=$($Artifact.Build)", "consumer_directory=$($Artifact.Consumer)",
         "cmake_cache_sha256=$(Get-OptionalFileHash -Path (Join-Path $Artifact.Build 'CMakeCache.txt'))",
         'required_cpu_features=sse4.2,avx2,fma,bmi1,bmi2',
@@ -339,6 +369,7 @@ function Assert-NativeManifest {
         compiler_id = $Artifact.Definition.Compiler; preset = $Artifact.Definition.Preset
         build_profile = $Artifact.Definition.BuildProfile; sanitizer = $Artifact.Definition.Sanitizer
         codegen_mode = $Artifact.Definition.CodegenMode
+        consumer_scope = Get-NativeConsumerScope -Artifact $Artifact
     }
     foreach ($key in $expected.Keys) {
         if ($manifest[$key] -ne $expected[$key]) { throw "Manifest $path has mismatched $key" }
@@ -385,7 +416,9 @@ function Build-NativeValidationCell {
     Invoke-PipelineCommand -FilePath $cmake -ArgumentList $buildArguments -LogPath (Join-Path $Artifact.Reports 'main-build.log')
 
     if ($Artifact.Definition.Consumer) {
-        $consumerArguments = @('-S', (Join-Path $repositoryRoot 'tests/consumer'), '-B', $Artifact.Consumer, "-DSIMDLIB_SOURCE_DIR=$repositoryRoot", '-DSIMDLIB_BUILD_REGISTER_CONSUMER=ON')
+        $consumerScope = Get-NativeConsumerScope -Artifact $Artifact
+        $registerConsumer = if ($consumerScope -eq 'core-register') { 'ON' } else { 'OFF' }
+        $consumerArguments = @('-S', (Join-Path $repositoryRoot 'tests/consumer'), '-B', $Artifact.Consumer, "-DSIMDLIB_SOURCE_DIR=$repositoryRoot", "-DSIMDLIB_BUILD_REGISTER_CONSUMER=$registerConsumer")
         if ($Artifact.Definition.Compiler -eq 'msvc') {
             $consumerArguments += @('-G', 'Visual Studio 17 2022', '-A', 'x64', "-DCMAKE_CONFIGURATION_TYPES=$($Artifact.Definition.BuildProfile)")
         } else {
@@ -395,6 +428,8 @@ function Build-NativeValidationCell {
         $consumerBuildArguments = @('--build', $Artifact.Consumer, '--parallel')
         if ($Artifact.Definition.Compiler -eq 'msvc') { $consumerBuildArguments += @('--config', $Artifact.Definition.BuildProfile) }
         Invoke-PipelineCommand -FilePath $cmake -ArgumentList $consumerBuildArguments -LogPath (Join-Path $Artifact.Reports 'consumer-build.log')
+    } elseif (Test-Path -LiteralPath $Artifact.Consumer) {
+        throw "Consumer-free cell contains an external-consumer tree: $($Artifact.Consumer)"
     }
 
     $mainInventory = Join-Path $Artifact.Provenance 'main-test-artifacts.inventory'

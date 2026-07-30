@@ -9,6 +9,7 @@ test_label=
 build_profile=
 sanitizer=none
 codegen_mode=OFF
+consumer_scope=none
 artifact_root="/workspace/out/${SIMDLIB_COMPILER_ID:-unknown}"
 fingerprint_sha256=
 
@@ -25,6 +26,7 @@ Usage: simdlib-container --operation OPERATION [options]
   --build-profile NAME   Release or Debug; must agree with the selected preset
   --sanitizer MODE       none or asan-ubsan
   --codegen-mode MODE    OFF, ENFORCE, or RECORD
+  --consumer-scope SCOPE none or compiler-release
   --artifact-root PATH   Writable compiler-specific artifact root
   --fingerprint-sha256   Full SHA256 of the canonical build-cell fingerprint
   --help                 Show this help
@@ -40,6 +42,7 @@ while [ "$#" -gt 0 ]; do
 		--build-profile) build_profile=$2; shift 2 ;;
 		--sanitizer) sanitizer=$2; shift 2 ;;
 		--codegen-mode) codegen_mode=$2; shift 2 ;;
+		--consumer-scope) consumer_scope=$2; shift 2 ;;
 		--artifact-root) artifact_root=$2; shift 2 ;;
 		--fingerprint-sha256) fingerprint_sha256=$2; shift 2 ;;
 		--help) print_usage; exit 0 ;;
@@ -75,6 +78,10 @@ case "$codegen_mode" in
 	OFF|ENFORCE|RECORD) ;;
 	*) echo "Unsupported codegen mode: $codegen_mode" >&2; exit 2 ;;
 esac
+case "$consumer_scope" in
+	none|compiler-release) ;;
+	*) echo "Unsupported consumer scope: $consumer_scope" >&2; exit 2 ;;
+esac
 if [ "$operation" = record-codegen ] && [ "$codegen_mode" != RECORD ]; then
 	echo "The record-codegen operation requires --codegen-mode RECORD" >&2
 	exit 2
@@ -86,6 +93,10 @@ esac
 [ -n "$build_profile" ] || build_profile=$expected_build_profile
 [ "$build_profile" = "$expected_build_profile" ] || {
 	echo "Build profile $build_profile does not match preset $preset ($expected_build_profile)" >&2
+	exit 2
+}
+[ "$consumer_scope" != compiler-release ] || [ "$build_profile" = Release ] || {
+	echo "Compiler Release consumer scope requires a Release profile" >&2
 	exit 2
 }
 case "$operation" in
@@ -286,13 +297,39 @@ configure_main_project()
 	run_reported "$report_directory/main-configure.log" cmake "$@"
 }
 
+## @brief Resolves the concrete consumer inventory owned by this compiler cell.
+resolve_external_consumer_scope()
+{
+	[ "$consumer_scope" != none ] || {
+		printf '%s\n' none
+		return
+	}
+	capability_file="$build_directory/external-consumer-targets.txt"
+	[ -f "$capability_file" ] || {
+		echo "External-consumer capability inventory is missing: $capability_file" >&2
+		exit 6
+	}
+	consumer_targets=$(LC_ALL=C sort -u "$capability_file" | tr '\n' '|')
+	case "$consumer_targets" in
+		CoreConsumerSmoke\|) printf '%s\n' core ;;
+		CoreConsumerSmoke\|RegisterConsumerSmoke\|)
+			printf '%s\n' core-register
+			;;
+		*)
+			echo "Unsupported external-consumer capability inventory: $consumer_targets" >&2
+			exit 6
+			;;
+	esac
+}
+
 ## @brief Configures and builds the assigned external-consumer tree.
 build_external_consumer()
 {
+	concrete_scope=$1
 	cxx_flags=${SIMDLIB_REQUIRED_CXX_FLAGS:-}
 	linker_flags=${SIMDLIB_REQUIRED_LINKER_FLAGS:-}
-	register_consumer=ON
-	[ "${SIMDLIB_COMPILER_ID:-unknown}" != gcc13 ] || register_consumer=OFF
+	register_consumer=OFF
+	[ "$concrete_scope" != core-register ] || register_consumer=ON
 	run_reported "$report_directory/consumer-configure.log" cmake \
 		-S "$source_directory/tests/consumer" -B "$consumer_directory" -G Ninja \
 		-DCMAKE_BUILD_TYPE="$build_profile" \
@@ -364,6 +401,7 @@ write_completed_manifest()
 	manifest_file=$1
 	manifest_operation=$2
 	source_digest=$3
+	concrete_consumer_scope=$(resolve_external_consumer_scope)
 	cache_hash=$(sha256sum "$build_directory/CMakeCache.txt" | cut -d ' ' -f 1)
 	source_revision=${SIMDLIB_BUILD_REVISION:-unknown}
 	if [ "$source_revision" = unknown ]; then
@@ -401,6 +439,8 @@ write_completed_manifest()
 		echo "build_profile=$build_profile"
 		echo "sanitizer=$sanitizer"
 		echo "codegen_mode=$codegen_mode"
+		echo "consumer_owner=$consumer_scope"
+		echo "consumer_scope=$concrete_consumer_scope"
 		echo "build_directory=$build_directory"
 		echo "consumer_directory=$consumer_directory"
 		echo "cmake_cache_sha256=$cache_hash"
@@ -437,6 +477,7 @@ validate_validation_manifest()
 		[ "$(manifest_value "$validation_manifest" build_profile)" = "$build_profile" ] &&
 		[ "$(manifest_value "$validation_manifest" sanitizer)" = "$sanitizer" ] &&
 		[ "$(manifest_value "$validation_manifest" codegen_mode)" = "$codegen_mode" ] &&
+		[ "$(manifest_value "$validation_manifest" consumer_owner)" = "$consumer_scope" ] &&
 		[ "$(manifest_value "$validation_manifest" compiler_id)" = "${SIMDLIB_COMPILER_ID:-unknown}" ] &&
 		[ "$(manifest_value "$validation_manifest" base_image)" = "${SIMDLIB_BASE_IMAGE:-unknown}" ] ||
 		{
@@ -457,6 +498,11 @@ validate_validation_manifest()
 		echo "Validation build manifest is stale for the current CMake cache: $validation_manifest" >&2
 		exit 6
 	}
+	concrete_consumer_scope=$(resolve_external_consumer_scope)
+	[ "$(manifest_value "$validation_manifest" consumer_scope)" = "$concrete_consumer_scope" ] || {
+		echo "Validation consumer scope does not match compiler capabilities" >&2
+		exit 6
+	}
 	[ "$(manifest_value "$validation_manifest" main_test_inventory_sha256)" = \
 		"$(sha256sum "$main_inventory" | cut -d ' ' -f 1)" ] &&
 		[ "$(manifest_value "$validation_manifest" consumer_test_inventory_sha256)" = \
@@ -467,14 +513,27 @@ validate_validation_manifest()
 			echo "Validation artifact indexes are missing or stale: $validation_manifest" >&2
 			exit 6
 		}
-	[ "$(manifest_value "$validation_manifest" main_ctest_metadata_sha256)" = "$(sha256sum "$build_directory/CTestTestfile.cmake" | cut -d ' ' -f 1)" ] &&
-		[ "$(manifest_value "$validation_manifest" consumer_ctest_metadata_sha256)" = "$(sha256sum "$consumer_directory/CTestTestfile.cmake" | cut -d ' ' -f 1)" ] ||
-		{
-			echo "Generated CTest metadata is missing or stale: $validation_manifest" >&2
+	[ "$(manifest_value "$validation_manifest" main_ctest_metadata_sha256)" = \
+		"$(sha256sum "$build_directory/CTestTestfile.cmake" | cut -d ' ' -f 1)" ] || {
+		echo "Generated main CTest metadata is missing or stale: $validation_manifest" >&2
+		exit 6
+	}
+	validate_test_inventory "$build_directory" "$main_inventory"
+	if [ "$concrete_consumer_scope" = none ]; then
+		[ "$(manifest_value "$validation_manifest" consumer_ctest_metadata_sha256)" = none ] &&
+			[ ! -f "$consumer_directory/CTestTestfile.cmake" ] &&
+			[ ! -s "$consumer_inventory" ] || {
+				echo "Consumer-free cell contains external-consumer artifacts" >&2
+				exit 6
+			}
+	else
+		[ "$(manifest_value "$validation_manifest" consumer_ctest_metadata_sha256)" = \
+			"$(sha256sum "$consumer_directory/CTestTestfile.cmake" | cut -d ' ' -f 1)" ] || {
+			echo "Generated consumer CTest metadata is missing or stale" >&2
 			exit 6
 		}
-	validate_test_inventory "$build_directory" "$main_inventory"
-	validate_test_inventory "$consumer_directory" "$consumer_inventory"
+		validate_test_inventory "$consumer_directory" "$consumer_inventory"
+	fi
 	cmake -DRECORD_INDEX="$codegen_record_index" \
 		-P "$source_directory/cmake/ValidateCodegenRecords.cmake"
 }
@@ -528,6 +587,7 @@ can_reuse_validation_configuration()
 		[ "$(manifest_value "$validation_manifest" build_profile)" = "$build_profile" ] &&
 		[ "$(manifest_value "$validation_manifest" sanitizer)" = "$sanitizer" ] &&
 		[ "$(manifest_value "$validation_manifest" codegen_mode)" = "$codegen_mode" ] &&
+		[ "$(manifest_value "$validation_manifest" consumer_owner)" = "$consumer_scope" ] &&
 		[ "$(manifest_value "$validation_manifest" compiler_id)" = "${SIMDLIB_COMPILER_ID:-unknown}" ] &&
 		[ "$(manifest_value "$validation_manifest" base_image)" = "${SIMDLIB_BASE_IMAGE:-unknown}" ] &&
 		[ "$(manifest_value "$validation_manifest" source_digest)" = "$(compute_source_digest)" ] &&
@@ -546,9 +606,19 @@ case "$operation" in
 		configure_main_project
 		run_reported "$report_directory/main-build.log" \
 			cmake --build "$build_directory" --parallel --target ExhaustiveArtifacts
-		build_external_consumer
+		concrete_consumer_scope=$(resolve_external_consumer_scope)
+		if [ "$concrete_consumer_scope" != none ]; then
+			build_external_consumer "$concrete_consumer_scope"
+		elif [ -e "$consumer_directory" ]; then
+			echo "Consumer-free cell contains an external-consumer tree" >&2
+			exit 6
+		fi
 		record_test_inventory "$build_directory" "$main_inventory"
-		record_test_inventory "$consumer_directory" "$consumer_inventory"
+		if [ "$concrete_consumer_scope" = none ]; then
+			: >"$consumer_inventory"
+		else
+			record_test_inventory "$consumer_directory" "$consumer_inventory"
+		fi
 		write_codegen_record_index
 		write_completed_manifest "$validation_manifest" build-validation "$source_digest"
 		;;
@@ -611,8 +681,10 @@ case "$operation" in
 		[ -z "$test_regex" ] || set -- "$@" --tests-regex "$test_regex"
 		[ -z "$test_label" ] || set -- "$@" --label-regex "$test_label"
 		ctest "$@"
-		ctest --test-dir "$consumer_directory" --output-on-failure \
-			--output-junit "$report_directory/consumer-test.xml"
+		if [ "$(manifest_value "$validation_manifest" consumer_scope)" != none ]; then
+			ctest --test-dir "$consumer_directory" --output-on-failure \
+				--output-junit "$report_directory/consumer-test.xml"
+		fi
 		;;
 	run-benchmarks)
 		validate_benchmark_manifest

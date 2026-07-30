@@ -36,7 +36,7 @@ describe the profile in which that instance is compiled and executed.
 | Optimized codegen/ABI | Mandatory optimized Release wrapper/raw, expression, specialized-operation, and ABI comparison |
 | Optional diagnostic codegen | Record-only Debug, sanitizer, or investigation-specific disassembly that cannot satisfy an optimized gate |
 | Coverage | Profile reset, execution data, merge, report generation, and coverage provenance |
-| Sanitizer | ASan+UBSan instrumentation applied to runtime and selected consumer contracts; it is not a generated-code category |
+| Sanitizer | ASan+UBSan instrumentation applied to runtime contracts; it is not a generated-code category |
 | Benchmark | Supplemental Release-only benchmark compilation and execution |
 
 ## Accepted default matrix
@@ -48,12 +48,12 @@ to that compiler's supported surface.
 | Cell | Unique default contract | Compiler contracts | Constexpr | Runtime | Smoke/ODR/examples | Consumer | Codegen | Instrumentation |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | --- | --- |
 | MSVC Release | Windows MSVC optimizer, ISA mappings, `VECTORCALL`, Release ABI, and zero-overhead qualification | yes | yes | full | yes | core+Register | enforce | none |
-| MSVC Debug | Representative ordinary Debug behavior, default checks/preconditions, Windows Debug runtime, and Debug consumer use | no; narrow checks-state probe | no | full | no | core+Register | off | none |
+| MSVC Debug | Representative ordinary Debug behavior, default checks/preconditions, and Windows Debug runtime | no; narrow checks-state probe | no | full | no | none | off | none |
 | clang-cl Release | Windows Clang frontend/optimizer, MSVC-style driver, `VECTORCALL`, and Release ABI | yes | yes | full | yes | core+Register | enforce | none |
 | GCC 13 core Release | C++20 core compatibility floor and unavailable-Register contract | yes | core only | core only | core only | core only | unavailable | none |
 | GCC 14 Release | GNU optimizer, core/Register language surface, GNU ABI, and zero-overhead qualification | yes | yes | full | yes | core+Register | enforce | none |
 | Clang 22 Release | GNU-like Clang optimizer, core/Register language surface, GNU ABI, and zero-overhead qualification | yes | yes | full | yes | core+Register | enforce | none |
-| Clang 22 ASan+UBSan Debug | Instrumented Linux runtime correctness and cross-translation-unit consumer boundary | no | no | full | no | core+Register | off | address+undefined |
+| Clang 22 ASan+UBSan Debug | Instrumented Linux runtime correctness | no | no | full | no | none | off | address+undefined |
 | Native Clang coverage | Runtime source-coverage provenance and report generation | no | no | full | no | none | off | LLVM coverage |
 | Repository audit | One source-revision-wide source audit represented in the unified receipt | n/a | n/a | n/a | n/a | n/a | n/a | none |
 
@@ -62,9 +62,11 @@ ownership is configuration behavior, not compiler breadth: MSVC Release still
 owns MSVC optimizer evidence, while the checks/precondition fixtures explicitly
 force their hooks where the contract must also be validated in Release.
 
-The sanitizer consumer remains because it exercises downstream functions and
-cross-translation-unit Register boundaries under instrumentation. It does not
-repeat structural compiler-contract probes.
+External consumers are compiler-facing header-only consumption contracts.
+Each compiler's Release cell owns its core-only or core-and-Register consumer
+inventory. Debug CRT selection and sanitizer flags affect the consumer
+executable rather than a SimdLib binary or propagated usage requirement, so
+they do not create additional consumer owners.
 
 Coverage owns only runtime correctness and checks/preconditions executables.
 Examples, header smoke tests, and ODR tests are public-surface contracts owned
@@ -122,7 +124,7 @@ troubleshooting operation.
 | clang-cl Debug | clang-cl Release owns the Clang frontend, Windows ABI, `VECTORCALL`, language, runtime, consumer, and optimizer contracts; MSVC Debug owns unoptimized Windows and default-check behavior. No separate clang-cl Debug CRT, ABI, or calling-convention contract was identified. | Explicit reproduction of a clang-cl-only Debug failure |
 | GCC 13 core Debug | GCC 13 core Release owns the C++20 compatibility floor, core runtime/consumer surface, and unavailable-Register contract; MSVC Debug owns configuration-sensitive default checks. | Explicit reproduction of a GCC 13 Debug compatibility failure |
 | GCC 14 Debug | GCC 14 Release owns GNU language, ABI, runtime, consumer, and optimizer contracts; MSVC Debug owns ordinary Debug configuration and Clang ASan+UBSan owns instrumented Linux Debug runtime behavior. | Explicit reproduction of a GCC 14 Debug failure |
-| Clang 22 Debug | Clang 22 Release owns Clang language, ABI, runtime, consumer, and optimizer contracts; Clang 22 ASan+UBSan owns Linux Debug runtime and cross-translation-unit instrumentation. | Explicit reproduction of a non-sanitized Clang Debug failure |
+| Clang 22 Debug | Clang 22 Release owns Clang language, ABI, runtime, consumer, and optimizer contracts; Clang 22 ASan+UBSan owns Linux Debug runtime instrumentation. | Explicit reproduction of a non-sanitized Clang Debug failure |
 
 ## Development-target ownership rules
 
@@ -181,9 +183,9 @@ identity prefixes.
 | `Api.*`, `Bmi*`, `FMA.*`, `Format.*`, `LogicalShuffle.*`, `Register.SSE42*`, `Register.AVX2.*`, `ResampleScalar.*`, `UInt128*`, `VectorAlgorithms.*` | 232 | Runtime correctness | Applicable Release compiler, MSVC Debug, and Clang sanitizer |
 
 The external-consumer project owns two additional logical identities:
-`CoreConsumerSmoke` on every supported Release compiler, MSVC Debug, and the
-Clang sanitizer cell; and `RegisterConsumerSmoke` on the same Register-capable
-cells.
+`CoreConsumerSmoke` on every supported Release compiler and
+`RegisterConsumerSmoke` on the same Register-capable Release compilers. GCC 13
+therefore retains the core-only consumer qualification explicitly.
 
 ## Configuration sensitivity
 

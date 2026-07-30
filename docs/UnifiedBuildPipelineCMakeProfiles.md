@@ -42,9 +42,12 @@ includes itself again to prove repeat inclusion is inert.
 
 The external consumer configures SimdLib through `add_subdirectory` and fails
 if that operation creates `BUILD_TESTING`, a SimdLib development cache option,
-a Catch2/development target, or a nested SimdLib test. Its own CTest inventory
-contains only `CoreConsumerSmoke` and `RegisterConsumerSmoke` on supported
-Register compilers.
+any target other than the two production interface targets, or a nested
+SimdLib test. Its own CTest inventory contains only `CoreConsumerSmoke` and,
+on supported Register compilers, `RegisterConsumerSmoke`. The orchestrator
+builds this project once in each compiler's Release cell and binds its concrete
+core-only or core-and-Register scope into that cell's manifest. Debug,
+sanitizer, coverage, and diagnostic cells own no external-consumer tree.
 
 ## Compilation fingerprints
 
@@ -80,8 +83,10 @@ and `Debug`, respectively.
 
 Release exhaustive caches use strict warnings, BMI variants, examples,
 benchmarks, `SIMDLIB_REGISTER_CODEGEN_MODE=ENFORCE`, and configure-time target
-inventory validation. Ordinary Debug, sanitizer, and coverage caches set
-`SIMDLIB_REGISTER_CODEGEN_MODE=OFF`; they contain no Register codegen targets.
+inventory validation. Ordinary Debug, sanitizer, and coverage caches disable
+examples and smoke/ODR targets and set `SIMDLIB_REGISTER_CODEGEN_MODE=OFF`;
+they contain neither Release-owned public-surface executables nor Register
+codegen targets.
 Explicit diagnostic caches use `SIMDLIB_REGISTER_CODEGEN_MODE=RECORD`, retain
 `/Od` or the GNU-like Debug flags, and build only the selected record-only
 fixtures. The sanitizer cache adds `-fsanitize=address,undefined` and

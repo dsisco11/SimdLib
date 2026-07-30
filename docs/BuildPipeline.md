@@ -139,6 +139,19 @@ External consumers remain separate CMake projects because a main-tree marker
 target could not truthfully represent their configure and build operations.
 Their applicable targets are recorded in `external-consumer-targets.txt` for
 the pipeline orchestrator.
+Each supported compiler's Release cell configures, builds, and tests that
+project once. Ordinary Debug, sanitizer, coverage, and diagnostic cells record
+`consumer_scope=none` and contain no consumer tree. The build manifest binds
+the owning scope and consumer test-artifact inventory, so `Run-Tests` cannot
+substitute a consumer-free cell for Release evidence.
+
+`ApiExamples` is the executable C++20 public-API usage contract, and
+`RegisterExamples` is its C++23 Register counterpart. `HeaderOnlySmoke` proves
+multi-translation-unit umbrella-header linkage, `FormatOdr` proves formatter
+specializations link across translation units, and `RegisterOdr` proves the
+same multi-translation-unit contract for Register and RegisterMask. Applicable
+Release cells own these compiler-facing public-surface contracts; GCC 13 owns
+only the core variants because its supported surface is core-only.
 
 Each configured tree writes deterministic audit inputs:
 
@@ -238,6 +251,14 @@ Coverage is development infrastructure owned only by a top-level SimdLib
 build. The root CMake boundary does not load development modules for
 `add_subdirectory` consumers, and the external-consumer contract fails if a
 coverage option, instrumented test, or report target leaks downstream.
+
+The external-consumer project snapshots the parent cache before
+`add_subdirectory`, requires the nested target inventory to contain only the
+two production interface targets, and rejects nested tests or development
+options. It independently verifies the C++20 core target, the C++23 Register
+target where supported, and their published usage requirements. Because both
+production targets are header-only, Debug CRT and sanitizer propagation do not
+create additional consumer contracts.
 
 ## Diagnostic runners and cleanup
 

@@ -81,7 +81,7 @@ set(simdlib_profile_selected_RELEASE
     OPTIMIZED_CODEGEN)
 set(simdlib_profile_allowed_DEBUG
     COMPILER_CONTRACT RUNTIME_VALIDATION
-    CHECKS_VALIDATION SMOKE_VALIDATION)
+    CHECKS_VALIDATION)
 set(simdlib_profile_selected_DEBUG ${simdlib_profile_allowed_DEBUG})
 set(simdlib_profile_allowed_SANITIZER
     RUNTIME_VALIDATION CHECKS_VALIDATION)
@@ -165,6 +165,15 @@ elseif(SIMDLIB_VALIDATION_PROFILE MATCHES
             message(FATAL_ERROR
                 "Validation profile ${SIMDLIB_VALIDATION_PROFILE} excludes "
                 "${simdlib_forbidden_contract_option}")
+        endif()
+    endforeach()
+    foreach(simdlib_forbidden_public_surface_option IN ITEMS
+        SIMDLIB_BUILD_EXAMPLES
+        SIMDLIB_BUILD_SMOKE_TESTS)
+        if(${simdlib_forbidden_public_surface_option})
+            message(FATAL_ERROR
+                "Validation profile ${SIMDLIB_VALIDATION_PROFILE} excludes "
+                "${simdlib_forbidden_public_surface_option}")
         endif()
     endforeach()
     if(SIMDLIB_VALIDATION_PROFILE MATCHES "^(DEBUG|SANITIZER)$" AND
@@ -471,6 +480,16 @@ if(BUILD_TESTING)
             -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/VerifyArtifactAggregateInventory.cmake)
     set_tests_properties(ArtifactAggregates.ProfileMembership PROPERTIES
         LABELS "CONFIGURATION;ARTIFACT_OWNERSHIP")
+
+    add_test(NAME ArtifactAggregates.PublicConsumption
+        COMMAND ${CMAKE_COMMAND}
+            "-DOWNERSHIP_FILE=${CMAKE_BINARY_DIR}/development-target-ownership.tsv"
+            "-DCONSUMER_TARGET_FILE=${CMAKE_BINARY_DIR}/external-consumer-targets.txt"
+            "-DPROFILE=${SIMDLIB_VALIDATION_PROFILE}"
+            "-DREGISTER_SUPPORTED=${SIMDLIB_REGISTER_COMPILER_SUPPORTED}"
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/VerifyPublicConsumptionProfile.cmake)
+    set_tests_properties(ArtifactAggregates.PublicConsumption PROPERTIES
+        LABELS "CONFIGURATION;ARTIFACT_OWNERSHIP;PUBLIC_CONSUMPTION")
 
     if(simdlib_targets_COMPILER_CONTRACT)
         add_test(NAME ArtifactAggregates.CompilerContractIndependence

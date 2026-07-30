@@ -6,11 +6,29 @@ if(NOT DEFINED SIMDLIB_SOURCE_DIR)
     get_filename_component(SIMDLIB_SOURCE_DIR "${CMAKE_CURRENT_LIST_DIR}/../.." ABSOLUTE)
 endif()
 
+get_cmake_property(consumer_cache_before CACHE_VARIABLES)
 add_subdirectory("${SIMDLIB_SOURCE_DIR}" "${CMAKE_CURRENT_BINARY_DIR}/simdlib" EXCLUDE_FROM_ALL)
+get_cmake_property(consumer_cache_after CACHE_VARIABLES)
 
 if(DEFINED CACHE{BUILD_TESTING})
-	message(FATAL_ERROR
-		"add_subdirectory introduced CTest's BUILD_TESTING cache option")
+    message(FATAL_ERROR
+        "add_subdirectory introduced CTest's BUILD_TESTING cache option")
+endif()
+
+foreach(cache_variable IN LISTS consumer_cache_after)
+    if(cache_variable MATCHES "^SIMDLIB_" AND
+            NOT cache_variable IN_LIST consumer_cache_before)
+        message(FATAL_ERROR
+            "add_subdirectory introduced development cache option ${cache_variable}")
+    endif()
+endforeach()
+
+get_property(simdlib_nested_targets
+    DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/simdlib" PROPERTY BUILDSYSTEM_TARGETS)
+list(SORT simdlib_nested_targets)
+if(NOT simdlib_nested_targets STREQUAL "SimdLib;SimdLibRegister")
+    message(FATAL_ERROR
+        "add_subdirectory introduced unexpected targets: ${simdlib_nested_targets}")
 endif()
 get_property(simdlib_nested_tests
 	DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/simdlib" PROPERTY TESTS)
@@ -18,42 +36,6 @@ if(simdlib_nested_tests)
 	message(FATAL_ERROR
 		"add_subdirectory registered development tests: ${simdlib_nested_tests}")
 endif()
-
-set(simdlib_forbidden_development_options
-	SIMDLIB_BUILD_SMOKE_TESTS
-	SIMDLIB_BUILD_RUNTIME_TESTS
-	SIMDLIB_BUILD_API_SSE42_TESTS
-	SIMDLIB_BUILD_API_AVX2_TESTS
-	SIMDLIB_BUILD_FMA_TESTS
-	SIMDLIB_BUILD_BMI_TESTS
-	SIMDLIB_BUILD_VECTOR_ALGORITHM_TESTS
-	SIMDLIB_BUILD_BENCHMARKS
-	SIMDLIB_BUILD_EXAMPLES
-	SIMDLIB_BUILD_CONFIGURATION_PROBES
-	SIMDLIB_BUILD_CONSTEXPR_PROBES
-	SIMDLIB_BUILD_HEADER_PROBES
-	SIMDLIB_FETCH_TEST_DEPENDENCIES
-	SIMDLIB_STRICT_WARNINGS
-	SIMDLIB_ENABLE_COVERAGE
-	SIMDLIB_BUILD_REGISTER_CODEGEN_GATES
-	SIMDLIB_REGISTER_CODEGEN_MODE
-	SIMDLIB_VALIDATE_EXHAUSTIVE_TARGETS)
-foreach(simdlib_forbidden_development_option IN LISTS simdlib_forbidden_development_options)
-	if(DEFINED CACHE{${simdlib_forbidden_development_option}})
-		message(FATAL_ERROR
-			"add_subdirectory introduced development option ${simdlib_forbidden_development_option}")
-	endif()
-endforeach()
-
-set(simdlib_forbidden_development_targets
-	ExhaustiveArtifacts BenchmarkArtifacts Benchmarks DevelopmentWarnings
-	ApiExamples RegisterExamples CoverageReset CoverageReport Catch2 Catch2WithMain)
-foreach(simdlib_forbidden_development_target IN LISTS simdlib_forbidden_development_targets)
-	if(TARGET ${simdlib_forbidden_development_target})
-		message(FATAL_ERROR
-			"add_subdirectory introduced development target ${simdlib_forbidden_development_target}")
-	endif()
-endforeach()
 
 get_target_property(simdlib_target_type SimdLib TYPE)
 if(NOT simdlib_target_type STREQUAL "INTERFACE_LIBRARY")

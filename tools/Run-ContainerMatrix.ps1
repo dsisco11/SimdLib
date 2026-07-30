@@ -100,13 +100,13 @@ function Resolve-Cells {
             if ($service -ne 'gcc13' -and $CellScope -in @('All', 'Debug')) {
                 $cells.Add([pscustomobject]@{
                         Service = $service; Key = 'debug-codegen'; Preset = "$service-debug-codegen-diagnostic"
-                        BuildProfile = 'Debug'; Sanitizer = 'none'; CodegenMode = 'RECORD'
+                        BuildProfile = 'Debug'; Sanitizer = 'none'; CodegenMode = 'RECORD'; Consumer = $false
                     })
             }
             if ($service -eq 'clang22' -and $CellScope -in @('All', 'AsanUbsan')) {
                 $cells.Add([pscustomobject]@{
                         Service = $service; Key = 'asan-ubsan-codegen'; Preset = 'clang22-asan-ubsan-codegen-diagnostic'
-                        BuildProfile = 'Debug'; Sanitizer = 'asan-ubsan'; CodegenMode = 'RECORD'
+                        BuildProfile = 'Debug'; Sanitizer = 'asan-ubsan'; CodegenMode = 'RECORD'; Consumer = $false
                     })
             }
             continue
@@ -114,16 +114,16 @@ function Resolve-Cells {
         if ($CellScope -in @('All', 'Release')) {
             $preset = if ($service -eq 'gcc13') { 'gcc13-core-release-exhaustive' } else { "$service-release-exhaustive" }
             $codegenMode = if ($service -eq 'gcc13') { 'OFF' } else { 'ENFORCE' }
-            $cells.Add([pscustomobject]@{ Service = $service; Key = 'release'; Preset = $preset; BuildProfile = 'Release'; Sanitizer = 'none'; CodegenMode = $codegenMode })
+            $cells.Add([pscustomobject]@{ Service = $service; Key = 'release'; Preset = $preset; BuildProfile = 'Release'; Sanitizer = 'none'; CodegenMode = $codegenMode; Consumer = $true })
         }
         if ($CellScope -in @('All', 'Debug')) {
             $preset = if ($service -eq 'gcc13') { 'gcc13-core-debug-diagnostics' } else { "$service-debug-diagnostics" }
             if ($CellScope -eq 'Debug' -or (Test-PipelineDefaultValidationPreset -Preset $preset)) {
-                $cells.Add([pscustomobject]@{ Service = $service; Key = 'debug'; Preset = $preset; BuildProfile = 'Debug'; Sanitizer = 'none'; CodegenMode = 'OFF' })
+                $cells.Add([pscustomobject]@{ Service = $service; Key = 'debug'; Preset = $preset; BuildProfile = 'Debug'; Sanitizer = 'none'; CodegenMode = 'OFF'; Consumer = $false })
             }
         }
         if ($service -eq 'clang22' -and $CellScope -in @('All', 'AsanUbsan')) {
-            $cells.Add([pscustomobject]@{ Service = $service; Key = 'debug-asan-ubsan'; Preset = 'clang22-debug-asan-ubsan'; BuildProfile = 'Debug'; Sanitizer = 'asan-ubsan'; CodegenMode = 'OFF' })
+            $cells.Add([pscustomobject]@{ Service = $service; Key = 'debug-asan-ubsan'; Preset = 'clang22-debug-asan-ubsan'; BuildProfile = 'Debug'; Sanitizer = 'asan-ubsan'; CodegenMode = 'OFF'; Consumer = $false })
         }
     }
     return $cells.ToArray()
@@ -203,6 +203,7 @@ function New-FingerprintDocument {
             buildProfile = $BuildCell.BuildProfile
             sanitizer = $BuildCell.Sanitizer
             codegenMode = $BuildCell.CodegenMode
+            consumerScope = if ($BuildCell.Consumer) { 'compiler-release' } else { 'none' }
             generator = 'Ninja'
             cxxStandard = 20
             cxxFlags = $requiredFlags.cxx
@@ -241,6 +242,7 @@ function Initialize-CellArtifact {
         BuildProfile = $BuildCell.BuildProfile
         Sanitizer = $BuildCell.Sanitizer
         CodegenMode = $BuildCell.CodegenMode
+        Consumer = $BuildCell.Consumer
         Fingerprint = $digest
         HostRoot = $hostRoot
         ContainerRoot = "/workspace/out/$compilerDirectoryName/$cellDirectoryName"
@@ -285,6 +287,7 @@ function Start-CellOperation {
                 '--build-profile', $CellArtifact.BuildProfile,
                 '--sanitizer', $CellArtifact.Sanitizer,
                 '--codegen-mode', $CellArtifact.CodegenMode,
+                '--consumer-scope', $(if ($CellArtifact.Consumer) { 'compiler-release' } else { 'none' }),
                 '--artifact-root', $CellArtifact.ContainerRoot,
                 '--fingerprint-sha256', $CellArtifact.Fingerprint
             )) {

@@ -165,24 +165,35 @@ SimdLib Validation Matrix Deduplication Plan:
     Evidence:
       ☒ Coverage selects 18 runtime and 3 checks targets, excludes every compiler-contract, constexpr, smoke/ODR, codegen, and benchmark category, and records 21 independently identified executables in `coverage-provenance.tsv`.
       ☒ Coverage execution retained 257 tests and the runtime feature-family counts from the 260-test baseline; the three removed identities are `HeaderOnlySmoke`, `FormatOdr`, and `RegisterOdr`.
-      ☒ Clang 22 ASan+UBSan selects 18 runtime and 4 checks targets, excludes every other main-tree category, and retains the two explicitly justified cross-translation-unit consumer tests.
+      ☒ Clang 22 ASan+UBSan selects 18 runtime and 4 checks targets and excludes every other main-tree category; the subsequent external-consumer audit assigned consumer qualification to compiler Release cells only.
       ☒ Coverage and sanitizer runtime suites, artifact ownership fixtures, and coverage report generation completed through receipt-consuming `Test` operations without rebuilding targets.
       ☒ Raw LLVM profiles are matched by embedded executable identity and merged per executable; the resulting per-executable LCOV traces are combined only after profile interpretation.
       ☒ Warm receipt-compatible discovery measurements averaged 1.106 seconds for `POST_BUILD` and 1.443 seconds for `PRE_TEST`; both produced 24 inventory entries and 260 tests before coverage slimming, so `POST_BUILD` remains explicit.
       ☒ The temporary PRE_TEST configure tree and measurement inventories were removed after the decision was recorded.
 
   Phase 6 - Deduplicate Examples, ODR, Smoke, and External Consumers:
-    ☐ Classify `ApiExamples`, `RegisterExamples`, `HeaderOnlySmoke`, `FormatOdr`, and `RegisterOdr` by their exact public-surface, linking, runtime, and configuration contracts.
-    ☐ Run examples once per compiler in the profile that best represents supported downstream use, normally Release.
-    ☐ Run header-only and ODR checks once per compiler unless a Debug runtime-library distinction is demonstrated.
-    ☐ Keep the external consumer's `add_subdirectory`, option-isolation, target-isolation, language-standard, and usage-requirement checks once per compiler.
-    ☐ Retain one MSVC Debug external consumer only if it proves Debug CRT or configuration behavior not covered by the Release consumer.
-    ☐ Decide whether the sanitizer consumer smoke test provides unique downstream evidence; keep it only if sanitizer propagation through the public targets is part of the contract.
-    ☐ Avoid compiling the external consumer in both Debug and Release for header-only structural checks.
-    ☐ Preserve separate core-only and Register-capable consumer inventories according to compiler support.
-    ☐ Keep consumer tests out of downstream `add_subdirectory` builds and ensure no SimdLib development options or targets leak into consumer projects.
-    ☐ Record consumer artifacts and test inventories in the same build receipt as their owning compiler cell.
-    ☐ End Phase 6 only when every public consumption contract remains covered and no consumer tree is duplicated solely because a second build configuration exists.
+    ☒ Classify `ApiExamples`, `RegisterExamples`, `HeaderOnlySmoke`, `FormatOdr`, and `RegisterOdr` by their exact public-surface, linking, runtime, and configuration contracts.
+    ☒ Run examples once per compiler in the profile that best represents supported downstream use, normally Release.
+    ☒ Run header-only and ODR checks once per compiler unless a Debug runtime-library distinction is demonstrated.
+    ☒ Keep the external consumer's `add_subdirectory`, option-isolation, target-isolation, language-standard, and usage-requirement checks once per compiler.
+    ☒ Retain one MSVC Debug external consumer only if it proves Debug CRT or configuration behavior not covered by the Release consumer.
+    ☒ Decide whether the sanitizer consumer smoke test provides unique downstream evidence; keep it only if sanitizer propagation through the public targets is part of the contract.
+    ☒ Avoid compiling the external consumer in both Debug and Release for header-only structural checks.
+    ☒ Preserve separate core-only and Register-capable consumer inventories according to compiler support.
+    ☒ Keep consumer tests out of downstream `add_subdirectory` builds and ensure no SimdLib development options or targets leak into consumer projects.
+    ☒ Record consumer artifacts and test inventories in the same build receipt as their owning compiler cell.
+    ☒ End Phase 6 only when every public consumption contract remains covered and no consumer tree is duplicated solely because a second build configuration exists.
+
+    Evidence:
+      ☒ `BuildPipeline.md` classifies the examples as executable public-API usage contracts and the three smoke/ODR targets as multi-translation-unit public linkage contracts; applicable Release cells own them.
+      ☒ Managed Debug, sanitizer, coverage, and diagnostic profiles reject examples and smoke/ODR targets; focused MSVC Debug and Clang 22 sanitizer configurations contained zero `SMOKE_VALIDATION` targets.
+      ☒ The canonical matrix resolver assigns external consumers only to MSVC, clang-cl, GCC 13, GCC 14, and Clang 22 Release cells; every Debug, sanitizer, coverage, and codegen-diagnostic cell is consumer-free.
+      ☒ No MSVC Debug consumer remains because both public targets are header-only and expose no SimdLib Debug CRT binary contract; no sanitizer consumer remains because instrumentation flags are consumer-build inputs rather than SimdLib usage requirements.
+      ☒ The external project dynamically rejects new `SIMDLIB_` cache entries, nested tests, and any nested build target other than `SimdLib` and `SimdLibRegister`, while independently verifying C++20 core and C++23 Register usage requirements.
+      ☒ Compiler capability inventories drive consumer selection: GCC 13 built and ran only `CoreConsumerSmoke`; MSVC, clang-cl, GCC 14, and Clang 22 built and ran both core and Register consumers.
+      ☒ Focused Release builds compiled and ran every applicable example, header smoke, formatter ODR, and Register ODR contract on MSVC, clang-cl, GCC 13, GCC 14, and Clang 22.
+      ☒ Native and container fingerprints record the assigned consumer owner; manifests bind concrete `none`, `core`, or `core-register` scope and the matching consumer artifact inventory.
+      ☒ A focused container receipt recorded `consumer_owner=none`, `consumer_scope=none`, an empty hashed consumer inventory, and no consumer CTest metadata; manifest consumption validated those fields before the narrow compiler-contract preset reached its unrelated runtime-inventory audit.
 
   Phase 7 - Refactor Presets and Unified Pipeline Orchestration:
     ☐ Replace misleading Release/Debug preset inheritance with profile-specific option bundles that express owned validation categories directly.

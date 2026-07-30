@@ -83,24 +83,44 @@ Import-MatrixResolver -Path (Join-Path $PSScriptRoot 'Run-NativeMatrix.ps1') `
 Import-MatrixResolver -Path (Join-Path $PSScriptRoot 'Run-ContainerMatrix.ps1') `
     -Name 'Resolve-Cells'
 
+$nativeDefaultCells = @(Resolve-NativeCells -CompilerName All -CellScope All -Operation Build)
 Assert-MatrixSequence -Name 'Native default cells' `
-    -Actual @((Resolve-NativeCells -CompilerName All -CellScope All -Operation Build).Preset) `
+    -Actual @($nativeDefaultCells.Preset) `
     -Expected @(
         'msvc-release-exhaustive',
         'msvc-debug-diagnostics',
         'clangcl-release-exhaustive',
         'clang-debug-coverage')
+$containerDefaultCells = @(Resolve-Cells -Services @('gcc13', 'gcc14', 'clang22') -CellScope All -Operation Build)
 Assert-MatrixSequence -Name 'Container default cells' `
-    -Actual @((Resolve-Cells -Services @('gcc13', 'gcc14', 'clang22') -CellScope All -Operation Build).Preset) `
+    -Actual @($containerDefaultCells.Preset) `
     -Expected @(
         'gcc13-core-release-exhaustive',
         'gcc14-release-exhaustive',
         'clang22-release-exhaustive',
         'clang22-debug-asan-ubsan')
+Assert-MatrixSequence -Name 'Native consumer owners' `
+    -Actual @($nativeDefaultCells | ForEach-Object { "$($_.Preset):$($_.Consumer)" }) `
+    -Expected @(
+        'msvc-release-exhaustive:True',
+        'msvc-debug-diagnostics:False',
+        'clangcl-release-exhaustive:True',
+        'clang-debug-coverage:False')
+Assert-MatrixSequence -Name 'Container consumer owners' `
+    -Actual @($containerDefaultCells | ForEach-Object { "$($_.Preset):$($_.Consumer)" }) `
+    -Expected @(
+        'gcc13-core-release-exhaustive:True',
+        'gcc14-release-exhaustive:True',
+        'clang22-release-exhaustive:True',
+        'clang22-debug-asan-ubsan:False')
 
 Assert-MatrixSequence -Name 'clang-cl opt-in Debug cell' `
     -Actual @((Resolve-NativeCells -CompilerName ClangCl -CellScope Debug -Operation Build).Preset) `
     -Expected @('clangcl-debug-diagnostics')
+if ((Resolve-NativeCells -CompilerName ClangCl -CellScope Debug -Operation Build)[0].Consumer) {
+    throw 'clang-cl opt-in Debug cell unexpectedly owns an external consumer'
+}
+
 foreach ($debugSelection in @(
         @('gcc13', 'gcc13-core-debug-diagnostics'),
         @('gcc14', 'gcc14-debug-diagnostics'),
@@ -108,6 +128,9 @@ foreach ($debugSelection in @(
     Assert-MatrixSequence -Name "$($debugSelection[0]) opt-in Debug cell" `
         -Actual @((Resolve-Cells -Services @($debugSelection[0]) -CellScope Debug -Operation Build).Preset) `
         -Expected @($debugSelection[1])
+    if ((Resolve-Cells -Services @($debugSelection[0]) -CellScope Debug -Operation Build)[0].Consumer) {
+        throw "$($debugSelection[0]) opt-in Debug cell unexpectedly owns an external consumer"
+    }
 }
 
 Write-Host "Validated $($defaultPresets.Count) default validation presets and four opt-in ordinary Debug cells."
