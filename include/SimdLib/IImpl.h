@@ -294,6 +294,16 @@ concept ShiftBytesSlow = Mapping<implementation_t> && requires(typename implemen
 	implementation_t::shift_bytes_right_slow(value, 1);
 };
 
+/** @brief Reports whether a backend exposes an immediate complete-register byte left shift. */
+template <class implementation_t, int count>
+concept ShiftBytesLeft =
+	Mapping<implementation_t> && requires(typename implementation_t::int_vector_t value) { implementation_t::template shift_bytes_left<count>(value); };
+
+/** @brief Reports whether a backend exposes an immediate complete-register byte right shift. */
+template <class implementation_t, int count>
+concept ShiftBytesRight =
+	Mapping<implementation_t> && requires(typename implementation_t::int_vector_t value) { implementation_t::template shift_bytes_right<count>(value); };
+
 /** @brief Reports whether a backend exposes explicit slow-path complete-register bit shifts. */
 template <class implementation_t>
 concept ShiftBitsSlow = Mapping<implementation_t> && requires(typename implementation_t::int_vector_t value) {

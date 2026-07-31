@@ -3681,6 +3681,42 @@ template <class element_t> struct SimdMappings<128, element_t> : public SimdImpl
 	}
 
 	/**
+	 * @brief Shifts a complete register toward higher byte indices by a compile-time count.
+	 * @tparam count Nonnegative byte count; counts of at least 16 produce zero.
+	 * @param lhs Source register.
+	 * @return Shifted register with zero-filled low bytes.
+	 */
+	template <int count>
+	static int_vector_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shift_bytes_left(const int_vector_t lhs) noexcept
+	{
+		static_assert(count >= 0, "Complete-register byte shifts require a nonnegative count.");
+		if constexpr (count == 0)
+			return lhs;
+		else if constexpr (count >= 16)
+			return _mm_setzero_si128();
+		else
+			return _mm_slli_si128(lhs, count);
+	}
+
+	/**
+	 * @brief Shifts a complete register toward lower byte indices by a compile-time count.
+	 * @tparam count Nonnegative byte count; counts of at least 16 produce zero.
+	 * @param lhs Source register.
+	 * @return Shifted register with zero-filled high bytes.
+	 */
+	template <int count>
+	static int_vector_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shift_bytes_right(const int_vector_t lhs) noexcept
+	{
+		static_assert(count >= 0, "Complete-register byte shifts require a nonnegative count.");
+		if constexpr (count == 0)
+			return lhs;
+		else if constexpr (count >= 16)
+			return _mm_setzero_si128();
+		else
+			return _mm_srli_si128(lhs, count);
+	}
+
+	/**
 	 * @brief Shifts a complete 128-bit register left by a runtime bit count.
 	 * @param lhs Source register interpreted as one unsigned 128-bit bit string.
 	 * @param shift Runtime count; nonpositive counts are identity and counts of at least 128 produce zero.
@@ -6753,6 +6789,64 @@ template <class element_t> struct SimdMappings<256, element_t> : public SimdImpl
 		else
 			return _mm256_castpd256_pd128(lhs);
 	}
+
+#pragma region 256-bit Shifting
+
+	/**
+	 * @brief Shifts a complete 256-bit register toward higher byte indices by a compile-time count.
+	 * @tparam count Nonnegative byte count; counts of at least 32 produce zero.
+	 * @param lhs Source register.
+	 * @return Shifted register with zero fill across the 128-bit boundary.
+	 */
+	template <int count>
+	static int_vector_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shift_bytes_left(const int_vector_t lhs) noexcept
+	{
+		static_assert(count >= 0, "Complete-register byte shifts require a nonnegative count.");
+		if constexpr (count == 0)
+			return lhs;
+		else if constexpr (count >= 32)
+			return _mm256_setzero_si256();
+		else
+		{
+			const __m256i previous_half = _mm256_permute2x128_si256(lhs, lhs, 0x08);
+			if constexpr (count < 16)
+				return _mm256_alignr_epi8(lhs, previous_half, 16 - count);
+			else if constexpr (count == 16)
+				return previous_half;
+			else
+				return _mm256_slli_si256(previous_half, count - 16);
+		}
+	}
+
+	/**
+	 * @brief Shifts a complete 256-bit register toward lower byte indices by a compile-time count.
+	 * @tparam count Nonnegative byte count; counts of at least 32 produce zero.
+	 * @param lhs Source register.
+	 * @return Shifted register with zero fill across the 128-bit boundary.
+	 */
+	template <int count>
+	static int_vector_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shift_bytes_right(const int_vector_t lhs) noexcept
+	{
+		static_assert(count >= 0, "Complete-register byte shifts require a nonnegative count.");
+		if constexpr (count == 0)
+			return lhs;
+		else if constexpr (count >= 32)
+			return _mm256_setzero_si256();
+		else
+		{
+			const __m256i next_half = _mm256_permute2x128_si256(lhs, lhs, 0x81);
+			if constexpr (count < 16)
+				return _mm256_alignr_epi8(next_half, lhs, count);
+			else if constexpr (count == 16)
+				return next_half;
+			else
+				return _mm256_srli_si256(next_half, count - 16);
+		}
+	}
+
+#pragma endregion
+
+
 
 #pragma region Set
 	/// <summary> Set all elements of the register to 0 (often a noop). </summary>

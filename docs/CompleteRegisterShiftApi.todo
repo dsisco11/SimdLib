@@ -6,7 +6,7 @@ Complete-Register Shift API Rename and Immediate Byte Shifts:
     ☒ Preserve `_slow` exclusively for runtime-count substitutes whose native x86 operation requires an immediate count.
     ☒ Add `shift_bytes_left<count>` and `shift_bytes_right<count>` as the primary immediate-mode byte-shift API.
     ☒ Keep the ordinary per-element `shift_left`, `shift_right`, and `shift_right_arithmetic` families unchanged.
-    ☒ Keep complete-register byte and bit shifts restricted to 128-bit integral registers.
+    ☒ Expose immediate complete-register byte shifts for both 128- and 256-bit integral registers while retaining complete-register bit shifts and runtime `_slow` byte shifts at their existing 128-bit scope.
     ☒ Do not add compatibility aliases for the retired names because SimdLib has not published a release.
 
   Resolved Contract:
@@ -18,35 +18,35 @@ Complete-Register Shift API Rename and Immediate Byte Shifts:
 
     Direction and Boundaries:
       - Left shifts move data toward higher byte or bit indices; right shifts move data toward lower indices.
-      - Vacated positions are zero-filled, and data can cross every element and 64-bit boundary within the register.
+      - Vacated positions are zero-filled, and data can cross every element, 64-bit boundary, and 128-bit half within the supported register width.
       - Runtime counts less than or equal to zero return the input unchanged.
       - Runtime byte counts of at least 16 and runtime bit counts of at least 128 return zero.
-      - Immediate counts must be nonnegative. Zero returns the input; byte counts from 1 through 15 use the native byte-shift intrinsic; bit counts from 1 through 127 use the existing specialized intrinsic sequence; byte counts of at least 16 and bit counts of at least 128 return zero.
-      - For every byte count from 0 through 15, `shift_bytes_left<count>` and `shift_bytes_right<count>` are semantically equivalent to the corresponding `shift_bits_...<count * 8>` operation.
+      - Immediate counts must be nonnegative. Zero returns the input; 128-bit byte shifts use the direct native intrinsic from 1 through 15 and return zero at 16; 256-bit byte shifts use cross-half AVX2 synthesis from 1 through 31 and return zero at 32; bit counts from 1 through 127 use the existing specialized intrinsic sequence and return zero at 128.
+      - For every 128-bit byte count from 0 through 15, `shift_bytes_left<count>` and `shift_bytes_right<count>` are semantically equivalent to the corresponding `shift_bits_...<count * 8>` operation.
 
     Supported Width and Types:
-      - Complete-register shifts remain available only for 128-bit integral `Api` and `Register` specializations.
+      - Immediate complete-register byte shifts are available for 128- and 256-bit integral `Api` and `Register` specializations; complete-register bit shifts and runtime `_slow` byte shifts retain their existing 128-bit scope.
       - Ordinary per-element shifts retain their existing names, supported widths, element semantics, and native runtime-count behavior.
-      - A 256-bit complete-register byte-shift contract is excluded because AVX2 byte-shift instructions operate independently in each 128-bit half and cannot directly provide the required cross-half semantics.
+      - A 256-bit immediate byte shift must cross the 128-bit boundary: counts from 1 through 15 use `VPERM2I128` plus `VPALIGNR`, count 16 moves one half with zero fill, and counts from 17 through 31 move one half and apply a lane-local immediate byte shift.
 
     Affected Surface:
       - Production API and implementation: `include/SimdLib/Api.h`, `include/SimdLib/Register.h`, `include/SimdLib/Detail/Implementations.h`, and `include/SimdLib/Detail/Extensions.h`.
       - Capability concepts and internal consumers: `include/SimdLib/IApi.h`, `include/SimdLib/IImpl.h`, `include/SimdLib/IRegister.h`, and `include/SimdLib/UInt128.h`.
-      - Runtime and constexpr tests: `tests/Api128.tests.cpp`, `tests/ImmediateControlSlowPaths.tests.cpp`, `tests/RegisterBasicOperations.tests.cpp`, `tests/constexpr/ApiConstexprContracts.h`, and `tests/constexpr/RegisterConstexpr.tests.cpp`.
+      - Runtime and constexpr tests: `tests/Api128.tests.cpp`, `tests/Api256.tests.cpp`, `tests/ImmediateControlSlowPaths.tests.cpp`, `tests/RegisterBasicOperations.tests.cpp`, `tests/constexpr/ApiConstexprContracts.h`, and `tests/constexpr/RegisterConstexpr.tests.cpp`.
       - Availability, rejection, and generated-code fixtures: `tests/availability/ApiEnabledProbe.cpp`, `tests/compile_fail/api/ApiUnsuffixedRuntimeImmediate.cpp`, `tests/compile_fail/register/RegisterUnsuffixedRuntimeImmediate.cpp`, and `tests/codegen/RegisterCodegenFixture.h`.
       - Durable documentation: `docs/ImmediateControlRuntimeNaming.md`, `docs/RegisterImplementationMatrix.md`, `docs/RegisterProposal.md`, and `wiki/Api.md`.
       - No CMake or pipeline-tooling file currently references either retired family.
 
   Phase 1 - Fix the Naming and Semantic Contract:
     ☒ Record the complete affected surface across `Api`, `Register`, implementation specializations, extension helpers, concepts, `UInt128`, tests, codegen fixtures, documentation, and wiki pages.
-    ☒ Define `shift_bytes_left/right` as moving complete bytes across one 128-bit register with zero fill and no element-lane boundaries.
+    ☒ Define `shift_bytes_left/right` as moving complete bytes across one 128- or 256-bit register with zero fill and no element- or 128-bit-half boundaries.
     ☒ Define `shift_bits_left/right` as treating one 128-bit register as a single unsigned 128-bit bit string with carry across all element and 64-bit boundaries.
     ☒ Preserve the existing direction convention: left moves data toward higher byte or bit indices and right moves data toward lower indices.
     ☒ Preserve runtime boundary behavior: nonpositive counts are identity and counts at least as large as the register width produce zero.
-    ☒ Define immediate boundary behavior: a count of zero is identity, byte counts from 1 through 15 use the native byte-shift intrinsic, bit counts from 1 through 127 use the existing specialized intrinsic sequence, and counts at least 16 bytes or 128 bits produce zero.
+    ☒ Define immediate boundary behavior per width: zero is identity, 128-bit byte counts at least 16 and 256-bit byte counts at least 32 produce zero, and 128-bit bit counts at least 128 produce zero.
     ☒ Require nonnegative template counts with a direct compile-time diagnostic.
-    ☒ Document that `shift_bytes_left<count>` is semantically equivalent to `shift_bits_left<count * 8>` within range, while the dedicated byte operation provides a stronger generated-code contract.
-    ☒ Explicitly exclude 256-bit complete-register byte shifts from this work because AVX2 byte-shift instructions operate independently within 128-bit lanes.
+    ☒ Document the 128-bit byte/bit equivalence and define independent scalar complete-register semantics for 256-bit byte shifts, while retaining dedicated generated-code contracts for both widths.
+    ☒ Require 256-bit immediate byte shifts to synthesize cross-half behavior rather than exposing AVX2 lane-local byte-shift semantics.
     ☒ Complete this phase only when names, direction, count units, boundary behavior, and width restrictions are unambiguous.
 
   Phase 2 - Rename the Existing Complete-Register Shift Surface:
@@ -61,40 +61,42 @@ Complete-Register Shift API Rename and Immediate Byte Shifts:
     ☒ Complete this phase only when production declarations and callers use the `shift_bytes_...` and `shift_bits_...` families consistently.
 
   Phase 3 - Implement Immediate Complete-Register Byte Shifts:
-    ☐ Add specialized implementation-layer templates `shift_bytes_left<count>` and `shift_bytes_right<count>` for 128-bit integer registers.
-    ☐ Use `_mm_slli_si128` for left shifts from 1 through 15 bytes and `_mm_srli_si128` for right shifts from 1 through 15 bytes.
-    ☐ Return the input directly for a count of zero.
-    ☐ Return `_mm_setzero_si128()` for counts of at least 16 without instantiating an out-of-range intrinsic immediate.
-    ☐ Enforce nonnegative counts with `static_assert` or an equivalent direct template constraint.
-    ☐ Keep runtime `shift_bytes_left_slow` and `shift_bytes_right_slow` delegated to the existing register-only `PSHUFB` synthesis.
-    ☐ Preserve constant-evaluation support without placing addressable-array logic on the optimized runtime path.
-    ☐ Ensure the implementation templates are marked with the appropriate `SIMD_FLAGS` promises for register input/output, register-only execution, forced inlining, and flattening.
-    ☐ Add `IImpl` concepts for both immediate byte-shift directions and representative boundary counts.
-    ☐ Complete this phase only when immediate byte shifts route directly to native immediate intrinsics and runtime counts remain visibly separated behind `_slow`.
+    ☒ Add specialized implementation-layer templates `shift_bytes_left<count>` and `shift_bytes_right<count>` for 128- and 256-bit integer registers.
+    ☒ Use `_mm_slli_si128` and `_mm_srli_si128` directly for 128-bit counts from 1 through 15.
+    ☒ Use `VPERM2I128` plus `VPALIGNR` for 256-bit counts from 1 through 15 without an OR, specialize count 16 as a half move, and use the permuted half plus `VPSLLDQ` or `VPSRLDQ` for counts from 17 through 31.
+    ☒ Return the input directly for a count of zero.
+    ☒ Return the width-appropriate zero register for counts of at least 16 at 128 bits or 32 at 256 bits without instantiating an out-of-range intrinsic immediate.
+    ☒ Enforce nonnegative counts with `static_assert` or an equivalent direct template constraint.
+    ☒ Keep the existing 128-bit runtime `shift_bytes_left_slow` and `shift_bytes_right_slow` delegated to the register-only `PSHUFB` synthesis; do not imply that this adds a 256-bit runtime-count substitute.
+    ☒ Preserve constant-evaluation support without placing addressable-array logic on the optimized runtime path.
+    ☒ Ensure the implementation templates are marked with the appropriate `SIMD_FLAGS` promises for register input/output, register-only execution, forced inlining, and flattening.
+    ☒ Add `IImpl` concepts for both immediate byte-shift directions and representative boundary counts.
+    ☒ Complete this phase only when immediate byte shifts route directly to native immediate intrinsics and runtime counts remain visibly separated behind `_slow`.
 
   Phase 4 - Expose the Immediate API Through `Api` and `Register`:
-    ☐ Add `Api::shift_bytes_left<count>(value)` and `Api::shift_bytes_right<count>(value)` for 128-bit integral specializations.
+    ☐ Add `Api::shift_bytes_left<count>(value)` and `Api::shift_bytes_right<count>(value)` for 128- and 256-bit integral specializations.
     ☐ Route constant evaluation through the constexpr byte-shift helper and runtime evaluation through the implementation-layer immediate template.
     ☐ Add `Register::shift_bytes_left<count>()` and `Register::shift_bytes_right<count>()`.
     ☐ Apply the same `SIMD_FLAGS` intent as the corresponding complete-register bit-shift templates.
     ☐ Add `IApi` and `IRegister` concepts for the immediate byte-shift members.
     ☐ Preserve the renamed `_slow` overloads for genuinely dynamic runtime byte counts.
     ☐ Ensure an unsuffixed call with a runtime scalar count is unavailable at `Api`, implementation, and `Register` layers.
-    ☐ Ensure floating-point and 256-bit register specializations do not accidentally acquire the operation.
+    ☐ Ensure floating-point specializations do not acquire the operation and 256-bit integral specializations preserve complete-register cross-half semantics.
     ☐ Complete this phase only when compile-time byte counts use the unsuffixed template and runtime byte counts require the `_slow` spelling.
 
   Phase 5 - Prove Semantics, Availability, and Generated Code:
     ☐ Rename existing runtime and constexpr tests to the new `shift_bytes_...` and `shift_bits_...` spellings without weakening their assertions.
-    ☐ Add immediate byte-shift semantic coverage for counts 0, 1, 7, 8, 15, 16, and values greater than 16 in both directions.
-    ☐ Test input patterns that cross element and 64-bit boundaries so the operation cannot be mistaken for a per-lane shift.
-    ☐ Prove immediate byte shifts match the corresponding complete-register bit shift for representative counts multiplied by eight.
+    ☐ Add immediate byte-shift semantic coverage for counts 0, 1, 7, 8, 15, 16, 17, 31, 32, and values greater than the selected register byte width in both directions.
+    ☐ Test input patterns that cross element, 64-bit, and 128-bit-half boundaries so the operation cannot be mistaken for a per-lane or per-half shift.
+    ☐ Prove 128-bit immediate byte shifts match the corresponding complete-register bit shift for representative counts multiplied by eight, and prove 256-bit results against an independent scalar 32-byte oracle.
     ☐ Add constexpr assertions for both `Api` and `Register` immediate byte-shift forms.
-    ☐ Add availability probes showing that immediate byte shifts exist only for supported 128-bit integral APIs and registers.
+    ☐ Add availability probes showing that immediate byte shifts exist only for supported 128- and 256-bit integral APIs and registers.
     ☐ Add compile-failure probes for negative template counts and unsuffixed runtime-count calls.
     ☐ Update existing compile-failure probes so they reject `shift_bytes_left/right(value, runtimeCount)` and `shift_bits_left/right(value, runtimeCount)`.
     ☐ Add generated-code fixtures for both `Api` and `Register` immediate byte shifts.
-    ☐ Require representative counts from 1 through 15 to lower to the expected `PSLLDQ`/`VPSLLDQ` or `PSRLDQ`/`VPSRLDQ` operation without a `PSHUFB`, switch dispatch, stack materialization, or out-of-line helper.
-    ☐ Require count zero to lower to identity and counts at least 16 to lower to zero without an invalid immediate encoding.
+    ☐ Require representative 128-bit counts from 1 through 15 to lower to `PSLLDQ`/`VPSLLDQ` or `PSRLDQ`/`VPSRLDQ` without `PSHUFB`, dispatch, stack materialization, or an out-of-line helper.
+    ☐ Require representative 256-bit counts from 1 through 15 to lower to `VPERM2I128` plus `VPALIGNR` without an OR, and verify the specialized count-16 and count-17-through-31 sequences.
+    ☐ Require count zero to lower to identity and counts at least 16 for 128-bit registers or 32 for 256-bit registers to lower to zero without an invalid immediate encoding.
     ☐ Preserve generated-code parity between the `Api` and `Register` entry points on MSVC, clang-cl, GCC, and Clang.
     ☐ Run focused runtime, constexpr, availability, compiler-contract, and generated-code validation before the complete supported build and test matrix.
     ☐ Complete this phase only when semantics, constraints, supported availability, and immediate instruction selection are all independently proven.
@@ -111,7 +113,7 @@ Complete-Register Shift API Rename and Immediate Byte Shifts:
 
   Completion Contract:
     ☐ Every complete-register shift family begins with `shift_`.
-    ☐ Immediate byte shifts are exposed consistently through implementation, `Api`, and `Register`.
+    ☐ Immediate byte shifts are exposed consistently through implementation, `Api`, and `Register` at both 128 and 256 bits.
     ☐ Runtime immediate substitutes retain the `_slow` suffix and cannot be selected accidentally through an unsuffixed runtime overload.
     ☐ Immediate byte shifts have direct intrinsic-backed generated-code proof.
     ☐ Existing complete-register shift semantics and `UInt128` behavior remain unchanged.
