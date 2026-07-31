@@ -15,16 +15,52 @@ Register Compile-Time Integral Broadcast:
     ☐ Do not require every compiler to make the same code-size-versus-instruction-count decision.
 
   Phase 1 - Fix the Public and Layer Contracts:
-    ☐ Define the public signature as a no-argument overload whose non-type template parameter has the register's `element_type`, such as `template <element_type value> static Register broadcast()`.
-    ☐ Constrain the overload to supported integral `Register` element types and make floating-point template broadcasts unavailable.
-    ☐ Confirm that every value representable by `element_type` is accepted, including zero, signed minima and maxima, unsigned maxima, and arbitrary bit patterns.
-    ☐ Define `Register::broadcast<value>()` as the preferred spelling whenever the value is known at compile time.
-    ☐ Define `Register::broadcast(value)` as the spelling for values known only at runtime.
-    ☐ Add matching compile-time construction entry points to `Api` and each owning `SimdImpl` specialization without introducing a new backend wrapper.
-    ☐ Select names for the corresponding `IApi`, `IImpl`, and `IRegister` concepts that distinguish the template overload from the runtime broadcast contract.
-    ☐ Preserve `Register::zero()` and `Api::setzero()` as the clearest zero-construction spellings even though `broadcast<0>()` is equivalent.
-    ☐ Record that implementation methods remain `RegisterOnly`, forced-inline, and flattened where their transitive runtime paths operate only on scalar and SIMD registers.
-    ☐ End Phase 1 only when overload resolution, supported types, value domains, layer ownership, method flags, and constexpr expectations are explicit.
+    ☒ Define the public signature as a no-argument overload whose non-type template parameter has the register's `element_type`, such as `template <element_type value> static Register broadcast()`.
+    ☒ Constrain the overload to supported integral `Register` element types and make floating-point template broadcasts unavailable.
+    ☒ Confirm that every value representable by `element_type` is accepted, including zero, signed minima and maxima, unsigned maxima, and arbitrary bit patterns.
+    ☒ Define `Register::broadcast<value>()` as the preferred spelling whenever the value is known at compile time.
+    ☒ Define `Register::broadcast(value)` as the spelling for values known only at runtime.
+    ☒ Specify matching compile-time construction entry points through `Api`, `Detail::SimdMappings`, and each owning `SimdImpl128` or `SimdImpl256` specialization without introducing a new backend wrapper.
+    ☒ Select names for the corresponding `IApi`, `IImpl`, and `IRegister` concepts that distinguish the template overload from the runtime broadcast contract.
+    ☒ Preserve `Register::zero()` and `Api::setzero()` as the clearest zero-construction spellings even though `broadcast<0>()` is equivalent.
+    ☒ Record the method flags for every layer and restrict `RegisterOnly` to paths whose source-level runtime implementation operates only on scalar and SIMD registers.
+    ☒ End Phase 1 only when overload resolution, supported types, value domains, layer ownership, method flags, and constexpr expectations are explicit.
+
+  Phase 1 Resolved Contract:
+    Public signatures:
+      - `template <element_type value> constexpr static Register broadcast() noexcept` is available only when `std::integral<element_type>` is true.
+      - `constexpr static Register broadcast(element_type value) noexcept` remains unchanged and available for every existing integral and floating-point Register type.
+      - The template argument is converted under the language rules for an `element_type` non-type template parameter. Values not representable by `element_type` are not accepted.
+      - Every representable integral value is supported. Agner Fog's notable rows select optimized candidates; they do not define a restricted public value set.
+      - `broadcast<value>()` is the preferred compile-time spelling, `broadcast(value)` is the runtime spelling, and `zero()` remains the preferred zero-specific spelling.
+
+    Dispatch ownership:
+      - `Register::broadcast<value>()` delegates to `Api::set1<value>()`.
+      - `Api::set1<value>()` delegates unconditionally to `Detail::SimdMappings::set1<value>()`.
+      - `Detail::SimdMappings::set1<value>()` owns the constant-evaluation split: constant evaluation uses the existing portable repeated-value representation, while runtime evaluation delegates to the element- and width-specialized implementation.
+      - `SimdImpl128<T>::set1<value>()` and `SimdImpl256<T>::set1<value>()` own the runtime intrinsic recipes for their exact integral lane type.
+      - No new backend, wrapper, generic element-type switch, or Extensions-layer operation is introduced.
+
+    Concept names:
+      - Existing `IImpl::SetOne<implementation_t, scalar_t>` continues to describe runtime `set1(value)`.
+      - `IImpl::SetOneConstant<implementation_t, value>` describes implementation and mapping support for `set1<value>()`.
+      - `IApi::SetOne<api_t>` is added for the existing runtime `Api::set1(value)` surface.
+      - `IApi::SetOneConstant<api_t, value>` describes `Api::set1<value>()`.
+      - Existing `IRegister::Broadcast<register_t>` continues to describe runtime `Register::broadcast(value)`.
+      - `IRegister::BroadcastConstant<register_t, value>` describes `Register::broadcast<value>()`.
+      - The concept value parameter is `auto`; the called method's typed non-type template parameter remains responsible for representability and availability.
+
+    Constant evaluation:
+      - The `Register`, `Api`, and `Detail::SimdMappings` template overloads are `constexpr`.
+      - Constant evaluation must work for every supported integral lane type at both supported register widths.
+      - Constant evaluation reuses `Detail::SimdMappings::set1_constexpr(value)` and does not instantiate a runtime intrinsic recipe.
+      - Runtime evaluation does not use the portable array-backed representation.
+
+    Method flags:
+      - `Register::broadcast<value>()`, `Api::set1<value>()`, and `Detail::SimdMappings::set1<value>()` use `SIMD_FLAGS(Out, RegisterOnly, ForceInline, Flatten)`.
+      - Each direct `SimdImpl128<T>::set1<value>()` and `SimdImpl256<T>::set1<value>()` recipe uses `SIMD_FLAGS(Out, RegisterOnly, ForceInline)`, matching the existing specialized runtime `set1(value)` methods.
+      - A specialized implementation gains `Flatten` only if it delegates through a helper and the later codegen audit shows that flattening is useful; direct intrinsic recipes do not require it.
+      - Compiler substitution of an equivalent constant-pool load does not invalidate `RegisterOnly`; the flag records the source-level method contract rather than promising final opcode selection.
 
   Phase 2 - Establish Code-Generation Baselines:
     ☐ Add temporary, isolated codegen probes comparing the existing `broadcast(constant)` call, a prototype `broadcast<value>()`, direct `_mm_set1_epi*` or `_mm256_set1_epi*`, and Agner-derived intrinsic recipes.
