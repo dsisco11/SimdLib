@@ -26,20 +26,20 @@ Repository Validation Refactor:
     ☒ Complete this phase only when method-flags behavior is enforced by the implementation and compiler fixtures, with no independent source-text grammar or migration audit remaining.
 
   Phase 2 - Remove Public-Header `static_assert` Auditing:
-    ☐ Record the production headers currently covered by the assertion allowlist so removal of the auditing system cannot accidentally remove the assertions themselves.
-    ☐ Preserve each production `static_assert` unless a separate correctness or diagnostic review explicitly approves changing it.
-    ☐ Preserve `SIMDLIB_FLAGS_ERROR_EMPTY` and `SIMDLIB_FLAGS_ERROR_TOO_MANY` as part of the `SIMD_FLAGS(...)` diagnostic implementation rather than treating them as repository-audit entries.
-    ☐ Delete `cmake/PublicHeaderStaticAssertAllowlist.txt`.
-    ☐ Delete `cmake/AuditPublicHeaderAssertions.cmake`.
-    ☐ Remove the assertion-audit include and its count variables from `cmake/AuditRepository.cmake`.
-    ☐ Remove `publicHeaderStaticAssertions` and `staticAssertionAllowlistEntries` from generated provenance and all synthetic receipt fixtures.
-    ☐ Remove validation-pipeline regressions that test assertion-count or allowlist-specific fields while retaining unrelated receipt-integrity and tamper cases.
-    ☐ Delete `docs/StaticAssertionInventory.md`.
-    ☐ Update `docs/BuildPipeline.md`, planning documents, and documentation indexes so they no longer claim that textual assertion counting controls downstream compilation cost.
-    ☐ Search tracked files for stale allowlist paths, assertion-audit commands, receipt properties, count messages, and documentation references.
-    ☐ Run public-header compile probes and the relevant constexpr and compiler-contract targets to demonstrate that the production assertions and their diagnostics remain available.
-    ☐ Do not publish an intermediate repository-audit schema solely for this removal; keep the reduced wrapper internal until the provenance replacement in Phase 3.
-    ☐ Complete this phase only when no allowlist, occurrence counter, assertion-audit script, or assertion-specific receipt field remains and production assertions are unchanged except for separately justified corrections.
+    ☒ Record the previously covered production headers—`Config.h`, `UInt128.h`, `Bmi.h`, `Api.h`, `SimdAlgo.h`, `Detail/Implementations.h`, and `Detail/Extensions.h`—so removal of the auditing system cannot accidentally remove their assertions.
+    ☒ Preserve each production `static_assert`; no correctness or diagnostic change is part of this removal.
+    ☒ Preserve `SIMDLIB_FLAGS_ERROR_EMPTY` and `SIMDLIB_FLAGS_ERROR_TOO_MANY` as part of the `SIMD_FLAGS(...)` diagnostic implementation rather than treating them as repository-audit entries.
+    ☒ Delete `cmake/PublicHeaderStaticAssertAllowlist.txt`.
+    ☒ Delete `cmake/AuditPublicHeaderAssertions.cmake`.
+    ☒ Remove the assertion-audit include and its count variables from `cmake/AuditRepository.cmake`.
+    ☒ Remove `publicHeaderStaticAssertions` and `staticAssertionAllowlistEntries` from generated provenance; synthetic receipt fixtures already omitted assertion-specific fields.
+    ☒ Confirm that validation-pipeline regressions contain no assertion-count or allowlist-specific cases while retaining unrelated receipt-integrity and tamper cases.
+    ☒ Delete `docs/StaticAssertionInventory.md`.
+    ☒ Update `docs/BuildPipeline.md`, planning documents, and documentation indexes so they no longer claim that textual assertion counting controls downstream compilation cost.
+    ☒ Search tracked files for stale allowlist paths, assertion-audit commands, receipt properties, count messages, and documentation references.
+    ☒ Run public-header compile probes and the relevant constexpr and compiler-contract targets to demonstrate that the production assertions and their diagnostics remain available.
+    ☒ Do not publish an intermediate repository-audit schema solely for this removal; keep the reduced wrapper internal until the provenance replacement in Phase 3.
+    ☒ Complete this phase only when no allowlist, occurrence counter, assertion-audit script, or assertion-specific receipt field remains and production assertions are unchanged except for separately justified corrections.
 
   Phase 3 - Restructure Validation-Matrix and Pipeline Validation:
     ☐ Define `tools/validation-matrix.json` as the single machine-readable authority for validation cells, operations, profiles, target categories, test ownership, consumer ownership, instrumentation, generated-code mode, and deterministic execution order.

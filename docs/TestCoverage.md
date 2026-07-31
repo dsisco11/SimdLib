@@ -99,8 +99,10 @@ MSVC x64 owns the `_addcarry_u64` and `_subborrow_u64` UInt128 path; Clang and
 GCC own the `__builtin_add_overflow` and `__builtin_sub_overflow` path. Portable
 and scalar profiles disable compiler carry intrinsics.
 
-The retained-assertion classifications and mechanical allowlist are recorded in
-[`StaticAssertionInventory.md`](StaticAssertionInventory.md).
+Production `static_assert` declarations remain local constraints and diagnostics
+in their owning headers. Public-header probes and dedicated constexpr targets
+compile those declarations under the applicable compiler profiles; no
+source-text occurrence count is treated as correctness or compile-time evidence.
 
 `tests/consumer` separately imports the source tree through
 `add_subdirectory`, verifies that `SimdLib::SimdLib` is an interface target,

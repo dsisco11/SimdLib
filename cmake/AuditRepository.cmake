@@ -7,8 +7,6 @@ foreach(required_variable IN ITEMS
     endif()
 endforeach()
 
-include("${SOURCE_DIRECTORY}/cmake/AuditPublicHeaderAssertions.cmake")
-
 file(GLOB_RECURSE public_consumer_sources
     "${SOURCE_DIRECTORY}/examples/*.cpp"
     "${SOURCE_DIRECTORY}/tests/consumer/*.cpp"
@@ -34,11 +32,8 @@ file(WRITE "${RESULT_FILE}"
     "  \"status\": \"complete\",\n"
     "  \"sourceDigest\": \"${SOURCE_DIGEST}\",\n"
     "  \"sourceRevision\": \"${SOURCE_REVISION}\",\n"
-    "  \"publicHeaderStaticAssertions\": ${assertion_count},\n"
-    "  \"staticAssertionAllowlistEntries\": ${allowlist_count},\n"
     "  \"publicConsumerSources\": ${public_consumer_source_count}\n"
     "}\n")
 
 message(STATUS
-    "Repository audit recorded ${assertion_count} public-header assertions and "
-    "${public_consumer_source_count} public consumer sources")
+    "Repository audit recorded ${public_consumer_source_count} public consumer sources")
