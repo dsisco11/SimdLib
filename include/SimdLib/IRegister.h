@@ -342,6 +342,18 @@ concept ShiftBytesRightSlow = Type<register_t> && requires(register_t value) {
 	{ value.shift_bytes_right_slow(1) } -> std::same_as<register_t>;
 };
 
+/** @brief Reports whether a Register type exposes immediate complete-register byte left shift. */
+template <class register_t, int count>
+concept ShiftBytesLeft = count >= 0 && Type<register_t> && requires(register_t value) {
+	{ value.template shift_bytes_left<count>() } -> std::same_as<register_t>;
+};
+
+/** @brief Reports whether a Register type exposes immediate complete-register byte right shift. */
+template <class register_t, int count>
+concept ShiftBytesRight = count >= 0 && Type<register_t> && requires(register_t value) {
+	{ value.template shift_bytes_right<count>() } -> std::same_as<register_t>;
+};
+
 /** @brief Reports whether a Register type exposes explicit slow-path complete-register dynamic bit left shift. */
 template <class register_t>
 concept ShiftBitsLeftSlow = Type<register_t> && requires(register_t value) {

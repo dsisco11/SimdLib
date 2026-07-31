@@ -1275,6 +1275,26 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	}
 
 	/**
+	 * @brief Shifts every byte in a complete integral register toward higher byte indices.
+	 *
+	 * The count is encoded as an immediate. Zero returns the input unchanged; counts
+	 * at least as large as the register byte width return zero.
+	 *
+	 * @tparam count Nonnegative compile-time byte count.
+	 * @param lhs The source register.
+	 * @return The byte-shifted register with zero-filled low bytes.
+	 */
+	template <int count>
+	constexpr static int_vector_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shift_bytes_left(const int_vector_t lhs) noexcept
+		requires(using_int && IImpl::ShiftBytesLeft<impl, count>)
+	{
+		static_assert(count >= 0, "Complete-register byte shifts require a nonnegative count.");
+		if (std::is_constant_evaluated())
+			return shift_bytes_left_constexpr(lhs, count);
+		return impl::template shift_bytes_left<count>(lhs);
+	}
+
+	/**
 	 * @brief Shifts every byte in a 128-bit register toward lower byte indices.
 	 *
 	 * A zero or negative count returns the input unchanged. A count greater than
@@ -1292,6 +1312,26 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 		if (std::is_constant_evaluated())
 			return shift_bytes_right_constexpr(lhs, shift);
 		return impl::shift_bytes_right_slow(lhs, shift);
+	}
+
+	/**
+	 * @brief Shifts every byte in a complete integral register toward lower byte indices.
+	 *
+	 * The count is encoded as an immediate. Zero returns the input unchanged; counts
+	 * at least as large as the register byte width return zero.
+	 *
+	 * @tparam count Nonnegative compile-time byte count.
+	 * @param lhs The source register.
+	 * @return The byte-shifted register with zero-filled high bytes.
+	 */
+	template <int count>
+	constexpr static int_vector_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shift_bytes_right(const int_vector_t lhs) noexcept
+		requires(using_int && IImpl::ShiftBytesRight<impl, count>)
+	{
+		static_assert(count >= 0, "Complete-register byte shifts require a nonnegative count.");
+		if (std::is_constant_evaluated())
+			return shift_bytes_right_constexpr(lhs, count);
+		return impl::template shift_bytes_right<count>(lhs);
 	}
 
 	/** @brief Shifts the complete 128-bit register left, carrying bits across lane boundaries.
@@ -2087,7 +2127,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 		return impl::construct(results);
 	}
 
-	/** @brief Shifts a complete 128-bit register toward higher byte indices during constant evaluation.
+	/** @brief Shifts a complete register toward higher byte indices during constant evaluation.
 	 *  @param lhs Input integer register represented in constant evaluation.
 	 *  @param shift Runtime-compatible byte count.
 	 *  @return Byte-shifted register.
@@ -2105,7 +2145,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 		return construct(std::bit_cast<std::array<element_t, element_count>>(resultBytes));
 	}
 
-	/** @brief Shifts a complete 128-bit register toward lower byte indices during constant evaluation.
+	/** @brief Shifts a complete register toward lower byte indices during constant evaluation.
 	 *  @param lhs Input integer register represented in constant evaluation.
 	 *  @param shift Runtime-compatible byte count.
 	 *  @return Byte-shifted register.

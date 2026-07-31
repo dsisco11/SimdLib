@@ -852,6 +852,23 @@ class Register final
 	}
 
 	/**
+	 * @brief Byte-shifts a complete integral register toward higher byte indices at compile time.
+	 *
+	 * The register is treated as one contiguous byte string, including across the
+	 * 128-bit boundary of a 256-bit register.
+	 *
+	 * @tparam count Nonnegative byte count; values at least as large as the register byte width produce zero.
+	 * @param value Source register interpreted as one contiguous byte string.
+	 * @return Shifted complete register with zero-filled low bytes.
+	 */
+	template <int count>
+		requires(count >= 0 && IApi::ShiftBytesLeft<api_type, count>)
+	[[nodiscard]] constexpr Register SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shift_bytes_left(this Register value) noexcept
+	{
+		return Register{api_type::template shift_bytes_left<count>(value.native)};
+	}
+
+	/**
 	 * @brief Byte-shifts a complete 128-bit integral register toward lower byte indices.
 	 * @param value Source register interpreted as one 16-byte string.
 	 * @param count Runtime byte count; nonpositive values are identity and values at least 16 produce zero.
@@ -863,6 +880,23 @@ class Register final
 		requires(register_width == 128 && IApi::ShiftBytesSlow<api_type>)
 	{
 		return Register{api_type::shift_bytes_right_slow(value.native, count)};
+	}
+
+	/**
+	 * @brief Byte-shifts a complete integral register toward lower byte indices at compile time.
+	 *
+	 * The register is treated as one contiguous byte string, including across the
+	 * 128-bit boundary of a 256-bit register.
+	 *
+	 * @tparam count Nonnegative byte count; values at least as large as the register byte width produce zero.
+	 * @param value Source register interpreted as one contiguous byte string.
+	 * @return Shifted complete register with zero-filled high bytes.
+	 */
+	template <int count>
+		requires(count >= 0 && IApi::ShiftBytesRight<api_type, count>)
+	[[nodiscard]] constexpr Register SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shift_bytes_right(this Register value) noexcept
+	{
+		return Register{api_type::template shift_bytes_right<count>(value.native)};
 	}
 
 	/**

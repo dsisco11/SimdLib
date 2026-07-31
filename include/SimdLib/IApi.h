@@ -186,6 +186,14 @@ concept ShiftBytesSlow = Type<api_t> && requires(typename api_t::vector_t value)
 	api_t::shift_bytes_right_slow(value, 1);
 };
 
+/** @brief Reports whether an API exposes an immediate complete-register byte left shift. */
+template <class api_t, int count>
+concept ShiftBytesLeft = count >= 0 && Type<api_t> && requires(typename api_t::int_vector_t value) { api_t::template shift_bytes_left<count>(value); };
+
+/** @brief Reports whether an API exposes an immediate complete-register byte right shift. */
+template <class api_t, int count>
+concept ShiftBytesRight = count >= 0 && Type<api_t> && requires(typename api_t::int_vector_t value) { api_t::template shift_bytes_right<count>(value); };
+
 /** @brief Reports whether an API exposes explicit slow-path complete-register bit shifts. */
 template <class api_t>
 concept ShiftBitsSlow = Type<api_t> && requires(typename api_t::vector_t value) {

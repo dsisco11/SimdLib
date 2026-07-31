@@ -74,15 +74,15 @@ Complete-Register Shift API Rename and Immediate Byte Shifts:
     ☒ Complete this phase only when immediate byte shifts route directly to native immediate intrinsics and runtime counts remain visibly separated behind `_slow`.
 
   Phase 4 - Expose the Immediate API Through `Api` and `Register`:
-    ☐ Add `Api::shift_bytes_left<count>(value)` and `Api::shift_bytes_right<count>(value)` for 128- and 256-bit integral specializations.
-    ☐ Route constant evaluation through the constexpr byte-shift helper and runtime evaluation through the implementation-layer immediate template.
-    ☐ Add `Register::shift_bytes_left<count>()` and `Register::shift_bytes_right<count>()`.
-    ☐ Apply the same `SIMD_FLAGS` intent as the corresponding complete-register bit-shift templates.
-    ☐ Add `IApi` and `IRegister` concepts for the immediate byte-shift members.
-    ☐ Preserve the renamed `_slow` overloads for genuinely dynamic runtime byte counts.
-    ☐ Ensure an unsuffixed call with a runtime scalar count is unavailable at `Api`, implementation, and `Register` layers.
-    ☐ Ensure floating-point specializations do not acquire the operation and 256-bit integral specializations preserve complete-register cross-half semantics.
-    ☐ Complete this phase only when compile-time byte counts use the unsuffixed template and runtime byte counts require the `_slow` spelling.
+    ☒ Add `Api::shift_bytes_left<count>(value)` and `Api::shift_bytes_right<count>(value)` for 128- and 256-bit integral specializations.
+    ☒ Route constant evaluation through the constexpr byte-shift helper and runtime evaluation through the implementation-layer immediate template.
+    ☒ Add `Register::shift_bytes_left<count>()` and `Register::shift_bytes_right<count>()`.
+    ☒ Apply the same `SIMD_FLAGS` intent as the corresponding complete-register bit-shift templates.
+    ☒ Add `IApi` and `IRegister` concepts for the immediate byte-shift members.
+    ☒ Preserve the renamed `_slow` overloads for genuinely dynamic runtime byte counts.
+    ☒ Ensure an unsuffixed call with a runtime scalar count is unavailable at `Api`, implementation, and `Register` layers.
+    ☒ Ensure floating-point specializations do not acquire the operation and 256-bit integral specializations preserve complete-register cross-half semantics.
+    ☒ Complete this phase only when compile-time byte counts use the unsuffixed template and runtime byte counts require the `_slow` spelling.
 
   Phase 5 - Prove Semantics, Availability, and Generated Code:
     ☐ Rename existing runtime and constexpr tests to the new `shift_bytes_...` and `shift_bits_...` spellings without weakening their assertions.
