@@ -1,25 +1,53 @@
 Complete-Register Shift API Rename and Immediate Byte Shifts:
 
   Accepted Direction:
-    ☐ Rename the complete-register byte-shift family from `byte_shift_left/right` to `shift_bytes_left/right`.
-    ☐ Rename the complete-register bit-shift family from `bit_shift_left/right` to `shift_bits_left/right`.
-    ☐ Preserve `_slow` exclusively for runtime-count substitutes whose native x86 operation requires an immediate count.
-    ☐ Add `shift_bytes_left<count>` and `shift_bytes_right<count>` as the primary immediate-mode byte-shift API.
-    ☐ Keep the ordinary per-element `shift_left`, `shift_right`, and `shift_right_arithmetic` families unchanged.
-    ☐ Keep complete-register byte and bit shifts restricted to 128-bit integral registers.
-    ☐ Do not add compatibility aliases for the retired names because SimdLib has not published a release.
+    ☒ Rename the complete-register byte-shift family from `byte_shift_left/right` to `shift_bytes_left/right`.
+    ☒ Rename the complete-register bit-shift family from `bit_shift_left/right` to `shift_bits_left/right`.
+    ☒ Preserve `_slow` exclusively for runtime-count substitutes whose native x86 operation requires an immediate count.
+    ☒ Add `shift_bytes_left<count>` and `shift_bytes_right<count>` as the primary immediate-mode byte-shift API.
+    ☒ Keep the ordinary per-element `shift_left`, `shift_right`, and `shift_right_arithmetic` families unchanged.
+    ☒ Keep complete-register byte and bit shifts restricted to 128-bit integral registers.
+    ☒ Do not add compatibility aliases for the retired names because SimdLib has not published a release.
+
+  Resolved Contract:
+    Target Public Spellings:
+      - `shift_bytes_left<count>(value)` and `shift_bytes_right<count>(value)` perform immediate complete-register byte shifts.
+      - `shift_bytes_left_slow(value, count)` and `shift_bytes_right_slow(value, count)` preserve the dynamic runtime-count substitute.
+      - `shift_bits_left<count>(value)` and `shift_bits_right<count>(value)` perform immediate complete-register bit shifts.
+      - `shift_bits_left_slow(value, count)` and `shift_bits_right_slow(value, count)` preserve the dynamic runtime-count substitute.
+
+    Direction and Boundaries:
+      - Left shifts move data toward higher byte or bit indices; right shifts move data toward lower indices.
+      - Vacated positions are zero-filled, and data can cross every element and 64-bit boundary within the register.
+      - Runtime counts less than or equal to zero return the input unchanged.
+      - Runtime byte counts of at least 16 and runtime bit counts of at least 128 return zero.
+      - Immediate counts must be nonnegative. Zero returns the input; byte counts from 1 through 15 use the native byte-shift intrinsic; bit counts from 1 through 127 use the existing specialized intrinsic sequence; byte counts of at least 16 and bit counts of at least 128 return zero.
+      - For every byte count from 0 through 15, `shift_bytes_left<count>` and `shift_bytes_right<count>` are semantically equivalent to the corresponding `shift_bits_...<count * 8>` operation.
+
+    Supported Width and Types:
+      - Complete-register shifts remain available only for 128-bit integral `Api` and `Register` specializations.
+      - Ordinary per-element shifts retain their existing names, supported widths, element semantics, and native runtime-count behavior.
+      - A 256-bit complete-register byte-shift contract is excluded because AVX2 byte-shift instructions operate independently in each 128-bit half and cannot directly provide the required cross-half semantics.
+
+    Affected Surface:
+      - Production API and implementation: `include/SimdLib/Api.h`, `include/SimdLib/Register.h`, `include/SimdLib/Detail/Implementations.h`, and `include/SimdLib/Detail/Extensions.h`.
+      - Capability concepts and internal consumers: `include/SimdLib/IApi.h`, `include/SimdLib/IImpl.h`, `include/SimdLib/IRegister.h`, and `include/SimdLib/UInt128.h`.
+      - Runtime and constexpr tests: `tests/Api128.tests.cpp`, `tests/ImmediateControlSlowPaths.tests.cpp`, `tests/RegisterBasicOperations.tests.cpp`, `tests/constexpr/ApiConstexprContracts.h`, and `tests/constexpr/RegisterConstexpr.tests.cpp`.
+      - Availability, rejection, and generated-code fixtures: `tests/availability/ApiEnabledProbe.cpp`, `tests/compile_fail/api/ApiUnsuffixedRuntimeImmediate.cpp`, `tests/compile_fail/register/RegisterUnsuffixedRuntimeImmediate.cpp`, and `tests/codegen/RegisterCodegenFixture.h`.
+      - Durable documentation: `docs/ImmediateControlRuntimeNaming.md`, `docs/RegisterImplementationMatrix.md`, `docs/RegisterProposal.md`, and `wiki/Api.md`.
+      - No CMake or pipeline-tooling file currently references either retired family.
 
   Phase 1 - Fix the Naming and Semantic Contract:
-    ☐ Record the complete affected surface across `Api`, `Register`, implementation specializations, extension helpers, concepts, `UInt128`, tests, codegen fixtures, documentation, and wiki pages.
-    ☐ Define `shift_bytes_left/right` as moving complete bytes across one 128-bit register with zero fill and no element-lane boundaries.
-    ☐ Define `shift_bits_left/right` as treating one 128-bit register as a single unsigned 128-bit bit string with carry across all element and 64-bit boundaries.
-    ☐ Preserve the existing direction convention: left moves data toward higher byte or bit indices and right moves data toward lower indices.
-    ☐ Preserve runtime boundary behavior: nonpositive counts are identity and counts at least as large as the register width produce zero.
-    ☐ Define immediate boundary behavior: a count of zero is identity, valid positive counts use the native immediate operation, and counts at least 16 bytes or 128 bits produce zero.
-    ☐ Require nonnegative template counts with a direct compile-time diagnostic.
-    ☐ Document that `shift_bytes_left<count>` is semantically equivalent to `shift_bits_left<count * 8>` within range, while the dedicated byte operation provides a stronger generated-code contract.
-    ☐ Explicitly exclude 256-bit complete-register byte shifts from this work because AVX2 byte-shift instructions operate independently within 128-bit lanes.
-    ☐ Complete this phase only when names, direction, count units, boundary behavior, and width restrictions are unambiguous.
+    ☒ Record the complete affected surface across `Api`, `Register`, implementation specializations, extension helpers, concepts, `UInt128`, tests, codegen fixtures, documentation, and wiki pages.
+    ☒ Define `shift_bytes_left/right` as moving complete bytes across one 128-bit register with zero fill and no element-lane boundaries.
+    ☒ Define `shift_bits_left/right` as treating one 128-bit register as a single unsigned 128-bit bit string with carry across all element and 64-bit boundaries.
+    ☒ Preserve the existing direction convention: left moves data toward higher byte or bit indices and right moves data toward lower indices.
+    ☒ Preserve runtime boundary behavior: nonpositive counts are identity and counts at least as large as the register width produce zero.
+    ☒ Define immediate boundary behavior: a count of zero is identity, byte counts from 1 through 15 use the native byte-shift intrinsic, bit counts from 1 through 127 use the existing specialized intrinsic sequence, and counts at least 16 bytes or 128 bits produce zero.
+    ☒ Require nonnegative template counts with a direct compile-time diagnostic.
+    ☒ Document that `shift_bytes_left<count>` is semantically equivalent to `shift_bits_left<count * 8>` within range, while the dedicated byte operation provides a stronger generated-code contract.
+    ☒ Explicitly exclude 256-bit complete-register byte shifts from this work because AVX2 byte-shift instructions operate independently within 128-bit lanes.
+    ☒ Complete this phase only when names, direction, count units, boundary behavior, and width restrictions are unambiguous.
 
   Phase 2 - Rename the Existing Complete-Register Shift Surface:
     ☐ Rename `byte_shift_left_slow` and `byte_shift_right_slow` to `shift_bytes_left_slow` and `shift_bytes_right_slow` in `Api`, `Register`, implementation specializations, and extension helpers.
