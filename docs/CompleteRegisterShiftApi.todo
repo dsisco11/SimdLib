@@ -1,8 +1,8 @@
 Complete-Register Shift API Rename and Immediate Byte Shifts:
 
   Accepted Direction:
-    ☒ Rename the complete-register byte-shift family from `byte_shift_left/right` to `shift_bytes_left/right`.
-    ☒ Rename the complete-register bit-shift family from `bit_shift_left/right` to `shift_bits_left/right`.
+    ☒ Rename the earlier complete-register byte-shift family to `shift_bytes_left/right`.
+    ☒ Rename the earlier complete-register bit-shift family to `shift_bits_left/right`.
     ☒ Preserve `_slow` exclusively for runtime-count substitutes whose native x86 operation requires an immediate count.
     ☒ Add `shift_bytes_left<count>` and `shift_bytes_right<count>` as the primary immediate-mode byte-shift API.
     ☒ Keep the ordinary per-element `shift_left`, `shift_right`, and `shift_right_arithmetic` families unchanged.
@@ -27,7 +27,7 @@ Complete-Register Shift API Rename and Immediate Byte Shifts:
     Supported Width and Types:
       - Immediate complete-register byte shifts are available for 128- and 256-bit integral `Api` and `Register` specializations; complete-register bit shifts and runtime `_slow` byte shifts retain their existing 128-bit scope.
       - Ordinary per-element shifts retain their existing names, supported widths, element semantics, and native runtime-count behavior.
-      - A 256-bit immediate byte shift must cross the 128-bit boundary: counts from 1 through 15 use `VPERM2I128` plus `VPALIGNR`, count 16 moves one half with zero fill, and counts from 17 through 31 move one half and apply a lane-local immediate byte shift.
+      - A 256-bit immediate byte shift must cross the 128-bit boundary: left shifts use `VPERM2I128` plus `VPALIGNR`, right shifts may use direction-equivalent `VEXTRACTI128` plus `VPALIGNR`, count 16 moves one half with zero fill, and counts from 17 through 31 move one half and apply a lane-local immediate byte shift.
 
     Affected Surface:
       - Production API and implementation: `include/SimdLib/Api.h`, `include/SimdLib/Register.h`, `include/SimdLib/Detail/Implementations.h`, and `include/SimdLib/Detail/Extensions.h`.
@@ -50,8 +50,8 @@ Complete-Register Shift API Rename and Immediate Byte Shifts:
     ☒ Complete this phase only when names, direction, count units, boundary behavior, and width restrictions are unambiguous.
 
   Phase 2 - Rename the Existing Complete-Register Shift Surface:
-    ☒ Rename `byte_shift_left_slow` and `byte_shift_right_slow` to `shift_bytes_left_slow` and `shift_bytes_right_slow` in `Api`, `Register`, implementation specializations, and extension helpers.
-    ☒ Rename `bit_shift_left`, `bit_shift_right`, `bit_shift_left_slow`, and `bit_shift_right_slow` to the corresponding `shift_bits_...` names in every exposed layer.
+    ☒ Rename the earlier runtime byte-shift spellings to `shift_bytes_left_slow` and `shift_bytes_right_slow` in `Api`, `Register`, implementation specializations, and extension helpers.
+    ☒ Rename the earlier immediate and runtime bit-shift spellings to the corresponding `shift_bits_...` names in every exposed layer.
     ☒ Rename private constexpr helpers and native extension helpers so internal terminology follows the public names.
     ☒ Update `IApi`, `IImpl`, and `IRegister` concepts and concept names so capability detection uses the renamed operations.
     ☒ Update `UInt128` and every internal caller to use the renamed complete-register bit-shift methods.
@@ -102,19 +102,19 @@ Complete-Register Shift API Rename and Immediate Byte Shifts:
     ☒ Complete this phase only when semantics, constraints, supported availability, and immediate instruction selection are all independently proven.
 
   Phase 6 - Documentation and Final Cleanup:
-    ☐ Update `docs/ImmediateControlRuntimeNaming.md` so complete-register byte shifts list both their immediate templates and `_slow` runtime substitutes.
-    ☐ Update `docs/RegisterImplementationMatrix.md`, `docs/RegisterProposal.md`, `wiki/Api.md`, and all Doxygen examples to use the renamed families.
-    ☐ Clearly distinguish per-element shifts, complete-register byte shifts, and complete-register bit shifts in durable documentation.
-    ☐ Remove statements that claim no public immediate byte-shift spelling is exposed.
-    ☐ Search all tracked source, tests, tooling, planning documents, documentation, and wiki content for retired shift names.
-    ☐ Remove temporary inventories, generated comparisons, investigation notes, and execution-status documentation created while completing this plan.
-    ☐ Run formatting, syntax validation, `git diff --check`, focused validation, and one final complete supported build/test integration gate.
-    ☐ Complete this phase only when the repository contains no retired spellings or temporary work products and durable documentation describes only the final API.
+    ☒ Update `docs/ImmediateControlRuntimeNaming.md` so complete-register byte shifts list both their immediate templates and `_slow` runtime substitutes.
+    ☒ Update `docs/RegisterImplementationMatrix.md`, `docs/RegisterProposal.md`, `wiki/Api.md`, and all Doxygen examples to use the renamed families.
+    ☒ Clearly distinguish per-element shifts, complete-register byte shifts, and complete-register bit shifts in durable documentation.
+    ☒ Remove statements that claim no public immediate byte-shift spelling is exposed.
+    ☒ Search all tracked source, tests, tooling, planning documents, documentation, and wiki content for retired shift names.
+    ☒ Remove temporary inventories, generated comparisons, investigation notes, and execution-status documentation created while completing this plan.
+    ☒ Run formatting, syntax validation, `git diff --check`, focused validation, and one final complete supported build/test integration gate.
+    ☒ Complete this phase only when the repository contains no retired spellings or temporary work products and durable documentation describes only the final API.
 
   Completion Contract:
-    ☐ Every complete-register shift family begins with `shift_`.
-    ☐ Immediate byte shifts are exposed consistently through implementation, `Api`, and `Register` at both 128 and 256 bits.
-    ☐ Runtime immediate substitutes retain the `_slow` suffix and cannot be selected accidentally through an unsuffixed runtime overload.
-    ☐ Immediate byte shifts have direct intrinsic-backed generated-code proof.
-    ☐ Existing complete-register shift semantics and `UInt128` behavior remain unchanged.
-    ☐ No compatibility aliases, retired names, temporary documentation, or transient execution claims remain.
+    ☒ Every complete-register shift family begins with `shift_`.
+    ☒ Immediate byte shifts are exposed consistently through implementation, `Api`, and `Register` at both 128 and 256 bits.
+    ☒ Runtime immediate substitutes retain the `_slow` suffix and cannot be selected accidentally through an unsuffixed runtime overload.
+    ☒ Immediate byte shifts have direct intrinsic-backed generated-code proof.
+    ☒ Existing complete-register shift semantics and `UInt128` behavior remain unchanged.
+    ☒ No compatibility aliases, retired names, temporary documentation, or transient execution claims remain.

@@ -12,16 +12,16 @@
 - [`add_saturated`](#add-saturated)
 - [`add_subtract`](#add-subtract)
 - [`avg`](#avg)
-- [`bit_shift_left` and `bit_shift_left_slow`](#bit-shift-left)
-- [`bit_shift_right` and `bit_shift_right_slow`](#bit-shift-right)
+- [`shift_bits_left` and `shift_bits_left_slow`](#shift-bits-left)
+- [`shift_bits_right` and `shift_bits_right_slow`](#shift-bits-right)
 - [`bitwise_and`](#bitwise-and)
 - [`bitwise_andnot`](#bitwise-andnot)
 - [`bitwise_not`](#bitwise-not)
 - [`bitwise_or`](#bitwise-or)
 - [`bitwise_xor`](#bitwise-xor)
 - [`blend`](#blend)
-- [`byte_shift_left_slow`](#byte-shift-left-slow)
-- [`byte_shift_right_slow`](#byte-shift-right-slow)
+- [`shift_bytes_left` and `shift_bytes_left_slow`](#shift-bytes-left)
+- [`shift_bytes_right` and `shift_bytes_right_slow`](#shift-bytes-right)
 - [`cmp_eq`](#cmp-eq)
 - [`cmp_eq_mask`](#cmp-eq-mask)
 - [`cmp_ge`](#cmp-ge)
@@ -216,16 +216,16 @@ using U8 = SimdLib::Api<128, std::uint8_t>;
 U8::avg(U8::set1(2U), U8::set1(6U)); // => every lane is 4U
 ```
 
-<a id="bit-shift-left"></a>
-## `bit_shift_left` and `bit_shift_left_slow`
+<a id="shift-bits-left"></a>
+## `shift_bits_left` and `shift_bits_left_slow`
 
 Shifts the complete 128-bit register left as one unsigned bit string, carrying across element boundaries. The unsuffixed template form encodes a compile-time count. The `_slow` form accepts a runtime count; nonpositive counts return the input and counts of 128 or more return zero.
 
 Signatures:
 
 ```cpp
-template <int shift> static int_vector_t bit_shift_left(int_vector_t lhs)
-static int_vector_t bit_shift_left_slow(int_vector_t lhs, int shift)
+template <int shift> static int_vector_t shift_bits_left(int_vector_t lhs)
+static int_vector_t shift_bits_left_slow(int_vector_t lhs, int shift)
 ```
 
 Examples:
@@ -233,20 +233,20 @@ Examples:
 ```cpp
 using U32x4 = SimdLib::Api<128, std::uint32_t>;
 const auto value = U32x4::construct({3U, 3U, 3U, 3U});
-U32x4::bit_shift_left<1>(value);       // => {6U, 6U, 6U, 6U}
-U32x4::bit_shift_left_slow(value, 1); // same semantics with a runtime count
+U32x4::shift_bits_left<1>(value);       // => {6U, 6U, 6U, 6U}
+U32x4::shift_bits_left_slow(value, 1); // same semantics with a runtime count
 ```
 
-<a id="bit-shift-right"></a>
-## `bit_shift_right` and `bit_shift_right_slow`
+<a id="shift-bits-right"></a>
+## `shift_bits_right` and `shift_bits_right_slow`
 
 Shifts the complete 128-bit register right as one unsigned bit string, carrying across element boundaries. The unsuffixed template form encodes a compile-time count. The `_slow` form accepts a runtime count; nonpositive counts return the input and counts of 128 or more return zero.
 
 Signatures:
 
 ```cpp
-template <int shift> static int_vector_t bit_shift_right(int_vector_t lhs)
-static int_vector_t bit_shift_right_slow(int_vector_t lhs, int shift)
+template <int shift> static int_vector_t shift_bits_right(int_vector_t lhs)
+static int_vector_t shift_bits_right_slow(int_vector_t lhs, int shift)
 ```
 
 Examples:
@@ -254,8 +254,8 @@ Examples:
 ```cpp
 using U32x4 = SimdLib::Api<128, std::uint32_t>;
 const auto value = U32x4::construct({8U, 8U, 8U, 8U});
-U32x4::bit_shift_right<1>(value);       // => {4U, 4U, 4U, 4U}
-U32x4::bit_shift_right_slow(value, 1); // same semantics with a runtime count
+U32x4::shift_bits_right<1>(value);       // => {4U, 4U, 4U, 4U}
+U32x4::shift_bits_right_slow(value, 1); // same semantics with a runtime count
 ```
 
 <a id="bitwise-and"></a>
@@ -379,42 +379,46 @@ I32x4::blend<0b0101>(lhs, rhs);       // => {1, 20, 3, 40}
 I32x4::blend_slow(lhs, rhs, 0b0101); // same semantics with a runtime control
 ```
 
-<a id="byte-shift-left-slow"></a>
-## `byte_shift_left_slow`
+<a id="shift-bytes-left"></a>
+## `shift_bytes_left` and `shift_bytes_left_slow`
 
-Shifts every byte in a 128-bit register toward higher byte indices. The `_slow` suffix identifies the runtime substitute for an immediate-controlled whole-register shift.
+Shifts a complete integral register toward higher byte indices. The immediate template treats the value as one contiguous byte sequence, crossing element, 64-bit, and—at 256 bits—128-bit-half boundaries. `shift_bytes_left<count>` accepts a nonnegative compile-time count at 128 or 256 bits. Zero is identity; counts at least 16 for 128 bits or 32 for 256 bits produce zero. The `_slow` form accepts a runtime count but is intentionally available only for 128-bit registers.
 
-Signature:
+Signatures:
 
 ```cpp
-static int_vector_t byte_shift_left_slow(int_vector_t lhs, int shift)
+template <int count> static int_vector_t shift_bytes_left(int_vector_t lhs)
+static int_vector_t shift_bytes_left_slow(int_vector_t lhs, int count) // 128-bit only
 ```
 
-Example:
+Examples:
 
 ```cpp
+using U8x32 = SimdLib::Api<256, std::uint8_t>;
 using U8x16 = SimdLib::Api<128, std::uint8_t>;
-U8x16::byte_shift_left_slow(U8x16::set1(7U), 1); // => {0U, 7U, 7U, ..., 7U}
+U8x32::shift_bytes_left<17>(U8x32::set1(7U));      // crosses the 128-bit boundary
+U8x16::shift_bytes_left_slow(U8x16::set1(7U), 1); // => {0U, 7U, 7U, ..., 7U}
 ```
+<a id="shift-bytes-right"></a>
+## `shift_bytes_right` and `shift_bytes_right_slow`
 
-<a id="byte-shift-right-slow"></a>
-## `byte_shift_right_slow`
+Shifts a complete integral register toward lower byte indices. The immediate template uses the same contiguous-register semantics as `shift_bytes_left`, including crossing the 128-bit boundary at 256 bits. `shift_bytes_right<count>` accepts a nonnegative compile-time count at 128 or 256 bits. Zero is identity; counts at least 16 for 128 bits or 32 for 256 bits produce zero. The `_slow` form accepts a runtime count but is intentionally available only for 128-bit registers.
 
-Shifts every byte in a 128-bit register toward lower byte indices. The `_slow` suffix identifies the runtime substitute for an immediate-controlled whole-register shift.
-
-Signature:
+Signatures:
 
 ```cpp
-static int_vector_t byte_shift_right_slow(int_vector_t lhs, int shift)
+template <int count> static int_vector_t shift_bytes_right(int_vector_t lhs)
+static int_vector_t shift_bytes_right_slow(int_vector_t lhs, int count) // 128-bit only
 ```
 
-Example:
+Examples:
 
 ```cpp
+using U8x32 = SimdLib::Api<256, std::uint8_t>;
 using U8x16 = SimdLib::Api<128, std::uint8_t>;
-U8x16::byte_shift_right_slow(U8x16::set1(7U), 1); // => {7U, 7U, ..., 7U, 0U}
+U8x32::shift_bytes_right<17>(U8x32::set1(7U));      // crosses the 128-bit boundary
+U8x16::shift_bytes_right_slow(U8x16::set1(7U), 1); // => {7U, 7U, ..., 7U, 0U}
 ```
-
 <a id="cmp-eq"></a>
 ## `cmp_eq`
 
@@ -1399,7 +1403,7 @@ Example:
 
 ```cpp
 using I16x8 = SimdLib::Api<128, std::int16_t>;
-const auto high = I16x8::byte_shift_left_slow(I16x8::setr_partial(1, 2, 3, 4), 8);
+const auto high = I16x8::shift_bytes_left_slow(I16x8::setr_partial(1, 2, 3, 4), 8);
 I16x8::shuffle_hi<0b0001'1011>(high);       // => {0, 0, 0, 0, 4, 3, 2, 1}
 I16x8::shuffle_hi_slow(high, 0b0001'1011); // same semantics with a runtime control
 ```

@@ -1001,13 +1001,15 @@ nevertheless remains `Register<T, Bits>`.
 | `shift_left` | `value << count` | Per-lane integral shift |
 | `shift_right` | `value.logical_shift_right(count)` | Per-lane logical shift for signed or unsigned lanes |
 | `shift_right_arithmetic` | `value >> count` | Per-lane arithmetic shift for signed lanes |
-| `byte_shift_left_slow` | `value.byte_shift_left_slow(count)` | Complete 128-bit register byte shift |
-| `byte_shift_right_slow` | `value.byte_shift_right_slow(count)` | Complete 128-bit register byte shift |
-| Runtime `bit_shift_left_slow` | `value.bit_shift_left_slow(count)` | Complete 128-bit bit-string shift |
-| Compile-time `bit_shift_left` | `value.bit_shift_left<count>()` | Complete 128-bit bit-string shift |
-| Runtime `bit_shift_right_slow` | `value.bit_shift_right_slow(count)` | Complete 128-bit bit-string shift |
-| Compile-time `bit_shift_right` | `value.bit_shift_right<count>()` | Complete 128-bit bit-string shift |
-| `bit_cast` | `value.bit_cast<target_t>()` | Full-width bit-preserving reinterpretation |
+| Runtime `shift_bytes_left_slow` | `value.shift_bytes_left_slow(count)` | Complete integral 128-bit register byte shift |
+| Compile-time `shift_bytes_left` | `value.shift_bytes_left<count>()` | Complete integral 128- or 256-bit register byte shift |
+| Runtime `shift_bytes_right_slow` | `value.shift_bytes_right_slow(count)` | Complete integral 128-bit register byte shift |
+| Compile-time `shift_bytes_right` | `value.shift_bytes_right<count>()` | Complete integral 128- or 256-bit register byte shift |
+| Runtime `shift_bits_left_slow` | `value.shift_bits_left_slow(count)` | Complete integral 128-bit bit-string shift |
+| Compile-time `shift_bits_left` | `value.shift_bits_left<count>()` | Complete integral 128-bit bit-string shift |
+| Runtime `shift_bits_right_slow` | `value.shift_bits_right_slow(count)` | Complete integral 128-bit bit-string shift |
+| Compile-time shift_bits_right | alue.shift_bits_right<count>() | Complete integral 128-bit bit-string shift |
+| it_cast | alue.bit_cast<target_t>() | Full-width bit-preserving reinterpretation |
 | `convert_to_float` | `value.convert<float>()` | `Register<float, Bits>` from supported 32-bit integer lanes |
 | `convert_to_int` | `value.convert<std::int32_t>()` | `Register<std::int32_t, Bits>` from float lanes |
 | Explicit-target `convert<target_t>` | `value.convert<target_t>()` | Explicit target type |

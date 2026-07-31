@@ -185,12 +185,14 @@ the operation or intentionally leaves it in a compatibility or collection layer.
 | `shift_left` | `value << count` | Implemented |
 | `shift_right` | `value.logical_shift_right(count)`; unsigned `operator>>` | Implemented |
 | `shift_right_arithmetic` | Signed `value >> count` | Implemented |
-| `byte_shift_left_slow` | `value.byte_shift_left_slow(count)` | Implemented |
-| `byte_shift_right_slow` | `value.byte_shift_right_slow(count)` | Implemented |
-| Runtime `bit_shift_left_slow` | `value.bit_shift_left_slow(count)` | Implemented |
-| Compile-time `bit_shift_left` | `value.bit_shift_left<count>()` | Implemented |
-| Runtime `bit_shift_right_slow` | `value.bit_shift_right_slow(count)` | Implemented |
-| Compile-time `bit_shift_right` | `value.bit_shift_right<count>()` | Implemented |
+| Runtime `shift_bytes_left_slow` | `value.shift_bytes_left_slow(count)` | Implemented for integral 128-bit registers |
+| Compile-time `shift_bytes_left` | `value.shift_bytes_left<count>()` | Implemented for integral 128- and 256-bit registers |
+| Runtime `shift_bytes_right_slow` | `value.shift_bytes_right_slow(count)` | Implemented for integral 128-bit registers |
+| Compile-time `shift_bytes_right` | `value.shift_bytes_right<count>()` | Implemented for integral 128- and 256-bit registers |
+| Runtime `shift_bits_left_slow` | `value.shift_bits_left_slow(count)` | Implemented for integral 128-bit registers |
+| Compile-time `shift_bits_left` | `value.shift_bits_left<count>()` | Implemented for integral 128-bit registers |
+| Runtime `shift_bits_right_slow` | `value.shift_bits_right_slow(count)` | Implemented for integral 128-bit registers |
+| Compile-time `shift_bits_right` | `value.shift_bits_right<count>()` | Implemented for integral 128-bit registers |
 | `bit_cast` | `value.bit_cast<target_t>()` | Implemented |
 | `convert_to_float` | `value.convert<float>()` | Implemented |
 | `convert_to_int` | `value.convert<int32_t>()` | Implemented |
@@ -209,7 +211,7 @@ helpers. The six additional operations exposed through inherited
 `using impl::...` declarations—`add`, `divide`, `max`, `min`, `multiply`, and
 `subtract`—produce 98 unique public operation names. Every name is classified
 above. Overloaded `load`, `store`, `extract`, `insert`, `shuffle`,
-`shuffle_lo`, `shuffle_hi`, `blend`, `bit_shift_*`, `convert`, and span
+`shuffle_lo`, `shuffle_hi`, `blend`, `shift_bytes_*`, `shift_bits_*`, `convert`, and span
 `transform` families are split whenever their Register dispositions differ.
 The protected `TransformForMaxPosition` and `compare_each_element` helpers are
 classified separately as internal operations.

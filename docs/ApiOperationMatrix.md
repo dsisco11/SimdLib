@@ -26,7 +26,7 @@ corresponding `Api` cell rather than inventing a second implementation policy.
 | Floating `set1` and bitwise operations | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✓ | ✓ |
 | Compile-time logical `shuffle<indices...>` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | `uint64_t::multiply_add_adjacent` | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✓ | ✗ | ✗ |
-| Whole-register byte shifts | 128 ✓ / 256 ✗ | 128 ✓ / 256 ✗ | 128 ✓ / 256 ✗ | 128 ✓ / 256 ✗ | 128 ✓ / 256 ✗ | 128 ✓ / 256 ✗ | 128 ✓ / 256 ✗ | 128 ✓ / 256 ✗ | ✗ | ✗ |
+| Whole-register byte shifts | 128 ✓ / 256 ✓ | 128 ✓ / 256 ✓ | 128 ✓ / 256 ✓ | 128 ✓ / 256 ✓ | 128 ✓ / 256 ✓ | 128 ✓ / 256 ✓ | 128 ✓ / 256 ✓ | 128 ✓ / 256 ✓ | ✗ | ✗ |
 | `transform_pack` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✗ | ✗ |
 | Span transforms (in-place unary, separate-output unary, and binary) | shared¹ | shared¹ | shared¹ | shared¹ | shared¹ | ✓ | shared¹ | shared¹ | shared¹ | shared¹ |
 
