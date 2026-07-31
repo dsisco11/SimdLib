@@ -332,38 +332,38 @@ concept ShiftRight = Type<register_t> && requires(register_t value) {
 
 /** @brief Reports whether a Register type exposes explicit slow-path complete-register dynamic byte left shift. */
 template <class register_t>
-concept ByteShiftLeftSlow = Type<register_t> && requires(register_t value) {
-	{ value.byte_shift_left_slow(1) } -> std::same_as<register_t>;
+concept ShiftBytesLeftSlow = Type<register_t> && requires(register_t value) {
+	{ value.shift_bytes_left_slow(1) } -> std::same_as<register_t>;
 };
 
 /** @brief Reports whether a Register type exposes explicit slow-path complete-register dynamic byte right shift. */
 template <class register_t>
-concept ByteShiftRightSlow = Type<register_t> && requires(register_t value) {
-	{ value.byte_shift_right_slow(1) } -> std::same_as<register_t>;
+concept ShiftBytesRightSlow = Type<register_t> && requires(register_t value) {
+	{ value.shift_bytes_right_slow(1) } -> std::same_as<register_t>;
 };
 
 /** @brief Reports whether a Register type exposes explicit slow-path complete-register dynamic bit left shift. */
 template <class register_t>
-concept BitShiftLeftSlow = Type<register_t> && requires(register_t value) {
-	{ value.bit_shift_left_slow(1) } -> std::same_as<register_t>;
+concept ShiftBitsLeftSlow = Type<register_t> && requires(register_t value) {
+	{ value.shift_bits_left_slow(1) } -> std::same_as<register_t>;
 };
 
 /** @brief Reports whether a Register type exposes explicit slow-path complete-register dynamic bit right shift. */
 template <class register_t>
-concept BitShiftRightSlow = Type<register_t> && requires(register_t value) {
-	{ value.bit_shift_right_slow(1) } -> std::same_as<register_t>;
+concept ShiftBitsRightSlow = Type<register_t> && requires(register_t value) {
+	{ value.shift_bits_right_slow(1) } -> std::same_as<register_t>;
 };
 
 /** @brief Reports whether a Register type exposes complete-register compile-time bit left shift. */
 template <class register_t, int count>
-concept IndexedBitShiftLeft = Type<register_t> && requires(register_t value) {
-	{ value.template bit_shift_left<count>() } -> std::same_as<register_t>;
+concept ShiftBitsLeft = Type<register_t> && requires(register_t value) {
+	{ value.template shift_bits_left<count>() } -> std::same_as<register_t>;
 };
 
 /** @brief Reports whether a Register type exposes complete-register compile-time bit right shift. */
 template <class register_t, int count>
-concept IndexedBitShiftRight = Type<register_t> && requires(register_t value) {
-	{ value.template bit_shift_right<count>() } -> std::same_as<register_t>;
+concept ShiftBitsRight = Type<register_t> && requires(register_t value) {
+	{ value.template shift_bits_right<count>() } -> std::same_as<register_t>;
 };
 
 /** @brief Reports whether a Register type exposes ordered equality comparison. */

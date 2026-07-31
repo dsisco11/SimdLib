@@ -50,15 +50,15 @@ Complete-Register Shift API Rename and Immediate Byte Shifts:
     ☒ Complete this phase only when names, direction, count units, boundary behavior, and width restrictions are unambiguous.
 
   Phase 2 - Rename the Existing Complete-Register Shift Surface:
-    ☐ Rename `byte_shift_left_slow` and `byte_shift_right_slow` to `shift_bytes_left_slow` and `shift_bytes_right_slow` in `Api`, `Register`, implementation specializations, and extension helpers.
-    ☐ Rename `bit_shift_left`, `bit_shift_right`, `bit_shift_left_slow`, and `bit_shift_right_slow` to the corresponding `shift_bits_...` names in every exposed layer.
-    ☐ Rename private constexpr helpers and native extension helpers so internal terminology follows the public names.
-    ☐ Update `IApi`, `IImpl`, and `IRegister` concepts and concept names so capability detection uses the renamed operations.
-    ☐ Update `UInt128` and every internal caller to use the renamed complete-register bit-shift methods.
-    ☐ Update comments and Doxygen references without changing the documented semantics.
-    ☐ Do not retain forwarding wrappers, deprecated aliases, macros, or duplicate concept spellings for the retired names.
-    ☐ Search tracked production code for every retired `byte_shift_...` and `bit_shift_...` spelling before completing this phase.
-    ☐ Complete this phase only when production declarations and callers use the `shift_bytes_...` and `shift_bits_...` families consistently.
+    ☒ Rename `byte_shift_left_slow` and `byte_shift_right_slow` to `shift_bytes_left_slow` and `shift_bytes_right_slow` in `Api`, `Register`, implementation specializations, and extension helpers.
+    ☒ Rename `bit_shift_left`, `bit_shift_right`, `bit_shift_left_slow`, and `bit_shift_right_slow` to the corresponding `shift_bits_...` names in every exposed layer.
+    ☒ Rename private constexpr helpers and native extension helpers so internal terminology follows the public names.
+    ☒ Update `IApi`, `IImpl`, and `IRegister` concepts and concept names so capability detection uses the renamed operations.
+    ☒ Update `UInt128` and every internal caller to use the renamed complete-register bit-shift methods.
+    ☒ Update comments and Doxygen references without changing the documented semantics.
+    ☒ Do not retain forwarding wrappers, deprecated aliases, macros, or duplicate concept spellings for the retired names.
+    ☒ Search tracked production code for every retired `byte_shift_...` and `bit_shift_...` spelling before completing this phase.
+    ☒ Complete this phase only when production declarations and callers use the `shift_bytes_...` and `shift_bits_...` families consistently.
 
   Phase 3 - Implement Immediate Complete-Register Byte Shifts:
     ☐ Add specialized implementation-layer templates `shift_bytes_left<count>` and `shift_bytes_right<count>` for 128-bit integer registers.

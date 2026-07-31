@@ -842,13 +842,13 @@ class Register final
 	 * @param value Source register interpreted as one 16-byte string.
 	 * @param count Runtime byte count; nonpositive values are identity and values at least 16 produce zero.
 	 * @return Shifted complete register with zero-filled low bytes.
-	 * @remarks Available only at 128 bits when `IApi::ByteShiftSlow<api_type>` is satisfied.
+	 * @remarks Available only at 128 bits when `IApi::ShiftBytesSlow<api_type>` is satisfied.
 	 * @note `_slow` marks runtime emulation of an immediate complete-register byte shift.
 	 */
-	[[nodiscard]] constexpr Register SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) byte_shift_left_slow(this Register value, int count) noexcept
-		requires(register_width == 128 && IApi::ByteShiftSlow<api_type>)
+	[[nodiscard]] constexpr Register SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shift_bytes_left_slow(this Register value, int count) noexcept
+		requires(register_width == 128 && IApi::ShiftBytesSlow<api_type>)
 	{
-		return Register{api_type::byte_shift_left_slow(value.native, count)};
+		return Register{api_type::shift_bytes_left_slow(value.native, count)};
 	}
 
 	/**
@@ -856,13 +856,13 @@ class Register final
 	 * @param value Source register interpreted as one 16-byte string.
 	 * @param count Runtime byte count; nonpositive values are identity and values at least 16 produce zero.
 	 * @return Shifted complete register with zero-filled high bytes.
-	 * @remarks Available only at 128 bits when `IApi::ByteShiftSlow<api_type>` is satisfied.
+	 * @remarks Available only at 128 bits when `IApi::ShiftBytesSlow<api_type>` is satisfied.
 	 * @note `_slow` marks runtime emulation of an immediate complete-register byte shift.
 	 */
-	[[nodiscard]] constexpr Register SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) byte_shift_right_slow(this Register value, int count) noexcept
-		requires(register_width == 128 && IApi::ByteShiftSlow<api_type>)
+	[[nodiscard]] constexpr Register SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shift_bytes_right_slow(this Register value, int count) noexcept
+		requires(register_width == 128 && IApi::ShiftBytesSlow<api_type>)
 	{
-		return Register{api_type::byte_shift_right_slow(value.native, count)};
+		return Register{api_type::shift_bytes_right_slow(value.native, count)};
 	}
 
 	/**
@@ -870,13 +870,13 @@ class Register final
 	 * @param value Source register interpreted as one 128-bit string.
 	 * @param count Runtime bit count; nonpositive values are identity and values at least 128 produce zero.
 	 * @return Complete-register left shift with zero fill.
-	 * @remarks Available only at 128 bits when `IApi::BitShiftSlow<api_type>` is satisfied.
+	 * @remarks Available only at 128 bits when `IApi::ShiftBitsSlow<api_type>` is satisfied.
 	 * @note `_slow` marks the synthesized runtime-count substitute for an immediate complete-register shift.
 	 */
-	[[nodiscard]] constexpr Register SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) bit_shift_left_slow(this Register value, int count) noexcept
-		requires(register_width == 128 && IApi::BitShiftSlow<api_type>)
+	[[nodiscard]] constexpr Register SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shift_bits_left_slow(this Register value, int count) noexcept
+		requires(register_width == 128 && IApi::ShiftBitsSlow<api_type>)
 	{
-		return Register{api_type::bit_shift_left_slow(value.native, count)};
+		return Register{api_type::shift_bits_left_slow(value.native, count)};
 	}
 
 	/**
@@ -884,13 +884,13 @@ class Register final
 	 * @param value Source register interpreted as one 128-bit string.
 	 * @param count Runtime bit count; nonpositive values are identity and values at least 128 produce zero.
 	 * @return Complete-register right shift with zero fill.
-	 * @remarks Available only at 128 bits when `IApi::BitShiftSlow<api_type>` is satisfied.
+	 * @remarks Available only at 128 bits when `IApi::ShiftBitsSlow<api_type>` is satisfied.
 	 * @note `_slow` marks the synthesized runtime-count substitute for an immediate complete-register shift.
 	 */
-	[[nodiscard]] constexpr Register SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) bit_shift_right_slow(this Register value, int count) noexcept
-		requires(register_width == 128 && IApi::BitShiftSlow<api_type>)
+	[[nodiscard]] constexpr Register SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shift_bits_right_slow(this Register value, int count) noexcept
+		requires(register_width == 128 && IApi::ShiftBitsSlow<api_type>)
 	{
-		return Register{api_type::bit_shift_right_slow(value.native, count)};
+		return Register{api_type::shift_bits_right_slow(value.native, count)};
 	}
 
 	/**
@@ -898,13 +898,13 @@ class Register final
 	 * @tparam count Nonnegative bit count; values at least 128 produce zero.
 	 * @param value Source register interpreted as one 128-bit string.
 	 * @return Complete-register left shift with zero fill.
-	 * @remarks Available only at 128 bits when `IApi::BitShift<api_type, count>` is satisfied.
+	 * @remarks Available only at 128 bits when `IApi::ShiftBits<api_type, count>` is satisfied.
 	 */
 	template <int count>
-		requires(register_width == 128 && count >= 0 && IApi::BitShift<api_type, count>)
-	[[nodiscard]] constexpr Register SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) bit_shift_left(this Register value) noexcept
+		requires(register_width == 128 && count >= 0 && IApi::ShiftBits<api_type, count>)
+	[[nodiscard]] constexpr Register SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shift_bits_left(this Register value) noexcept
 	{
-		return Register{api_type::template bit_shift_left<count>(value.native)};
+		return Register{api_type::template shift_bits_left<count>(value.native)};
 	}
 
 	/**
@@ -912,13 +912,13 @@ class Register final
 	 * @tparam count Nonnegative bit count; values at least 128 produce zero.
 	 * @param value Source register interpreted as one 128-bit string.
 	 * @return Complete-register right shift with zero fill.
-	 * @remarks Available only at 128 bits when `IApi::BitShift<api_type, count>` is satisfied.
+	 * @remarks Available only at 128 bits when `IApi::ShiftBits<api_type, count>` is satisfied.
 	 */
 	template <int count>
-		requires(register_width == 128 && count >= 0 && IApi::BitShift<api_type, count>)
-	[[nodiscard]] constexpr Register SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) bit_shift_right(this Register value) noexcept
+		requires(register_width == 128 && count >= 0 && IApi::ShiftBits<api_type, count>)
+	[[nodiscard]] constexpr Register SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shift_bits_right(this Register value) noexcept
 	{
-		return Register{api_type::template bit_shift_right<count>(value.native)};
+		return Register{api_type::template shift_bits_right<count>(value.native)};
 	}
 
 #pragma endregion

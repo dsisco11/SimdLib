@@ -289,23 +289,23 @@ concept Shuffle32Slow =
 
 /** @brief Reports whether a backend exposes explicit slow-path complete-register byte shifts. */
 template <class implementation_t>
-concept ByteShiftSlow = Mapping<implementation_t> && requires(typename implementation_t::int_vector_t value) {
-	implementation_t::byte_shift_left_slow(value, 1);
-	implementation_t::byte_shift_right_slow(value, 1);
+concept ShiftBytesSlow = Mapping<implementation_t> && requires(typename implementation_t::int_vector_t value) {
+	implementation_t::shift_bytes_left_slow(value, 1);
+	implementation_t::shift_bytes_right_slow(value, 1);
 };
 
 /** @brief Reports whether a backend exposes explicit slow-path complete-register bit shifts. */
 template <class implementation_t>
-concept BitShiftSlow = Mapping<implementation_t> && requires(typename implementation_t::int_vector_t value) {
-	implementation_t::bit_shift_left_slow(value, 1);
-	implementation_t::bit_shift_right_slow(value, 1);
+concept ShiftBitsSlow = Mapping<implementation_t> && requires(typename implementation_t::int_vector_t value) {
+	implementation_t::shift_bits_left_slow(value, 1);
+	implementation_t::shift_bits_right_slow(value, 1);
 };
 
 /** @brief Reports whether a backend exposes compile-time complete-register bit shifts. */
 template <class implementation_t, int count>
-concept BitShift = Mapping<implementation_t> && requires(typename implementation_t::int_vector_t value) {
-	implementation_t::template bit_shift_left<count>(value);
-	implementation_t::template bit_shift_right<count>(value);
+concept ShiftBits = Mapping<implementation_t> && requires(typename implementation_t::int_vector_t value) {
+	implementation_t::template shift_bits_left<count>(value);
+	implementation_t::template shift_bits_right<count>(value);
 };
 
 /** @brief Reports whether a backend exposes an immediate-controlled low-half shuffle. */

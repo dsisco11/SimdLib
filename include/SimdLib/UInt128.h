@@ -555,7 +555,7 @@ class uint128_t final
 		requires(simd_available<Dependency>)
 	[[nodiscard]] uint128_t simd_shift_left(const int count) const noexcept
 	{
-		return store_register<Dependency>(simd<Dependency>::bit_shift_left_slow(to_register<Dependency>(), count));
+		return store_register<Dependency>(simd<Dependency>::shift_bits_left_slow(to_register<Dependency>(), count));
 	}
 
 	/** @brief Shifts the complete value right through the SIMD runtime-count slow path. */
@@ -563,7 +563,7 @@ class uint128_t final
 		requires(simd_available<Dependency>)
 	[[nodiscard]] uint128_t simd_shift_right(const int count) const noexcept
 	{
-		return store_register<Dependency>(simd<Dependency>::bit_shift_right_slow(to_register<Dependency>(), count));
+		return store_register<Dependency>(simd<Dependency>::shift_bits_right_slow(to_register<Dependency>(), count));
 	}
 };
 

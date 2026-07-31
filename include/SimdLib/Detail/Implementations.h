@@ -3664,9 +3664,9 @@ template <class element_t> struct SimdMappings<128, element_t> : public SimdImpl
 	 * @param shift Runtime byte count.
 	 * @return Shifted register with zero-filled low bytes.
 	 */
-	static int_vector_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) byte_shift_left_slow(int_vector_t lhs, int shift) noexcept
+	static int_vector_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shift_bytes_left_slow(int_vector_t lhs, int shift) noexcept
 	{
-		return _ext128_byte_shift_left_slow(lhs, shift);
+		return _ext128_shift_bytes_left_slow(lhs, shift);
 	}
 
 	/**
@@ -3675,9 +3675,9 @@ template <class element_t> struct SimdMappings<128, element_t> : public SimdImpl
 	 * @param shift Runtime byte count.
 	 * @return Shifted register with zero-filled high bytes.
 	 */
-	static int_vector_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) byte_shift_right_slow(int_vector_t lhs, int shift) noexcept
+	static int_vector_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shift_bytes_right_slow(int_vector_t lhs, int shift) noexcept
 	{
-		return _ext128_byte_shift_right_slow(lhs, shift);
+		return _ext128_shift_bytes_right_slow(lhs, shift);
 	}
 
 	/**
@@ -3686,9 +3686,9 @@ template <class element_t> struct SimdMappings<128, element_t> : public SimdImpl
 	 * @param shift Runtime count; nonpositive counts are identity and counts of at least 128 produce zero.
 	 * @return Shifted register with zero-filled low bits.
 	 */
-	static int_vector_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) bit_shift_left_slow(const int_vector_t lhs, const int shift) noexcept
+	static int_vector_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shift_bits_left_slow(const int_vector_t lhs, const int shift) noexcept
 	{
-		return _ext128_shift_left_bits_slow(lhs, shift);
+		return _ext128_shift_bits_left_slow(lhs, shift);
 	}
 
 	/**
@@ -3697,9 +3697,9 @@ template <class element_t> struct SimdMappings<128, element_t> : public SimdImpl
 	 * @param shift Runtime count; nonpositive counts are identity and counts of at least 128 produce zero.
 	 * @return Shifted register with zero-filled high bits.
 	 */
-	static int_vector_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) bit_shift_right_slow(const int_vector_t lhs, const int shift) noexcept
+	static int_vector_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shift_bits_right_slow(const int_vector_t lhs, const int shift) noexcept
 	{
-		return _ext128_shift_right_bits_slow(lhs, shift);
+		return _ext128_shift_bits_right_slow(lhs, shift);
 	}
 
 	/**
@@ -3708,9 +3708,9 @@ template <class element_t> struct SimdMappings<128, element_t> : public SimdImpl
 	 * @param lhs Source register interpreted as one unsigned 128-bit bit string.
 	 * @return Shifted register with zero-filled low bits.
 	 */
-	template <int shift> static int_vector_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) bit_shift_left(const int_vector_t lhs) noexcept
+	template <int shift> static int_vector_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shift_bits_left(const int_vector_t lhs) noexcept
 	{
-		return _ext128_shift_left_bits_static<shift>(lhs);
+		return _ext128_shift_bits_left_static<shift>(lhs);
 	}
 
 	/**
@@ -3719,9 +3719,9 @@ template <class element_t> struct SimdMappings<128, element_t> : public SimdImpl
 	 * @param lhs Source register interpreted as one unsigned 128-bit bit string.
 	 * @return Shifted register with zero-filled high bits.
 	 */
-	template <int shift> static int_vector_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) bit_shift_right(const int_vector_t lhs) noexcept
+	template <int shift> static int_vector_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shift_bits_right(const int_vector_t lhs) noexcept
 	{
-		return _ext128_shift_right_bits_static<shift>(lhs);
+		return _ext128_shift_bits_right_static<shift>(lhs);
 	}
 
 #pragma endregion

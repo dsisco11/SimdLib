@@ -1258,7 +1258,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 * @brief Shifts every byte in a 128-bit register toward higher byte indices.
 	 *
 	 * A zero or negative count returns the input unchanged. A count greater than
-	 * or equal to the register byte width returns zero. [eg: byte_shift_left_slow(
+	 * or equal to the register byte width returns zero. [eg: shift_bytes_left_slow(
 	 * {0x01, 0x02, ...}, 1) => {0x00, 0x01, 0x02, ...}]
 	 *
 	 * @param lhs The source register.
@@ -1266,19 +1266,19 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 * @return The byte-shifted register.
 	 * @note `_slow` marks runtime emulation of an immediate byte count.
 	 */
-	constexpr static int_vector_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) byte_shift_left_slow(const int_vector_t lhs, const int shift) noexcept
+	constexpr static int_vector_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shift_bytes_left_slow(const int_vector_t lhs, const int shift) noexcept
 		requires(using_int && register_width == 128)
 	{
 		if (std::is_constant_evaluated())
-			return byte_shift_left_constexpr(lhs, shift);
-		return impl::byte_shift_left_slow(lhs, shift);
+			return shift_bytes_left_constexpr(lhs, shift);
+		return impl::shift_bytes_left_slow(lhs, shift);
 	}
 
 	/**
 	 * @brief Shifts every byte in a 128-bit register toward lower byte indices.
 	 *
 	 * A zero or negative count returns the input unchanged. A count greater than
-	 * or equal to the register byte width returns zero. [eg: byte_shift_right_slow(
+	 * or equal to the register byte width returns zero. [eg: shift_bytes_right_slow(
 	 * {0x01, 0x02, ...}, 1) => {0x02, ..., 0x00}]
 	 *
 	 * @param lhs The source register.
@@ -1286,12 +1286,12 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 * @return The byte-shifted register.
 	 * @note `_slow` marks runtime emulation of an immediate byte count.
 	 */
-	constexpr static int_vector_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) byte_shift_right_slow(const int_vector_t lhs, const int shift) noexcept
+	constexpr static int_vector_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shift_bytes_right_slow(const int_vector_t lhs, const int shift) noexcept
 		requires(using_int && register_width == 128)
 	{
 		if (std::is_constant_evaluated())
-			return byte_shift_right_constexpr(lhs, shift);
-		return impl::byte_shift_right_slow(lhs, shift);
+			return shift_bytes_right_constexpr(lhs, shift);
+		return impl::shift_bytes_right_slow(lhs, shift);
 	}
 
 	/** @brief Shifts the complete 128-bit register left, carrying bits across lane boundaries.
@@ -1300,23 +1300,23 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 * A zero or negative runtime count returns the input; counts of 128 or more return zero.
 	 * @note `_slow` marks the synthesized runtime-count substitute for immediate complete-register shifts.
 	 */
-	constexpr static int_vector_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) bit_shift_left_slow(const int_vector_t lhs, const int shift) noexcept
+	constexpr static int_vector_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shift_bits_left_slow(const int_vector_t lhs, const int shift) noexcept
 		requires(using_int && register_width == 128)
 	{
 		if (std::is_constant_evaluated())
-			return bit_shift_left_constexpr(lhs, shift);
-		return impl::bit_shift_left_slow(lhs, shift);
+			return shift_bits_left_constexpr(lhs, shift);
+		return impl::shift_bits_left_slow(lhs, shift);
 	}
 
 	/** @brief Compile-time complete-register left shift. Counts of 128 or more return zero. */
 	template <int shift>
-	constexpr static int_vector_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) bit_shift_left(const int_vector_t lhs) noexcept
+	constexpr static int_vector_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shift_bits_left(const int_vector_t lhs) noexcept
 		requires(using_int && register_width == 128)
 	{
 		static_assert(shift >= 0, "Whole-register shifts require a non-negative count.");
 		if (std::is_constant_evaluated())
-			return bit_shift_left_constexpr(lhs, shift);
-		return impl::template bit_shift_left<shift>(lhs);
+			return shift_bits_left_constexpr(lhs, shift);
+		return impl::template shift_bits_left<shift>(lhs);
 	}
 
 	/** @brief Shifts the complete 128-bit register right, carrying bits across lane boundaries.
@@ -1325,23 +1325,23 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 * A zero or negative runtime count returns the input; counts of 128 or more return zero.
 	 * @note `_slow` marks the synthesized runtime-count substitute for immediate complete-register shifts.
 	 */
-	constexpr static int_vector_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) bit_shift_right_slow(const int_vector_t lhs, const int shift) noexcept
+	constexpr static int_vector_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shift_bits_right_slow(const int_vector_t lhs, const int shift) noexcept
 		requires(using_int && register_width == 128)
 	{
 		if (std::is_constant_evaluated())
-			return bit_shift_right_constexpr(lhs, shift);
-		return impl::bit_shift_right_slow(lhs, shift);
+			return shift_bits_right_constexpr(lhs, shift);
+		return impl::shift_bits_right_slow(lhs, shift);
 	}
 
 	/** @brief Compile-time complete-register right shift. Counts of 128 or more return zero. */
 	template <int shift>
-	constexpr static int_vector_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) bit_shift_right(const int_vector_t lhs) noexcept
+	constexpr static int_vector_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shift_bits_right(const int_vector_t lhs) noexcept
 		requires(using_int && register_width == 128)
 	{
 		static_assert(shift >= 0, "Whole-register shifts require a non-negative count.");
 		if (std::is_constant_evaluated())
-			return bit_shift_right_constexpr(lhs, shift);
-		return impl::template bit_shift_right<shift>(lhs);
+			return shift_bits_right_constexpr(lhs, shift);
+		return impl::template shift_bits_right<shift>(lhs);
 	}
 
 #pragma endregion
@@ -2092,7 +2092,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param shift Runtime-compatible byte count.
 	 *  @return Byte-shifted register.
 	 */
-	constexpr static int_vector_t byte_shift_left_constexpr(const int_vector_t lhs, const int shift) noexcept
+	constexpr static int_vector_t shift_bytes_left_constexpr(const int_vector_t lhs, const int shift) noexcept
 	{
 		if (shift <= 0)
 			return lhs;
@@ -2110,7 +2110,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param shift Runtime-compatible byte count.
 	 *  @return Byte-shifted register.
 	 */
-	constexpr static int_vector_t byte_shift_right_constexpr(const int_vector_t lhs, const int shift) noexcept
+	constexpr static int_vector_t shift_bytes_right_constexpr(const int_vector_t lhs, const int shift) noexcept
 	{
 		if (shift <= 0)
 			return lhs;
@@ -2129,7 +2129,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 * @param shift Runtime-compatible bit count.
 	 * @return Shifted register with zero-filled low bits.
 	 */
-	constexpr static int_vector_t bit_shift_left_constexpr(const int_vector_t lhs, const int shift) noexcept
+	constexpr static int_vector_t shift_bits_left_constexpr(const int_vector_t lhs, const int shift) noexcept
 	{
 		if (shift <= 0)
 			return lhs;
@@ -2159,7 +2159,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 * @param shift Runtime-compatible bit count.
 	 * @return Shifted register with zero-filled high bits.
 	 */
-	constexpr static int_vector_t bit_shift_right_constexpr(const int_vector_t lhs, const int shift) noexcept
+	constexpr static int_vector_t shift_bits_right_constexpr(const int_vector_t lhs, const int shift) noexcept
 	{
 		if (shift <= 0)
 			return lhs;

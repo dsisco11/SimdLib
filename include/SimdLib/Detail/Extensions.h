@@ -485,7 +485,7 @@ constexpr Vector SIMD_FLAGS(Neither, ForceInline) register_transform_binary(cons
  * @param count Runtime byte count.
  * @return A count in the inclusive range zero through sixteen.
  */
-constexpr int SIMD_FLAGS(Neither, RegisterOnly, ForceInline) _ext128_clamp_byte_shift_count(const int count) noexcept
+constexpr int SIMD_FLAGS(Neither, RegisterOnly, ForceInline) _ext128_clamp_shift_bytes_count(const int count) noexcept
 {
 	const int nonnegative = count < 0 ? 0 : count;
 	return nonnegative > 16 ? 16 : nonnegative;
@@ -496,7 +496,7 @@ constexpr int SIMD_FLAGS(Neither, RegisterOnly, ForceInline) _ext128_clamp_byte_
  * @param count Byte count in the inclusive range zero through sixteen.
  * @return Register containing the count in every byte lane.
  */
-__m128i SIMD_FLAGS(Out, RegisterOnly, ForceInline) _ext128_broadcast_byte_shift_count(const int count) noexcept
+__m128i SIMD_FLAGS(Out, RegisterOnly, ForceInline) _ext128_broadcast_shift_bytes_count(const int count) noexcept
 {
 	return _mm_set1_epi32(count * 0x01010101);
 }
@@ -513,11 +513,11 @@ __m128i SIMD_FLAGS(Out, RegisterOnly, ForceInline) _ext128_broadcast_byte_shift_
  *        greater than or equal to sixteen produce zero.
  * @return Shifted register with zero-filled low bytes.
  */
-__m128i SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) _ext128_byte_shift_left_slow(__m128i lhs, const int count) noexcept
+__m128i SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) _ext128_shift_bytes_left_slow(__m128i lhs, const int count) noexcept
 {
 	const __m128i indices = _mm_setr_epi8(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15);
-	const int boundedCount = _ext128_clamp_byte_shift_count(count);
-	const __m128i counts = _ext128_broadcast_byte_shift_count(boundedCount);
+	const int boundedCount = _ext128_clamp_shift_bytes_count(count);
+	const __m128i counts = _ext128_broadcast_shift_bytes_count(boundedCount);
 	return _mm_shuffle_epi8(lhs, _mm_sub_epi8(indices, counts));
 }
 
@@ -533,11 +533,11 @@ __m128i SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) _ext128_byte_shift
  *        greater than or equal to sixteen produce zero.
  * @return Shifted register with zero-filled high bytes.
  */
-__m128i SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) _ext128_byte_shift_right_slow(__m128i lhs, const int count) noexcept
+__m128i SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) _ext128_shift_bytes_right_slow(__m128i lhs, const int count) noexcept
 {
 	const __m128i biasedIndices = _mm_setr_epi8(0x70, 0x71, 0x72, 0x73, 0x74, 0x75, 0x76, 0x77, 0x78, 0x79, 0x7A, 0x7B, 0x7C, 0x7D, 0x7E, 0x7F);
-	const int boundedCount = _ext128_clamp_byte_shift_count(count);
-	const __m128i counts = _ext128_broadcast_byte_shift_count(boundedCount);
+	const int boundedCount = _ext128_clamp_shift_bytes_count(count);
+	const __m128i counts = _ext128_broadcast_shift_bytes_count(boundedCount);
 	return _mm_shuffle_epi8(lhs, _mm_add_epi8(biasedIndices, counts));
 }
 
@@ -1536,7 +1536,7 @@ __m128i SIMD_FLAGS(InOut, ForceInline) _ext_max_epu64(__m128i lhs, __m128i rhs) 
  * @param shift Runtime count; nonpositive counts are identity and counts of at least 128 produce zero.
  * @return Shifted register with zero-filled low bits.
  */
-__m128i SIMD_FLAGS(InOut, RegisterOnly, ForceInline) _ext128_shift_left_bits_slow(const __m128i lhs, const int shift) noexcept
+__m128i SIMD_FLAGS(InOut, RegisterOnly, ForceInline) _ext128_shift_bits_left_slow(const __m128i lhs, const int shift) noexcept
 {
 	const __m128i count = _mm_min_epi32(_mm_max_epi32(_mm_cvtsi32_si128(shift), _mm_setzero_si128()), _mm_cvtsi32_si128(128));
 	const __m128i midpoint = _mm_cvtsi32_si128(64);
@@ -1553,7 +1553,7 @@ __m128i SIMD_FLAGS(InOut, RegisterOnly, ForceInline) _ext128_shift_left_bits_slo
  * @param lhs Source register interpreted as one unsigned 128-bit bit string.
  * @return Shifted register with zero-filled low bits.
  */
-template <int shift> __m128i SIMD_FLAGS(InOut, RegisterOnly, ForceInline) _ext128_shift_left_bits_static(const __m128i lhs) noexcept
+template <int shift> __m128i SIMD_FLAGS(InOut, RegisterOnly, ForceInline) _ext128_shift_bits_left_static(const __m128i lhs) noexcept
 {
 	static_assert(shift >= 0, "Whole-register shifts require a non-negative count.");
 	if constexpr (shift == 0)
@@ -1574,7 +1574,7 @@ template <int shift> __m128i SIMD_FLAGS(InOut, RegisterOnly, ForceInline) _ext12
  * @param shift Runtime count; nonpositive counts are identity and counts of at least 128 produce zero.
  * @return Shifted register with zero-filled high bits.
  */
-__m128i SIMD_FLAGS(InOut, RegisterOnly, ForceInline) _ext128_shift_right_bits_slow(const __m128i lhs, const int shift) noexcept
+__m128i SIMD_FLAGS(InOut, RegisterOnly, ForceInline) _ext128_shift_bits_right_slow(const __m128i lhs, const int shift) noexcept
 {
 	const __m128i count = _mm_min_epi32(_mm_max_epi32(_mm_cvtsi32_si128(shift), _mm_setzero_si128()), _mm_cvtsi32_si128(128));
 	const __m128i midpoint = _mm_cvtsi32_si128(64);
@@ -1591,7 +1591,7 @@ __m128i SIMD_FLAGS(InOut, RegisterOnly, ForceInline) _ext128_shift_right_bits_sl
  * @param lhs Source register interpreted as one unsigned 128-bit bit string.
  * @return Shifted register with zero-filled high bits.
  */
-template <int shift> __m128i SIMD_FLAGS(InOut, RegisterOnly, ForceInline) _ext128_shift_right_bits_static(const __m128i lhs) noexcept
+template <int shift> __m128i SIMD_FLAGS(InOut, RegisterOnly, ForceInline) _ext128_shift_bits_right_static(const __m128i lhs) noexcept
 {
 	static_assert(shift >= 0, "Whole-register shifts require a non-negative count.");
 	if constexpr (shift == 0)

@@ -181,23 +181,23 @@ concept ArithmeticShiftRight = Type<api_t> && requires(typename api_t::vector_t 
 
 /** @brief Reports whether an API exposes explicit slow-path complete-register byte shifts. */
 template <class api_t>
-concept ByteShiftSlow = Type<api_t> && requires(typename api_t::vector_t value) {
-	api_t::byte_shift_left_slow(value, 1);
-	api_t::byte_shift_right_slow(value, 1);
+concept ShiftBytesSlow = Type<api_t> && requires(typename api_t::vector_t value) {
+	api_t::shift_bytes_left_slow(value, 1);
+	api_t::shift_bytes_right_slow(value, 1);
 };
 
 /** @brief Reports whether an API exposes explicit slow-path complete-register bit shifts. */
 template <class api_t>
-concept BitShiftSlow = Type<api_t> && requires(typename api_t::vector_t value) {
-	api_t::bit_shift_left_slow(value, 1);
-	api_t::bit_shift_right_slow(value, 1);
+concept ShiftBitsSlow = Type<api_t> && requires(typename api_t::vector_t value) {
+	api_t::shift_bits_left_slow(value, 1);
+	api_t::shift_bits_right_slow(value, 1);
 };
 
 /** @brief Reports whether an API exposes compile-time complete-register bit shifts. */
 template <class api_t, int count>
-concept BitShift = Type<api_t> && requires(typename api_t::int_vector_t value) {
-	api_t::template bit_shift_left<count>(value);
-	api_t::template bit_shift_right<count>(value);
+concept ShiftBits = Type<api_t> && requires(typename api_t::int_vector_t value) {
+	api_t::template shift_bits_left<count>(value);
+	api_t::template shift_bits_right<count>(value);
 };
 
 /** @brief Reports whether an API exposes explicit slow-path runtime-selected lane extraction. */
