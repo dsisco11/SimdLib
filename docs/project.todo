@@ -1,7 +1,6 @@
 Code Architecture:
     ☒ Remove `MethodFlagsInventory.csv` from the repo and audit tooling.
     ☒ Remove `MethodFlagsRegisterOnly.csv` from the repo and audit tooling.
-    ☐ Add register integer constant construction methods based on AgnerFogs documentation. e.g. `Register::broadcast<value>()`.
     ☐ Remove `shuffle_lo` and `shuffle_hi` methods from Register class (to be replaced with generic templated shuffle method).
     ☐ Analyze `Implementation::shuffle<...>()` type methods to ensure they handle shuffling optimally, e.g. using `shuffle_lo` and `shuffle_hi` when appropriate, and ensure that the `shuffle<...>()` methods are implemented in a way that is both efficient and maintainable.
     ☐ Implement a `SimdLib::ImmMask` class to represent compile-time immediate-mode masks for SIMD intrinsics, providing methods for creating and manipulating masks based on compile-time conditions. This class should be compatible with the `SimdLib::Register` and `SimdLib::Tensor` classes, allowing for efficient lane control in SIMD operations.
