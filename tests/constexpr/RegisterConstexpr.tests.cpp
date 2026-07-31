@@ -307,16 +307,50 @@ template <class element_t, std::size_t bits>
 		lanes[index] = static_cast<std::uint8_t>(index + 1);
 	const auto value = register_type::from_array(lanes);
 #if SIMDLIB_COMPILER_MSVC
-	const auto bytes = value.byte_shift_left_slow(1);
+	const auto bytes = value.shift_bytes_left_slow(1);
 	(void)bytes;
 	return true;
 #else
 	const auto zeros = register_type::zero().to_array();
-	return value.byte_shift_left_slow(0).to_array() == lanes && value.byte_shift_left_slow(16).to_array() == zeros &&
-		   value.byte_shift_left_slow(17).to_array() == zeros && value.byte_shift_right_slow(16).to_array() == zeros &&
-		   value.bit_shift_left_slow(128).to_array() == zeros && value.bit_shift_right_slow(128).to_array() == zeros &&
-		   value.template bit_shift_left<128>().to_array() == zeros && value.template bit_shift_left<129>().to_array() == zeros &&
-		   value.template bit_shift_right<128>().to_array() == zeros && value.template bit_shift_right<129>().to_array() == zeros;
+	return value.shift_bytes_left_slow(0).to_array() == lanes && value.shift_bytes_left_slow(16).to_array() == zeros &&
+		   value.shift_bytes_left_slow(17).to_array() == zeros && value.shift_bytes_right_slow(16).to_array() == zeros &&
+		   value.shift_bits_left_slow(128).to_array() == zeros && value.shift_bits_right_slow(128).to_array() == zeros &&
+		   value.template shift_bits_left<128>().to_array() == zeros && value.template shift_bits_left<129>().to_array() == zeros &&
+		   value.template shift_bits_right<128>().to_array() == zeros && value.template shift_bits_right<129>().to_array() == zeros;
+#endif
+}
+
+/**
+ * @brief Verifies one Register immediate byte shift during constant evaluation.
+ * @tparam Width SIMD register width in bits.
+ * @tparam Count Compile-time byte count.
+ * @return `true` when both directions match a scalar byte oracle.
+ */
+template <std::size_t Width, std::size_t Count> [[nodiscard]] consteval bool register_immediate_byte_shift_count_contract() noexcept
+{
+	using register_type = SimdLib::Register<std::uint8_t, Width>;
+	std::array<std::uint8_t, register_type::byte_count> source{};
+	std::array<std::uint8_t, register_type::byte_count> expected_left{};
+	std::array<std::uint8_t, register_type::byte_count> expected_right{};
+	for (std::size_t index = 0; index < source.size(); ++index)
+		source[index] = static_cast<std::uint8_t>(index * 7 + 1);
+	if constexpr (Count < register_type::byte_count)
+	{
+		for (std::size_t index = Count; index < source.size(); ++index)
+			expected_left[index] = source[index - Count];
+		for (std::size_t index = 0; index + Count < source.size(); ++index)
+			expected_right[index] = source[index + Count];
+	}
+	const auto value = register_type::from_array(source);
+#if SIMDLIB_COMPILER_MSVC
+	const auto shifted_left = value.template shift_bytes_left<static_cast<int>(Count)>();
+	const auto shifted_right = value.template shift_bytes_right<static_cast<int>(Count)>();
+	(void)shifted_left;
+	(void)shifted_right;
+	return true;
+#else
+	return value.template shift_bytes_left<static_cast<int>(Count)>().to_array() == expected_left &&
+		   value.template shift_bytes_right<static_cast<int>(Count)>().to_array() == expected_right;
 #endif
 }
 
@@ -521,6 +555,16 @@ SIMDLIB_ASSERT_REGISTER_BYTE_SHUFFLE_CONSTEXPR(double);
 #undef SIMDLIB_ASSERT_REGISTER_BYTE_SHUFFLE_CONSTEXPR
 
 static_assert(register_complete_shift_constexpr_contract());
+static_assert(register_immediate_byte_shift_count_contract<SIMDLIB_REGISTER_TEST_WIDTH, 0>());
+static_assert(register_immediate_byte_shift_count_contract<SIMDLIB_REGISTER_TEST_WIDTH, 1>());
+static_assert(register_immediate_byte_shift_count_contract<SIMDLIB_REGISTER_TEST_WIDTH, 7>());
+static_assert(register_immediate_byte_shift_count_contract<SIMDLIB_REGISTER_TEST_WIDTH, 8>());
+static_assert(register_immediate_byte_shift_count_contract<SIMDLIB_REGISTER_TEST_WIDTH, 15>());
+static_assert(register_immediate_byte_shift_count_contract<SIMDLIB_REGISTER_TEST_WIDTH, 16>());
+static_assert(register_immediate_byte_shift_count_contract<SIMDLIB_REGISTER_TEST_WIDTH, 17>());
+static_assert(register_immediate_byte_shift_count_contract<SIMDLIB_REGISTER_TEST_WIDTH, 31>());
+static_assert(register_immediate_byte_shift_count_contract<SIMDLIB_REGISTER_TEST_WIDTH, 32>());
+static_assert(register_immediate_byte_shift_count_contract<SIMDLIB_REGISTER_TEST_WIDTH, 33>());
 static_assert(register_rearrangement_conversion_constexpr_contract<SIMDLIB_REGISTER_TEST_WIDTH>());
 static_assert(register_position_constexpr_contract<std::int8_t, SIMDLIB_REGISTER_TEST_WIDTH>());
 static_assert(register_position_constexpr_contract<std::uint8_t, SIMDLIB_REGISTER_TEST_WIDTH>());

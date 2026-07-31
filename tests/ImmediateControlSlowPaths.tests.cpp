@@ -189,15 +189,15 @@ inline void require_complete_register_shift_slow_controls()
 			right = {source[1] >> (count - 64), 0};
 		}
 		const volatile int runtime_count = count;
-		REQUIRE(api::to_array(api::bit_shift_left_slow(value, runtime_count)) == left);
-		REQUIRE(api::to_array(api::bit_shift_right_slow(value, runtime_count)) == right);
+		REQUIRE(api::to_array(api::shift_bits_left_slow(value, runtime_count)) == left);
+		REQUIRE(api::to_array(api::shift_bits_right_slow(value, runtime_count)) == right);
 	}
 	const volatile int minimum_count = std::numeric_limits<int>::lowest();
 	const volatile int maximum_count = std::numeric_limits<int>::max();
-	REQUIRE(api::to_array(api::bit_shift_left_slow(value, minimum_count)) == source);
-	REQUIRE(api::to_array(api::bit_shift_right_slow(value, minimum_count)) == source);
-	REQUIRE(api::to_array(api::bit_shift_left_slow(value, maximum_count)) == std::array<typename api::element_type, api::element_count>{});
-	REQUIRE(api::to_array(api::bit_shift_right_slow(value, maximum_count)) == std::array<typename api::element_type, api::element_count>{});
+	REQUIRE(api::to_array(api::shift_bits_left_slow(value, minimum_count)) == source);
+	REQUIRE(api::to_array(api::shift_bits_right_slow(value, minimum_count)) == source);
+	REQUIRE(api::to_array(api::shift_bits_left_slow(value, maximum_count)) == std::array<typename api::element_type, api::element_count>{});
+	REQUIRE(api::to_array(api::shift_bits_right_slow(value, maximum_count)) == std::array<typename api::element_type, api::element_count>{});
 }
 
 } // namespace SimdLib::Tests

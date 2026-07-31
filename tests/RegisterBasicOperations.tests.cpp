@@ -517,8 +517,8 @@ void require_complete_register_shifts()
 			for (std::size_t index = 0; index + static_cast<std::size_t>(count) < bytes.size(); ++index)
 				right[index] = bytes[index + static_cast<std::size_t>(count)];
 		}
-		REQUIRE(byte_value.byte_shift_left_slow(count).to_array() == left);
-		REQUIRE(byte_value.byte_shift_right_slow(count).to_array() == right);
+		REQUIRE(byte_value.shift_bytes_left_slow(count).to_array() == left);
+		REQUIRE(byte_value.shift_bytes_right_slow(count).to_array() == right);
 	}
 
 	using word_register = SimdLib::Register<std::uint64_t, 128>;
@@ -527,25 +527,25 @@ void require_complete_register_shifts()
 	constexpr std::array<int, 11> bit_counts{std::numeric_limits<int>::lowest(), -1, 0, 1, 63, 64, 65, 127, 128, 129, std::numeric_limits<int>::max()};
 	for (const int count : bit_counts)
 	{
-		REQUIRE(word_value.bit_shift_left_slow(count).to_array() == whole_left(words, count));
-		REQUIRE(word_value.bit_shift_right_slow(count).to_array() == whole_right(words, count));
+		REQUIRE(word_value.shift_bits_left_slow(count).to_array() == whole_left(words, count));
+		REQUIRE(word_value.shift_bits_right_slow(count).to_array() == whole_right(words, count));
 	}
-	REQUIRE(word_value.template bit_shift_left<0>().to_array() == whole_left(words, 0));
-	REQUIRE(word_value.template bit_shift_left<1>().to_array() == whole_left(words, 1));
-	REQUIRE(word_value.template bit_shift_left<63>().to_array() == whole_left(words, 63));
-	REQUIRE(word_value.template bit_shift_left<64>().to_array() == whole_left(words, 64));
-	REQUIRE(word_value.template bit_shift_left<65>().to_array() == whole_left(words, 65));
-	REQUIRE(word_value.template bit_shift_left<127>().to_array() == whole_left(words, 127));
-	REQUIRE(word_value.template bit_shift_left<128>().to_array() == whole_left(words, 128));
-	REQUIRE(word_value.template bit_shift_left<129>().to_array() == whole_left(words, 129));
-	REQUIRE(word_value.template bit_shift_right<0>().to_array() == whole_right(words, 0));
-	REQUIRE(word_value.template bit_shift_right<1>().to_array() == whole_right(words, 1));
-	REQUIRE(word_value.template bit_shift_right<63>().to_array() == whole_right(words, 63));
-	REQUIRE(word_value.template bit_shift_right<64>().to_array() == whole_right(words, 64));
-	REQUIRE(word_value.template bit_shift_right<65>().to_array() == whole_right(words, 65));
-	REQUIRE(word_value.template bit_shift_right<127>().to_array() == whole_right(words, 127));
-	REQUIRE(word_value.template bit_shift_right<128>().to_array() == whole_right(words, 128));
-	REQUIRE(word_value.template bit_shift_right<129>().to_array() == whole_right(words, 129));
+	REQUIRE(word_value.template shift_bits_left<0>().to_array() == whole_left(words, 0));
+	REQUIRE(word_value.template shift_bits_left<1>().to_array() == whole_left(words, 1));
+	REQUIRE(word_value.template shift_bits_left<63>().to_array() == whole_left(words, 63));
+	REQUIRE(word_value.template shift_bits_left<64>().to_array() == whole_left(words, 64));
+	REQUIRE(word_value.template shift_bits_left<65>().to_array() == whole_left(words, 65));
+	REQUIRE(word_value.template shift_bits_left<127>().to_array() == whole_left(words, 127));
+	REQUIRE(word_value.template shift_bits_left<128>().to_array() == whole_left(words, 128));
+	REQUIRE(word_value.template shift_bits_left<129>().to_array() == whole_left(words, 129));
+	REQUIRE(word_value.template shift_bits_right<0>().to_array() == whole_right(words, 0));
+	REQUIRE(word_value.template shift_bits_right<1>().to_array() == whole_right(words, 1));
+	REQUIRE(word_value.template shift_bits_right<63>().to_array() == whole_right(words, 63));
+	REQUIRE(word_value.template shift_bits_right<64>().to_array() == whole_right(words, 64));
+	REQUIRE(word_value.template shift_bits_right<65>().to_array() == whole_right(words, 65));
+	REQUIRE(word_value.template shift_bits_right<127>().to_array() == whole_right(words, 127));
+	REQUIRE(word_value.template shift_bits_right<128>().to_array() == whole_right(words, 128));
+	REQUIRE(word_value.template shift_bits_right<129>().to_array() == whole_right(words, 129));
 }
 
 /** @brief Runs arithmetic coverage at both supported register widths. */

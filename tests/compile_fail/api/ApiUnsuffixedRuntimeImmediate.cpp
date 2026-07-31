@@ -41,14 +41,14 @@ concept api_accepts_runtime_shuffle_32 = requires(typename api_t::int_vector_t v
 /** @brief Reports whether unsuffixed Api byte shift accepts a runtime count. */
 template <class api_t>
 concept api_accepts_runtime_byte_shift = requires(typename api_t::int_vector_t value, int control) {
-	api_t::byte_shift_left(value, control);
-	api_t::byte_shift_right(value, control);
+	api_t::shift_bytes_left(value, control);
+	api_t::shift_bytes_right(value, control);
 };
 /** @brief Reports whether unsuffixed Api complete-register bit shift accepts a runtime count. */
 template <class api_t>
 concept api_accepts_runtime_bit_shift = requires(typename api_t::int_vector_t value, int control) {
-	api_t::bit_shift_left(value, control);
-	api_t::bit_shift_right(value, control);
+	api_t::shift_bits_left(value, control);
+	api_t::shift_bits_right(value, control);
 };
 
 /** @brief Reports whether unsuffixed implementation extraction accepts a runtime lane index. */
@@ -79,14 +79,14 @@ concept impl_accepts_runtime_shuffle_32 = requires(typename impl_t::int_vector_t
 /** @brief Reports whether unsuffixed implementation byte shift accepts a runtime count. */
 template <class impl_t>
 concept impl_accepts_runtime_byte_shift = requires(typename impl_t::int_vector_t value, int control) {
-	impl_t::byte_shift_left(value, control);
-	impl_t::byte_shift_right(value, control);
+	impl_t::shift_bytes_left(value, control);
+	impl_t::shift_bytes_right(value, control);
 };
 /** @brief Reports whether unsuffixed implementation complete-register bit shift accepts a runtime count. */
 template <class impl_t>
 concept impl_accepts_runtime_bit_shift = requires(typename impl_t::int_vector_t value, int control) {
-	impl_t::bit_shift_left(value, control);
-	impl_t::bit_shift_right(value, control);
+	impl_t::shift_bits_left(value, control);
+	impl_t::shift_bits_right(value, control);
 };
 
 static_assert(api_accepts_runtime_extract<word_api> || api_accepts_runtime_insert<word_api> || api_accepts_runtime_blend<word_api> ||

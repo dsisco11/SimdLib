@@ -66,7 +66,7 @@ consteval bool constexpr_paths_match()
 {
 	using simd = SimdLib::Api<128, std::uint64_t>;
 	constexpr auto input = simd::setr(1, 2);
-	constexpr auto shifted = simd::template bit_shift_left<64>(input);
+	constexpr auto shifted = simd::template shift_bits_left<64>(input);
 	return simd::to_array(shifted) == std::array<std::uint64_t, 2>{0, 1};
 }
 

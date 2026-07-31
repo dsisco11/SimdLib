@@ -85,21 +85,21 @@ Complete-Register Shift API Rename and Immediate Byte Shifts:
     ☒ Complete this phase only when compile-time byte counts use the unsuffixed template and runtime byte counts require the `_slow` spelling.
 
   Phase 5 - Prove Semantics, Availability, and Generated Code:
-    ☐ Rename existing runtime and constexpr tests to the new `shift_bytes_...` and `shift_bits_...` spellings without weakening their assertions.
-    ☐ Add immediate byte-shift semantic coverage for counts 0, 1, 7, 8, 15, 16, 17, 31, 32, and values greater than the selected register byte width in both directions.
-    ☐ Test input patterns that cross element, 64-bit, and 128-bit-half boundaries so the operation cannot be mistaken for a per-lane or per-half shift.
-    ☐ Prove 128-bit immediate byte shifts match the corresponding complete-register bit shift for representative counts multiplied by eight, and prove 256-bit results against an independent scalar 32-byte oracle.
-    ☐ Add constexpr assertions for both `Api` and `Register` immediate byte-shift forms.
-    ☐ Add availability probes showing that immediate byte shifts exist only for supported 128- and 256-bit integral APIs and registers.
-    ☐ Add compile-failure probes for negative template counts and unsuffixed runtime-count calls.
-    ☐ Update existing compile-failure probes so they reject `shift_bytes_left/right(value, runtimeCount)` and `shift_bits_left/right(value, runtimeCount)`.
-    ☐ Add generated-code fixtures for both `Api` and `Register` immediate byte shifts.
-    ☐ Require representative 128-bit counts from 1 through 15 to lower to `PSLLDQ`/`VPSLLDQ` or `PSRLDQ`/`VPSRLDQ` without `PSHUFB`, dispatch, stack materialization, or an out-of-line helper.
-    ☐ Require representative 256-bit counts from 1 through 15 to lower to `VPERM2I128` plus `VPALIGNR` without an OR, and verify the specialized count-16 and count-17-through-31 sequences.
-    ☐ Require count zero to lower to identity and counts at least 16 for 128-bit registers or 32 for 256-bit registers to lower to zero without an invalid immediate encoding.
-    ☐ Preserve generated-code parity between the `Api` and `Register` entry points on MSVC, clang-cl, GCC, and Clang.
-    ☐ Run focused runtime, constexpr, availability, compiler-contract, and generated-code validation before the complete supported build and test matrix.
-    ☐ Complete this phase only when semantics, constraints, supported availability, and immediate instruction selection are all independently proven.
+    ☒ Rename existing runtime and constexpr tests to the new `shift_bytes_...` and `shift_bits_...` spellings without weakening their assertions.
+    ☒ Add immediate byte-shift semantic coverage for counts 0, 1, 7, 8, 15, 16, 17, 31, 32, and values greater than the selected register byte width in both directions.
+    ☒ Test input patterns that cross element, 64-bit, and 128-bit-half boundaries so the operation cannot be mistaken for a per-lane or per-half shift.
+    ☒ Prove 128-bit immediate byte shifts match the corresponding complete-register bit shift for representative counts multiplied by eight, and prove 256-bit results against an independent scalar 32-byte oracle.
+    ☒ Add constexpr assertions for both `Api` and `Register` immediate byte-shift forms.
+    ☒ Add availability probes showing that immediate byte shifts exist only for supported 128- and 256-bit integral APIs and registers.
+    ☒ Add compile-failure probes for negative template counts and unsuffixed runtime-count calls.
+    ☒ Update existing compile-failure probes so they reject `shift_bytes_left/right(value, runtimeCount)` and `shift_bits_left/right(value, runtimeCount)`.
+    ☒ Add generated-code fixtures for both `Api` and `Register` immediate byte shifts.
+    ☒ Require representative 128-bit counts from 1 through 15 to lower to `PSLLDQ`/`VPSLLDQ` or `PSRLDQ`/`VPSRLDQ` without `PSHUFB`, dispatch, stack materialization, or an out-of-line helper.
+    ☒ Require representative 256-bit counts from 1 through 15 to lower to `VPERM2I128` or direction-equivalent `VEXTRACTI128` plus `VPALIGNR` without an OR, and verify the specialized count-16 and count-17-through-31 sequences.
+    ☒ Require count zero to lower to identity and counts at least 16 for 128-bit registers or 32 for 256-bit registers to lower to zero without an invalid immediate encoding.
+    ☒ Preserve generated-code parity between the `Api` and `Register` entry points on MSVC, clang-cl, GCC, and Clang.
+    ☒ Run focused runtime, constexpr, availability, compiler-contract, and generated-code validation before the complete supported build and test matrix.
+    ☒ Complete this phase only when semantics, constraints, supported availability, and immediate instruction selection are all independently proven.
 
   Phase 6 - Documentation and Final Cleanup:
     ☐ Update `docs/ImmediateControlRuntimeNaming.md` so complete-register byte shifts list both their immediate templates and `_slow` runtime substitutes.

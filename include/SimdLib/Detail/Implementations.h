@@ -3686,8 +3686,7 @@ template <class element_t> struct SimdMappings<128, element_t> : public SimdImpl
 	 * @param lhs Source register.
 	 * @return Shifted register with zero-filled low bytes.
 	 */
-	template <int count>
-	static int_vector_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shift_bytes_left(const int_vector_t lhs) noexcept
+	template <int count> static int_vector_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shift_bytes_left(const int_vector_t lhs) noexcept
 	{
 		static_assert(count >= 0, "Complete-register byte shifts require a nonnegative count.");
 		if constexpr (count == 0)
@@ -3704,8 +3703,7 @@ template <class element_t> struct SimdMappings<128, element_t> : public SimdImpl
 	 * @param lhs Source register.
 	 * @return Shifted register with zero-filled high bytes.
 	 */
-	template <int count>
-	static int_vector_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shift_bytes_right(const int_vector_t lhs) noexcept
+	template <int count> static int_vector_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shift_bytes_right(const int_vector_t lhs) noexcept
 	{
 		static_assert(count >= 0, "Complete-register byte shifts require a nonnegative count.");
 		if constexpr (count == 0)
@@ -6798,8 +6796,7 @@ template <class element_t> struct SimdMappings<256, element_t> : public SimdImpl
 	 * @param lhs Source register.
 	 * @return Shifted register with zero fill across the 128-bit boundary.
 	 */
-	template <int count>
-	static int_vector_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shift_bytes_left(const int_vector_t lhs) noexcept
+	template <int count> static int_vector_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shift_bytes_left(const int_vector_t lhs) noexcept
 	{
 		static_assert(count >= 0, "Complete-register byte shifts require a nonnegative count.");
 		if constexpr (count == 0)
@@ -6824,8 +6821,7 @@ template <class element_t> struct SimdMappings<256, element_t> : public SimdImpl
 	 * @param lhs Source register.
 	 * @return Shifted register with zero fill across the 128-bit boundary.
 	 */
-	template <int count>
-	static int_vector_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shift_bytes_right(const int_vector_t lhs) noexcept
+	template <int count> static int_vector_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shift_bytes_right(const int_vector_t lhs) noexcept
 	{
 		static_assert(count >= 0, "Complete-register byte shifts require a nonnegative count.");
 		if constexpr (count == 0)
@@ -6834,7 +6830,8 @@ template <class element_t> struct SimdMappings<256, element_t> : public SimdImpl
 			return _mm256_setzero_si256();
 		else
 		{
-			const __m256i next_half = _mm256_permute2x128_si256(lhs, lhs, 0x81);
+			const __m128i high_half = _mm256_extracti128_si256(lhs, 1);
+			const __m256i next_half = _mm256_zextsi128_si256(high_half);
 			if constexpr (count < 16)
 				return _mm256_alignr_epi8(next_half, lhs, count);
 			else if constexpr (count == 16)
@@ -6845,8 +6842,6 @@ template <class element_t> struct SimdMappings<256, element_t> : public SimdImpl
 	}
 
 #pragma endregion
-
-
 
 #pragma region Set
 	/// <summary> Set all elements of the register to 0 (often a noop). </summary>

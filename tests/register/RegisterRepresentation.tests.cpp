@@ -94,13 +94,15 @@ template <class element_t, std::size_t bits> consteval bool has_exact_operation_
 	constexpr bool integral = std::is_integral_v<element_t>;
 	return !has_scalar_arithmetic<register_type> && SimdLib::IRegister::Modulus<register_type> == integral &&
 		   SimdLib::IRegister::ShiftLeft<register_type> == integral && SimdLib::IRegister::LogicalShiftRight<register_type> == integral &&
-		   SimdLib::IRegister::ShiftRight<register_type> == integral && SimdLib::IRegister::ByteShiftLeftSlow<register_type> == (integral && bits == 128) &&
-		   SimdLib::IRegister::ByteShiftRightSlow<register_type> == (integral && bits == 128) &&
-		   SimdLib::IRegister::BitShiftLeftSlow<register_type> == (integral && bits == 128) &&
-		   SimdLib::IRegister::BitShiftRightSlow<register_type> == (integral && bits == 128) &&
-		   SimdLib::IRegister::IndexedBitShiftLeft<register_type, 1> == (integral && bits == 128) &&
-		   SimdLib::IRegister::IndexedBitShiftRight<register_type, 1> == (integral && bits == 128) &&
-		   !SimdLib::IRegister::IndexedBitShiftLeft<register_type, -1> && !SimdLib::IRegister::IndexedBitShiftRight<register_type, -1>;
+		   SimdLib::IRegister::ShiftRight<register_type> == integral && SimdLib::IRegister::ShiftBytesLeftSlow<register_type> == (integral && bits == 128) &&
+		   SimdLib::IRegister::ShiftBytesRightSlow<register_type> == (integral && bits == 128) &&
+		   SimdLib::IRegister::ShiftBytesLeft<register_type, 1> == integral && SimdLib::IRegister::ShiftBytesRight<register_type, 1> == integral &&
+		   !SimdLib::IRegister::ShiftBytesLeft<register_type, -1> && !SimdLib::IRegister::ShiftBytesRight<register_type, -1> &&
+		   SimdLib::IRegister::ShiftBitsLeftSlow<register_type> == (integral && bits == 128) &&
+		   SimdLib::IRegister::ShiftBitsRightSlow<register_type> == (integral && bits == 128) &&
+		   SimdLib::IRegister::ShiftBitsLeft<register_type, 1> == (integral && bits == 128) &&
+		   SimdLib::IRegister::ShiftBitsRight<register_type, 1> == (integral && bits == 128) && !SimdLib::IRegister::ShiftBitsLeft<register_type, -1> &&
+		   !SimdLib::IRegister::ShiftBitsRight<register_type, -1>;
 }
 
 #define SIMDLIB_ASSERT_REGISTER_SHAPES(element_type, width)                                                                                                    \

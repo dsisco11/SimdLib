@@ -115,12 +115,12 @@ static_assert(half_shuffle_slow_paths_available<128>());
 static_assert(half_shuffle_slow_paths_available<256>());
 static_assert(shuffle_32_slow_path_available<128>());
 static_assert(shuffle_32_slow_path_available<256>());
-static_assert(SimdLib::IApi::ByteShiftSlow<SimdLib::Api<128, std::uint8_t>>);
-static_assert(SimdLib::IApi::BitShiftSlow<SimdLib::Api<128, std::uint64_t>>);
-static_assert(SimdLib::IApi::BitShift<SimdLib::Api<128, std::uint64_t>, 1>);
-static_assert(SimdLib::IImpl::ByteShiftSlow<implementation_t<128, std::uint8_t>>);
-static_assert(SimdLib::IImpl::BitShiftSlow<implementation_t<128, std::uint64_t>>);
-static_assert(SimdLib::IImpl::BitShift<implementation_t<128, std::uint64_t>, 1>);
+static_assert(SimdLib::IApi::ShiftBytesSlow<SimdLib::Api<128, std::uint8_t>>);
+static_assert(SimdLib::IApi::ShiftBitsSlow<SimdLib::Api<128, std::uint64_t>>);
+static_assert(SimdLib::IApi::ShiftBits<SimdLib::Api<128, std::uint64_t>, 1>);
+static_assert(SimdLib::IImpl::ShiftBytesSlow<implementation_t<128, std::uint8_t>>);
+static_assert(SimdLib::IImpl::ShiftBitsSlow<implementation_t<128, std::uint64_t>>);
+static_assert(SimdLib::IImpl::ShiftBits<implementation_t<128, std::uint64_t>, 1>);
 
 static_assert(SimdLib::IApi::RegisterShuffle<SimdLib::Api<128, std::uint8_t>>);
 static_assert(SimdLib::IApi::RegisterShuffle<SimdLib::Api<256, std::uint8_t>>);

@@ -460,41 +460,41 @@ template <std::size_t Width, std::integral Element> [[nodiscard]] consteval bool
 	using words = Api<128, std::uint64_t>;
 	constexpr auto value = words::setr(std::uint64_t{1}, std::uint64_t{1} << 63);
 	constexpr auto original = std::array<std::uint64_t, 2>{1, std::uint64_t{1} << 63};
-	if (words::to_array(words::bit_shift_left_slow(value, -1)) != original || words::to_array(words::bit_shift_left_slow(value, 0)) != original ||
-		words::to_array(words::bit_shift_left_slow(value, 1)) != std::array<std::uint64_t, 2>{2, 0} ||
-		words::to_array(words::bit_shift_left_slow(value, 63)) != std::array<std::uint64_t, 2>{std::uint64_t{1} << 63, 0} ||
-		words::to_array(words::bit_shift_left_slow(value, 64)) != std::array<std::uint64_t, 2>{0, 1} ||
-		words::to_array(words::bit_shift_left_slow(value, 65)) != std::array<std::uint64_t, 2>{0, 2} ||
-		words::to_array(words::bit_shift_left_slow(value, 127)) != std::array<std::uint64_t, 2>{0, std::uint64_t{1} << 63} ||
-		words::to_array(words::bit_shift_left_slow(value, 128)) != std::array<std::uint64_t, 2>{} ||
-		words::to_array(words::bit_shift_left_slow(value, 129)) != std::array<std::uint64_t, 2>{})
+	if (words::to_array(words::shift_bits_left_slow(value, -1)) != original || words::to_array(words::shift_bits_left_slow(value, 0)) != original ||
+		words::to_array(words::shift_bits_left_slow(value, 1)) != std::array<std::uint64_t, 2>{2, 0} ||
+		words::to_array(words::shift_bits_left_slow(value, 63)) != std::array<std::uint64_t, 2>{std::uint64_t{1} << 63, 0} ||
+		words::to_array(words::shift_bits_left_slow(value, 64)) != std::array<std::uint64_t, 2>{0, 1} ||
+		words::to_array(words::shift_bits_left_slow(value, 65)) != std::array<std::uint64_t, 2>{0, 2} ||
+		words::to_array(words::shift_bits_left_slow(value, 127)) != std::array<std::uint64_t, 2>{0, std::uint64_t{1} << 63} ||
+		words::to_array(words::shift_bits_left_slow(value, 128)) != std::array<std::uint64_t, 2>{} ||
+		words::to_array(words::shift_bits_left_slow(value, 129)) != std::array<std::uint64_t, 2>{})
 		return false;
-	if (words::to_array(words::bit_shift_right_slow(value, -1)) != original || words::to_array(words::bit_shift_right_slow(value, 0)) != original ||
-		words::to_array(words::bit_shift_right_slow(value, 1)) != std::array<std::uint64_t, 2>{0, std::uint64_t{1} << 62} ||
-		words::to_array(words::bit_shift_right_slow(value, 63)) != std::array<std::uint64_t, 2>{0, 1} ||
-		words::to_array(words::bit_shift_right_slow(value, 64)) != std::array<std::uint64_t, 2>{std::uint64_t{1} << 63, 0} ||
-		words::to_array(words::bit_shift_right_slow(value, 65)) != std::array<std::uint64_t, 2>{std::uint64_t{1} << 62, 0} ||
-		words::to_array(words::bit_shift_right_slow(value, 127)) != std::array<std::uint64_t, 2>{1, 0} ||
-		words::to_array(words::bit_shift_right_slow(value, 128)) != std::array<std::uint64_t, 2>{} ||
-		words::to_array(words::bit_shift_right_slow(value, 129)) != std::array<std::uint64_t, 2>{})
+	if (words::to_array(words::shift_bits_right_slow(value, -1)) != original || words::to_array(words::shift_bits_right_slow(value, 0)) != original ||
+		words::to_array(words::shift_bits_right_slow(value, 1)) != std::array<std::uint64_t, 2>{0, std::uint64_t{1} << 62} ||
+		words::to_array(words::shift_bits_right_slow(value, 63)) != std::array<std::uint64_t, 2>{0, 1} ||
+		words::to_array(words::shift_bits_right_slow(value, 64)) != std::array<std::uint64_t, 2>{std::uint64_t{1} << 63, 0} ||
+		words::to_array(words::shift_bits_right_slow(value, 65)) != std::array<std::uint64_t, 2>{std::uint64_t{1} << 62, 0} ||
+		words::to_array(words::shift_bits_right_slow(value, 127)) != std::array<std::uint64_t, 2>{1, 0} ||
+		words::to_array(words::shift_bits_right_slow(value, 128)) != std::array<std::uint64_t, 2>{} ||
+		words::to_array(words::shift_bits_right_slow(value, 129)) != std::array<std::uint64_t, 2>{})
 		return false;
-	if (words::to_array(words::template bit_shift_left<0>(value)) != original ||
-		words::to_array(words::template bit_shift_left<1>(value)) != std::array<std::uint64_t, 2>{2, 0} ||
-		words::to_array(words::template bit_shift_left<63>(value)) != std::array<std::uint64_t, 2>{std::uint64_t{1} << 63, 0} ||
-		words::to_array(words::template bit_shift_left<64>(value)) != std::array<std::uint64_t, 2>{0, 1} ||
-		words::to_array(words::template bit_shift_left<65>(value)) != std::array<std::uint64_t, 2>{0, 2} ||
-		words::to_array(words::template bit_shift_left<127>(value)) != std::array<std::uint64_t, 2>{0, std::uint64_t{1} << 63} ||
-		words::to_array(words::template bit_shift_left<128>(value)) != std::array<std::uint64_t, 2>{} ||
-		words::to_array(words::template bit_shift_left<129>(value)) != std::array<std::uint64_t, 2>{})
+	if (words::to_array(words::template shift_bits_left<0>(value)) != original ||
+		words::to_array(words::template shift_bits_left<1>(value)) != std::array<std::uint64_t, 2>{2, 0} ||
+		words::to_array(words::template shift_bits_left<63>(value)) != std::array<std::uint64_t, 2>{std::uint64_t{1} << 63, 0} ||
+		words::to_array(words::template shift_bits_left<64>(value)) != std::array<std::uint64_t, 2>{0, 1} ||
+		words::to_array(words::template shift_bits_left<65>(value)) != std::array<std::uint64_t, 2>{0, 2} ||
+		words::to_array(words::template shift_bits_left<127>(value)) != std::array<std::uint64_t, 2>{0, std::uint64_t{1} << 63} ||
+		words::to_array(words::template shift_bits_left<128>(value)) != std::array<std::uint64_t, 2>{} ||
+		words::to_array(words::template shift_bits_left<129>(value)) != std::array<std::uint64_t, 2>{})
 		return false;
-	if (words::to_array(words::template bit_shift_right<0>(value)) != original ||
-		words::to_array(words::template bit_shift_right<1>(value)) != std::array<std::uint64_t, 2>{0, std::uint64_t{1} << 62} ||
-		words::to_array(words::template bit_shift_right<63>(value)) != std::array<std::uint64_t, 2>{0, 1} ||
-		words::to_array(words::template bit_shift_right<64>(value)) != std::array<std::uint64_t, 2>{std::uint64_t{1} << 63, 0} ||
-		words::to_array(words::template bit_shift_right<65>(value)) != std::array<std::uint64_t, 2>{std::uint64_t{1} << 62, 0} ||
-		words::to_array(words::template bit_shift_right<127>(value)) != std::array<std::uint64_t, 2>{1, 0} ||
-		words::to_array(words::template bit_shift_right<128>(value)) != std::array<std::uint64_t, 2>{} ||
-		words::to_array(words::template bit_shift_right<129>(value)) != std::array<std::uint64_t, 2>{})
+	if (words::to_array(words::template shift_bits_right<0>(value)) != original ||
+		words::to_array(words::template shift_bits_right<1>(value)) != std::array<std::uint64_t, 2>{0, std::uint64_t{1} << 62} ||
+		words::to_array(words::template shift_bits_right<63>(value)) != std::array<std::uint64_t, 2>{0, 1} ||
+		words::to_array(words::template shift_bits_right<64>(value)) != std::array<std::uint64_t, 2>{std::uint64_t{1} << 63, 0} ||
+		words::to_array(words::template shift_bits_right<65>(value)) != std::array<std::uint64_t, 2>{std::uint64_t{1} << 62, 0} ||
+		words::to_array(words::template shift_bits_right<127>(value)) != std::array<std::uint64_t, 2>{1, 0} ||
+		words::to_array(words::template shift_bits_right<128>(value)) != std::array<std::uint64_t, 2>{} ||
+		words::to_array(words::template shift_bits_right<129>(value)) != std::array<std::uint64_t, 2>{})
 		return false;
 
 	using bytes = Api<128, std::uint8_t>;
@@ -504,17 +504,63 @@ template <std::size_t Width, std::integral Element> [[nodiscard]] consteval bool
 	std::array<std::uint8_t, bytes::element_count> right15{};
 	left15.back() = byteValues.front();
 	right15.front() = byteValues.back();
-	return bytes::to_array(bytes::byte_shift_left_slow(byteValue, -1)) == byteValues &&
-		   bytes::to_array(bytes::byte_shift_left_slow(byteValue, 0)) == byteValues && bytes::to_array(bytes::byte_shift_left_slow(byteValue, 15)) == left15 &&
-		   bytes::to_array(bytes::byte_shift_left_slow(byteValue, 16)) == std::array<std::uint8_t, bytes::element_count>{} &&
-		   bytes::to_array(bytes::byte_shift_left_slow(byteValue, 17)) == std::array<std::uint8_t, bytes::element_count>{} &&
-		   bytes::to_array(bytes::byte_shift_right_slow(byteValue, -1)) == byteValues &&
-		   bytes::to_array(bytes::byte_shift_right_slow(byteValue, 0)) == byteValues &&
-		   bytes::to_array(bytes::byte_shift_right_slow(byteValue, 15)) == right15 &&
-		   bytes::to_array(bytes::byte_shift_right_slow(byteValue, 16)) == std::array<std::uint8_t, bytes::element_count>{} &&
-		   bytes::to_array(bytes::byte_shift_right_slow(byteValue, 17)) == std::array<std::uint8_t, bytes::element_count>{};
+	return bytes::to_array(bytes::shift_bytes_left_slow(byteValue, -1)) == byteValues &&
+		   bytes::to_array(bytes::shift_bytes_left_slow(byteValue, 0)) == byteValues &&
+		   bytes::to_array(bytes::shift_bytes_left_slow(byteValue, 15)) == left15 &&
+		   bytes::to_array(bytes::shift_bytes_left_slow(byteValue, 16)) == std::array<std::uint8_t, bytes::element_count>{} &&
+		   bytes::to_array(bytes::shift_bytes_left_slow(byteValue, 17)) == std::array<std::uint8_t, bytes::element_count>{} &&
+		   bytes::to_array(bytes::shift_bytes_right_slow(byteValue, -1)) == byteValues &&
+		   bytes::to_array(bytes::shift_bytes_right_slow(byteValue, 0)) == byteValues &&
+		   bytes::to_array(bytes::shift_bytes_right_slow(byteValue, 15)) == right15 &&
+		   bytes::to_array(bytes::shift_bytes_right_slow(byteValue, 16)) == std::array<std::uint8_t, bytes::element_count>{} &&
+		   bytes::to_array(bytes::shift_bytes_right_slow(byteValue, 17)) == std::array<std::uint8_t, bytes::element_count>{};
 }
 
+/**
+ * @brief Verifies one immediate complete-register byte shift during constant evaluation.
+ * @tparam Width SIMD register width in bits.
+ * @tparam Count Compile-time byte count.
+ * @return `true` when both directions match an independent scalar byte oracle.
+ */
+template <std::size_t Width, std::size_t Count> [[nodiscard]] consteval bool immediate_byte_shift_count_contract() noexcept
+{
+	using api = Api<Width, std::uint8_t>;
+	std::array<std::uint8_t, api::byte_count> source{};
+	std::array<std::uint8_t, api::byte_count> expected_left{};
+	std::array<std::uint8_t, api::byte_count> expected_right{};
+	for (std::size_t index = 0; index < source.size(); ++index)
+		source[index] = static_cast<std::uint8_t>(index * 7 + 1);
+	if constexpr (Count < api::byte_count)
+	{
+		for (std::size_t index = Count; index < source.size(); ++index)
+			expected_left[index] = source[index - Count];
+		for (std::size_t index = 0; index + Count < source.size(); ++index)
+			expected_right[index] = source[index + Count];
+	}
+	const auto value = api::construct(source);
+	const auto left = api::to_array(api::template shift_bytes_left<static_cast<int>(Count)>(value));
+	const auto right = api::to_array(api::template shift_bytes_right<static_cast<int>(Count)>(value));
+	if (left != expected_left || right != expected_right)
+		return false;
+	if constexpr (Width == 128)
+		return left == api::to_array(api::template shift_bits_left<static_cast<int>(Count * 8)>(value)) &&
+			   right == api::to_array(api::template shift_bits_right<static_cast<int>(Count * 8)>(value));
+	return true;
+}
+
+/**
+ * @brief Verifies all required immediate byte-shift boundary counts during constant evaluation.
+ * @tparam Width SIMD register width in bits.
+ * @return `true` when every required count passes in both directions.
+ */
+template <std::size_t Width> [[nodiscard]] consteval bool immediate_byte_shift_contract() noexcept
+{
+	return immediate_byte_shift_count_contract<Width, 0>() && immediate_byte_shift_count_contract<Width, 1>() &&
+		   immediate_byte_shift_count_contract<Width, 7>() && immediate_byte_shift_count_contract<Width, 8>() &&
+		   immediate_byte_shift_count_contract<Width, 15>() && immediate_byte_shift_count_contract<Width, 16>() &&
+		   immediate_byte_shift_count_contract<Width, 17>() && immediate_byte_shift_count_contract<Width, 31>() &&
+		   immediate_byte_shift_count_contract<Width, 32>() && immediate_byte_shift_count_contract<Width, 33>();
+}
 /**
  * @brief Verifies immediate blend through the implementation-layer constant-evaluation entry point.
  * @tparam Width SIMD register width in bits.

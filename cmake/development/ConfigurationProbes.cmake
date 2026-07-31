@@ -162,6 +162,9 @@ if(SIMDLIB_BUILD_CONFIGURATION_PROBES)
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/api/ApiUnsuffixedRuntimeImmediate.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/RegisterUnsuffixedRuntimeImmediate.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/availability/ImmediateControlSlowPathProbe.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/availability/CompleteRegisterShiftProbe.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/api/ApiNegativeCompleteByteShift.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/RegisterNegativeCompleteByteShift.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/RegisterInvalidRearrangementImmediate.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/RegisterUnsupportedConversionTarget.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/RegisterUnavailableWidthChange.cpp
@@ -180,6 +183,17 @@ if(SIMDLIB_BUILD_CONFIGURATION_PROBES)
 	endif()
 
 	if(SIMDLIB_REGISTER_COMPILER_SUPPORTED)
+		simdlib_add_language_probe(CompleteRegisterShiftProbe
+			tests/availability/CompleteRegisterShiftProbe.cpp 23 SimdLib::Register)
+		if(SIMDLIB_MSVC_STYLE_DRIVER)
+			target_compile_options(CompleteRegisterShiftProbe PRIVATE /arch:AVX2)
+		else()
+			target_compile_options(CompleteRegisterShiftProbe PRIVATE -mavx2)
+		endif()
+		simdlib_expect_language_probe_failure(RegisterNegativeCompleteByteShiftFailure
+			tests/compile_fail/register/RegisterNegativeCompleteByteShift.cpp 23
+			shift_bytes_left)
+
 		simdlib_add_language_probe(RegisterEnabledProbe
 			tests/availability/RegisterEnabledProbe.cpp 23 SimdLib::Register)
 
@@ -277,6 +291,9 @@ if(SIMDLIB_BUILD_CONFIGURATION_PROBES)
 	simdlib_expect_language_probe_failure(ApiUnsuffixedRuntimeImmediateFailure
 		tests/compile_fail/api/ApiUnsuffixedRuntimeImmediate.cpp 20
 		SIMDLIB_REJECTS_UNSUFFIXED_RUNTIME_IMMEDIATE_CONTROLS)
+	simdlib_expect_language_probe_failure(ApiNegativeCompleteByteShiftFailure
+		tests/compile_fail/api/ApiNegativeCompleteByteShift.cpp 20
+		shift_bytes_left)
 	if(NOT SIMDLIB_REGISTER_COMPILER_SUPPORTED)
 		simdlib_expect_language_probe_failure(RegisterUnsupportedCompilerFailure
 			tests/compile_fail/register/RegisterUnsupportedCompiler.cpp 23

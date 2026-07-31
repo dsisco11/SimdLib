@@ -93,4 +93,5 @@ static_assert(logical_shuffle_contract<128, float>());
 static_assert(logical_shuffle_contract<128, double>());
 
 static_assert(whole_register_shift_contract());
+static_assert(immediate_byte_shift_contract<128>());
 static_assert(simd_vector_contract<4>());

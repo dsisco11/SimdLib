@@ -147,6 +147,8 @@ function(simdlib_add_register_codegen_gate register_width isa_profile)
 
 	set(artifact_directory "${CMAKE_CURRENT_BINARY_DIR}/register-codegen/${artifact_profile}/${register_width}")
 	set(composition_stamp_file "${artifact_directory}/primary-composition/comparison.record.json")
+	set(immediate_shift_stamp_file "${artifact_directory}/complete-byte-shift-immediate/comparison.record.json")
+	set(immediate_shift_instruction_stamp_file "${artifact_directory}/complete-byte-shift-immediate/instructions.verified")
 	set(register_only_stamp_file "${artifact_directory}/register-only/comparison.record.json")
 	set(reassignment_stamp_file "${artifact_directory}/reassignment/comparison.record.json")
 	set(default_abi_stamp_file "${artifact_directory}/default-abi.record.json")
@@ -187,6 +189,48 @@ function(simdlib_add_register_codegen_gate register_width isa_profile)
 			cmake/CompareRegisterCodegen.cmake
 		COMMENT "Comparing ${register_width}-bit composed and memory-capable Register code"
 		VERBATIM)
+	add_custom_command(
+		OUTPUT "${immediate_shift_stamp_file}"
+		COMMAND ${CMAKE_COMMAND} -E make_directory "${artifact_directory}/complete-byte-shift-immediate"
+		COMMAND ${CMAKE_COMMAND}
+			-DWRAPPER_OBJECT=$<TARGET_OBJECTS:${wrapper_target}>
+			-DRAW_OBJECT=$<TARGET_OBJECTS:${raw_target}>
+			-DOBJDUMP=${CMAKE_OBJDUMP}
+			-DARTIFACT_DIRECTORY=${artifact_directory}/complete-byte-shift-immediate
+			-DCOMPILER_ID=${CMAKE_CXX_COMPILER_ID}
+			-DCOMPILER_VERSION=${CMAKE_CXX_COMPILER_VERSION}
+			-DCOMPILER_PATH=${CMAKE_CXX_COMPILER}
+			-DSYSTEM_NAME=${CMAKE_SYSTEM_NAME}
+			-DSYSTEM_PROCESSOR=${CMAKE_SYSTEM_PROCESSOR}
+			-DCONFIGURATION=$<CONFIG>
+			-DREGISTER_WIDTH=${register_width}
+			-DISA_PROFILE=${isa_profile}
+			-DVECTORCALL_ENABLED=${vectorcall_enabled}
+			-DSTACK_PROTECTOR_MODE=${stack_protector_mode}
+			-DRECORD_ONLY=OFF
+			-DCODEGEN_PROFILE=complete-byte-shift-immediate
+			-DSYMBOL_PATTERN=simdlib_codegen_shift_bytes_
+			-P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/CompareRegisterCodegen.cmake
+		DEPENDS
+			$<TARGET_OBJECTS:${wrapper_target}>
+			$<TARGET_OBJECTS:${raw_target}>
+			cmake/CompareRegisterCodegen.cmake
+		COMMENT "Comparing ${register_width}-bit immediate byte-shift Register and Api generated code"
+		VERBATIM)
+	add_custom_command(
+		OUTPUT "${immediate_shift_instruction_stamp_file}"
+		COMMAND ${CMAKE_COMMAND}
+			-DOBJECT_FILE=$<TARGET_OBJECTS:${raw_target}>
+			-DOBJDUMP=${CMAKE_OBJDUMP}
+			-DOUTPUT_FILE=${immediate_shift_instruction_stamp_file}
+			-DREGISTER_WIDTH=${register_width}
+			-P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/VerifyCompleteRegisterShiftCodegen.cmake
+		DEPENDS
+			$<TARGET_OBJECTS:${raw_target}>
+			cmake/VerifyCompleteRegisterShiftCodegen.cmake
+		COMMENT "Verifying ${register_width}-bit immediate byte-shift instruction selection"
+		VERBATIM)
+
 	add_custom_command(
 		OUTPUT "${register_only_stamp_file}"
 		COMMAND ${CMAKE_COMMAND} -E make_directory "${artifact_directory}/register-only"
@@ -495,14 +539,14 @@ function(simdlib_add_register_codegen_gate register_width isa_profile)
 		COMMENT "Comparing ${register_width}-bit downstream Register wrappers and raw ABI boundaries"
 		VERBATIM)
 	set(expression_codegen_gate_outputs
-		"${composition_stamp_file}" "${register_only_stamp_file}" "${reassignment_stamp_file}"
+		"${composition_stamp_file}" "${immediate_shift_stamp_file}" "${register_only_stamp_file}" "${reassignment_stamp_file}"
 		"${specialized_stamp_file}" "${fma_disabled_stamp_file}"
 		"${rearrangement_stamp_file}" "${type_matrix_stamp_file}" "${type_matrix_modulus_stamp_file}")
 	if(isa_profile STREQUAL "AVX2")
 		list(APPEND expression_codegen_gate_outputs "${fma_enabled_stamp_file}")
 	endif()
 	add_custom_target(RegisterExpressionCodegen${target_suffix}
-		DEPENDS ${expression_codegen_gate_outputs})
+		DEPENDS ${expression_codegen_gate_outputs} "${immediate_shift_instruction_stamp_file}")
 	simdlib_register_development_target(
 		RegisterExpressionCodegen${target_suffix}
 		${codegen_validation_category})
@@ -517,6 +561,7 @@ function(simdlib_add_register_codegen_gate register_width isa_profile)
 		${expression_codegen_gate_outputs} "${consumer_abi_stamp_file}" "${abi_stamp_file}" "${default_abi_stamp_file}")
 	set(codegen_classification_outputs
 		"${composition_stamp_file}"
+		"${immediate_shift_stamp_file}"
 		"${register_only_stamp_file}"
 		"${reassignment_stamp_file}"
 		"${specialized_stamp_file}"
@@ -528,6 +573,7 @@ function(simdlib_add_register_codegen_gate register_width isa_profile)
 		"${abi_stamp_file}")
 	set(codegen_classification_record_only
 		${composition_record_only}
+		OFF
 		${codegen_comparison_record_only}
 		${codegen_comparison_record_only}
 		${codegen_comparison_record_only}

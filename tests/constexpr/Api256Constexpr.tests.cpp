@@ -91,4 +91,5 @@ static_assert(logical_shuffle_contract<256, std::uint64_t>());
 static_assert(logical_shuffle_contract<256, float>());
 static_assert(logical_shuffle_contract<256, double>());
 
+static_assert(immediate_byte_shift_contract<256>());
 static_assert(simd_vector_contract<8>());

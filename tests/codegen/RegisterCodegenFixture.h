@@ -303,9 +303,9 @@ SIMDLIB_CODEGEN_NOINLINE SimdLibCodegen::uint_native_type SIMD_FLAGS(InOut)
 	simdlib_codegen_complete_shift_static(SimdLibCodegen::uint_native_type value) noexcept
 {
 #if SIMDLIB_CODEGEN_USE_WRAPPER
-	return SimdLibCodegen::uint_register_type{value}.template bit_shift_left<19>().native;
+	return SimdLibCodegen::uint_register_type{value}.template shift_bits_left<19>().native;
 #else
-	return SimdLibCodegen::uint_api_type::template bit_shift_left<19>(value);
+	return SimdLibCodegen::uint_api_type::template shift_bits_left<19>(value);
 #endif
 }
 
@@ -314,9 +314,9 @@ SIMDLIB_CODEGEN_NOINLINE SimdLibCodegen::uint_native_type SIMD_FLAGS(InOut)
 	simdlib_codegen_complete_shift_runtime(SimdLibCodegen::uint_native_type value, int count) noexcept
 {
 #if SIMDLIB_CODEGEN_USE_WRAPPER
-	return SimdLibCodegen::uint_register_type{value}.bit_shift_right_slow(count).native;
+	return SimdLibCodegen::uint_register_type{value}.shift_bits_right_slow(count).native;
 #else
-	return SimdLibCodegen::uint_api_type::bit_shift_right_slow(value, count);
+	return SimdLibCodegen::uint_api_type::shift_bits_right_slow(value, count);
 #endif
 }
 
@@ -325,11 +325,190 @@ SIMDLIB_CODEGEN_NOINLINE SimdLibCodegen::uint_native_type SIMD_FLAGS(InOut)
 	simdlib_codegen_complete_byte_shift(SimdLibCodegen::uint_native_type value, int count) noexcept
 {
 #if SIMDLIB_CODEGEN_USE_WRAPPER
-	return SimdLibCodegen::uint_register_type{value}.byte_shift_left_slow(count).native;
+	return SimdLibCodegen::uint_register_type{value}.shift_bytes_left_slow(count).native;
 #else
-	return SimdLibCodegen::uint_api_type::byte_shift_left_slow(value, count);
+	return SimdLibCodegen::uint_api_type::shift_bytes_left_slow(value, count);
 #endif
 }
+#endif
+
+/** @brief Immediate complete-register byte left shift by 0 bytes. */
+SIMDLIB_CODEGEN_NOINLINE SimdLibCodegen::uint_native_type SIMD_FLAGS(InOut, RegisterOnly)
+	simdlib_codegen_shift_bytes_left_0(SimdLibCodegen::uint_native_type value) noexcept
+{
+#if SIMDLIB_CODEGEN_USE_WRAPPER
+	return SimdLibCodegen::uint_register_type{value}.template shift_bytes_left<0>().native;
+#else
+	return SimdLibCodegen::uint_api_type::template shift_bytes_left<0>(value);
+#endif
+}
+
+/** @brief Immediate complete-register byte right shift by 0 bytes. */
+SIMDLIB_CODEGEN_NOINLINE SimdLibCodegen::uint_native_type SIMD_FLAGS(InOut, RegisterOnly)
+	simdlib_codegen_shift_bytes_right_0(SimdLibCodegen::uint_native_type value) noexcept
+{
+#if SIMDLIB_CODEGEN_USE_WRAPPER
+	return SimdLibCodegen::uint_register_type{value}.template shift_bytes_right<0>().native;
+#else
+	return SimdLibCodegen::uint_api_type::template shift_bytes_right<0>(value);
+#endif
+}
+
+/** @brief Immediate complete-register byte left shift by 1 bytes. */
+SIMDLIB_CODEGEN_NOINLINE SimdLibCodegen::uint_native_type SIMD_FLAGS(InOut, RegisterOnly)
+	simdlib_codegen_shift_bytes_left_1(SimdLibCodegen::uint_native_type value) noexcept
+{
+#if SIMDLIB_CODEGEN_USE_WRAPPER
+	return SimdLibCodegen::uint_register_type{value}.template shift_bytes_left<1>().native;
+#else
+	return SimdLibCodegen::uint_api_type::template shift_bytes_left<1>(value);
+#endif
+}
+
+/** @brief Immediate complete-register byte right shift by 1 bytes. */
+SIMDLIB_CODEGEN_NOINLINE SimdLibCodegen::uint_native_type SIMD_FLAGS(InOut, RegisterOnly)
+	simdlib_codegen_shift_bytes_right_1(SimdLibCodegen::uint_native_type value) noexcept
+{
+#if SIMDLIB_CODEGEN_USE_WRAPPER
+	return SimdLibCodegen::uint_register_type{value}.template shift_bytes_right<1>().native;
+#else
+	return SimdLibCodegen::uint_api_type::template shift_bytes_right<1>(value);
+#endif
+}
+
+/** @brief Immediate complete-register byte left shift by 7 bytes. */
+SIMDLIB_CODEGEN_NOINLINE SimdLibCodegen::uint_native_type SIMD_FLAGS(InOut, RegisterOnly)
+	simdlib_codegen_shift_bytes_left_7(SimdLibCodegen::uint_native_type value) noexcept
+{
+#if SIMDLIB_CODEGEN_USE_WRAPPER
+	return SimdLibCodegen::uint_register_type{value}.template shift_bytes_left<7>().native;
+#else
+	return SimdLibCodegen::uint_api_type::template shift_bytes_left<7>(value);
+#endif
+}
+
+/** @brief Immediate complete-register byte right shift by 7 bytes. */
+SIMDLIB_CODEGEN_NOINLINE SimdLibCodegen::uint_native_type SIMD_FLAGS(InOut, RegisterOnly)
+	simdlib_codegen_shift_bytes_right_7(SimdLibCodegen::uint_native_type value) noexcept
+{
+#if SIMDLIB_CODEGEN_USE_WRAPPER
+	return SimdLibCodegen::uint_register_type{value}.template shift_bytes_right<7>().native;
+#else
+	return SimdLibCodegen::uint_api_type::template shift_bytes_right<7>(value);
+#endif
+}
+
+/** @brief Immediate complete-register byte left shift by 15 bytes. */
+SIMDLIB_CODEGEN_NOINLINE SimdLibCodegen::uint_native_type SIMD_FLAGS(InOut, RegisterOnly)
+	simdlib_codegen_shift_bytes_left_15(SimdLibCodegen::uint_native_type value) noexcept
+{
+#if SIMDLIB_CODEGEN_USE_WRAPPER
+	return SimdLibCodegen::uint_register_type{value}.template shift_bytes_left<15>().native;
+#else
+	return SimdLibCodegen::uint_api_type::template shift_bytes_left<15>(value);
+#endif
+}
+
+/** @brief Immediate complete-register byte right shift by 15 bytes. */
+SIMDLIB_CODEGEN_NOINLINE SimdLibCodegen::uint_native_type SIMD_FLAGS(InOut, RegisterOnly)
+	simdlib_codegen_shift_bytes_right_15(SimdLibCodegen::uint_native_type value) noexcept
+{
+#if SIMDLIB_CODEGEN_USE_WRAPPER
+	return SimdLibCodegen::uint_register_type{value}.template shift_bytes_right<15>().native;
+#else
+	return SimdLibCodegen::uint_api_type::template shift_bytes_right<15>(value);
+#endif
+}
+
+/** @brief Immediate complete-register byte left shift by 16 bytes. */
+SIMDLIB_CODEGEN_NOINLINE SimdLibCodegen::uint_native_type SIMD_FLAGS(InOut, RegisterOnly)
+	simdlib_codegen_shift_bytes_left_16(SimdLibCodegen::uint_native_type value) noexcept
+{
+#if SIMDLIB_CODEGEN_USE_WRAPPER
+	return SimdLibCodegen::uint_register_type{value}.template shift_bytes_left<16>().native;
+#else
+	return SimdLibCodegen::uint_api_type::template shift_bytes_left<16>(value);
+#endif
+}
+
+/** @brief Immediate complete-register byte right shift by 16 bytes. */
+SIMDLIB_CODEGEN_NOINLINE SimdLibCodegen::uint_native_type SIMD_FLAGS(InOut, RegisterOnly)
+	simdlib_codegen_shift_bytes_right_16(SimdLibCodegen::uint_native_type value) noexcept
+{
+#if SIMDLIB_CODEGEN_USE_WRAPPER
+	return SimdLibCodegen::uint_register_type{value}.template shift_bytes_right<16>().native;
+#else
+	return SimdLibCodegen::uint_api_type::template shift_bytes_right<16>(value);
+#endif
+}
+
+/** @brief Immediate complete-register byte left shift by 17 bytes. */
+SIMDLIB_CODEGEN_NOINLINE SimdLibCodegen::uint_native_type SIMD_FLAGS(InOut, RegisterOnly)
+	simdlib_codegen_shift_bytes_left_17(SimdLibCodegen::uint_native_type value) noexcept
+{
+#if SIMDLIB_CODEGEN_USE_WRAPPER
+	return SimdLibCodegen::uint_register_type{value}.template shift_bytes_left<17>().native;
+#else
+	return SimdLibCodegen::uint_api_type::template shift_bytes_left<17>(value);
+#endif
+}
+
+/** @brief Immediate complete-register byte right shift by 17 bytes. */
+SIMDLIB_CODEGEN_NOINLINE SimdLibCodegen::uint_native_type SIMD_FLAGS(InOut, RegisterOnly)
+	simdlib_codegen_shift_bytes_right_17(SimdLibCodegen::uint_native_type value) noexcept
+{
+#if SIMDLIB_CODEGEN_USE_WRAPPER
+	return SimdLibCodegen::uint_register_type{value}.template shift_bytes_right<17>().native;
+#else
+	return SimdLibCodegen::uint_api_type::template shift_bytes_right<17>(value);
+#endif
+}
+
+#if SIMDLIB_REGISTER_TEST_WIDTH == 256
+/** @brief Immediate complete-register byte left shift by 31 bytes. */
+SIMDLIB_CODEGEN_NOINLINE SimdLibCodegen::uint_native_type SIMD_FLAGS(InOut, RegisterOnly)
+	simdlib_codegen_shift_bytes_left_31(SimdLibCodegen::uint_native_type value) noexcept
+{
+#if SIMDLIB_CODEGEN_USE_WRAPPER
+	return SimdLibCodegen::uint_register_type{value}.template shift_bytes_left<31>().native;
+#else
+	return SimdLibCodegen::uint_api_type::template shift_bytes_left<31>(value);
+#endif
+}
+
+/** @brief Immediate complete-register byte right shift by 31 bytes. */
+SIMDLIB_CODEGEN_NOINLINE SimdLibCodegen::uint_native_type SIMD_FLAGS(InOut, RegisterOnly)
+	simdlib_codegen_shift_bytes_right_31(SimdLibCodegen::uint_native_type value) noexcept
+{
+#if SIMDLIB_CODEGEN_USE_WRAPPER
+	return SimdLibCodegen::uint_register_type{value}.template shift_bytes_right<31>().native;
+#else
+	return SimdLibCodegen::uint_api_type::template shift_bytes_right<31>(value);
+#endif
+}
+
+/** @brief Immediate complete-register byte left shift by 32 bytes. */
+SIMDLIB_CODEGEN_NOINLINE SimdLibCodegen::uint_native_type SIMD_FLAGS(InOut, RegisterOnly)
+	simdlib_codegen_shift_bytes_left_32(SimdLibCodegen::uint_native_type value) noexcept
+{
+#if SIMDLIB_CODEGEN_USE_WRAPPER
+	return SimdLibCodegen::uint_register_type{value}.template shift_bytes_left<32>().native;
+#else
+	return SimdLibCodegen::uint_api_type::template shift_bytes_left<32>(value);
+#endif
+}
+
+/** @brief Immediate complete-register byte right shift by 32 bytes. */
+SIMDLIB_CODEGEN_NOINLINE SimdLibCodegen::uint_native_type SIMD_FLAGS(InOut, RegisterOnly)
+	simdlib_codegen_shift_bytes_right_32(SimdLibCodegen::uint_native_type value) noexcept
+{
+#if SIMDLIB_CODEGEN_USE_WRAPPER
+	return SimdLibCodegen::uint_register_type{value}.template shift_bytes_right<32>().native;
+#else
+	return SimdLibCodegen::uint_api_type::template shift_bytes_right<32>(value);
+#endif
+}
+
 #endif
 
 /** @brief Opaque-call fixture used to compare wrapper and raw spill behavior. */
