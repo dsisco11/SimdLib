@@ -116,8 +116,8 @@ hidden ABI storage do not falsify the source-level promise. They also are not
 prevented by it. ABI and generated-code tests remain responsible for detecting
 those effects.
 
-On supported Microsoft C++ configurations, `RegisterOnly` may map to
-`__declspec(safebuffers)` after this audit. That mapping suppresses the
+On supported Microsoft C++ configurations, `RegisterOnly` maps to
+`__declspec(safebuffers)`. That mapping suppresses the
 function's `/GS` security-cookie instrumentation and is the reason the promise
 must never be applied speculatively. An empty mapping on another compiler does
 not weaken the semantic promise.
@@ -365,9 +365,10 @@ explicit callback type derives it with `decltype(&function)` so the compiler's
 calling-convention type is preserved instead of placing `SIMD_FLAGS(...)`
 inside a pointer declarator.
 
-Unsupported categories must not be accepted accidentally as a documented
-extension. Compile-failure probes or source audits cover categories that a
-preprocessor macro cannot diagnose directly.
+These categories are outside the supported contract. `SIMD_FLAGS(...)` cannot
+inspect its surrounding declaration, so a compiler may accept some such uses
+without a dedicated diagnostic. Compiler acceptance does not make the
+declaration a supported extension.
 
 ## Downstream declarations and definitions
 
@@ -428,13 +429,12 @@ path:
 6. Confirm that valid runtime behavior consists only of input reads,
    register/scalar computation, and register/scalar return.
 7. Retain generated-code and ABI review as a separate gate for compiler-created
-   spills, hidden storage, security cookies, and other effects the source audit
+   spills, hidden storage, security cookies, and other effects source review
    cannot prove.
 
-An existing register-only declaration is preserved during mechanical migration.
-If this audit contradicts that declaration, migration stops for explicit review;
-the flag is not silently relaxed. A newly identified candidate is likewise
-presented for review before `RegisterOnly` is added.
+If review contradicts an existing register-only declaration, the declaration
+requires explicit investigation rather than mechanical relaxation. A newly
+identified candidate likewise requires review before `RegisterOnly` is added.
 
 ## Semantic flags and compiler mappings
 
@@ -489,7 +489,8 @@ are recorded:
 4. canonical placement;
 5. supported and empty compiler mappings;
 6. configuration and downstream override behavior;
-7. compile-pass and compile-failure coverage;
+7. compile-pass coverage and compile-failure coverage wherever the macro or
+   compiler can diagnose the invalid form reliably;
 8. ABI or generated-code evidence when the flag can affect either.
 
 Adding support for another compiler or changing an adapter follows the same

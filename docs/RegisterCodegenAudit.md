@@ -35,7 +35,7 @@ such as FMA enabled and disabled, identify both records in that row.
 | `RegisterRearrangementCodegenFixture.h` | 181 | Public parity | Covers immediate selectors, complete-register shuffles, bit casts, numeric conversions, lower halves, and widening cells. |
 | `RegisterAbi.cpp` | 12 | ABI boundary | Separates explicit-object signature mirrors from real downstream `Register` and `RegisterMask` boundaries. |
 | `RegisterDefaultAbi.cpp` | 1 | Explicitly diagnostic evidence | Records the platform-default aggregate convention without treating it as a supported zero-overhead boundary. |
-| `MethodFlagsFlagged.cpp` | 11 | Compiler-attribute enforcement | Compares `SIMD_FLAGS(...)` with equivalent legacy attributes and checks inlining and stack restrictions. |
+| `MethodFlagsFlagged.cpp` | 11 | Compiler-attribute enforcement | Compares `SIMD_FLAGS(...)` with equivalent raw compiler attributes and checks inlining and stack restrictions. |
 
 The total is 810 retained source-level symbols. The CSV ledger is authoritative
 for individual decisions; the table above is only a fixture summary.
@@ -50,7 +50,7 @@ boundary under test is the `Register` abstraction itself.
 
 ABI fixtures instead compare aggregate signatures with native-vector signatures.
 Method-flag fixtures compare `SIMD_FLAGS(...)` declarations with equivalent
-legacy attribute declarations. The platform-default ABI fixture is a paired
+raw compiler-attribute declarations. The platform-default ABI fixture is a paired
 diagnostic recording rather than an equality gate.
 
 ## Comparison records and owning validation
@@ -153,7 +153,6 @@ Documentation references have these roles:
 | `RegisterImplementationMatrix.md` | Public-operation-to-generated-code traceability. |
 | `MethodFlagsContract.md` | Compiler-attribute promises, compiler mappings, and extension policy. |
 | `BuildPipeline.md` and `ContainerValidation.md` | Reproduction commands and execution-reporting boundaries. |
-| `MethodFlagsSourceAudit.md` | Canonical method-flags declaration policy and repository source-audit ownership. |
 | `SimdLibDevelopment.todo`, `TestCoverageExpansion.todo`, and `project.todo` | Active planning and project backlog; not normative pass claims. |
 | `README.md` and `wiki/Technical-Reference.md` | User-facing support and performance guidance. |
 

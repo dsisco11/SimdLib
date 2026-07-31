@@ -1,7 +1,7 @@
 Repository Validation Refactor:
 
   Accepted Direction:
-    ☐ Treat the compiler and preprocessor behavior of `SIMD_FLAGS(...)` as the authority for supported flag combinations; do not maintain a second source-text parser for the same grammar.
+    ☒ Treat the compiler and preprocessor behavior of `SIMD_FLAGS(...)` as the authority for supported flag combinations; do not maintain a second source-text parser for the same grammar.
     ☐ Retain production `static_assert` declarations for diagnostics and correctness, but remove the allowlist, occurrence counting, and repository-wide assertion governance.
     ☐ Retain the validation matrix as the machine-readable authority for build and test ownership.
     ☐ Separate validation-tooling regressions from production-source policy checks and cache tooling validation by a tooling/configuration digest rather than the complete source digest.
@@ -9,20 +9,21 @@ Repository Validation Refactor:
     ☐ Perform one final provenance schema transition after the obsolete audits have been removed; do not create temporary compatibility aliases or an intermediate receipt schema.
 
   Phase 1 - Retire Method-Flags Source Auditing:
-    ☐ Inventory the existing method-flags compiler-contract, placement, configuration-override, and generated-code fixtures before removing the source scanner.
-    ☐ Confirm that the real `SIMD_FLAGS(...)` expansion and its compiler-contract fixtures cover the supported boundary modes, modifier ordering, empty lists, excess arguments, unknown tokens, duplicate tokens, unsupported placements, and compiler-specific adapter behavior.
-    ☐ Add or correct compiler-contract fixtures only where the public macro behavior is not already exercised; do not reproduce the macro grammar in another parser.
-    ☐ Remove the retired-attribute declaration scan for `VECTORCALL`, `SIMDLIB_REGISTER_ONLY`, `SIMDLIB_FORCE_INLINE`, and `SIMDLIB_FLATTEN`.
-    ☐ Remove the canonical-token-list parser for `SIMD_FLAGS(...)`; invalid combinations must be diagnosed by the macro implementation and proven through compiler-contract fixtures.
-    ☐ Remove the source checks for short object-like flag macros, internal adapter usage outside an allowlist, and internal method-flags names in Doxygen comments.
-    ☐ Delete `tools/Audit-MethodFlagsSource.ps1`.
-    ☐ Delete `tools/Test-MethodFlagsSourceAudit.ps1` and its disposable source-fixture regression cases.
-    ☐ Remove both method-flags audit invocations from `tools/Run-RepositoryAudit.ps1`.
-    ☐ Delete `docs/MethodFlagsSourceAudit.md` and remove its entry from `docs/RegisterCodegenAudit.md`.
-    ☐ Update `docs/MethodFlagsContract.md`, `docs/BuildPipeline.md`, and other durable documentation so they describe compiler-enforced `SIMD_FLAGS(...)` behavior without referring to a repository source scanner or completed migration work.
-    ☐ Search tracked source, tooling, CMake, and documentation for stale method-flags audit names and retired audit-output terminology.
-    ☐ Run focused method-flags configuration, placement, compiler-contract, and generated-code validation on every compiler family whose behavior is affected by the retained fixtures.
-    ☐ Complete this phase only when method-flags behavior is enforced by the implementation and compiler fixtures, with no independent source-text grammar or migration audit remaining.
+    ☒ Inventory the existing method-flags compiler-contract, placement, configuration-override, and generated-code fixtures before removing the source scanner.
+    ☒ Confirm that the real `SIMD_FLAGS(...)` expansion and its compiler-contract fixtures cover the supported boundary modes, modifier ordering, empty lists, excess arguments, unknown tokens, duplicate tokens, supported declaration placements, and compiler-specific adapter behavior.
+    ☒ Add or correct compiler-contract fixtures only where the public macro behavior is not already exercised; do not reproduce the macro grammar in another parser.
+    ☒ Remove the retired-attribute declaration scan for `VECTORCALL`, `SIMDLIB_REGISTER_ONLY`, `SIMDLIB_FORCE_INLINE`, and `SIMDLIB_FLATTEN`.
+    ☒ Remove the canonical-token-list parser for `SIMD_FLAGS(...)`; invalid combinations must be diagnosed by the macro implementation and proven through compiler-contract fixtures.
+    ☒ Remove the source checks for short object-like flag macros, internal adapter usage outside an allowlist, and internal method-flags names in Doxygen comments.
+    ☒ Remove the synthetic declaration-shape regex validator and prohibited-category fixtures because they do not enforce production or downstream declarations.
+    ☒ Delete `tools/Audit-MethodFlagsSource.ps1`.
+    ☒ Delete `tools/Test-MethodFlagsSourceAudit.ps1` and its disposable source-fixture regression cases.
+    ☒ Remove both method-flags audit invocations from `tools/Run-RepositoryAudit.ps1`.
+    ☒ Delete `docs/MethodFlagsSourceAudit.md` and remove its entry from `docs/RegisterCodegenAudit.md`.
+    ☒ Update `docs/MethodFlagsContract.md`, `docs/BuildPipeline.md`, and other durable documentation so they describe compiler-enforced `SIMD_FLAGS(...)` behavior without referring to a repository source scanner or completed migration work.
+    ☒ Search tracked source, tooling, CMake, and documentation for stale method-flags audit names and retired audit-output terminology.
+    ☒ Run focused method-flags configuration, placement, compiler-contract, and generated-code validation on every compiler family whose behavior is affected by the retained fixtures.
+    ☒ Complete this phase only when method-flags behavior is enforced by the implementation and compiler fixtures, with no independent source-text grammar or migration audit remaining.
 
   Phase 2 - Remove Public-Header `static_assert` Auditing:
     ☐ Record the production headers currently covered by the assertion allowlist so removal of the auditing system cannot accidentally remove the assertions themselves.

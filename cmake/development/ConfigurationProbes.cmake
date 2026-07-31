@@ -123,7 +123,6 @@ if(SIMDLIB_BUILD_CONFIGURATION_PROBES)
 		${CMAKE_CURRENT_SOURCE_DIR}/include/SimdLib/Register.h
 		${CMAKE_CURRENT_SOURCE_DIR}/cmake/VerifyMethodFlagsConfiguration.cmake
 		${CMAKE_CURRENT_SOURCE_DIR}/cmake/VerifyMethodFlagsPreprocessor.cmake
-		${CMAKE_CURRENT_SOURCE_DIR}/cmake/VerifyMethodFlagsPlacementSource.cmake
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/method_flags/MethodFlagsPrototype.h
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/method_flags/MethodFlagsContractPass.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/method_flags/InvalidEmpty.cpp
@@ -139,19 +138,6 @@ if(SIMDLIB_BUILD_CONFIGURATION_PROBES)
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/method_flags/placement/MethodFlagsPlacementCxx23.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/method_flags/placement/MethodFlagsPlacementAbiDefinition.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/method_flags/placement/MethodFlagsPlacementAbiConsumer.cpp
-		${CMAKE_CURRENT_SOURCE_DIR}/tests/method_flags/placement/InvalidConstructor.cpp
-		${CMAKE_CURRENT_SOURCE_DIR}/tests/method_flags/placement/InvalidConversionOperator.cpp
-		${CMAKE_CURRENT_SOURCE_DIR}/tests/method_flags/placement/InvalidLambda.cpp
-		${CMAKE_CURRENT_SOURCE_DIR}/tests/method_flags/placement/InvalidConsteval.cpp
-		${CMAKE_CURRENT_SOURCE_DIR}/tests/method_flags/placement/InvalidFunctionPointer.cpp
-		${CMAKE_CURRENT_SOURCE_DIR}/tests/method_flags/placement/InvalidDestructor.cpp
-		${CMAKE_CURRENT_SOURCE_DIR}/tests/method_flags/placement/InvalidDeductionGuide.cpp
-		${CMAKE_CURRENT_SOURCE_DIR}/tests/method_flags/placement/InvalidVirtual.cpp
-		${CMAKE_CURRENT_SOURCE_DIR}/tests/method_flags/placement/InvalidExternC.cpp
-		${CMAKE_CURRENT_SOURCE_DIR}/tests/method_flags/placement/InvalidVariadic.cpp
-		${CMAKE_CURRENT_SOURCE_DIR}/tests/method_flags/placement/InvalidAllocation.cpp
-		${CMAKE_CURRENT_SOURCE_DIR}/tests/method_flags/placement/InvalidDefaulted.cpp
-		${CMAKE_CURRENT_SOURCE_DIR}/tests/method_flags/placement/InvalidCoroutine.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/config/MethodFlagsConfigDefaultProbe.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/config/MethodFlagsConfigOverrideProbe.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/config/MethodFlagsConfigDisabledVectorcallProbe.cpp

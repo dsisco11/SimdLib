@@ -18,8 +18,9 @@ compile Register generated-code fixtures. The command does not compile
 benchmark targets or run any executable.
 
 Before starting compiler cells, `Build.ps1` invokes
-`tools/Run-RepositoryAudit.ps1`. That operation audits source-text contracts
-once for the canonical source digest and writes
+`tools/Run-RepositoryAudit.ps1`. That operation validates the public-consumer
+boundary, the reviewed public-header assertion set, and pipeline-tooling
+regressions once for the canonical source digest and writes
 `out/pipeline/provenance/repository-audit-<digest>.json`. The unified receipt
 binds the result path, hash, and source digest; no compiler tree contains a
 duplicate repository-audit target or CTest.

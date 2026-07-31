@@ -42,8 +42,6 @@ function Test-CurrentRepositoryAudit {
 if (-not (Test-CurrentRepositoryAudit)) {
     & (Join-Path $PSScriptRoot 'Verify-ValidationMatrix.ps1')
     & (Join-Path $PSScriptRoot 'Test-ValidationPipeline.ps1')
-    & (Join-Path $PSScriptRoot 'Test-MethodFlagsSourceAudit.ps1')
-    & (Join-Path $PSScriptRoot 'Audit-MethodFlagsSource.ps1')
     $cmake = (Get-Command cmake -ErrorAction Stop).Source
     $arguments = @(
         "-DSOURCE_DIRECTORY=$repositoryRoot",
