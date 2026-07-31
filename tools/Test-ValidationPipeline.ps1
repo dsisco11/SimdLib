@@ -167,6 +167,63 @@ function Assert-ReceiptRejected {
 try {
     New-Item -ItemType Directory -Path $regressionRoot -Force | Out-Null
 
+    $toolingFixtureRoot = Join-Path $regressionRoot 'tooling-digest'
+    $ownedToolingInputs = @(Get-PipelineToolingInputs -RepositoryRoot $repositoryRoot)
+    foreach ($input in $ownedToolingInputs) {
+        $destination = Join-Path $toolingFixtureRoot $input.RelativePath
+        New-Item -ItemType Directory -Path (Split-Path -Parent $destination) `
+            -Force | Out-Null
+        Copy-Item -LiteralPath $input.FullName -Destination $destination
+    }
+    $baselineToolingDigest = Get-PipelineToolingDigest `
+        -RepositoryRoot $toolingFixtureRoot
+    $productionFixture = Join-Path $toolingFixtureRoot 'include/SimdLib/Production.h'
+    New-Item -ItemType Directory -Path (Split-Path -Parent $productionFixture) `
+        -Force | Out-Null
+    Set-PipelineTextFile -Path $productionFixture -Content '#pragma once'
+    $productionBaseline = Get-PipelineToolingDigest `
+        -RepositoryRoot $toolingFixtureRoot
+    Set-PipelineTextFile -Path $productionFixture -Content '#pragma once // changed'
+    if ((Get-PipelineToolingDigest -RepositoryRoot $toolingFixtureRoot) -ne
+            $productionBaseline) {
+        throw 'An ordinary production-header change invalidated pipeline-tooling validation'
+    }
+    $inputClasses = @($ownedToolingInputs.Class | Select-Object -Unique)
+    foreach ($className in $inputClasses) {
+        $input = @($ownedToolingInputs | Where-Object Class -eq $className)[0]
+        $fixturePath = Join-Path $toolingFixtureRoot $input.RelativePath
+        $originalBytes = [System.IO.File]::ReadAllBytes($fixturePath)
+        try {
+            [System.IO.File]::AppendAllText($fixturePath, "`n", [Text.UTF8Encoding]::new($false))
+            $changedDigest = Get-PipelineToolingDigest `
+                -RepositoryRoot $toolingFixtureRoot
+            if ($changedDigest -eq $baselineToolingDigest) {
+                throw "Tooling-input class $className does not invalidate cached validation"
+            }
+        } finally {
+            [System.IO.File]::WriteAllBytes($fixturePath, $originalBytes)
+        }
+    }
+
+    & (Join-Path $PSScriptRoot 'Test-PublicConsumerBoundary.ps1')
+    $boundaryFixture = Join-Path $regressionRoot 'public-consumer-boundary'
+    $forbiddenConsumer = Join-Path $boundaryFixture 'examples/Forbidden.cpp'
+    New-Item -ItemType Directory -Path (Split-Path -Parent $forbiddenConsumer) `
+        -Force | Out-Null
+    Set-PipelineTextFile -Path $forbiddenConsumer -Content (
+        '#include <SimdLib/Detail/Implementations.h>')
+    $boundaryRejected = $false
+    try {
+        & (Join-Path $PSScriptRoot 'Test-PublicConsumerBoundary.ps1') `
+            -SourceDirectory $boundaryFixture *> (
+                Join-Path $boundaryFixture 'expected-rejection.log')
+    } catch {
+        $boundaryRejected = $true
+    }
+    if (-not $boundaryRejected) {
+        throw 'Public-consumer boundary accepted an implementation-detail include'
+    }
+
     Invoke-InventoryFixture -Name valid `
         -TargetRows @(
             "RuntimeTarget`tRUNTIME_VALIDATION`tSimdLibRuntimeValidationArtifacts`tYES",
@@ -208,15 +265,16 @@ try {
     New-Item -ItemType Directory -Path (
         Join-Path $script:pipelineRoot 'provenance') -Force | Out-Null
     $sourceDigest = Get-PipelineSourceDigest -RepositoryRoot $repositoryRoot
-    $auditPath = Join-Path $regressionRoot 'repository-audit.json'
-    $auditDocument = [ordered]@{
-        schema = 'simdlib.repository-audit.v3'
+    $toolingDigest = Get-PipelineToolingDigest -RepositoryRoot $repositoryRoot
+    $pipelineValidationPath = Join-Path $regressionRoot 'pipeline-validation.json'
+    $pipelineValidationDocument = [ordered]@{
+        schema = 'simdlib.pipeline-tooling-validation.v1'
         status = 'complete'
-        sourceDigest = $sourceDigest
-        sourceRevision = Get-PipelineRevision -RepositoryRoot $repositoryRoot
+        toolingDigest = $toolingDigest
+        matrixSha256 = (Get-FileHash -LiteralPath $matrixPath -Algorithm SHA256).Hash.ToLowerInvariant()
     }
-    Set-PipelineTextFile -Path $auditPath -Content (
-        $auditDocument | ConvertTo-Json -Depth 4)
+    Set-PipelineTextFile -Path $pipelineValidationPath -Content (
+        $pipelineValidationDocument | ConvertTo-Json -Depth 4)
     $inventoryAuditPath = Join-Path $regressionRoot 'inventory-audit.json'
     Set-PipelineTextFile -Path $inventoryAuditPath -Content (
         '{"schema":"simdlib.validation-inventory-audit.v1","status":"complete","cell":"clangcl-release","profile":"RELEASE"}')
@@ -238,6 +296,7 @@ try {
         "validation_inventory_audit_sha256=$inventoryAuditHash",
         'build_profile=Release',
         'sanitizer=none',
+        'instrumentation=none',
         'codegen_mode=ENFORCE',
         'consumer_scope=core-register')
     Set-PipelineTextFile -Path $manifestPath -Content (
@@ -246,16 +305,18 @@ try {
     $selectionId = (Get-PipelineTextDigest -Text 'Native|ClangCl').Substring(0, 16)
     $script:receiptPath = Join-Path $script:pipelineRoot "provenance/build-$selectionId.json"
     $receipt = [ordered]@{
-        schema = 'simdlib.unified-build-receipt.v4'
+        schema = 'simdlib.unified-build-receipt.v5'
         status = 'complete'
         scope = 'Native'
         compilers = @('ClangCl')
         sourceDigest = $sourceDigest
-        repositoryAudit = [ordered]@{
+        pipelineValidation = [ordered]@{
             path = [System.IO.Path]::GetRelativePath(
-                $repositoryRoot, $auditPath).Replace('\', '/')
-            sha256 = (Get-FileHash -LiteralPath $auditPath -Algorithm SHA256).Hash.ToLowerInvariant()
-            sourceDigest = $sourceDigest
+                $repositoryRoot, $pipelineValidationPath).Replace('\', '/')
+            sha256 = (Get-FileHash -LiteralPath $pipelineValidationPath -Algorithm SHA256).Hash.ToLowerInvariant()
+            status = 'complete'
+            schema = 'simdlib.pipeline-tooling-validation.v1'
+            toolingDigest = $toolingDigest
         }
         manifests = @([ordered]@{
                 preset = 'clangcl-release-exhaustive'
@@ -331,6 +392,32 @@ try {
     $case.manifests[0].inventoryAuditSha256 = 'none'
     Assert-ReceiptRejected -Name missing-inventory-audit -Receipt $case `
         -ExpectedPattern 'validation_inventory_audit_sha256'
+    $case = $receipt | ConvertTo-Json -Depth 8 | ConvertFrom-Json
+    $case.pipelineValidation = $null
+    Assert-ReceiptRejected -Name missing-pipeline-validation -Receipt $case `
+        -ExpectedPattern 'pipeline-tooling validation'
+    $case = $receipt | ConvertTo-Json -Depth 8 | ConvertFrom-Json
+    $case.pipelineValidation.toolingDigest = 'stale'
+    Assert-ReceiptRejected -Name stale-pipeline-validation -Receipt $case `
+        -ExpectedPattern 'pipeline-tooling validation'
+
+    $originalValidationResult = Get-Content -LiteralPath $pipelineValidationPath -Raw
+    try {
+        Set-PipelineTextFile -Path $pipelineValidationPath -Content '{"modified":true}'
+        Assert-ReceiptRejected -Name modified-pipeline-validation -Receipt $receipt `
+            -ExpectedPattern 'changed after the unified build'
+    } finally {
+        Set-PipelineTextFile -Path $pipelineValidationPath `
+            -Content $originalValidationResult
+    }
+    $originalManifest = Get-Content -LiteralPath $manifestPath -Raw
+    try {
+        Set-PipelineTextFile -Path $manifestPath -Content ($originalManifest + '# modified')
+        Assert-ReceiptRejected -Name modified-manifest -Receipt $receipt `
+            -ExpectedPattern 'manifest changed after the unified build'
+    } finally {
+        Set-PipelineTextFile -Path $manifestPath -Content $originalManifest
+    }
 
     $runTestsSource = Get-Content -LiteralPath $runTestsPath -Raw
     if ($runTestsSource -match "(?i)&\s*\(Join-Path[^\r\n]*Build\.ps1|--build|'-Action',\s*'Build'") {
@@ -357,20 +444,24 @@ try {
     $buildSource = Get-Content -LiteralPath (
         Join-Path $PSScriptRoot 'Build.ps1') -Raw
     if (@([regex]::Matches(
-                $buildSource, 'Run-RepositoryAudit\.ps1')).Count -ne 1 -or
-        $buildSource -notmatch 'repositoryAudit\s*=\s*\$repositoryAuditEntry') {
-        throw 'Unified build does not execute one repository audit and bind it into provenance'
+                $buildSource, 'Validate-PipelineTooling\.ps1')).Count -ne 1 -or
+        @([regex]::Matches(
+                $buildSource, 'Test-PublicConsumerBoundary\.ps1')).Count -ne 1 -or
+        $buildSource -notmatch 'pipelineValidation\s*=\s*\$pipelineValidationEntry') {
+        throw 'Unified build does not run and bind the focused pre-cell validations'
     }
-    $auditSource = Get-Content -LiteralPath (
-        Join-Path $PSScriptRoot 'Run-RepositoryAudit.ps1') -Raw
+    $validationSource = Get-Content -LiteralPath (
+        Join-Path $PSScriptRoot 'Validate-PipelineTooling.ps1') -Raw
     if (@([regex]::Matches(
-                $auditSource, 'if \(-not \(Test-CurrentRepositoryAudit\)\)')).Count -ne 2) {
-        throw 'Repository audit no longer has one cache guard plus one completion guard'
+                $validationSource,
+                'if \(-not \(Test-CurrentPipelineValidation\)\)')).Count -ne 2) {
+        throw 'Pipeline-tooling validation no longer has one cache guard plus one completion guard'
     }
 
     Write-Host (
-        'Validation pipeline regressions passed: six inventory cases, ' +
-        'two valid receipts, six rejected receipts, and no-rebuild ownership checks.')
+        'Validation pipeline regressions passed: inventory ownership, tooling-digest ' +
+        'invalidation, public-consumer rejection, receipt tamper detection, and ' +
+        'no-rebuild ownership checks.')
 } finally {
     $resolvedRegressionRoot = [System.IO.Path]::GetFullPath($regressionRoot)
     $resolvedPipelineRoot = [System.IO.Path]::GetFullPath(

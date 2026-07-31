@@ -74,7 +74,8 @@ function Resolve-Services {
         'Gcc13' { @('gcc13') }
         'Gcc14' { @('gcc14') }
         'Clang22' { @('clang22') }
-        default { @('gcc13', 'gcc14', 'clang22') }
+        default { @(Get-PipelineValidationCompilers -Platform container |
+                ForEach-Object { $_.ToLowerInvariant() }) }
     }
 }
 
@@ -94,58 +95,18 @@ function Resolve-Cells {
         [Parameter(Mandatory)][string]$CellScope,
         [Parameter(Mandatory)][string]$Operation
     )
-    $cells = [System.Collections.Generic.List[object]]::new()
-    foreach ($service in $Services) {
-        if ($Operation -in @('BuildCompilerContracts', 'TestCompilerContracts')) {
-            if ($CellScope -in @('All', 'Release')) {
-                $cells.Add([pscustomobject]@{
-                        Service = $service; Key = 'compiler-contracts'; Preset = 'container-release-contracts'
-                        BuildProfile = 'Release'; Sanitizer = 'none'; CodegenMode = 'OFF'; Consumer = $false
-                    })
-            }
-            continue
-        }
-        if ($Operation -eq 'RecordCodegen') {
-            if ($service -ne 'gcc13' -and $CellScope -in @('All', 'Debug')) {
-                $cells.Add([pscustomobject]@{
-                        Service = $service; Key = 'debug-codegen'; Preset = "$service-debug-codegen-diagnostic"
-                        BuildProfile = 'Debug'; Sanitizer = 'none'; CodegenMode = 'RECORD'; Consumer = $false
-                    })
-            }
-            if ($service -eq 'clang22' -and $CellScope -in @('All', 'AsanUbsan')) {
-                $cells.Add([pscustomobject]@{
-                        Service = $service; Key = 'asan-ubsan-codegen'; Preset = 'clang22-asan-ubsan-codegen-diagnostic'
-                        BuildProfile = 'Debug'; Sanitizer = 'asan-ubsan'; CodegenMode = 'RECORD'; Consumer = $false
-                    })
-            }
-            continue
-        }
-        if ($CellScope -in @('All', 'Release')) {
-            $preset = if ($service -eq 'gcc13') { 'gcc13-core-release-exhaustive' } else { "$service-release-exhaustive" }
-            $codegenMode = if ($service -eq 'gcc13') { 'OFF' } else { 'ENFORCE' }
-            $cells.Add([pscustomobject]@{ Service = $service; Key = 'release'; Preset = $preset; BuildProfile = 'Release'; Sanitizer = 'none'; CodegenMode = $codegenMode; Consumer = $true })
-        }
-        if ($CellScope -in @('All', 'Debug')) {
-            $preset = if ($service -eq 'gcc13') { 'gcc13-core-debug-diagnostics' } else { "$service-debug-diagnostics" }
-            if ($CellScope -eq 'Debug' -or (Test-PipelineDefaultValidationPreset -Preset $preset)) {
-                $cells.Add([pscustomobject]@{ Service = $service; Key = 'debug'; Preset = $preset; BuildProfile = 'Debug'; Sanitizer = 'none'; CodegenMode = 'OFF'; Consumer = $false })
-            }
-        }
-        if ($service -eq 'clang22' -and $CellScope -in @('All', 'AsanUbsan')) {
-            $cells.Add([pscustomobject]@{ Service = $service; Key = 'debug-asan-ubsan'; Preset = 'clang22-debug-asan-ubsan'; BuildProfile = 'Debug'; Sanitizer = 'asan-ubsan'; CodegenMode = 'OFF'; Consumer = $false })
-        }
-    }
-    $aggregate = switch ($Operation) {
-        { $_ -in @('BuildCompilerContracts', 'TestCompilerContracts') } { 'SimdLibCompilerContractArtifacts' }
-        'RecordCodegen' { 'SimdLibDebugDiagnosticArtifacts' }
-        default { 'ExhaustiveArtifacts' }
-    }
-    foreach ($cell in $cells) {
-        Add-Member -InputObject $cell -NotePropertyName Aggregate -NotePropertyValue $aggregate
-    }
-    return $cells.ToArray()
-}
 
+    $compilerNames = @($Services | ForEach-Object {
+            switch ($_) {
+                'gcc13' { 'Gcc13' }
+                'gcc14' { 'Gcc14' }
+                'clang22' { 'Clang22' }
+                default { throw "Unknown container compiler service: $_" }
+            }
+        })
+    return @(Resolve-PipelineValidationCells -Platform container `
+        -CompilerNames $compilerNames -CellScope $CellScope -Operation $Operation)
+}
 <#
 .SYNOPSIS
 Returns the canonical validation-matrix cell identifier for one container cell.
@@ -155,15 +116,9 @@ Resolved container cell definition.
 function Get-ContainerValidationCellId {
     param([Parameter(Mandatory)]$BuildCell)
 
-    $service = $BuildCell.Service
-    switch ($BuildCell.Key) {
-        'compiler-contracts' { return "$service-contracts" }
-        'debug-codegen' { return "$service-diagnostic" }
-        'asan-ubsan-codegen' { return 'clang22-sanitizer-diagnostic' }
-        'debug-asan-ubsan' { return 'clang22-sanitizer' }
-        default { return "$service-$($BuildCell.Key)" }
-    }
+    return [string]$BuildCell.MatrixCell
 }
+
 <#
 .SYNOPSIS
 Reads immutable identity and labels from one local compiler image.
@@ -237,6 +192,7 @@ function New-FingerprintDocument {
             preset = $BuildCell.Preset
             buildProfile = $BuildCell.BuildProfile
             sanitizer = $BuildCell.Sanitizer
+            instrumentation = $BuildCell.Instrumentation
             codegenMode = $BuildCell.CodegenMode
             aggregate = $BuildCell.Aggregate
             consumerScope = if ($BuildCell.Consumer) { 'compiler-release' } else { 'none' }
@@ -277,6 +233,7 @@ function Initialize-CellArtifact {
         Preset = $BuildCell.Preset
         BuildProfile = $BuildCell.BuildProfile
         Sanitizer = $BuildCell.Sanitizer
+        Instrumentation = $BuildCell.Instrumentation
         CodegenMode = $BuildCell.CodegenMode
         Aggregate = $BuildCell.Aggregate
         MatrixCell = Get-ContainerValidationCellId -BuildCell $BuildCell
@@ -324,6 +281,7 @@ function Start-CellOperation {
                 '--preset', $CellArtifact.Preset,
                 '--build-profile', $CellArtifact.BuildProfile,
                 '--sanitizer', $CellArtifact.Sanitizer,
+                '--instrumentation', $CellArtifact.Instrumentation,
                 '--codegen-mode', $CellArtifact.CodegenMode,
                 '--aggregate', $CellArtifact.Aggregate,
                 '--matrix-cell', $CellArtifact.MatrixCell,

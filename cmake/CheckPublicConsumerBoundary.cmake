@@ -1,11 +1,8 @@
 cmake_minimum_required(VERSION 4.4)
 
-foreach(required_variable IN ITEMS
-    SOURCE_DIRECTORY SOURCE_DIGEST SOURCE_REVISION RESULT_FILE)
-    if(NOT DEFINED ${required_variable} OR "${${required_variable}}" STREQUAL "")
-        message(FATAL_ERROR "${required_variable} is required")
-    endif()
-endforeach()
+if(NOT DEFINED SOURCE_DIRECTORY OR "${SOURCE_DIRECTORY}" STREQUAL "")
+    message(FATAL_ERROR "SOURCE_DIRECTORY is required")
+endif()
 
 file(GLOB_RECURSE public_consumer_sources
     "${SOURCE_DIRECTORY}/examples/*.cpp"
@@ -23,17 +20,5 @@ foreach(consumer_source IN LISTS public_consumer_sources)
     endif()
 endforeach()
 list(LENGTH public_consumer_sources public_consumer_source_count)
-
-get_filename_component(result_directory "${RESULT_FILE}" DIRECTORY)
-file(MAKE_DIRECTORY "${result_directory}")
-file(WRITE "${RESULT_FILE}"
-    "{\n"
-    "  \"schema\": \"simdlib.repository-audit.v3\",\n"
-    "  \"status\": \"complete\",\n"
-    "  \"sourceDigest\": \"${SOURCE_DIGEST}\",\n"
-    "  \"sourceRevision\": \"${SOURCE_REVISION}\",\n"
-    "  \"publicConsumerSources\": ${public_consumer_source_count}\n"
-    "}\n")
-
 message(STATUS
-    "Repository audit recorded ${public_consumer_source_count} public consumer sources")
+    "Validated ${public_consumer_source_count} public consumer sources")

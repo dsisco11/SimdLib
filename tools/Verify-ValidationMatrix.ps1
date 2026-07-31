@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-Verifies the canonical default validation matrix and opt-in Debug selectors.
+Verifies validation-matrix topology and its pipeline integrations.
 #>
 [CmdletBinding()]
 param()
@@ -8,6 +8,8 @@ param()
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 Import-Module (Join-Path $PSScriptRoot 'Pipeline.Common.psm1') -Force
+$repositoryRoot = Get-PipelineRepositoryRoot
+$matrix = Get-PipelineValidationMatrix -RepositoryRoot $repositoryRoot
 
 <#
 .SYNOPSIS
@@ -43,372 +45,327 @@ function Import-MatrixResolver {
 
 <#
 .SYNOPSIS
-Rejects a sequence that differs from its exact expected order.
+Rejects duplicate values and returns an ordinal set.
+.PARAMETER Name
+Human-readable collection name.
+.PARAMETER Values
+Values required to be unique.
+#>
+function New-UniqueSet {
+    param(
+        [Parameter(Mandatory)][string]$Name,
+        [Parameter(Mandatory)][AllowEmptyCollection()][object[]]$Values
+    )
+
+    $set = [System.Collections.Generic.HashSet[string]]::new(
+        [System.StringComparer]::Ordinal)
+    foreach ($value in $Values) {
+        if (-not $set.Add([string]$value)) {
+            throw "$Name duplicates $value"
+        }
+    }
+    return ,$set
+}
+
+<#
+.SYNOPSIS
+Rejects two ownership collections that differ as ordinal sets.
+.PARAMETER Name
+Human-readable ownership name.
+.PARAMETER Actual
+Observed values.
+.PARAMETER Expected
+Required values.
+#>
+function Assert-SetEqual {
+    param(
+        [Parameter(Mandatory)][string]$Name,
+        [Parameter(Mandatory)][AllowEmptyCollection()][object[]]$Actual,
+        [Parameter(Mandatory)][AllowEmptyCollection()][object[]]$Expected
+    )
+
+    $actualSet = New-UniqueSet -Name "$Name actual" -Values $Actual
+    $expectedSet = New-UniqueSet -Name "$Name expected" -Values $Expected
+    if (-not $actualSet.SetEquals($expectedSet)) {
+        throw "$Name mismatch. Expected '$(@($expectedSet) -join ', ')'; received '$(@($actualSet) -join ', ')'"
+    }
+}
+
+<#
+.SYNOPSIS
+Rejects a sequence that differs from its matrix-owned execution order.
 .PARAMETER Name
 Human-readable sequence name.
 .PARAMETER Actual
 Observed sequence.
 .PARAMETER Expected
-Required sequence.
+Required matrix sequence.
 #>
-function Assert-MatrixSequence {
+function Assert-SequenceEqual {
     param(
         [Parameter(Mandatory)][string]$Name,
-        [Parameter(Mandatory)][AllowEmptyCollection()][string[]]$Actual,
-        [Parameter(Mandatory)][AllowEmptyCollection()][string[]]$Expected
+        [Parameter(Mandatory)][AllowEmptyCollection()][object[]]$Actual,
+        [Parameter(Mandatory)][AllowEmptyCollection()][object[]]$Expected
     )
 
-    if (($Actual -join '|') -ne ($Expected -join '|')) {
-        throw "$Name mismatch. Expected '$($Expected -join ', ')'; received '$($Actual -join ', ')'"
+    if ((@($Actual) -join '|') -ne (@($Expected) -join '|')) {
+        throw "$Name execution order differs from validation-matrix.json"
     }
-}
-
-$compilerOrder = @('Msvc', 'ClangCl', 'ClangCoverage', 'Gcc13', 'Gcc14', 'Clang22')
-$matrixPath = Join-Path $PSScriptRoot 'validation-matrix.json'
-$matrix = Get-Content -LiteralPath $matrixPath -Raw | ConvertFrom-Json
-if ($matrix.schema -ne 'simdlib.validation-matrix.v1') {
-    throw "Unsupported validation matrix schema in $matrixPath"
 }
 
 <#
 .SYNOPSIS
-Reads one CMake validation profile's declared category list.
-.PARAMETER Source
-Artifact aggregate CMake source.
-.PARAMETER Profile
-Validation profile name.
+Resolves one inherited configure-preset cache value.
+.PARAMETER Name
+Configure preset name.
+.PARAMETER Variable
+CMake cache variable to resolve.
+.PARAMETER Presets
+Configure-preset dictionary.
 #>
-function Get-CMakeProfileCategories {
+function Get-ResolvedPresetValue {
     param(
-        [Parameter(Mandatory)][string]$Source,
-        [Parameter(Mandatory)][string]$Profile
+        [Parameter(Mandatory)][string]$Name,
+        [Parameter(Mandatory)][string]$Variable,
+        [Parameter(Mandatory)][hashtable]$Presets
     )
 
-    $match = [regex]::Match(
-        $Source,
-        "set\(simdlib_profile_allowed_$Profile\s+(?<categories>[^)]*)\)")
-    if (-not $match.Success) {
-        throw "Artifact aggregates do not declare allowed categories for $Profile"
-    }
-    return @($match.Groups['categories'].Value -split '\s+' |
-        Where-Object { $_ })
-}
-
-$artifactAggregatesPath = Join-Path (
-    Get-PipelineRepositoryRoot) 'cmake/development/ArtifactAggregates.cmake'
-$artifactAggregatesSource = Get-Content -LiteralPath $artifactAggregatesPath -Raw
-foreach ($profileProperty in $matrix.profiles.PSObject.Properties) {
-    Assert-MatrixSequence -Name "$($profileProperty.Name) CMake category ownership" `
-        -Actual @(Get-CMakeProfileCategories `
-            -Source $artifactAggregatesSource `
-            -Profile $profileProperty.Name) `
-        -Expected @($profileProperty.Value.allowedTargetCategories)
-}
-
-<#
-.SYNOPSIS
-Returns the canonical cell objects assigned to one matrix operation.
-.PARAMETER Operation
-Operation property from the machine-readable matrix.
-#>
-function Get-ExpectedMatrixCells {
-    param([Parameter(Mandatory)][string]$Operation)
-
-    $operationProperty = $matrix.operations.PSObject.Properties[$Operation]
-    if (-not $operationProperty) {
-        throw "Validation matrix does not define operation $Operation"
-    }
-    $seen = [System.Collections.Generic.HashSet[string]]::new(
-        [System.StringComparer]::Ordinal)
-    return @(
-        foreach ($cellId in @($operationProperty.Value)) {
-            if (-not $seen.Add([string]$cellId)) {
-                throw "Validation matrix operation $Operation duplicates cell $cellId"
-            }
-            $cellProperty = $matrix.cells.PSObject.Properties[[string]$cellId]
-            if (-not $cellProperty) {
-                throw "Validation matrix operation $Operation references unknown cell $cellId"
-            }
-            Add-Member -InputObject $cellProperty.Value `
-                -NotePropertyName MatrixCell -NotePropertyValue ([string]$cellId) `
-                -Force -PassThru
+    $visited = [System.Collections.Generic.HashSet[string]]::new()
+    <#
+    .SYNOPSIS
+    Resolves the requested value from one preset and its inherited parents.
+    .PARAMETER PresetName
+    Configure preset currently being inspected.
+    #>
+    function Resolve-OnePresetValue {
+        param([Parameter(Mandatory)][string]$PresetName)
+        if (-not $visited.Add($PresetName)) { return $null }
+        $preset = $Presets[$PresetName]
+        if (-not $preset) { throw "Configure preset inheritance references missing preset $PresetName" }
+        $cache = $preset.PSObject.Properties['cacheVariables']
+        if ($cache -and $cache.Value.PSObject.Properties[$Variable]) {
+            return [string]$cache.Value.$Variable
         }
-    )
+        $inherits = $preset.PSObject.Properties['inherits']
+        if ($inherits) {
+            foreach ($parent in @($inherits.Value)) {
+                $value = Resolve-OnePresetValue -PresetName ([string]$parent)
+                if ($null -ne $value) { return $value }
+            }
+        }
+        return $null
+    }
+    return Resolve-OnePresetValue -PresetName $Name
 }
 
-$defaultContractCells = @(Get-ExpectedMatrixCells -Operation defaultBuild)
-$defaultTestContractCells = @(Get-ExpectedMatrixCells -Operation defaultTests)
-Assert-MatrixSequence -Name 'Default build/test ownership' `
-    -Actual @($defaultTestContractCells.MatrixCell) `
-    -Expected @($defaultContractCells.MatrixCell)
-$ordinaryDebugCells = @('clangcl-debug', 'gcc13-debug', 'gcc14-debug', 'clang22-debug')
-foreach ($ordinaryDebugCell in $ordinaryDebugCells) {
-    if ($ordinaryDebugCell -in @($defaultContractCells.MatrixCell)) {
-        throw "Ordinary Debug cell re-entered the default matrix: $ordinaryDebugCell"
+$categories = New-UniqueSet -Name 'targetCategories' -Values @($matrix.targetCategories)
+$testOnlyOwners = New-UniqueSet -Name 'testOnlyOwners' -Values @($matrix.testOnlyOwners)
+[void](New-UniqueSet -Name 'compilerOrder' -Values @($matrix.compilerOrder))
+foreach ($profileProperty in $matrix.profiles.PSObject.Properties) {
+    $profileName = $profileProperty.Name
+    $profile = $profileProperty.Value
+    $allowed = New-UniqueSet -Name "$profileName allowedTargetCategories" `
+        -Values @($profile.allowedTargetCategories)
+    $selected = New-UniqueSet -Name "$profileName selectedTargetCategories" `
+        -Values @($profile.selectedTargetCategories)
+    if (-not $selected.IsSubsetOf($allowed)) {
+        throw "$profileName selects a target category it does not allow"
+    }
+    foreach ($category in $allowed) {
+        if (-not $categories.Contains($category)) {
+            throw "$profileName references unknown target category $category"
+        }
+    }
+    [void](New-UniqueSet -Name "$profileName allowedTestOwners" `
+        -Values @($profile.allowedTestOwners))
+    foreach ($owner in @($profile.allowedTestOwners)) {
+        if (-not $categories.Contains([string]$owner) -and
+                -not $testOnlyOwners.Contains([string]$owner)) {
+            throw "$profileName references unknown test owner $owner"
+        }
     }
 }
+
+$operationCells = @{}
+foreach ($operation in $matrix.operations.PSObject.Properties) {
+    $operationCells[$operation.Name] = @(
+        Get-PipelineValidationOperationCells -Operation $operation.Name)
+}
+$defaultBuild = @($operationCells.defaultBuild)
+$defaultTests = @($operationCells.defaultTests)
+Assert-SetEqual -Name 'Default build and test ownership' `
+    -Actual @($defaultTests.MatrixCell) -Expected @($defaultBuild.MatrixCell)
+foreach ($cell in @($operationCells.optionalDebug)) {
+    if ($cell.MatrixCell -in @($defaultBuild.MatrixCell)) {
+        throw "Ordinary opt-in Debug cell enters the default operation: $($cell.MatrixCell)"
+    }
+}
+$forbiddenInstrumentedCategories = @(
+    'COMPILER_CONTRACT', 'CONSTEXPR_CONTRACT', 'OPTIMIZED_CODEGEN',
+    'SMOKE_VALIDATION', 'DEBUG_DIAGNOSTIC')
 foreach ($profileName in @('SANITIZER', 'COVERAGE')) {
     $profile = $matrix.profiles.$profileName
     $forbidden = @(@($profile.allowedTargetCategories) |
-        Where-Object { $_ -in @('OPTIMIZED_CODEGEN', 'DEBUG_DIAGNOSTIC', 'CONSTEXPR_CONTRACT', 'SMOKE_VALIDATION') })
-    if ($forbidden.Count) {
-        throw "$profileName profile permits forbidden categories: $($forbidden -join ', ')"
+        Where-Object { $_ -in $forbiddenInstrumentedCategories })
+    if ($forbidden.Count -ne 0) {
+        throw "$profileName permits forbidden categories: $($forbidden -join ', ')"
     }
 }
-$contractCells = @(Get-ExpectedMatrixCells -Operation compilerContracts)
-$contractCompilerIdentities = @($contractCells.compilerIdentity)
-if (@($contractCompilerIdentities | Select-Object -Unique).Count -ne $contractCompilerIdentities.Count) {
-    throw 'Compiler-front-end contracts are assigned more than once per compiler identity'
-}
-foreach ($cell in $defaultContractCells | Where-Object {
-        $_.profile -eq 'RELEASE' -and $_.registerCapable }) {
-    if ($cell.codegenMode -ne 'ENFORCE') {
-        throw "Register-capable Release cell does not enforce codegen: $($cell.MatrixCell)"
+
+$releaseCompilerIdentities = @($matrix.cells.PSObject.Properties |
+    Where-Object { $_.Value.profile -eq 'RELEASE' -and $_.Value.instrumentation -eq 'none' } |
+    ForEach-Object { $_.Value.compilerIdentity } | Select-Object -Unique)
+$contractIdentities = @($operationCells.compilerContracts.compilerIdentity)
+Assert-SetEqual -Name 'Compiler-contract ownership' `
+    -Actual $contractIdentities -Expected $releaseCompilerIdentities
+foreach ($identity in $releaseCompilerIdentities) {
+    if (@($contractIdentities | Where-Object { $_ -eq $identity }).Count -ne 1) {
+        throw "Compiler identity $identity does not have exactly one compiler-contract owner"
     }
 }
-foreach ($cell in @(Get-ExpectedMatrixCells -Operation optionalDiagnostics)) {
+foreach ($cellProperty in $matrix.cells.PSObject.Properties) {
+    $cellId = $cellProperty.Name
+    $cell = $cellProperty.Value
+    if (-not $matrix.profiles.PSObject.Properties[[string]$cell.profile]) {
+        throw "Validation cell references unknown profile $($cell.profile)"
+    }
+    if ($cell.profile -eq 'RELEASE' -and $cell.registerCapable -and
+            $cell.codegenMode -ne 'ENFORCE') {
+        throw "Register-capable Release cell does not enforce generated code: $($cell.preset)"
+    }
+    if ($cell.consumer -and ($cell.profile -ne 'RELEASE' -or
+            $cellId -notin @($defaultBuild.MatrixCell))) {
+        throw "Consumer ownership is not isolated to a default Release cell: $($cell.preset)"
+    }
+}
+foreach ($cell in @($operationCells.optionalDiagnostics)) {
     if ($cell.codegenMode -ne 'RECORD' -or
-        $cell.MatrixCell -in @($defaultContractCells.MatrixCell)) {
+            $cell.MatrixCell -in @($defaultBuild.MatrixCell)) {
         throw "Optional diagnostic is not isolated record-only evidence: $($cell.MatrixCell)"
     }
 }
-$defaultPresets = @(
-    'msvc-release-exhaustive',
-    'msvc-debug-diagnostics',
-    'clangcl-release-exhaustive',
-    'clang-debug-coverage',
-    'gcc13-core-release-exhaustive',
-    'gcc14-release-exhaustive',
-    'clang22-release-exhaustive',
-    'clang22-debug-asan-ubsan'
-)
-Assert-MatrixSequence -Name 'Machine-readable default presets' `
-    -Actual @($defaultContractCells.preset) `
-    -Expected $defaultPresets
-Assert-MatrixSequence -Name 'Canonical default presets' `
-    -Actual @(Get-PipelineDefaultValidationPresets -SelectedCompilers $compilerOrder) `
-    -Expected $defaultPresets
-
-Import-MatrixResolver -Path (Join-Path $PSScriptRoot 'Run-NativeMatrix.ps1') `
-    -Name 'Resolve-NativeCells'
-Import-MatrixResolver -Path (Join-Path $PSScriptRoot 'Run-ContainerMatrix.ps1') `
-    -Name 'Resolve-Cells'
-
-$nativeDefaultCells = @(Resolve-NativeCells -CompilerName All -CellScope All -Operation Build)
-Assert-MatrixSequence -Name 'Native default cells' `
-    -Actual @($nativeDefaultCells.Preset) `
-    -Expected @(
-        'msvc-release-exhaustive',
-        'msvc-debug-diagnostics',
-        'clangcl-release-exhaustive',
-        'clang-debug-coverage')
-$containerDefaultCells = @(Resolve-Cells -Services @('gcc13', 'gcc14', 'clang22') -CellScope All -Operation Build)
-Assert-MatrixSequence -Name 'Container default cells' `
-    -Actual @($containerDefaultCells.Preset) `
-    -Expected @(
-        'gcc13-core-release-exhaustive',
-        'gcc14-release-exhaustive',
-        'clang22-release-exhaustive',
-        'clang22-debug-asan-ubsan')
-$nativeBenchmarkCells = @(
-    Resolve-NativeCells -CompilerName All -CellScope Release -Operation BuildBenchmarks)
-$containerBenchmarkCells = @(
-    Resolve-Cells -Services @('gcc13', 'gcc14', 'clang22') -CellScope Release -Operation BuildBenchmarks)
-$benchmarkContractCells = @(Get-ExpectedMatrixCells -Operation benchmarks)
-Assert-MatrixSequence -Name 'Native benchmark Release-tree reuse' `
-    -Actual @($nativeBenchmarkCells.Preset) `
-    -Expected @($benchmarkContractCells | Where-Object platform -eq native | ForEach-Object preset)
-Assert-MatrixSequence -Name 'Container benchmark Release-tree reuse' `
-    -Actual @($containerBenchmarkCells.Preset) `
-    -Expected @($benchmarkContractCells | Where-Object platform -eq container | ForEach-Object preset)
-foreach ($benchmarkCell in @($nativeBenchmarkCells) + @($containerBenchmarkCells)) {
-    if ($benchmarkCell.BuildProfile -ne 'Release' -or
-        $benchmarkCell.Aggregate -ne 'ExhaustiveArtifacts') {
-        throw "Benchmark operation does not reuse its owning Release tree: $($benchmarkCell.Preset)"
-    }
-}
-Assert-MatrixSequence -Name 'Native consumer owners' `
-    -Actual @($nativeDefaultCells | ForEach-Object { "$($_.Preset):$($_.Consumer)" }) `
-    -Expected @(
-        'msvc-release-exhaustive:True',
-        'msvc-debug-diagnostics:False',
-        'clangcl-release-exhaustive:True',
-        'clang-debug-coverage:False')
-Assert-MatrixSequence -Name 'Container consumer owners' `
-    -Actual @($containerDefaultCells | ForEach-Object { "$($_.Preset):$($_.Consumer)" }) `
-    -Expected @(
-        'gcc13-core-release-exhaustive:True',
-        'gcc14-release-exhaustive:True',
-        'clang22-release-exhaustive:True',
-        'clang22-debug-asan-ubsan:False')
-
-Assert-MatrixSequence -Name 'clang-cl opt-in Debug cell' `
-    -Actual @((Resolve-NativeCells -CompilerName ClangCl -CellScope Debug -Operation Build).Preset) `
-    -Expected @('clangcl-debug-diagnostics')
-if ((Resolve-NativeCells -CompilerName ClangCl -CellScope Debug -Operation Build)[0].Consumer) {
-    throw 'clang-cl opt-in Debug cell unexpectedly owns an external consumer'
-}
-
-foreach ($debugSelection in @(
-        @('gcc13', 'gcc13-core-debug-diagnostics'),
-        @('gcc14', 'gcc14-debug-diagnostics'),
-        @('clang22', 'clang22-debug-diagnostics'))) {
-    Assert-MatrixSequence -Name "$($debugSelection[0]) opt-in Debug cell" `
-        -Actual @((Resolve-Cells -Services @($debugSelection[0]) -CellScope Debug -Operation Build).Preset) `
-        -Expected @($debugSelection[1])
-    if ((Resolve-Cells -Services @($debugSelection[0]) -CellScope Debug -Operation Build)[0].Consumer) {
-        throw "$($debugSelection[0]) opt-in Debug cell unexpectedly owns an external consumer"
+foreach ($cell in @($operationCells.benchmarks)) {
+    if ($cell.profile -ne 'RELEASE' -or $cell.configuration -ne 'Release' -or
+            $cell.aggregate -ne 'ExhaustiveArtifacts') {
+        throw "Benchmark operation does not reuse an owning Release configuration: $($cell.MatrixCell)"
     }
 }
 
-Assert-MatrixSequence -Name 'Native scoped aggregates' `
-    -Actual @($nativeDefaultCells.Aggregate) `
-    -Expected @('ExhaustiveArtifacts', 'ExhaustiveArtifacts', 'ExhaustiveArtifacts', 'ExhaustiveArtifacts')
-Assert-MatrixSequence -Name 'Container scoped aggregates' `
-    -Actual @($containerDefaultCells.Aggregate) `
-    -Expected @('ExhaustiveArtifacts', 'ExhaustiveArtifacts', 'ExhaustiveArtifacts', 'ExhaustiveArtifacts')
-
-$nativeContractCells = @(Resolve-NativeCells -CompilerName All -CellScope Release -Operation BuildCompilerContracts)
-Assert-MatrixSequence -Name 'Native compiler-contract cells' `
-    -Actual @($nativeContractCells.Preset) `
-    -Expected @('msvc-compiler-contracts', 'clangcl-compiler-contracts')
-Assert-MatrixSequence -Name 'Native compiler-contract aggregates' `
-    -Actual @($nativeContractCells.Aggregate) `
-    -Expected @('SimdLibCompilerContractArtifacts', 'SimdLibCompilerContractArtifacts')
-Assert-MatrixSequence -Name 'Machine-readable native compiler contracts' `
-    -Actual @($nativeContractCells.Preset) `
-    -Expected @($contractCells | Where-Object platform -eq native | ForEach-Object preset)
-$containerContractCells = @(Resolve-Cells -Services @('gcc13', 'gcc14', 'clang22') -CellScope Release -Operation BuildCompilerContracts)
-Assert-MatrixSequence -Name 'Machine-readable container compiler contracts' `
-    -Actual @($containerContractCells.Preset) `
-    -Expected @($contractCells | Where-Object platform -eq container | ForEach-Object preset)
-Assert-MatrixSequence -Name 'Container compiler-contract cells' `
-    -Actual @($containerContractCells.Preset) `
-    -Expected @('container-release-contracts', 'container-release-contracts', 'container-release-contracts')
-Assert-MatrixSequence -Name 'Container compiler-contract aggregates' `
-    -Actual @($containerContractCells.Aggregate) `
-    -Expected @('SimdLibCompilerContractArtifacts', 'SimdLibCompilerContractArtifacts', 'SimdLibCompilerContractArtifacts')
-
-Assert-MatrixSequence -Name 'Native compiler-contract test cells' `
-    -Actual @((Resolve-NativeCells -CompilerName All -CellScope Release -Operation TestCompilerContracts).Preset) `
-    -Expected @($nativeContractCells.Preset)
-Assert-MatrixSequence -Name 'Container compiler-contract test cells' `
-    -Actual @((Resolve-Cells -Services @('gcc13', 'gcc14', 'clang22') -CellScope Release -Operation TestCompilerContracts).Preset) `
-    -Expected @($containerContractCells.Preset)
-
-$nativeDiagnosticCells = @(Resolve-NativeCells -CompilerName All -CellScope Debug -Operation RecordCodegen)
-Assert-MatrixSequence -Name 'Native optional codegen diagnostics' `
-    -Actual @($nativeDiagnosticCells.Preset) `
-    -Expected @('msvc-debug-codegen-diagnostic', 'clangcl-debug-codegen-diagnostic')
-$diagnosticContractCells = @(Get-ExpectedMatrixCells -Operation optionalDiagnostics)
-Assert-MatrixSequence -Name 'Machine-readable native diagnostics' `
-    -Actual @($nativeDiagnosticCells.Preset) `
-    -Expected @($diagnosticContractCells | Where-Object platform -eq native | ForEach-Object preset)
-$containerDiagnosticCells = @(Resolve-Cells -Services @('gcc13', 'gcc14', 'clang22') -CellScope All -Operation RecordCodegen)
-Assert-MatrixSequence -Name 'Container optional codegen diagnostics' `
-    -Actual @($containerDiagnosticCells.Preset) `
-    -Expected @('gcc14-debug-codegen-diagnostic', 'clang22-debug-codegen-diagnostic', 'clang22-asan-ubsan-codegen-diagnostic')
-Assert-MatrixSequence -Name 'Machine-readable container diagnostics' `
-    -Actual @($containerDiagnosticCells.Preset) `
-    -Expected @($diagnosticContractCells | Where-Object platform -eq container | ForEach-Object preset)
-foreach ($diagnosticCell in @($nativeDiagnosticCells) + @($containerDiagnosticCells)) {
-    if ($diagnosticCell.Preset -in $defaultPresets -or $diagnosticCell.Aggregate -ne 'SimdLibDebugDiagnosticArtifacts') {
-        throw "Optional codegen diagnostic contaminates the default matrix: $($diagnosticCell.Preset)"
-    }
-}
-
-$presetPath = Join-Path (Get-PipelineRepositoryRoot) 'CMakePresets.json'
+$presetPath = Join-Path $repositoryRoot 'CMakePresets.json'
 $presetDocument = Get-Content -LiteralPath $presetPath -Raw | ConvertFrom-Json
 $presetByName = @{}
 foreach ($preset in $presetDocument.configurePresets) {
     if ($presetByName.ContainsKey($preset.name)) { throw "Duplicate configure preset: $($preset.name)" }
     $presetByName[$preset.name] = $preset
 }
-if ($presetByName.ContainsKey('development-common')) {
-    throw 'Retired development-common option inheritance remains available'
+$buildPresetByName = @{}
+foreach ($preset in $presetDocument.buildPresets) {
+    if ($buildPresetByName.ContainsKey($preset.name)) { throw "Duplicate build preset: $($preset.name)" }
+    $buildPresetByName[$preset.name] = $preset
 }
-foreach ($bundleName in @('release-exhaustive-options', 'debug-diagnostics-options', 'debug-asan-ubsan-options', 'coverage-options', 'compiler-contract-options', 'codegen-diagnostic-options')) {
-    $bundle = $presetByName[$bundleName]
-    if (-not $bundle -or @($bundle.inherits) -notcontains 'development-base-options') {
-        throw "Validation option bundle does not inherit the neutral development base: $bundleName"
+foreach ($cellProperty in $matrix.cells.PSObject.Properties) {
+    $cellId = $cellProperty.Name
+    $cell = $cellProperty.Value
+    if (-not $presetByName.ContainsKey([string]$cell.preset)) {
+        throw "Validation cell $cellId references missing configure preset $($cell.preset)"
+    }
+    $profile = Get-ResolvedPresetValue -Name $cell.preset `
+        -Variable SIMDLIB_VALIDATION_PROFILE -Presets $presetByName
+    if ($profile -ne $cell.profile) {
+        throw "Preset $($cell.preset) resolves profile $profile instead of $($cell.profile)"
+    }
+    $configuration = Get-ResolvedPresetValue -Name $cell.preset `
+        -Variable CMAKE_BUILD_TYPE -Presets $presetByName
+    if (-not $configuration) {
+        $configuration = Get-ResolvedPresetValue -Name $cell.preset `
+            -Variable CMAKE_CONFIGURATION_TYPES -Presets $presetByName
+    }
+    if ($configuration -ne $cell.configuration) {
+        throw "Preset $($cell.preset) resolves configuration $configuration instead of $($cell.configuration)"
+    }
+    $codegenMode = Get-ResolvedPresetValue -Name $cell.preset `
+        -Variable SIMDLIB_REGISTER_CODEGEN_MODE -Presets $presetByName
+    if ($codegenMode -ne $cell.codegenMode) {
+        throw "Preset $($cell.preset) resolves generated-code mode $codegenMode instead of $($cell.codegenMode)"
+    }
+    if ($cell.instrumentation -eq 'asan-ubsan') {
+        $sanitizerFlags = Get-ResolvedPresetValue -Name $cell.preset `
+            -Variable CMAKE_CXX_FLAGS_DEBUG -Presets $presetByName
+        if ($sanitizerFlags -notmatch '-fsanitize=address,undefined') {
+            throw "Preset $($cell.preset) does not resolve ASan and UBSan instrumentation"
+        }
+    } elseif ($cell.instrumentation -eq 'coverage') {
+        if ((Get-ResolvedPresetValue -Name $cell.preset `
+                -Variable SIMDLIB_ENABLE_COVERAGE -Presets $presetByName) -ne 'ON') {
+            throw "Preset $($cell.preset) does not resolve coverage instrumentation"
+        }
+    }
+    $buildPreset = $buildPresetByName[[string]$cell.preset]
+    if ($buildPreset -and ($buildPreset.configurePreset -ne $cell.preset -or
+            @($buildPreset.targets) -notcontains $cell.aggregate)) {
+        throw "Build preset $($cell.preset) disagrees with cell aggregate $($cell.aggregate)"
     }
 }
-$releaseContractOptions = @(
-    'SIMDLIB_BUILD_CONFIGURATION_PROBES',
-    'SIMDLIB_BUILD_CONSTEXPR_PROBES',
-    'SIMDLIB_BUILD_HEADER_PROBES',
-    'SIMDLIB_BUILD_METHOD_FLAGS_CODEGEN_GATES'
+foreach ($cell in @($operationCells.benchmarks)) {
+    $benchmarkPreset = @($presetDocument.buildPresets | Where-Object {
+            $_.configurePreset -eq $cell.preset -and
+            @($_.targets) -contains 'BenchmarkArtifacts'
+        })
+    if ($benchmarkPreset.Count -ne 1) {
+        throw "Release cell $($cell.MatrixCell) does not have exactly one benchmark aggregate preset"
+    }
+}
+
+$artifactAggregates = Get-Content -LiteralPath (
+    Join-Path $repositoryRoot 'cmake/development/ArtifactAggregates.cmake') -Raw
+if ($artifactAggregates -notmatch 'file\(READ "\$\{simdlib_validation_matrix\}"' -or
+        $artifactAggregates -match 'simdlib_profile_allowed_RELEASE\s') {
+    throw 'CMake development profiles do not consume validation-matrix.json directly'
+}
+
+Import-MatrixResolver -Path (Join-Path $PSScriptRoot 'Run-NativeMatrix.ps1') `
+    -Name Resolve-NativeCells
+Import-MatrixResolver -Path (Join-Path $PSScriptRoot 'Run-ContainerMatrix.ps1') `
+    -Name Resolve-Cells
+$services = @(Get-PipelineValidationCompilers -Platform container |
+    ForEach-Object { $_.ToLowerInvariant() })
+$resolverCases = @(
+    [pscustomobject]@{ Name='native default'; Actual=@(Resolve-NativeCells -CompilerName All -CellScope All -Operation Build); Expected=@($defaultBuild | Where-Object platform -eq native) },
+    [pscustomobject]@{ Name='container default'; Actual=@(Resolve-Cells -Services $services -CellScope All -Operation Build); Expected=@($defaultBuild | Where-Object platform -eq container) },
+    [pscustomobject]@{ Name='native benchmarks'; Actual=@(Resolve-NativeCells -CompilerName All -CellScope Release -Operation BuildBenchmarks); Expected=@($operationCells.benchmarks | Where-Object platform -eq native) },
+    [pscustomobject]@{ Name='container benchmarks'; Actual=@(Resolve-Cells -Services $services -CellScope Release -Operation BuildBenchmarks); Expected=@($operationCells.benchmarks | Where-Object platform -eq container) },
+    [pscustomobject]@{ Name='native compiler contracts'; Actual=@(Resolve-NativeCells -CompilerName All -CellScope Release -Operation BuildCompilerContracts); Expected=@($operationCells.compilerContracts | Where-Object platform -eq native) },
+    [pscustomobject]@{ Name='container compiler contracts'; Actual=@(Resolve-Cells -Services $services -CellScope Release -Operation BuildCompilerContracts); Expected=@($operationCells.compilerContracts | Where-Object platform -eq container) },
+    [pscustomobject]@{ Name='native diagnostics'; Actual=@(Resolve-NativeCells -CompilerName All -CellScope Debug -Operation RecordCodegen); Expected=@($operationCells.optionalDiagnostics | Where-Object platform -eq native) },
+    [pscustomobject]@{ Name='container diagnostics'; Actual=@(Resolve-Cells -Services $services -CellScope All -Operation RecordCodegen); Expected=@($operationCells.optionalDiagnostics | Where-Object platform -eq container) }
 )
-foreach ($releasePresetName in @(
-        'msvc-release-exhaustive', 'clangcl-release-exhaustive',
-        'gcc13-core-release-exhaustive', 'gcc14-release-exhaustive',
-        'clang22-release-exhaustive')) {
-    foreach ($optionName in $releaseContractOptions) {
-        $resolvedValue = $null
-        $visited = [System.Collections.Generic.HashSet[string]]::new()
-        $pending = [System.Collections.Generic.Stack[string]]::new()
-        $pending.Push($releasePresetName)
-        while ($pending.Count -ne 0 -and $null -eq $resolvedValue) {
-            $name = $pending.Pop()
-            if (-not $visited.Add($name)) { continue }
-            $preset = $presetByName[$name]
-            if (-not $preset) { throw "Configure preset inheritance references missing preset $name" }
-            $cacheProperty = $preset.PSObject.Properties['cacheVariables']
-            if ($cacheProperty -and $cacheProperty.Value.PSObject.Properties[$optionName]) {
-                $resolvedValue = [string]$cacheProperty.Value.$optionName
-                break
-            }
-            $inheritsProperty = $preset.PSObject.Properties['inherits']
-            if ($inheritsProperty) {
-                $parents = @($inheritsProperty.Value)
-                for ($index = $parents.Count - 1; $index -ge 0; --$index) {
-                    $pending.Push([string]$parents[$index])
-                }
-            }
-        }
-        if ($resolvedValue -ne 'ON') {
-            throw "Release preset $releasePresetName resolves $optionName=$resolvedValue instead of ON"
+foreach ($case in $resolverCases) {
+    Assert-SequenceEqual -Name $case.Name -Actual @($case.Actual.MatrixCell) `
+        -Expected @($case.Expected.MatrixCell)
+    foreach ($resolved in $case.Actual) {
+        $canonical = $matrix.cells.PSObject.Properties[[string]$resolved.MatrixCell].Value
+        if ($resolved.Preset -ne $canonical.preset -or
+            $resolved.BuildProfile -ne $canonical.configuration -or
+            $resolved.Instrumentation -ne $canonical.instrumentation -or
+            $resolved.Aggregate -ne $canonical.aggregate -or
+            $resolved.CodegenMode -ne $canonical.codegenMode -or
+            $resolved.Consumer -ne $canonical.consumer) {
+            throw "$($case.Name) resolver disagrees with cell $($resolved.MatrixCell)"
         }
     }
 }
 
-foreach ($profilePreset in @{
-        'msvc-release-exhaustive' = 'RELEASE'; 'msvc-debug-diagnostics' = 'DEBUG'
-        'clangcl-release-exhaustive' = 'RELEASE'; 'clang-debug-coverage' = 'COVERAGE'
-        'gcc13-core-release-exhaustive' = 'RELEASE'; 'gcc14-release-exhaustive' = 'RELEASE'
-        'clang22-release-exhaustive' = 'RELEASE'; 'clang22-debug-asan-ubsan' = 'SANITIZER'
-    }.GetEnumerator()) {
-    $visited = [System.Collections.Generic.HashSet[string]]::new()
-    $pending = [System.Collections.Generic.Stack[string]]::new()
-    $pending.Push($profilePreset.Key)
-    $resolvedProfile = $null
-    while ($pending.Count -ne 0) {
-        $name = $pending.Pop()
-        if (-not $visited.Add($name)) { continue }
-        $preset = $presetByName[$name]
-        if (-not $preset) { throw "Configure preset inheritance references missing preset $name" }
-        $cacheProperty = $preset.PSObject.Properties['cacheVariables']
-        if ($null -eq $resolvedProfile -and $cacheProperty -and
-                $cacheProperty.Value.PSObject.Properties['SIMDLIB_VALIDATION_PROFILE']) {
-            $resolvedProfile = [string]$cacheProperty.Value.SIMDLIB_VALIDATION_PROFILE
-        }
-        $inheritsProperty = $preset.PSObject.Properties['inherits']
-        if ($inheritsProperty) {
-            foreach ($parent in @($inheritsProperty.Value)) { $pending.Push([string]$parent) }
-        }
-    }
-    if ($resolvedProfile -ne $profilePreset.Value) {
-        throw "Default preset $($profilePreset.Key) resolves validation profile $resolvedProfile instead of $($profilePreset.Value)"
-    }
-}
-
-$compose = Get-Content -LiteralPath (Join-Path (Get-PipelineRepositoryRoot) 'compose.yml') -Raw
-if ($compose -notmatch 'SIMDLIB_CONTAINER_PRESET:-container-release-contracts') {
-    throw 'Compose defaults do not select the owned compiler-contract profile'
+$compose = Get-Content -LiteralPath (Join-Path $repositoryRoot 'compose.yml') -Raw
+$contractPresets = @($operationCells.compilerContracts |
+    Where-Object platform -eq container | ForEach-Object preset | Select-Object -Unique)
+if ($contractPresets.Count -ne 1 -or
+        $compose -notmatch [regex]::Escape("SIMDLIB_CONTAINER_PRESET:-$($contractPresets[0])")) {
+    throw 'Docker Compose does not select the matrix-owned container compiler-contract operation'
 }
 $runTestsSource = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'Run-Tests.ps1') -Raw
-if ($runTestsSource -match "&\s*\(Join-Path[^\r\n]*Build\.ps1|--build") {
-    throw 'Run-Tests contains an automatic configure or build path'
+if ($runTestsSource -match '(?i)&\s*\(Join-Path[^\r\n]*Build\.ps1|--build|''-Action'',\s*''Build''|cmake\s+--preset') {
+    throw 'Run-Tests contains a configure or build path'
 }
 
-Write-Host "Validated $($defaultPresets.Count) default presets, four opt-in Debug cells, five codegen diagnostics, and five focused compiler-contract cells."
+[void](Get-PipelineToolingInputs -RepositoryRoot $repositoryRoot)
+Write-Host "Validation matrix invariants passed for $(@($matrix.cells.PSObject.Properties).Count) cells and $(@($matrix.operations.PSObject.Properties).Count) operations."

@@ -17,13 +17,17 @@ GCC 14, or Clang 22 Debug cells. Debug, sanitizer, and coverage cells do not
 compile Register generated-code fixtures. The command does not compile
 benchmark targets or run any executable.
 
-Before starting compiler cells, `Build.ps1` invokes
-`tools/Run-RepositoryAudit.ps1`. That operation validates the public-consumer
-boundary and pipeline-tooling regressions once for the canonical source digest
-and writes
-`out/pipeline/provenance/repository-audit-<digest>.json`. The unified receipt
-binds the result path, hash, and source digest; no compiler tree contains a
-duplicate repository-audit target or CTest.
+Before starting compiler cells, `Build.ps1` performs two focused validations.
+`tools/Validate-PipelineTooling.ps1` validates matrix topology, pipeline
+regressions, configured ownership rules, and no-rebuild behavior once for the
+reviewed tooling/configuration digest. It writes
+`out/pipeline/provenance/pipeline-validation-<digest>.json`, and the unified
+receipt binds the result path, hash, status, schema, and tooling digest.
+Ordinary production-source changes do not rerun these synthetic tooling tests.
+`tools/Test-PublicConsumerBoundary.ps1` separately checks every public example
+and consumer fixture before compiler-cell execution and rejects use of
+`SimdLib::Detail`; it is a source-boundary check, not a general repository
+audit.
 
 The corresponding complete validation command is:
 
@@ -115,8 +119,9 @@ test-only reuse without creating a new toolchain directory.
 ### Validation ownership policy
 
 Every validation artifact has one logical category and the narrowest compiler,
-configuration, and instrumentation scope that proves its contract. Repository
-audits are source-revision contracts; compiler-front-end and compile-time
+configuration, and instrumentation scope that proves its contract. Pipeline
+tooling validation is keyed by its reviewed configuration inputs, while
+compiler-front-end and compile-time
 contracts belong to applicable Release compiler identities; runtime and
 checks/precondition contracts additionally run in the representative MSVC
 Debug and Clang ASan+UBSan cells; public examples, smoke, ODR, external
@@ -131,8 +136,11 @@ available only for focused troubleshooting: their compiler, language, ABI,
 runtime, consumer, and optimizer contracts are already owned by their Release
 cells, while the Clang ASan+UBSan cell owns instrumented Linux Debug behavior.
 
-`tools/validation-matrix.json` is the machine-readable authority for cell,
-profile, category, test-owner, consumer, and generated-code policy. A new
+`tools/validation-matrix.json` is the single machine-readable authority for
+cell, operation order, profile, category, test-owner, consumer,
+instrumentation, and generated-code policy. Native and container runners
+resolve their cells from this file, and CMake reads its profile category
+definitions directly. A new
 compiler, configuration, instrumentation mode, target, or test may join the
 default matrix only when it proves a stated contract that no existing owner
 proves. New development targets must declare one scoped category; generated
@@ -207,12 +215,13 @@ depend on the selected build type.
 `Run-Tests.ps1` always consumes existing artifacts. It succeeds only when the
 matching unified-build receipt contains exactly the requested cells, its
 source-input digest matches the current tree and every embedded manifest, every
-manifest is unchanged, and the repository-audit result remains current and
-unchanged. Receipt schema v4 binds each cell's canonical matrix identity, scoped
-aggregate, target and test inventory hashes, generated ownership-audit result,
-matrix-contract hash, configuration, instrumentation, generated-code mode, and
-consumer scope. Test operations contain no artifact-tree configure or build
-command.
+manifest is unchanged, and its pipeline-tooling validation result remains
+current and unchanged. Receipt schema v5 binds the pipeline-validation schema,
+status, tooling digest, path, and hash alongside each cell's canonical matrix
+identity, scoped aggregate, target and test inventory hashes, configured-tree
+inventory result, matrix-contract hash, configuration, instrumentation,
+generated-code mode, and consumer scope. Test operations contain no
+artifact-tree configure or build command.
 
 The expected default, benchmark, compiler-contract, coverage, sanitizer, and
 optional diagnostic cells are defined in `tools/validation-matrix.json`.

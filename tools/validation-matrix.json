@@ -126,7 +126,9 @@
       "codegenMode": "ENFORCE",
       "aggregate": "ExhaustiveArtifacts",
       "consumer": true,
-      "registerCapable": true
+      "registerCapable": true,
+      "artifactKey": "release",
+      "generator": "Visual Studio 17 2022"
     },
     "msvc-debug": {
       "platform": "native",
@@ -139,7 +141,9 @@
       "codegenMode": "OFF",
       "aggregate": "ExhaustiveArtifacts",
       "consumer": false,
-      "registerCapable": true
+      "registerCapable": true,
+      "artifactKey": "debug",
+      "generator": "Visual Studio 17 2022"
     },
     "clangcl-release": {
       "platform": "native",
@@ -152,7 +156,9 @@
       "codegenMode": "ENFORCE",
       "aggregate": "ExhaustiveArtifacts",
       "consumer": true,
-      "registerCapable": true
+      "registerCapable": true,
+      "artifactKey": "release",
+      "generator": "Ninja"
     },
     "clangcl-debug": {
       "platform": "native",
@@ -165,7 +171,9 @@
       "codegenMode": "OFF",
       "aggregate": "ExhaustiveArtifacts",
       "consumer": false,
-      "registerCapable": true
+      "registerCapable": true,
+      "artifactKey": "debug",
+      "generator": "Ninja"
     },
     "clang-coverage": {
       "platform": "native",
@@ -178,7 +186,9 @@
       "codegenMode": "OFF",
       "aggregate": "ExhaustiveArtifacts",
       "consumer": false,
-      "registerCapable": true
+      "registerCapable": true,
+      "artifactKey": "debug-coverage",
+      "generator": "Ninja"
     },
     "gcc13-release": {
       "platform": "container",
@@ -191,7 +201,8 @@
       "codegenMode": "OFF",
       "aggregate": "ExhaustiveArtifacts",
       "consumer": true,
-      "registerCapable": false
+      "registerCapable": false,
+      "artifactKey": "release"
     },
     "gcc13-debug": {
       "platform": "container",
@@ -204,7 +215,8 @@
       "codegenMode": "OFF",
       "aggregate": "ExhaustiveArtifacts",
       "consumer": false,
-      "registerCapable": false
+      "registerCapable": false,
+      "artifactKey": "debug"
     },
     "gcc14-release": {
       "platform": "container",
@@ -217,7 +229,8 @@
       "codegenMode": "ENFORCE",
       "aggregate": "ExhaustiveArtifacts",
       "consumer": true,
-      "registerCapable": true
+      "registerCapable": true,
+      "artifactKey": "release"
     },
     "gcc14-debug": {
       "platform": "container",
@@ -230,7 +243,8 @@
       "codegenMode": "OFF",
       "aggregate": "ExhaustiveArtifacts",
       "consumer": false,
-      "registerCapable": true
+      "registerCapable": true,
+      "artifactKey": "debug"
     },
     "clang22-release": {
       "platform": "container",
@@ -243,7 +257,8 @@
       "codegenMode": "ENFORCE",
       "aggregate": "ExhaustiveArtifacts",
       "consumer": true,
-      "registerCapable": true
+      "registerCapable": true,
+      "artifactKey": "release"
     },
     "clang22-debug": {
       "platform": "container",
@@ -256,7 +271,8 @@
       "codegenMode": "OFF",
       "aggregate": "ExhaustiveArtifacts",
       "consumer": false,
-      "registerCapable": true
+      "registerCapable": true,
+      "artifactKey": "debug"
     },
     "clang22-sanitizer": {
       "platform": "container",
@@ -269,7 +285,8 @@
       "codegenMode": "OFF",
       "aggregate": "ExhaustiveArtifacts",
       "consumer": false,
-      "registerCapable": true
+      "registerCapable": true,
+      "artifactKey": "debug-asan-ubsan"
     },
     "msvc-contracts": {
       "platform": "native",
@@ -282,7 +299,9 @@
       "codegenMode": "OFF",
       "aggregate": "SimdLibCompilerContractArtifacts",
       "consumer": false,
-      "registerCapable": true
+      "registerCapable": true,
+      "artifactKey": "compiler-contracts",
+      "generator": "Visual Studio 17 2022"
     },
     "clangcl-contracts": {
       "platform": "native",
@@ -295,7 +314,9 @@
       "codegenMode": "OFF",
       "aggregate": "SimdLibCompilerContractArtifacts",
       "consumer": false,
-      "registerCapable": true
+      "registerCapable": true,
+      "artifactKey": "compiler-contracts",
+      "generator": "Ninja"
     },
     "gcc13-contracts": {
       "platform": "container",
@@ -308,7 +329,8 @@
       "codegenMode": "OFF",
       "aggregate": "SimdLibCompilerContractArtifacts",
       "consumer": false,
-      "registerCapable": false
+      "registerCapable": false,
+      "artifactKey": "compiler-contracts"
     },
     "gcc14-contracts": {
       "platform": "container",
@@ -321,7 +343,8 @@
       "codegenMode": "OFF",
       "aggregate": "SimdLibCompilerContractArtifacts",
       "consumer": false,
-      "registerCapable": true
+      "registerCapable": true,
+      "artifactKey": "compiler-contracts"
     },
     "clang22-contracts": {
       "platform": "container",
@@ -334,7 +357,8 @@
       "codegenMode": "OFF",
       "aggregate": "SimdLibCompilerContractArtifacts",
       "consumer": false,
-      "registerCapable": true
+      "registerCapable": true,
+      "artifactKey": "compiler-contracts"
     },
     "msvc-diagnostic": {
       "platform": "native",
@@ -347,7 +371,9 @@
       "codegenMode": "RECORD",
       "aggregate": "SimdLibDebugDiagnosticArtifacts",
       "consumer": false,
-      "registerCapable": true
+      "registerCapable": true,
+      "artifactKey": "debug-codegen",
+      "generator": "Ninja"
     },
     "clangcl-diagnostic": {
       "platform": "native",
@@ -360,7 +386,9 @@
       "codegenMode": "RECORD",
       "aggregate": "SimdLibDebugDiagnosticArtifacts",
       "consumer": false,
-      "registerCapable": true
+      "registerCapable": true,
+      "artifactKey": "debug-codegen",
+      "generator": "Ninja"
     },
     "gcc14-diagnostic": {
       "platform": "container",
@@ -373,7 +401,8 @@
       "codegenMode": "RECORD",
       "aggregate": "SimdLibDebugDiagnosticArtifacts",
       "consumer": false,
-      "registerCapable": true
+      "registerCapable": true,
+      "artifactKey": "debug-codegen"
     },
     "clang22-diagnostic": {
       "platform": "container",
@@ -386,7 +415,8 @@
       "codegenMode": "RECORD",
       "aggregate": "SimdLibDebugDiagnosticArtifacts",
       "consumer": false,
-      "registerCapable": true
+      "registerCapable": true,
+      "artifactKey": "debug-codegen"
     },
     "clang22-sanitizer-diagnostic": {
       "platform": "container",
@@ -399,7 +429,8 @@
       "codegenMode": "RECORD",
       "aggregate": "SimdLibDebugDiagnosticArtifacts",
       "consumer": false,
-      "registerCapable": true
+      "registerCapable": true,
+      "artifactKey": "asan-ubsan-codegen"
     }
   },
   "operations": {
@@ -456,5 +487,52 @@
       "gcc14-debug",
       "clang22-debug"
     ]
+  },
+  "compilerOrder": [
+    "Msvc",
+    "ClangCl",
+    "ClangCoverage",
+    "Gcc13",
+    "Gcc14",
+    "Clang22"
+  ],
+  "toolingValidation": {
+    "inputClasses": {
+      "matrix": [
+        "tools/validation-matrix.json"
+      ],
+      "presets": [
+        "CMakePresets.json"
+      ],
+      "resolvers": [
+        "tools/Pipeline.Common.psm1",
+        "tools/Run-NativeMatrix.ps1",
+        "tools/Run-ContainerMatrix.ps1"
+      ],
+      "orchestration": [
+        "tools/Build.ps1",
+        "tools/Run-Tests.ps1",
+        "tools/Build-Benchmarks.ps1",
+        "tools/Run-Benchmarks.ps1",
+        "tools/Record-Codegen.ps1"
+      ],
+      "toolingTests": [
+        "tools/Verify-ValidationMatrix.ps1",
+        "tools/Test-ValidationPipeline.ps1",
+        "tools/Validate-PipelineTooling.ps1"
+      ],
+      "cmakeDevelopment": [
+        "cmake/development",
+        "cmake/AuditValidationInventory.cmake"
+      ],
+      "containerRouting": [
+        "compose.yml",
+        "containers/container-entrypoint.sh"
+      ],
+      "publicConsumerBoundary": [
+        "tools/Test-PublicConsumerBoundary.ps1",
+        "cmake/CheckPublicConsumerBoundary.cmake"
+      ]
+    }
   }
 }

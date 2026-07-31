@@ -22,8 +22,11 @@ Import-Module (Join-Path $PSScriptRoot 'Pipeline.Common.psm1') -Force
 Expands benchmark execution filters into native and container owners.
 #>
 function Resolve-BenchmarkExecutionSelection {
-    $nativeNames = @('Msvc', 'ClangCl', 'ClangCoverage')
-    $containerNames = @('Gcc13', 'Gcc14', 'Clang22')
+    $nativeNames = @(Get-PipelineValidationCompilers -Platform native)
+    $containerNames = @(Get-PipelineValidationCompilers -Platform container)
+    $benchmarkCells = @(Get-PipelineValidationOperationCells -Operation benchmarks)
+    $nativeBenchmarkOwners = @($benchmarkCells |
+        Where-Object platform -eq native | ForEach-Object compiler)
     if ('All' -in $Compiler -and $Compiler.Count -ne 1) { throw 'Compiler All cannot be combined with another compiler filter.' }
     $selected = if ($Compiler -contains 'All') {
         switch ($Scope) {
@@ -35,7 +38,7 @@ function Resolve-BenchmarkExecutionSelection {
     if ($Scope -eq 'Native' -and @($selected | Where-Object { $_ -in $containerNames }).Count) { throw 'Container compiler filters are invalid for Native scope.' }
     if ($Scope -eq 'Containers' -and @($selected | Where-Object { $_ -in $nativeNames }).Count) { throw 'Native compiler filters are invalid for Containers scope.' }
     [pscustomobject]@{
-        Native = if ($Scope -in @('All', 'Native')) { @($selected | Where-Object { $_ -in @('Msvc', 'ClangCl') }) } else { @() }
+        Native = if ($Scope -in @('All', 'Native')) { @($selected | Where-Object { $_ -in $nativeBenchmarkOwners }) } else { @() }
         Containers = if ($Scope -in @('All', 'Containers')) { @($selected | Where-Object { $_ -in $containerNames }) } else { @() }
     }
 }

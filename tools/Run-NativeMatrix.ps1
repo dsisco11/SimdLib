@@ -51,78 +51,15 @@ function Resolve-NativeCells {
         [Parameter(Mandatory)][string]$CellScope,
         [Parameter(Mandatory)][string]$Operation
     )
-    $compilers = switch ($CompilerName) {
-        'Msvc' { @('msvc') }
-        'ClangCl' { @('clangcl') }
-        'ClangCoverage' { @('clang-coverage') }
-        default { @('msvc', 'clangcl', 'clang-coverage') }
-    }
-    $cells = [System.Collections.Generic.List[object]]::new()
-    foreach ($compilerKey in $compilers) {
-        if ($Operation -in @('BuildCompilerContracts', 'TestCompilerContracts')) {
-            if ($compilerKey -ne 'clang-coverage' -and $CellScope -in @('All', 'Release')) {
-                $presetPrefix = if ($compilerKey -eq 'msvc') { 'msvc' } else { 'clangcl' }
-                $cells.Add([pscustomobject]@{
-                        Compiler = $compilerKey; Key = 'compiler-contracts'; Preset = "$presetPrefix-compiler-contracts"
-                        BuildProfile = 'Release'; Generator = if ($compilerKey -eq 'msvc') { 'Visual Studio 17 2022' } else { 'Ninja' }
-                        Consumer = $false; Coverage = $false; Sanitizer = 'none'; CodegenMode = 'OFF'
-                    })
-            }
-            continue
-        }
-        if ($compilerKey -eq 'clang-coverage') {
-            if ($Operation -notin @('RecordCodegen', 'BuildBenchmarks', 'RunBenchmarks') -and $CellScope -in @('All', 'Coverage')) {
-                $cells.Add([pscustomobject]@{
-                        Compiler = $compilerKey; Key = 'debug-coverage'; Preset = 'clang-debug-coverage'
-                        BuildProfile = 'Debug'; Generator = 'Ninja'; Consumer = $false; Coverage = $true
-                        Sanitizer = 'none'; CodegenMode = 'OFF'
-                    })
-            }
-            continue
-        }
-        if ($Operation -eq 'RecordCodegen') {
-            if ($CellScope -in @('All', 'Debug')) {
-                $presetPrefix = if ($compilerKey -eq 'msvc') { 'msvc' } else { 'clangcl' }
-                $cells.Add([pscustomobject]@{
-                        Compiler = $compilerKey; Key = 'debug-codegen'; Preset = "$presetPrefix-debug-codegen-diagnostic"
-                        BuildProfile = 'Debug'; Generator = 'Ninja'; Consumer = $false; Coverage = $false
-                        Sanitizer = 'none'; CodegenMode = 'RECORD'
-                    })
-            }
-            continue
-        }
-        if ($CellScope -in @('All', 'Release')) {
-            $presetPrefix = if ($compilerKey -eq 'msvc') { 'msvc' } else { 'clangcl' }
-            $cells.Add([pscustomobject]@{
-                    Compiler = $compilerKey; Key = 'release'; Preset = "$presetPrefix-release-exhaustive"
-                    BuildProfile = 'Release'; Generator = if ($compilerKey -eq 'msvc') { 'Visual Studio 17 2022' } else { 'Ninja' }
-                    Consumer = $true; Coverage = $false; Sanitizer = 'none'; CodegenMode = 'ENFORCE'
-                })
-        }
-        if ($Operation -notin @('BuildBenchmarks', 'RunBenchmarks') -and $CellScope -in @('All', 'Debug')) {
-            $presetPrefix = if ($compilerKey -eq 'msvc') { 'msvc' } else { 'clangcl' }
-            $preset = "$presetPrefix-debug-diagnostics"
-            if ($CellScope -eq 'All' -and -not (Test-PipelineDefaultValidationPreset -Preset $preset)) {
-                continue
-            }
-            $cells.Add([pscustomobject]@{
-                    Compiler = $compilerKey; Key = 'debug'; Preset = $preset
-                    BuildProfile = 'Debug'; Generator = if ($compilerKey -eq 'msvc') { 'Visual Studio 17 2022' } else { 'Ninja' }
-                    Consumer = $false; Coverage = $false; Sanitizer = 'none'; CodegenMode = 'OFF'
-                })
-        }
-    }
-    $aggregate = switch ($Operation) {
-        { $_ -in @('BuildCompilerContracts', 'TestCompilerContracts') } { 'SimdLibCompilerContractArtifacts' }
-        'RecordCodegen' { 'SimdLibDebugDiagnosticArtifacts' }
-        default { 'ExhaustiveArtifacts' }
-    }
-    foreach ($cell in $cells) {
-        Add-Member -InputObject $cell -NotePropertyName Aggregate -NotePropertyValue $aggregate
-    }
-    return $cells.ToArray()
-}
 
+    $compilerNames = if ($CompilerName -eq 'All') {
+        @(Get-PipelineValidationCompilers -Platform native)
+    } else {
+        @($CompilerName)
+    }
+    return @(Resolve-PipelineValidationCells -Platform native `
+        -CompilerNames $compilerNames -CellScope $CellScope -Operation $Operation)
+}
 <#
 .SYNOPSIS
 Returns immutable compiler identity for one cell.
@@ -156,7 +93,8 @@ function Initialize-NativeArtifact {
         compiler = $compilerIdentity
         configuration = [ordered]@{
             key = $BuildCell.Key; preset = $BuildCell.Preset; buildProfile = $BuildCell.BuildProfile
-            sanitizer = $BuildCell.Sanitizer; coverage = $BuildCell.Coverage; generator = $BuildCell.Generator
+            sanitizer = $BuildCell.Sanitizer; instrumentation = $BuildCell.Instrumentation
+            coverage = $BuildCell.Coverage; generator = $BuildCell.Generator
             codegenMode = $BuildCell.CodegenMode
             aggregate = $BuildCell.Aggregate
             consumerScope = if ($BuildCell.Consumer) { 'compiler-release' } else { 'none' }
@@ -261,14 +199,8 @@ Resolved native build-cell artifact.
 function Get-NativeValidationCellId {
     param([Parameter(Mandatory)]$Artifact)
 
-    $compiler = $Artifact.Definition.Compiler
-    $key = $Artifact.Definition.Key
-    if ($compiler -eq 'clang-coverage') { return 'clang-coverage' }
-    if ($key -eq 'compiler-contracts') { return "$compiler-contracts" }
-    if ($key -eq 'debug-codegen') { return "$compiler-diagnostic" }
-    return "$compiler-$key"
+    return [string]$Artifact.Definition.MatrixCell
 }
-
 <#
 .SYNOPSIS
 Audits generated target and CTest ownership for one native build cell.
@@ -400,7 +332,8 @@ function Write-NativeManifest {
         "fingerprint_sha256=$($Artifact.Fingerprint)", "fingerprint_document=$($Artifact.FingerprintPath)",
         "compiler_id=$($Artifact.Definition.Compiler)", "compiler=$($Artifact.CompilerIdentity.version)", 'base_image=none',
         "preset=$($Artifact.Definition.Preset)", "build_profile=$($Artifact.Definition.BuildProfile)",
-        "sanitizer=$($Artifact.Definition.Sanitizer)", "codegen_mode=$($Artifact.Definition.CodegenMode)",
+        "sanitizer=$($Artifact.Definition.Sanitizer)", "instrumentation=$($Artifact.Definition.Instrumentation)",
+        "codegen_mode=$($Artifact.Definition.CodegenMode)",
         "aggregate=$aggregate", "matrix_cell=$(Get-NativeValidationCellId -Artifact $Artifact)", "consumer_scope=$consumerScope",
         "target_inventory=$targetInventory", "target_inventory_sha256=$(Get-OptionalFileHash -Path $targetInventory)",
         "matrix_contract_sha256=$(Get-OptionalFileHash -Path $matrixContract)",
@@ -436,7 +369,7 @@ function Assert-NativeManifest {
         fingerprint_sha256 = $Artifact.Fingerprint; fingerprint_document = $Artifact.FingerprintPath
         compiler_id = $Artifact.Definition.Compiler; preset = $Artifact.Definition.Preset
         build_profile = $Artifact.Definition.BuildProfile; sanitizer = $Artifact.Definition.Sanitizer
-        codegen_mode = $Artifact.Definition.CodegenMode
+        instrumentation = $Artifact.Definition.Instrumentation; codegen_mode = $Artifact.Definition.CodegenMode
         aggregate = if ($Operation -eq 'build-benchmarks') { 'BenchmarkArtifacts' } else { $Artifact.Definition.Aggregate }
         matrix_cell = Get-NativeValidationCellId -Artifact $Artifact
         consumer_scope = Get-NativeConsumerScope -Artifact $Artifact

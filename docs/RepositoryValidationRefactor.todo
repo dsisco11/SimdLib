@@ -2,11 +2,11 @@ Repository Validation Refactor:
 
   Accepted Direction:
     ☒ Treat the compiler and preprocessor behavior of `SIMD_FLAGS(...)` as the authority for supported flag combinations; do not maintain a second source-text parser for the same grammar.
-    ☐ Retain production `static_assert` declarations for diagnostics and correctness, but remove the allowlist, occurrence counting, and repository-wide assertion governance.
-    ☐ Retain the validation matrix as the machine-readable authority for build and test ownership.
-    ☐ Separate validation-tooling regressions from production-source policy checks and cache tooling validation by a tooling/configuration digest rather than the complete source digest.
-    ☐ Preserve per-configuration target and CTest inventory validation, build-manifest ownership, receipt tamper detection, and the rule that `Run-Tests.ps1` never configures or builds.
-    ☐ Perform one final provenance schema transition after the obsolete audits have been removed; do not create temporary compatibility aliases or an intermediate receipt schema.
+    ☒ Retain production `static_assert` declarations for diagnostics and correctness, but remove the allowlist, occurrence counting, and repository-wide assertion governance.
+    ☒ Retain the validation matrix as the machine-readable authority for build and test ownership.
+    ☒ Separate validation-tooling regressions from production-source policy checks and cache tooling validation by a tooling/configuration digest rather than the complete source digest.
+    ☒ Preserve per-configuration target and CTest inventory validation, build-manifest ownership, receipt tamper detection, and the rule that `Run-Tests.ps1` never configures or builds.
+    ☒ Perform one final provenance schema transition after the obsolete audits have been removed; do not create temporary compatibility aliases or an intermediate receipt schema.
 
   Phase 1 - Retire Method-Flags Source Auditing:
     ☒ Inventory the existing method-flags compiler-contract, placement, configuration-override, and generated-code fixtures before removing the source scanner.
@@ -42,50 +42,50 @@ Repository Validation Refactor:
     ☒ Complete this phase only when no allowlist, occurrence counter, assertion-audit script, or assertion-specific receipt field remains and production assertions are unchanged except for separately justified corrections.
 
   Phase 3 - Restructure Validation-Matrix and Pipeline Validation:
-    ☐ Define `tools/validation-matrix.json` as the single machine-readable authority for validation cells, operations, profiles, target categories, test ownership, consumer ownership, instrumentation, generated-code mode, and deterministic execution order.
-    ☐ Add an explicit ordering property to the matrix only where execution or reporting requires stable order; compare unordered ownership as sets elsewhere.
-    ☐ Update native and container matrix resolvers to derive their selections from the matrix rather than duplicating expected preset arrays.
-    ☐ Update CMake development-profile configuration to consume the matrix profile/category definitions directly where practical; retain a focused cross-check only for data that must remain represented in CMake.
-    ☐ Replace hard-coded whole-matrix snapshots in `tools/Verify-ValidationMatrix.ps1` with invariant checks that prove:
-        ☐ Every operation references existing cells without duplicates.
-        ☐ Every cell references an existing profile and configure preset.
-        ☐ Default build and default test ownership agree.
-        ☐ Ordinary opt-in Debug cells do not enter the default operation.
-        ☐ Sanitizer and coverage profiles cannot select compiler-contract, constexpr-contract, optimized-codegen, smoke, or Debug-diagnostic categories.
-        ☐ Each compiler identity has exactly one compiler-contract owner.
-        ☐ Every Register-capable Release cell enforces required generated-code contracts.
-        ☐ Optional diagnostics remain record-only and outside the default operation.
-        ☐ Benchmark operations reuse the owning Release configuration and aggregate.
-        ☐ Consumer ownership is limited to the intended Release cells.
-        ☐ Resolved preset inheritance, validation profile, configuration, instrumentation, and aggregate agree with each matrix cell.
-        ☐ Docker Compose selects the intended container compiler-contract operation.
-        ☐ `Run-Tests.ps1` contains no configure or build path.
-    ☐ Rename the matrix verifier if needed so its name identifies it as a tooling/configuration test rather than a source audit.
-    ☐ Keep `tools/Audit-ValidationMatrix.ps1` and `cmake/AuditValidationInventory.cmake` as per-configure evidence that the actual generated targets and CTest inventory obey matrix ownership.
-    ☐ Keep synthetic inventory regressions for missing ownership, duplicate ownership, forbidden profile membership, duplicate tests, unexpected tests, and valid inventories.
-    ☐ Keep receipt regressions for missing, stale, incomplete, mismatched, or modified manifests and validation evidence.
-    ☐ Keep explicit regression coverage proving that test and benchmark runners consume existing artifacts without configuring or rebuilding.
-    ☐ Define one reviewed validation-tooling input set covering the matrix, presets, matrix resolvers, pipeline scripts, relevant CMake development definitions, Compose routing, and validation-inventory tooling.
-    ☐ Add a deterministic tooling/configuration digest and regression coverage proving that every owned tooling-input class invalidates cached tooling validation.
-    ☐ Ensure ordinary production-header and implementation changes do not invalidate cached synthetic tooling regressions.
-    ☐ Replace the source-digest-keyed repository-audit result with a focused pipeline-tooling validation result keyed by the tooling/configuration digest.
-    ☐ Replace `repositoryAudit` in the unified build receipt with a clearly named pipeline-validation entry containing its result path, hash, status, schema, and tooling digest.
-    ☐ Update `tools/Pipeline.Common.psm1`, `tools/Build.ps1`, `tools/Run-Tests.ps1`, and `tools/Test-ValidationPipeline.ps1` for the new validation result and receipt schema.
-    ☐ Preserve the complete source digest, source revision, compiler-cell manifests, target/test inventory hashes, matrix hash, and artifact hashes as the authority for whether test-only reuse is current.
-    ☐ Retain the rule preventing examples and public-consumer fixtures from using `SimdLib::Detail`, but extract it from `cmake/AuditRepository.cmake` into a narrowly named public-consumer boundary check.
-    ☐ Run the public-consumer boundary check once before compiler-cell execution without representing it as a general security, correctness, or performance audit.
-    ☐ Remove `tools/Run-RepositoryAudit.ps1` and `cmake/AuditRepository.cmake` after their remaining responsibilities have moved to the focused validation commands.
-    ☐ Remove repository-audit v3 readers, writers, cache guards, receipt fields, synthetic fixtures, messages, and generated-path conventions.
-    ☐ Update `docs/BuildPipeline.md` to distinguish pipeline-tooling validation, configured-tree inventory validation, public-consumer boundary validation, build provenance, and executable correctness testing.
-    ☐ Remove or consolidate documentation that exists only to describe the retired repository-audit wrapper.
-    ☐ Remove any temporary inventories, migration notes, generated comparison files, or execution-status documentation created while completing this plan.
-    ☐ Validate PowerShell syntax, CMake script/configuration behavior, matrix invariants, tooling-cache invalidation, public-consumer rejection, receipt tamper detection, no-rebuild ownership, and tracked-reference cleanup.
-    ☐ Run a focused native and container pipeline build/test receipt round trip, then run the complete supported build and test matrix once as the final integration gate.
-    ☐ Complete this phase only when pipeline topology has one machine-readable authority, tooling regressions invalidate only for owned tooling changes, actual configured inventories remain validated, and no obsolete repository-audit terminology or artifacts remain.
+    ☒ Define `tools/validation-matrix.json` as the single machine-readable authority for validation cells, operations, profiles, target categories, test ownership, consumer ownership, instrumentation, generated-code mode, and deterministic execution order.
+    ☒ Add an explicit ordering property to the matrix only where execution or reporting requires stable order; compare unordered ownership as sets elsewhere.
+    ☒ Update native and container matrix resolvers to derive their selections from the matrix rather than duplicating expected preset arrays.
+    ☒ Update CMake development-profile configuration to consume the matrix profile/category definitions directly where practical; retain a focused cross-check only for data that must remain represented in CMake.
+    ☒ Replace hard-coded whole-matrix snapshots in `tools/Verify-ValidationMatrix.ps1` with invariant checks that prove:
+        ☒ Every operation references existing cells without duplicates.
+        ☒ Every cell references an existing profile and configure preset.
+        ☒ Default build and default test ownership agree.
+        ☒ Ordinary opt-in Debug cells do not enter the default operation.
+        ☒ Sanitizer and coverage profiles cannot select compiler-contract, constexpr-contract, optimized-codegen, smoke, or Debug-diagnostic categories.
+        ☒ Each compiler identity has exactly one compiler-contract owner.
+        ☒ Every Register-capable Release cell enforces required generated-code contracts.
+        ☒ Optional diagnostics remain record-only and outside the default operation.
+        ☒ Benchmark operations reuse the owning Release configuration and aggregate.
+        ☒ Consumer ownership is limited to the intended Release cells.
+        ☒ Resolved preset inheritance, validation profile, configuration, instrumentation, and aggregate agree with each matrix cell.
+        ☒ Docker Compose selects the intended container compiler-contract operation.
+        ☒ `Run-Tests.ps1` contains no configure or build path.
+    ☒ Rename the matrix verifier if needed so its name identifies it as a tooling/configuration test rather than a source audit.
+    ☒ Keep `tools/Audit-ValidationMatrix.ps1` and `cmake/AuditValidationInventory.cmake` as per-configure evidence that the actual generated targets and CTest inventory obey matrix ownership.
+    ☒ Keep synthetic inventory regressions for missing ownership, duplicate ownership, forbidden profile membership, duplicate tests, unexpected tests, and valid inventories.
+    ☒ Keep receipt regressions for missing, stale, incomplete, mismatched, or modified manifests and validation evidence.
+    ☒ Keep explicit regression coverage proving that test and benchmark runners consume existing artifacts without configuring or rebuilding.
+    ☒ Define one reviewed validation-tooling input set covering the matrix, presets, matrix resolvers, pipeline scripts, relevant CMake development definitions, Compose routing, and validation-inventory tooling.
+    ☒ Add a deterministic tooling/configuration digest and regression coverage proving that every owned tooling-input class invalidates cached tooling validation.
+    ☒ Ensure ordinary production-header and implementation changes do not invalidate cached synthetic tooling regressions.
+    ☒ Replace the source-digest-keyed repository-audit result with a focused pipeline-tooling validation result keyed by the tooling/configuration digest.
+    ☒ Replace `repositoryAudit` in the unified build receipt with a clearly named pipeline-validation entry containing its result path, hash, status, schema, and tooling digest.
+    ☒ Update `tools/Pipeline.Common.psm1`, `tools/Build.ps1`, `tools/Run-Tests.ps1`, and `tools/Test-ValidationPipeline.ps1` for the new validation result and receipt schema.
+    ☒ Preserve the complete source digest, source revision, compiler-cell manifests, target/test inventory hashes, matrix hash, and artifact hashes as the authority for whether test-only reuse is current.
+    ☒ Retain the rule preventing examples and public-consumer fixtures from using `SimdLib::Detail`, but extract it from `cmake/AuditRepository.cmake` into a narrowly named public-consumer boundary check.
+    ☒ Run the public-consumer boundary check once before compiler-cell execution without representing it as a general security, correctness, or performance audit.
+    ☒ Remove `tools/Run-RepositoryAudit.ps1` and `cmake/AuditRepository.cmake` after their remaining responsibilities have moved to the focused validation commands.
+    ☒ Remove repository-audit v3 readers, writers, cache guards, receipt fields, synthetic fixtures, messages, and generated-path conventions.
+    ☒ Update `docs/BuildPipeline.md` to distinguish pipeline-tooling validation, configured-tree inventory validation, public-consumer boundary validation, build provenance, and executable correctness testing.
+    ☒ Remove or consolidate documentation that exists only to describe the retired repository-audit wrapper.
+    ☒ Remove any temporary inventories, migration notes, generated comparison files, or execution-status documentation created while completing this plan.
+    ☒ Validate PowerShell syntax, CMake script/configuration behavior, matrix invariants, tooling-cache invalidation, public-consumer rejection, receipt tamper detection, no-rebuild ownership, and tracked-reference cleanup.
+    ☒ Run a focused native and container pipeline build/test receipt round trip, then run the complete supported build and test matrix once as the final integration gate.
+    ☒ Complete this phase only when pipeline topology has one machine-readable authority, tooling regressions invalidate only for owned tooling changes, actual configured inventories remain validated, and no obsolete repository-audit terminology or artifacts remain.
 
   Completion Contract:
-    ☐ All three phases are complete with no unchecked subtasks.
-    ☐ The method-flags implementation and compiler fixtures are the only authority for accepted `SIMD_FLAGS(...)` combinations.
-    ☐ Production `static_assert` declarations remain available without an allowlist or textual occurrence audit.
-    ☐ Pipeline tooling, configured target/test inventories, public-consumer boundaries, build provenance, and runtime correctness have distinct names, ownership, caching, and evidence.
-    ☐ Durable documentation describes the final architecture and contains no transient pass counts, current-status claims, migration inventories, or temporary execution evidence.
+    ☒ All three phases are complete with no unchecked subtasks.
+    ☒ The method-flags implementation and compiler fixtures are the only authority for accepted `SIMD_FLAGS(...)` combinations.
+    ☒ Production `static_assert` declarations remain available without an allowlist or textual occurrence audit.
+    ☒ Pipeline tooling, configured target/test inventories, public-consumer boundaries, build provenance, and runtime correctness have distinct names, ownership, caching, and evidence.
+    ☒ Durable documentation describes the final architecture and contains no transient pass counts, current-status claims, migration inventories, or temporary execution evidence.

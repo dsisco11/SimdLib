@@ -8,6 +8,7 @@ test_regex=
 test_label=
 build_profile=
 sanitizer=none
+instrumentation=none
 codegen_mode=OFF
 aggregate=ExhaustiveArtifacts
 matrix_cell=
@@ -45,6 +46,7 @@ while [ "$#" -gt 0 ]; do
 		--test-label) test_label=$2; shift 2 ;;
 		--build-profile) build_profile=$2; shift 2 ;;
 		--sanitizer) sanitizer=$2; shift 2 ;;
+		--instrumentation) instrumentation=$2; shift 2 ;;
 		--codegen-mode) codegen_mode=$2; shift 2 ;;
 		--aggregate) aggregate=$2; shift 2 ;;
 		--matrix-cell) matrix_cell=$2; shift 2 ;;
@@ -267,6 +269,7 @@ write_provenance()
 		echo "build_profile=$build_profile"
 		echo "preset=$preset"
 		echo "sanitizer=$sanitizer"
+		echo "instrumentation=$instrumentation"
 		echo "codegen_mode=$codegen_mode"
 		echo "aggregate=$aggregate"
 		echo "base_image=${SIMDLIB_BASE_IMAGE:-unknown}"
@@ -478,6 +481,7 @@ write_completed_manifest()
 		echo "preset=$preset"
 		echo "build_profile=$build_profile"
 		echo "sanitizer=$sanitizer"
+		echo "instrumentation=$instrumentation"
 		echo "codegen_mode=$codegen_mode"
 		echo "aggregate=$manifest_aggregate"
 		echo "matrix_cell=$matrix_cell"

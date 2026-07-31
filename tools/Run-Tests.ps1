@@ -27,8 +27,8 @@ $pipelineRoot = Join-Path $repositoryRoot 'out/pipeline'
 Expands compiler filters and enforces their platform scope.
 #>
 function Resolve-TestSelection {
-    $nativeNames = @('Msvc', 'ClangCl', 'ClangCoverage')
-    $containerNames = @('Gcc13', 'Gcc14', 'Clang22')
+    $nativeNames = @(Get-PipelineValidationCompilers -Platform native)
+    $containerNames = @(Get-PipelineValidationCompilers -Platform container)
     if ('All' -in $Compiler -and $Compiler.Count -ne 1) { throw 'Compiler All cannot be combined with another compiler filter.' }
     if ($Compiler -contains 'All') {
         $selected = switch ($Scope) {
@@ -55,7 +55,7 @@ function Assert-BuildReceipt {
     $receiptPath = Join-Path $pipelineRoot "provenance/build-$selectionId.json"
     if (-not (Test-Path -LiteralPath $receiptPath -PathType Leaf)) { throw "Required unified build receipt is missing: $receiptPath" }
     $receipt = Get-Content -LiteralPath $receiptPath -Raw | ConvertFrom-Json
-    if ($receipt.schema -ne 'simdlib.unified-build-receipt.v4' -or $receipt.status -ne 'complete' -or $receipt.scope -ne $Scope) {
+    if ($receipt.schema -ne 'simdlib.unified-build-receipt.v5' -or $receipt.status -ne 'complete' -or $receipt.scope -ne $Scope) {
         throw "Unified build receipt is incomplete or incompatible: $receiptPath"
     }
     $receiptCompilers = @($receipt.compilers)
@@ -65,10 +65,11 @@ function Assert-BuildReceipt {
     $matrixHash = (Get-FileHash -LiteralPath $matrixPath -Algorithm SHA256).Hash.ToLowerInvariant()
     $matrix = Get-Content -LiteralPath $matrixPath -Raw | ConvertFrom-Json
     if ($receipt.sourceDigest -ne $currentDigest) { throw "Unified build receipt is stale for current source inputs: $receiptPath" }
-    [void](Assert-PipelineRepositoryAuditEntry `
+    $toolingDigest = Get-PipelineToolingDigest -RepositoryRoot $repositoryRoot
+    [void](Assert-PipelineValidationEntry `
         -RepositoryRoot $repositoryRoot `
-        -Entry $receipt.repositoryAudit `
-        -ExpectedSourceDigest $currentDigest)
+        -Entry $receipt.pipelineValidation `
+        -ExpectedToolingDigest $toolingDigest)
     $expectedPresets = @(Get-PipelineDefaultValidationPresets -SelectedCompilers $SelectedCompilers | Sort-Object)
     $receiptPresets = @($receipt.manifests | ForEach-Object { $_.preset } | Sort-Object)
     if (($receiptPresets -join ',') -ne ($expectedPresets -join ',')) { throw "Unified build receipt manifest set does not exactly match requested test cells: $receiptPath" }
@@ -85,7 +86,7 @@ function Assert-BuildReceipt {
             matrix_cell = 'matrixCell'
             aggregate = 'aggregate'; target_inventory_sha256 = 'targetInventorySha256'
             main_test_inventory_sha256 = 'testInventorySha256'; build_profile = 'configuration'
-            sanitizer = 'instrumentation'; codegen_mode = 'generatedCodeMode'; consumer_scope = 'consumerScope'
+            instrumentation = 'instrumentation'; codegen_mode = 'generatedCodeMode'; consumer_scope = 'consumerScope'
             matrix_contract_sha256 = 'matrixContractSha256'
             validation_inventory_audit_sha256 = 'inventoryAuditSha256'
         }
@@ -116,6 +117,15 @@ function Assert-BuildReceipt {
             $inventoryAudit.cell -ne $manifest.matrix_cell -or
             $inventoryAudit.profile -ne $matrixCell.Value.profile) {
             throw "Receipt validation inventory audit is category-incompatible: $inventoryAuditPath"
+        }        $canonicalCell = $matrixCell.Value
+        $ownsConsumer = $manifest.consumer_scope -ne 'none'
+        if ($manifest.preset -ne $canonicalCell.preset -or
+            $manifest.build_profile -ne $canonicalCell.configuration -or
+            $manifest.instrumentation -ne $canonicalCell.instrumentation -or
+            $manifest.codegen_mode -ne $canonicalCell.codegenMode -or
+            $manifest.aggregate -ne $canonicalCell.aggregate -or
+            $ownsConsumer -ne [bool]$canonicalCell.consumer) {
+            throw "Receipt manifest disagrees with canonical matrix cell $($manifest.matrix_cell): $manifestPath"
         }
         if ($manifest.aggregate -ne 'ExhaustiveArtifacts' -or
             $manifest.target_inventory_sha256 -eq 'none' -or
@@ -130,13 +140,13 @@ $selectedCompilers = @(Resolve-TestSelection)
 $receiptPath = Assert-BuildReceipt -SelectedCompilers $selectedCompilers
 
 $operations = [System.Collections.Generic.List[object]]::new()
-foreach ($name in @($selectedCompilers | Where-Object { $_ -in @('Msvc', 'ClangCl', 'ClangCoverage') })) {
+foreach ($name in @($selectedCompilers | Where-Object { $_ -in (Get-PipelineValidationCompilers -Platform native) })) {
     $arguments = @('-Action', 'Test', '-Compiler', $name, '-Cell', 'All')
     if ($TestRegex) { $arguments += @('-TestRegex', $TestRegex) }
     if ($TestLabel) { $arguments += @('-TestLabel', $TestLabel) }
     $operations.Add([pscustomobject]@{ Id = "native-$($name.ToLowerInvariant())"; Script = Join-Path $PSScriptRoot 'Run-NativeMatrix.ps1'; Arguments = $arguments })
 }
-$containerCompilers = @($selectedCompilers | Where-Object { $_ -in @('Gcc13', 'Gcc14', 'Clang22') })
+$containerCompilers = @($selectedCompilers | Where-Object { $_ -in (Get-PipelineValidationCompilers -Platform container) })
 if ($containerCompilers.Count -eq 3) {
     $arguments = @('-Action', 'Test', '-Compiler', 'All', '-Cell', 'All')
     if ($TestRegex) { $arguments += @('-TestRegex', $TestRegex) }

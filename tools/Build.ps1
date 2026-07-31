@@ -26,8 +26,8 @@ $pipelineRoot = Join-Path $repositoryRoot 'out/pipeline'
 Expands compiler filters and enforces their platform scope.
 #>
 function Resolve-BuildSelection {
-    $nativeNames = @('Msvc', 'ClangCl', 'ClangCoverage')
-    $containerNames = @('Gcc13', 'Gcc14', 'Clang22')
+    $nativeNames = @(Get-PipelineValidationCompilers -Platform native)
+    $containerNames = @(Get-PipelineValidationCompilers -Platform container)
     if (-not $Scope) { throw 'Build scope is required. Use -Scope All, -Scope Native, or -Scope Containers.' }
     if ('All' -in $Compiler -and $Compiler.Count -ne 1) { throw 'Compiler All cannot be combined with another compiler filter.' }
     if ($Compiler -contains 'All') {
@@ -49,19 +49,20 @@ function Resolve-BuildSelection {
 Records the exact completed validation manifests produced by this build.
 .PARAMETER SelectedCompilers
 Canonical compiler selection.
-.PARAMETER RepositoryAuditPath
-Machine-readable repository audit result for the current source digest.
+.PARAMETER PipelineValidationPath
+Machine-readable pipeline-tooling validation result for the current tooling digest.
 #>
 function Write-BuildReceipt {
     param(
         [Parameter(Mandatory)][string[]]$SelectedCompilers,
-        [Parameter(Mandatory)][string]$RepositoryAuditPath
+        [Parameter(Mandatory)][string]$PipelineValidationPath
     )
     $currentSourceDigest = Get-PipelineSourceDigest -RepositoryRoot $repositoryRoot
-    $repositoryAuditEntry = New-PipelineRepositoryAuditEntry `
+    $toolingDigest = Get-PipelineToolingDigest -RepositoryRoot $repositoryRoot
+    $pipelineValidationEntry = New-PipelineValidationEntry `
         -RepositoryRoot $repositoryRoot `
-        -AuditPath $RepositoryAuditPath `
-        -ExpectedSourceDigest $currentSourceDigest
+        -ResultPath $PipelineValidationPath `
+        -ExpectedToolingDigest $toolingDigest
     $expectedPresets = @(Get-PipelineDefaultValidationPresets -SelectedCompilers $SelectedCompilers)
     $manifestFiles = @(Get-ChildItem -LiteralPath $pipelineRoot -Filter 'validation-build.manifest' -File -Recurse -ErrorAction SilentlyContinue)
     $entries = [System.Collections.Generic.List[object]]::new()
@@ -82,6 +83,7 @@ function Write-BuildReceipt {
                 'validation_inventory_audit_sha256',
                 'build_profile',
                 'sanitizer',
+                'instrumentation',
                 'codegen_mode',
                 'consumer_scope'
             )) {
@@ -125,7 +127,7 @@ function Write-BuildReceipt {
                 matrixContractSha256 = $manifest.matrix_contract_sha256
                 inventoryAuditSha256 = $manifest.validation_inventory_audit_sha256
                 configuration = $manifest.build_profile
-                instrumentation = $manifest.sanitizer
+                instrumentation = $manifest.instrumentation
                 generatedCodeMode = $manifest.codegen_mode
                 consumerScope = $manifest.consumer_scope
             })
@@ -134,10 +136,10 @@ function Write-BuildReceipt {
     $selectionId = (Get-PipelineTextDigest -Text $selectionText).Substring(0, 16)
     $receiptPath = Join-Path $pipelineRoot "provenance/build-$selectionId.json"
     $document = [ordered]@{
-        schema = 'simdlib.unified-build-receipt.v4'; status = 'complete'; scope = $Scope
+        schema = 'simdlib.unified-build-receipt.v5'; status = 'complete'; scope = $Scope
         compilers = @($SelectedCompilers); sourceDigest = $currentSourceDigest
         sourceRevision = Get-PipelineRevision -RepositoryRoot $repositoryRoot
-        repositoryAudit = $repositoryAuditEntry
+        pipelineValidation = $pipelineValidationEntry
         manifests = $entries.ToArray()
     }
     Set-PipelineTextFile -Path $receiptPath -Content ($document | ConvertTo-Json -Depth 6)
@@ -147,19 +149,21 @@ function Write-BuildReceipt {
 
 $selectedCompilers = @(Resolve-BuildSelection)
 if ($Scope -in @('All', 'Native') -and -not $IsWindows) { throw 'Native scope requires a Windows x64 host with Visual Studio C++ tools and LLVM 22.' }
-$auditSourceDigest = Get-PipelineSourceDigest -RepositoryRoot $repositoryRoot
-$repositoryAuditPath = Join-Path $pipelineRoot "provenance/repository-audit-$($auditSourceDigest.Substring(0, 16)).json"
-& (Join-Path $PSScriptRoot 'Run-RepositoryAudit.ps1') -ResultPath $repositoryAuditPath
-if ($LASTEXITCODE -ne 0) { throw 'Repository audit operation failed.' }
+$toolingDigest = Get-PipelineToolingDigest -RepositoryRoot $repositoryRoot
+$pipelineValidationPath = Join-Path $pipelineRoot (
+    "provenance/pipeline-validation-$($toolingDigest.Substring(0, 16)).json")
+& (Join-Path $PSScriptRoot 'Validate-PipelineTooling.ps1') `
+    -ResultPath $pipelineValidationPath
+& (Join-Path $PSScriptRoot 'Test-PublicConsumerBoundary.ps1')
 
 $operations = [System.Collections.Generic.List[object]]::new()
-foreach ($name in @($selectedCompilers | Where-Object { $_ -in @('Msvc', 'ClangCl', 'ClangCoverage') })) {
+foreach ($name in @($selectedCompilers | Where-Object { $_ -in (Get-PipelineValidationCompilers -Platform native) })) {
     $operations.Add([pscustomobject]@{
             Id = "native-$($name.ToLowerInvariant())"; Script = Join-Path $PSScriptRoot 'Run-NativeMatrix.ps1'
             Arguments = @('-Action', 'Build', '-Compiler', $name, '-Cell', 'All')
         })
 }
-$containerCompilers = @($selectedCompilers | Where-Object { $_ -in @('Gcc13', 'Gcc14', 'Clang22') })
+$containerCompilers = @($selectedCompilers | Where-Object { $_ -in (Get-PipelineValidationCompilers -Platform container) })
 if ($containerCompilers.Count -eq 3) {
     $operations.Add([pscustomobject]@{ Id = 'containers'; Script = Join-Path $PSScriptRoot 'Run-ContainerMatrix.ps1'; Arguments = @('-Action', 'Build', '-Compiler', 'All', '-Cell', 'All') })
 } else {
@@ -170,5 +174,5 @@ if ($containerCompilers.Count -eq 3) {
 $logDirectory = Join-Path $pipelineRoot "logs/$(Get-Date -Format 'yyyyMMdd-HHmmssfff')-build-$PID"
 Invoke-PipelineChildOperations -Operations $operations.ToArray() -LogDirectory $logDirectory
 
-$receipt = Write-BuildReceipt -SelectedCompilers $selectedCompilers -RepositoryAuditPath $repositoryAuditPath
+$receipt = Write-BuildReceipt -SelectedCompilers $selectedCompilers -PipelineValidationPath $pipelineValidationPath
 Write-Host "Unified build passed. Receipt: $receipt"

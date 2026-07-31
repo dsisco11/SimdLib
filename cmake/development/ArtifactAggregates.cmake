@@ -71,32 +71,57 @@ set(simdlib_profile_selected_CUSTOM
     COMPILER_CONTRACT CONSTEXPR_CONTRACT
     RUNTIME_VALIDATION CHECKS_VALIDATION SMOKE_VALIDATION
     OPTIMIZED_CODEGEN DEBUG_DIAGNOSTIC)
-set(simdlib_profile_allowed_RELEASE
-    COMPILER_CONTRACT CONSTEXPR_CONTRACT
-    RUNTIME_VALIDATION CHECKS_VALIDATION SMOKE_VALIDATION
-    OPTIMIZED_CODEGEN BENCHMARK)
-set(simdlib_profile_selected_RELEASE
-    COMPILER_CONTRACT CONSTEXPR_CONTRACT
-    RUNTIME_VALIDATION CHECKS_VALIDATION SMOKE_VALIDATION
-    OPTIMIZED_CODEGEN)
-set(simdlib_profile_allowed_DEBUG
-    RUNTIME_VALIDATION CHECKS_VALIDATION)
-set(simdlib_profile_selected_DEBUG ${simdlib_profile_allowed_DEBUG})
-set(simdlib_profile_allowed_SANITIZER
-    RUNTIME_VALIDATION CHECKS_VALIDATION)
-set(simdlib_profile_selected_SANITIZER ${simdlib_profile_allowed_SANITIZER})
-set(simdlib_profile_allowed_COVERAGE
-    RUNTIME_VALIDATION CHECKS_VALIDATION COVERAGE_SUPPORT)
-set(simdlib_profile_selected_COVERAGE
-    RUNTIME_VALIDATION CHECKS_VALIDATION)
-set(simdlib_profile_allowed_CODEGEN_DIAGNOSTIC
-    DEBUG_DIAGNOSTIC)
-set(simdlib_profile_selected_CODEGEN_DIAGNOSTIC
-    ${simdlib_profile_allowed_CODEGEN_DIAGNOSTIC})
-set(simdlib_profile_allowed_COMPILER_CONTRACTS
-    COMPILER_CONTRACT)
-set(simdlib_profile_selected_COMPILER_CONTRACTS
-    ${simdlib_profile_allowed_COMPILER_CONTRACTS})
+
+if(NOT SIMDLIB_VALIDATION_PROFILE STREQUAL "CUSTOM")
+    if(DEFINED SIMDLIB_SOURCE_DIRECTORY)
+        set(simdlib_validation_matrix_root "${SIMDLIB_SOURCE_DIRECTORY}")
+    else()
+        set(simdlib_validation_matrix_root "${CMAKE_SOURCE_DIR}")
+    endif()
+    set(simdlib_validation_matrix
+        "${simdlib_validation_matrix_root}/tools/validation-matrix.json")
+    if(NOT EXISTS "${simdlib_validation_matrix}")
+        message(FATAL_ERROR
+            "Validation matrix is missing: ${simdlib_validation_matrix}")
+    endif()
+    file(READ "${simdlib_validation_matrix}" simdlib_validation_matrix_json)
+    foreach(simdlib_profile_property IN ITEMS
+            allowedTargetCategories selectedTargetCategories)
+        string(JSON simdlib_profile_category_count
+            ERROR_VARIABLE simdlib_profile_error
+            LENGTH "${simdlib_validation_matrix_json}"
+            profiles "${SIMDLIB_VALIDATION_PROFILE}"
+            "${simdlib_profile_property}")
+        if(simdlib_profile_error)
+            message(FATAL_ERROR
+                "Validation matrix does not define ${simdlib_profile_property} "
+                "for profile ${SIMDLIB_VALIDATION_PROFILE}: "
+                "${simdlib_profile_error}")
+        endif()
+        set(simdlib_profile_categories "")
+        if(simdlib_profile_category_count GREATER 0)
+            math(EXPR simdlib_profile_category_last
+                "${simdlib_profile_category_count} - 1")
+            foreach(simdlib_profile_category_index RANGE
+                    ${simdlib_profile_category_last})
+                string(JSON simdlib_profile_category GET
+                    "${simdlib_validation_matrix_json}"
+                    profiles "${SIMDLIB_VALIDATION_PROFILE}"
+                    "${simdlib_profile_property}"
+                    ${simdlib_profile_category_index})
+                list(APPEND simdlib_profile_categories
+                    "${simdlib_profile_category}")
+            endforeach()
+        endif()
+        if(simdlib_profile_property STREQUAL "allowedTargetCategories")
+            set(simdlib_profile_allowed_${SIMDLIB_VALIDATION_PROFILE}
+                ${simdlib_profile_categories})
+        else()
+            set(simdlib_profile_selected_${SIMDLIB_VALIDATION_PROFILE}
+                ${simdlib_profile_categories})
+        endif()
+    endforeach()
+endif()
 
 set(simdlib_allowed_categories
     ${simdlib_profile_allowed_${SIMDLIB_VALIDATION_PROFILE}})

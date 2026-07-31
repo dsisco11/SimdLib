@@ -12,6 +12,169 @@ function Get-PipelineRepositoryRoot {
 
 <#
 .SYNOPSIS
+Reads the canonical validation matrix.
+.PARAMETER RepositoryRoot
+Absolute SimdLib source tree.
+#>
+function Get-PipelineValidationMatrix {
+    param([string]$RepositoryRoot = (Get-PipelineRepositoryRoot))
+
+    $path = Join-Path $RepositoryRoot 'tools/validation-matrix.json'
+    $matrix = Get-Content -LiteralPath $path -Raw | ConvertFrom-Json
+    if ($matrix.schema -ne 'simdlib.validation-matrix.v1') {
+        throw "Unsupported validation matrix schema in $path"
+    }
+    return $matrix
+}
+
+<#
+.SYNOPSIS
+Returns compiler names in matrix-owned deterministic order for one platform.
+.PARAMETER Platform
+Validation runner platform.
+#>
+function Get-PipelineValidationCompilers {
+    param([Parameter(Mandatory)][ValidateSet('native', 'container')][string]$Platform)
+
+    $matrix = Get-PipelineValidationMatrix
+    $available = @($matrix.cells.PSObject.Properties |
+        Where-Object { $_.Value.platform -eq $Platform } |
+        ForEach-Object { $_.Value.compiler } | Select-Object -Unique)
+    return @($matrix.compilerOrder | Where-Object { $_ -in $available })
+}
+<#
+.SYNOPSIS
+Returns the ordered cells assigned to one canonical matrix operation.
+.PARAMETER Operation
+Operation name from the validation matrix.
+.PARAMETER RepositoryRoot
+Absolute SimdLib source tree.
+#>
+function Get-PipelineValidationOperationCells {
+    param(
+        [Parameter(Mandatory)][string]$Operation,
+        [string]$RepositoryRoot = (Get-PipelineRepositoryRoot)
+    )
+
+    $matrix = Get-PipelineValidationMatrix -RepositoryRoot $RepositoryRoot
+    $operationProperty = $matrix.operations.PSObject.Properties[$Operation]
+    if (-not $operationProperty) {
+        throw "Validation matrix does not define operation $Operation"
+    }
+    $seen = [System.Collections.Generic.HashSet[string]]::new(
+        [System.StringComparer]::Ordinal)
+    return @(
+        foreach ($cellId in @($operationProperty.Value)) {
+            if (-not $seen.Add([string]$cellId)) {
+                throw "Validation matrix operation $Operation duplicates cell $cellId"
+            }
+            $cellProperty = $matrix.cells.PSObject.Properties[[string]$cellId]
+            if (-not $cellProperty) {
+                throw "Validation matrix operation $Operation references unknown cell $cellId"
+            }
+            $cell = $cellProperty.Value.PSObject.Copy()
+            Add-Member -InputObject $cell -NotePropertyName MatrixCell `
+                -NotePropertyValue ([string]$cellId) -Force
+            $cell
+        }
+    )
+}
+
+<#
+.SYNOPSIS
+Resolves runner-facing cells from canonical matrix operations and filters.
+.PARAMETER Platform
+Runner platform to select.
+.PARAMETER CompilerNames
+Canonical user-facing compiler names.
+.PARAMETER CellScope
+Requested configuration or instrumentation scope.
+.PARAMETER Operation
+Runner operation name.
+#>
+function Resolve-PipelineValidationCells {
+    param(
+        [Parameter(Mandatory)][ValidateSet('native', 'container')][string]$Platform,
+        [Parameter(Mandatory)][string[]]$CompilerNames,
+        [Parameter(Mandatory)][string]$CellScope,
+        [Parameter(Mandatory)][string]$Operation
+    )
+
+    $operationName = switch ($Operation) {
+        { $_ -in @('BuildCompilerContracts', 'TestCompilerContracts') } { 'compilerContracts'; break }
+        'RecordCodegen' { 'optionalDiagnostics'; break }
+        { $_ -in @('BuildBenchmarks', 'RunBenchmarks') } { 'benchmarks'; break }
+        'Test' { 'defaultTests'; break }
+        default { 'defaultBuild' }
+    }
+    $matrix = Get-PipelineValidationMatrix
+    $candidateIds = [System.Collections.Generic.List[string]]::new()
+    foreach ($name in @($operationName, 'optionalDebug', 'coverage', 'sanitizer')) {
+        $property = $matrix.operations.PSObject.Properties[$name]
+        if ($property) {
+            foreach ($cellId in @($property.Value)) {
+                if (-not $candidateIds.Contains([string]$cellId)) {
+                    $candidateIds.Add([string]$cellId)
+                }
+            }
+        }
+    }
+
+    $operationIds = @($matrix.operations.PSObject.Properties[$operationName].Value)
+    return @(
+        foreach ($cellId in $candidateIds) {
+            $cell = $matrix.cells.PSObject.Properties[$cellId].Value
+            if ($cell.platform -ne $Platform -or $cell.compiler -notin $CompilerNames) {
+                continue
+            }
+            $scopeMatches = switch ($CellScope) {
+                'All' { $cellId -in $operationIds }
+                'Release' { $cell.profile -in @('RELEASE', 'COMPILER_CONTRACTS') }
+                'Debug' {
+                    $cell.profile -in @('DEBUG', 'CODEGEN_DIAGNOSTIC') -and
+                    $cell.instrumentation -eq 'none'
+                }
+                'Coverage' { $cell.profile -eq 'COVERAGE' }
+                'AsanUbsan' { $cell.instrumentation -eq 'asan-ubsan' }
+                default { $false }
+            }
+            if (-not $scopeMatches) { continue }
+            if ($Operation -in @('BuildBenchmarks', 'RunBenchmarks',
+                    'BuildCompilerContracts', 'TestCompilerContracts',
+                    'RecordCodegen') -and $cellId -notin $operationIds) {
+                continue
+            }
+
+            $runnerCompiler = switch ($cell.compiler) {
+                'Msvc' { 'msvc' }
+                'ClangCl' { 'clangcl' }
+                'ClangCoverage' { 'clang-coverage' }
+                default { ([string]$cell.compiler).ToLowerInvariant() }
+            }
+            $definition = [ordered]@{
+                MatrixCell = [string]$cellId
+                Key = [string]$cell.artifactKey
+                Preset = [string]$cell.preset
+                BuildProfile = [string]$cell.configuration
+                Consumer = [bool]$cell.consumer
+                Coverage = $cell.instrumentation -eq 'coverage'
+                Instrumentation = [string]$cell.instrumentation
+                Sanitizer = if ($cell.instrumentation -eq 'asan-ubsan') { 'asan-ubsan' } else { 'none' }
+                CodegenMode = [string]$cell.codegenMode
+                Aggregate = [string]$cell.aggregate
+            }
+            if ($Platform -eq 'native') {
+                $definition.Compiler = $runnerCompiler
+                $definition.Generator = [string]$cell.generator
+            } else {
+                $definition.Service = $runnerCompiler
+            }
+            [pscustomobject]$definition
+        }
+    )
+}
+<#
+.SYNOPSIS
 Returns the exact configure presets owned by the unified default validation matrix.
 .PARAMETER SelectedCompilers
 Canonical user-facing compiler names selected by the caller.
@@ -19,25 +182,11 @@ Canonical user-facing compiler names selected by the caller.
 function Get-PipelineDefaultValidationPresets {
     param([Parameter(Mandatory)][string[]]$SelectedCompilers)
 
-    $presets = [System.Collections.Generic.List[string]]::new()
-    foreach ($compiler in $SelectedCompilers) {
-        switch ($compiler) {
-            'Msvc' {
-                $presets.Add('msvc-release-exhaustive')
-                $presets.Add('msvc-debug-diagnostics')
-            }
-            'ClangCl' { $presets.Add('clangcl-release-exhaustive') }
-            'ClangCoverage' { $presets.Add('clang-debug-coverage') }
-            'Gcc13' { $presets.Add('gcc13-core-release-exhaustive') }
-            'Gcc14' { $presets.Add('gcc14-release-exhaustive') }
-            'Clang22' {
-                $presets.Add('clang22-release-exhaustive')
-                $presets.Add('clang22-debug-asan-ubsan')
-            }
-            default { throw "Unknown compiler identity in the default validation matrix: $compiler" }
-        }
-    }
-    return $presets.ToArray()
+    return @(
+        Get-PipelineValidationOperationCells -Operation defaultBuild |
+            Where-Object compiler -in $SelectedCompilers |
+            ForEach-Object preset
+    )
 }
 
 <#
@@ -49,8 +198,8 @@ Configure preset name to classify.
 function Test-PipelineDefaultValidationPreset {
     param([Parameter(Mandatory)][string]$Preset)
 
-    $allDefaultPresets = Get-PipelineDefaultValidationPresets -SelectedCompilers @(
-        'Msvc', 'ClangCl', 'ClangCoverage', 'Gcc13', 'Gcc14', 'Clang22')
+    $allDefaultPresets = Get-PipelineValidationOperationCells `
+        -Operation defaultBuild | ForEach-Object preset
     return $Preset -in $allDefaultPresets
 }
 
@@ -97,6 +246,70 @@ function Get-PipelineSourceDigest {
     }
 }
 
+<#
+.SYNOPSIS
+Returns the reviewed files that own pipeline-tooling validation.
+.PARAMETER RepositoryRoot
+Absolute SimdLib source tree.
+#>
+function Get-PipelineToolingInputs {
+    param([Parameter(Mandatory)][string]$RepositoryRoot)
+
+    $root = [System.IO.Path]::GetFullPath($RepositoryRoot)
+    $matrix = Get-PipelineValidationMatrix -RepositoryRoot $root
+    $classes = @($matrix.toolingValidation.inputClasses.PSObject.Properties)
+    if ($classes.Count -eq 0) { throw 'Validation matrix defines no tooling-input classes.' }
+    $owned = [System.Collections.Generic.List[object]]::new()
+    $relativeOwners = @{}
+    foreach ($class in $classes) {
+        foreach ($declaredPath in @($class.Value)) {
+            $path = Join-Path $root ([string]$declaredPath)
+            if (Test-Path -LiteralPath $path -PathType Container) {
+                $files = @(Get-ChildItem -LiteralPath $path -File -Recurse | Sort-Object FullName)
+            } elseif (Test-Path -LiteralPath $path -PathType Leaf) {
+                $files = @((Get-Item -LiteralPath $path))
+            } else {
+                throw "Pipeline-tooling input is missing: $declaredPath"
+            }
+            foreach ($file in $files) {
+                $relative = [System.IO.Path]::GetRelativePath($root, $file.FullName).Replace('\', '/')
+                if ($relativeOwners.ContainsKey($relative)) {
+                    throw "Pipeline-tooling input $relative belongs to both $($relativeOwners[$relative]) and $($class.Name)"
+                }
+                $relativeOwners[$relative] = $class.Name
+                $owned.Add([pscustomobject]@{
+                        Class = [string]$class.Name
+                        RelativePath = $relative
+                        FullName = $file.FullName
+                    })
+            }
+        }
+    }
+    return @($owned | Sort-Object Class, RelativePath)
+}
+
+<#
+.SYNOPSIS
+Computes the digest of the reviewed pipeline-tooling input set.
+.PARAMETER RepositoryRoot
+Absolute SimdLib source tree.
+#>
+function Get-PipelineToolingDigest {
+    param([Parameter(Mandatory)][string]$RepositoryRoot)
+
+    $stream = [System.IO.MemoryStream]::new()
+    try {
+        foreach ($input in Get-PipelineToolingInputs -RepositoryRoot $RepositoryRoot) {
+            $record = "$($input.Class)`0$($input.RelativePath)`0$((Get-FileHash -LiteralPath $input.FullName -Algorithm SHA256).Hash.ToLowerInvariant())`n"
+            $bytes = $script:Utf8NoBom.GetBytes($record)
+            $stream.Write($bytes, 0, $bytes.Length)
+        }
+        return [Convert]::ToHexString(
+            [System.Security.Cryptography.SHA256]::HashData($stream.ToArray())).ToLowerInvariant()
+    } finally {
+        $stream.Dispose()
+    }
+}
 <#
 .SYNOPSIS
 Computes the lowercase SHA-256 digest of a UTF-8 string.
@@ -183,72 +396,76 @@ function Resolve-PipelineArtifactPath {
 
 <#
 .SYNOPSIS
-Creates the unified-receipt entry for a completed repository audit.
+Creates the unified-receipt entry for completed pipeline-tooling validation.
 .PARAMETER RepositoryRoot
 Absolute SimdLib source tree.
-.PARAMETER AuditPath
-Machine-readable repository audit result.
-.PARAMETER ExpectedSourceDigest
-Canonical source digest the audit must own.
+.PARAMETER ResultPath
+Machine-readable pipeline-tooling validation result.
+.PARAMETER ExpectedToolingDigest
+Canonical tooling digest the result must own.
 #>
-function New-PipelineRepositoryAuditEntry {
+function New-PipelineValidationEntry {
     param(
         [Parameter(Mandatory)][string]$RepositoryRoot,
-        [Parameter(Mandatory)][string]$AuditPath,
-        [Parameter(Mandatory)][string]$ExpectedSourceDigest
+        [Parameter(Mandatory)][string]$ResultPath,
+        [Parameter(Mandatory)][string]$ExpectedToolingDigest
     )
-    if (-not (Test-Path -LiteralPath $AuditPath -PathType Leaf)) {
-        throw "Repository audit result is missing: $AuditPath"
+    if (-not (Test-Path -LiteralPath $ResultPath -PathType Leaf)) {
+        throw "Pipeline-tooling validation result is missing: $ResultPath"
     }
-    $audit = Get-Content -LiteralPath $AuditPath -Raw | ConvertFrom-Json
-    if ($audit.schema -ne 'simdlib.repository-audit.v3' -or
-        $audit.status -ne 'complete' -or
-        $audit.sourceDigest -ne $ExpectedSourceDigest) {
-        throw "Repository audit result is stale or incompatible: $AuditPath"
+    $result = Get-Content -LiteralPath $ResultPath -Raw | ConvertFrom-Json
+    if ($result.schema -ne 'simdlib.pipeline-tooling-validation.v1' -or
+        $result.status -ne 'complete' -or
+        $result.toolingDigest -ne $ExpectedToolingDigest) {
+        throw "Pipeline-tooling validation result is stale or incompatible: $ResultPath"
     }
     return [ordered]@{
-        path = [System.IO.Path]::GetRelativePath($RepositoryRoot, $AuditPath).Replace('\', '/')
-        sha256 = (Get-FileHash -LiteralPath $AuditPath -Algorithm SHA256).Hash.ToLowerInvariant()
-        sourceDigest = [string]$audit.sourceDigest
+        path = [System.IO.Path]::GetRelativePath($RepositoryRoot, $ResultPath).Replace('\', '/')
+        sha256 = (Get-FileHash -LiteralPath $ResultPath -Algorithm SHA256).Hash.ToLowerInvariant()
+        status = [string]$result.status
+        schema = [string]$result.schema
+        toolingDigest = [string]$result.toolingDigest
     }
 }
 
 <#
 .SYNOPSIS
-Validates the repository-audit entry bound into a unified build receipt.
+Validates the pipeline-tooling entry bound into a unified build receipt.
 .PARAMETER RepositoryRoot
 Absolute SimdLib source tree.
 .PARAMETER Entry
-Receipt entry containing path, hash, and source digest.
-.PARAMETER ExpectedSourceDigest
-Canonical source digest required by the consuming operation.
+Receipt entry containing result identity and tooling digest.
+.PARAMETER ExpectedToolingDigest
+Canonical tooling digest required by the consuming operation.
 #>
-function Assert-PipelineRepositoryAuditEntry {
+function Assert-PipelineValidationEntry {
     param(
         [Parameter(Mandatory)][string]$RepositoryRoot,
-        [Parameter(Mandatory)][object]$Entry,
-        [Parameter(Mandatory)][string]$ExpectedSourceDigest
+        [Parameter(Mandatory)][AllowNull()][object]$Entry,
+        [Parameter(Mandatory)][string]$ExpectedToolingDigest
     )
-    if (-not $Entry -or $Entry.sourceDigest -ne $ExpectedSourceDigest) {
-        throw 'Unified build receipt does not contain the current repository audit.'
+    if (-not $Entry -or
+        $Entry.schema -ne 'simdlib.pipeline-tooling-validation.v1' -or
+        $Entry.status -ne 'complete' -or
+        $Entry.toolingDigest -ne $ExpectedToolingDigest) {
+        throw 'Unified build receipt does not contain current pipeline-tooling validation.'
     }
-    $auditPath = Join-Path $RepositoryRoot ([string]$Entry.path)
-    if (-not (Test-Path -LiteralPath $auditPath -PathType Leaf)) {
-        throw "Receipt repository audit is missing: $auditPath"
+    $resultPath = Join-Path $RepositoryRoot ([string]$Entry.path)
+    if (-not (Test-Path -LiteralPath $resultPath -PathType Leaf)) {
+        throw "Receipt pipeline-tooling validation is missing: $resultPath"
     }
-    $auditHash = (Get-FileHash -LiteralPath $auditPath -Algorithm SHA256).Hash.ToLowerInvariant()
-    if ($auditHash -ne $Entry.sha256) {
-        throw "Receipt repository audit changed after the unified build: $auditPath"
+    $resultHash = (Get-FileHash -LiteralPath $resultPath -Algorithm SHA256).Hash.ToLowerInvariant()
+    if ($resultHash -ne $Entry.sha256) {
+        throw "Receipt pipeline-tooling validation changed after the unified build: $resultPath"
     }
-    $audit = Get-Content -LiteralPath $auditPath -Raw | ConvertFrom-Json
-    if ($audit.schema -ne 'simdlib.repository-audit.v3' -or
-        $audit.status -ne 'complete' -or
-        $audit.sourceDigest -ne $ExpectedSourceDigest) {
-        throw "Receipt repository audit is incomplete or stale: $auditPath"
+    $result = Get-Content -LiteralPath $resultPath -Raw | ConvertFrom-Json
+    if ($result.schema -ne $Entry.schema -or
+        $result.status -ne $Entry.status -or
+        $result.toolingDigest -ne $ExpectedToolingDigest) {
+        throw "Receipt pipeline-tooling validation is incomplete or stale: $resultPath"
     }
-    return $auditPath
+    return $resultPath
 }
-
 <#
 .SYNOPSIS
 Invokes a command, records its combined output, and preserves its exit code.
@@ -364,15 +581,21 @@ function Invoke-PipelineChildOperations {
 
 Export-ModuleMember -Function @(
     'Get-PipelineRepositoryRoot',
+    'Get-PipelineValidationMatrix',
+    'Get-PipelineValidationCompilers',
+    'Get-PipelineValidationOperationCells',
+    'Resolve-PipelineValidationCells',
     'Get-PipelineDefaultValidationPresets',
     'Test-PipelineDefaultValidationPreset',
     'Get-PipelineSourceDigest',
+    'Get-PipelineToolingInputs',
+    'Get-PipelineToolingDigest',
     'Get-PipelineTextDigest',
     'Set-PipelineTextFile',
     'Read-PipelineManifest',
     'Resolve-PipelineArtifactPath',
-    'New-PipelineRepositoryAuditEntry',
-    'Assert-PipelineRepositoryAuditEntry',
+    'New-PipelineValidationEntry',
+    'Assert-PipelineValidationEntry',
     'Invoke-PipelineCommand',
     'Initialize-PipelineVisualStudioEnvironment',
     'Get-PipelineRevision',
