@@ -1,3 +1,5 @@
+cmake_minimum_required(VERSION 3.31)
+
 if(NOT DEFINED PORTABLE_EXECUTABLE OR NOT DEFINED ENABLED_EXECUTABLE)
     message(FATAL_ERROR "Both BMI test executable paths are required")
 endif()

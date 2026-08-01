@@ -324,8 +324,9 @@ register width, active count, and failing values through Catch2 captures.
 ## Source-based coverage
 
 Clang's LLVM instrumentation is available through
-`SIMDLIB_ENABLE_COVERAGE`. CMake 4.4 or newer is required because CTest 4.4 is
-the first release with native `LLVM-COV` dashboard coverage support. Coverage
+`SIMDLIB_ENABLE_COVERAGE`. CMake 3.31 or newer drives the instrumented CTest
+inventory, after which the pipeline invokes `llvm-profdata`, `llvm-cov`, and
+`llvm-readobj` directly to generate the source-coverage report. Coverage
 configuration intentionally fails for unsupported compiler drivers rather
 than silently producing misleading data.
 

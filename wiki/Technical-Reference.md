@@ -83,7 +83,7 @@ header where practical, or use `<SimdLib/SimdLib.h>` for the complete
 non-formatting surface. `<SimdLib/Format.h>` is intentionally separate so
 translation units pay for formatting support only when they use it.
 
-The repository's CMake project requires CMake 4.4 or newer. Consumers that
+The repository's CMake project requires CMake 3.31 or newer. Consumers that
 integrate the headers without the provided CMake project need a supported C++20
 compiler for the core, a supported C++23 compiler for the Register interface,
 and the appropriate target flags.
@@ -95,7 +95,7 @@ The current validation matrix covers:
 | Compiler family | Validated frontend              | Targets             |
 | --------------- | ------------------------------- | ------------------- |
 | MSVC            | Visual Studio 2022 / MSVC 19.44 | Windows x64         |
-| clang-cl        | LLVM Clang 22 with the MSVC ABI | Windows x64         |
+| clang-cl        | LLVM Clang 20.1.8 with the MSVC ABI | Windows x64         |
 | Clang           | LLVM Clang 22                   | Linux x64           |
 | GCC             | GCC 13.2 or newer               | Linux x64           |
 
@@ -257,9 +257,9 @@ other presentation types throw `std::format_error`.
 
 ## Development workflow
 
-The repository-owned commands require PowerShell 7+ and CMake 4.4. A complete
+The repository-owned commands require PowerShell 7+ and CMake 3.31. A complete
 Windows-hosted run additionally requires Visual Studio 2022 with the x64 C++
-tools, LLVM 22 on `PATH`, and Docker Desktop using Linux containers. Container-
+tools, LLVM 20 or newer on `PATH`, and Docker Desktop using Linux containers. Container-
 only runs require Docker and do not require the native Windows compilers.
 
 Build the complete native and Linux validation matrix, excluding benchmark

@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.25)
+cmake_minimum_required(VERSION 3.31)
 
 foreach(required_variable IN ITEMS
 	SIMDLIB_METHOD_FLAGS_COMPILER

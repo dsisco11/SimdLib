@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 4.4)
+cmake_minimum_required(VERSION 3.31)
 
 foreach(required_variable IN ITEMS
 	FLAGGED_OBJECT RAW_OBJECT OBJDUMP COMPILER_ID STACK_PROTECTOR_MODE OUTPUT_FILE)

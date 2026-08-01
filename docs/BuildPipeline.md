@@ -54,9 +54,9 @@ tools/Run-Benchmarks.ps1 -Scope All
 The complete `All` scope requires a Windows x64 host with:
 
 - Visual Studio 2022 and the MSVC x64 C++ tools;
-- LLVM 22 with `clang-cl`, `clang++`, `llvm-profdata`, `llvm-cov`, and
+- LLVM 20 or newer with `clang-cl`, `clang++`, `llvm-profdata`, `llvm-cov`, and
   `llvm-readobj` available on `PATH`;
-- CMake 4.4.0; and
+- CMake 3.31 or newer; and
 - Docker Desktop with a running Linux-container daemon.
 
 `Build.ps1` deliberately has no implicit scope. Calling it without `-Scope`

@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 4.4)
+cmake_minimum_required(VERSION 3.31)
 
 if(NOT DEFINED SOURCE_DIRECTORY OR "${SOURCE_DIRECTORY}" STREQUAL "")
     message(FATAL_ERROR "SOURCE_DIRECTORY is required")

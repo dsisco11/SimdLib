@@ -38,14 +38,16 @@ function Resolve-RequestedClangCommands {
         if ($CompilerName -in @('All', 'ClangCoverage')) { 'clang++.exe' }
     )
     $commands = [ordered]@{}
+    if ($commandNames.Count -eq 0) { return ,$commands }
+
     foreach ($commandName in $commandNames) {
         $command = @(Get-Command $commandName -CommandType Application -ErrorAction Stop)[0]
         $versionLine = [string](@(& $command.Source --version 2>&1)[0])
         if ($versionLine -notmatch '\bclang version (?<major>\d+)(?:\.\d+)*') {
             throw "Unable to determine the Clang version selected for $commandName at $($command.Source): $versionLine"
         }
-        if ([int]$Matches.major -lt 22) {
-            throw "Clang 22 or newer is required for $commandName, but PATH selected $versionLine at $($command.Source)."
+        if ([int]$Matches.major -lt 20) {
+            throw "Clang 20 or newer is required for $commandName, but PATH selected $versionLine at $($command.Source)."
         }
         $commands[$commandName] = [pscustomobject]@{
             Name = $commandName

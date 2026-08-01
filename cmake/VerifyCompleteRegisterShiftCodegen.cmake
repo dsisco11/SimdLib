@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 4.4)
+cmake_minimum_required(VERSION 3.31)
 
 foreach(required_variable IN ITEMS OBJECT_FILE OBJDUMP OUTPUT_FILE REGISTER_WIDTH)
 	if(NOT DEFINED ${required_variable} OR "${${required_variable}}" STREQUAL "")

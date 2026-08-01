@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 4.4)
+cmake_minimum_required(VERSION 3.31)
 
 foreach(required_variable IN ITEMS
     OWNERSHIP_FILE CONSUMER_TARGET_FILE PROFILE REGISTER_SUPPORTED)

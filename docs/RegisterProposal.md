@@ -208,7 +208,7 @@ a narrower, separately validated matrix:
 | Compiler family | Initial Register floor | Platform | Language mode | Availability path |
 | --- | --- | --- | --- | --- |
 | Microsoft C++ | MSVC 19.44 | Windows x64 | `/std:c++latest` | `_MSC_VER` and `_MSVC_LANG` fallback |
-| clang-cl | 22 | Windows x64 | C++23 | Standard feature-test macro |
+| clang-cl | 20 | Windows x64 | C++23 | Standard feature-test macro |
 | Clang | 22 | Linux x64 | C++23 | Standard feature-test macro |
 | GCC | 14 | Linux x64 | C++23 | Standard feature-test macro |
 
@@ -1378,7 +1378,7 @@ The implementation requires evidence in each of these areas:
 - Representative Debug-contract and sanitizer runs that confirm full-register
   access does not read beyond caller storage.
 - Separate validation of the core C++20 matrix and the narrower Register matrix:
-  Windows x64 uses MSVC 19.44 and clang-cl 22.
+  Windows x64 uses MSVC 19.44 and clang-cl 20 or newer.
   Linux x64 uses Clang 22 and GCC 14 or newer; GCC 13.2 is a required
   unavailable-interface probe for the core matrix.
 - Mandatory generated-code comparisons retain composed arithmetic, comparison

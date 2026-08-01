@@ -284,12 +284,12 @@ compile-time audit; no prose-only availability list can drift independently.
 | Surface | Compiler | Architecture/configuration | Requirement |
 | --- | --- | --- | --- |
 | C++20 core | MSVC 19.44 | Windows x64; Debug and Release | Existing full public matrix remains supported |
-| C++20 core | clang-cl 22.1.8 | Windows x64; Debug and Release | Existing full public matrix remains supported |
+| C++20 core | clang-cl 20.1.8 | Windows x64; Debug and Release | Existing full public matrix remains supported |
 | C++20 core | Clang 22.1.8 | Linux x64; Debug and Release | Existing full public matrix remains supported |
 | C++20 core | GCC 13.2 | Linux x64; Debug and Release | Existing full public matrix remains supported; Register unavailable |
 | C++20 core sanitizer | Clang 22.1.8 | Linux x64 Debug, `-O1`, ASan/UBSan, frame pointers | No sanitizer diagnostics |
 | Register | MSVC 19.44 | Windows x64, `/std:c++latest`; supported ISA profiles | SSE4.2 diagnostics and strict AVX2 gates; memory-writing fixtures retain `/GS` and the exact documented exception |
-| Register | clang-cl 22.1.8 | Windows x64, C++23; supported ISA profiles | SSE4.2 diagnostics and strict AVX2 correctness, ABI, and generated-code gates |
+| Register | clang-cl 20.1.8 | Windows x64, C++23; supported ISA profiles | SSE4.2 diagnostics and strict AVX2 correctness, ABI, and generated-code gates |
 | Register | Clang 22.1.8 | Linux x64, C++23; supported ISA profiles | SSE4.2 diagnostics and strict AVX2 correctness, ABI, and generated-code gates |
 | Register | GCC 14 or newer | Linux x64, C++23; supported ISA profiles | SSE4.2 diagnostics and strict AVX2 correctness, ABI, and generated-code gates |
 

@@ -148,7 +148,7 @@ function Write-BuildReceipt {
 }
 
 $selectedCompilers = @(Resolve-BuildSelection)
-if ($Scope -in @('All', 'Native') -and -not $IsWindows) { throw 'Native scope requires a Windows x64 host with Visual Studio C++ tools and LLVM 22.' }
+if ($Scope -in @('All', 'Native') -and -not $IsWindows) { throw 'Native scope requires a Windows x64 host with Visual Studio C++ tools and LLVM 20 or newer.' }
 $toolingDigest = Get-PipelineToolingDigest -RepositoryRoot $repositoryRoot
 $pipelineValidationPath = Join-Path $pipelineRoot (
     "provenance/pipeline-validation-$($toolingDigest.Substring(0, 16)).json")

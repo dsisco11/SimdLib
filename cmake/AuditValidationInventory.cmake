@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 4.4)
+cmake_minimum_required(VERSION 3.31)
 
 foreach(required_variable IN ITEMS
     MATRIX_FILE CELL_ID BUILD_DIRECTORY CMAKE_CTEST_COMMAND RESULT_FILE)

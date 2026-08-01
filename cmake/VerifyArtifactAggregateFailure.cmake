@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 4.4)
+cmake_minimum_required(VERSION 3.31)
 
 foreach(required_variable IN ITEMS
     CASE SOURCE_DIRECTORY BINARY_DIRECTORY GENERATOR MAKE_PROGRAM)

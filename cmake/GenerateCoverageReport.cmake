@@ -1,3 +1,5 @@
+cmake_minimum_required(VERSION 3.31)
+
 foreach(required_variable IN ITEMS
     BINARY_DIRECTORY
     SOURCE_DIRECTORY

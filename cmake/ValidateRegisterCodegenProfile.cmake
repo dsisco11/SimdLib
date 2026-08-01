@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 4.4)
+cmake_minimum_required(VERSION 3.31)
 
 foreach(required_variable IN ITEMS
 	ENFORCED_RECORD_INDEX DIAGNOSTIC_RECORD_INDEX CODEGEN_MODE CONFIGURATION)

@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 4.4)
+cmake_minimum_required(VERSION 3.31)
 
 if(NOT DEFINED RECORD_INDEX OR "${RECORD_INDEX}" STREQUAL "")
 	message(FATAL_ERROR "ValidateCodegenRecords requires RECORD_INDEX")

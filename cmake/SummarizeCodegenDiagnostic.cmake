@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 4.4)
+cmake_minimum_required(VERSION 3.31)
 
 foreach(required_variable IN ITEMS
 	RECORD_INDEX OUTPUT_FILE COMPILE_COMMANDS SOURCE_REVISION SOURCE_DIGEST

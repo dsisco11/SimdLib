@@ -17,7 +17,7 @@ commands below reproduce them under `build*/register-codegen` or
 | Optimized zero-overhead profile | AVX2 for the complete 128-bit and 256-bit wrapper/raw corpus |
 | Optimized diagnostic profile | SSE4.2 for the complete 128-bit wrapper/raw corpus |
 | Element types | `int8_t`, `uint8_t`, `int16_t`, `uint16_t`, `int32_t`, `uint32_t`, `int64_t`, `uint64_t`, `float`, and `double` |
-| Windows compilers | MSVC 19.44 and clang-cl 22 |
+| Windows compilers | MSVC 19.44 and clang-cl 20 or newer |
 | Linux compilers | GCC 14 and Clang 22 on the pinned Alpine/musl images |
 | Optimized configuration | Release with strict wrapper/raw generated-code comparison |
 | Optional diagnostic configurations | Explicitly selected Debug compiler; ASan+UBSan on Clang 22 only for an instrumentation investigation |
