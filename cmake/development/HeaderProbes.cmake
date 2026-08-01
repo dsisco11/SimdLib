@@ -92,13 +92,21 @@ if(SIMDLIB_BUILD_HEADER_PROBES)
     endforeach()
 
 	if(SIMDLIB_REGISTER_COMPILER_SUPPORTED)
-        add_library(InstalledRegisterHeaderProbe OBJECT
-            tests/headers/InstalledRegisterHeaderProbe.cpp)
+		add_library(InstalledRegisterHeaderProbe OBJECT
+			tests/headers/InstalledRegisterHeaderProbe.cpp)
         simdlib_configure_installed_header_probe(
             InstalledRegisterHeaderProbe 23)
         target_compile_definitions(InstalledRegisterHeaderProbe PRIVATE
             SIMDLIB_REQUIRE_REGISTER_INTERFACE=1)
-        simdlib_enable_register_sse42(InstalledRegisterHeaderProbe)
+		simdlib_enable_register_sse42(InstalledRegisterHeaderProbe)
+
+		add_library(InstalledPartialRegisterHeaderProbe OBJECT
+			tests/headers/InstalledPartialRegisterHeaderProbe.cpp)
+		simdlib_configure_installed_header_probe(
+			InstalledPartialRegisterHeaderProbe 23)
+		target_compile_definitions(InstalledPartialRegisterHeaderProbe PRIVATE
+			SIMDLIB_REQUIRE_REGISTER_INTERFACE=1)
+		simdlib_enable_register_sse42(InstalledPartialRegisterHeaderProbe)
 
 		add_library(HeaderAliasesProbe OBJECT
 			tests/headers/AliasesHeaderProbe.cpp)
@@ -112,6 +120,20 @@ if(SIMDLIB_BUILD_HEADER_PROBES)
 		simdlib_register_development_target(HeaderRegisterProbe COMPILER_CONTRACT)
 		target_link_libraries(HeaderRegisterProbe PRIVATE SimdLib::Register)
 		simdlib_enable_development_warnings(HeaderRegisterProbe)
+
+		add_library(HeaderPartialRegisterFwdProbe OBJECT
+			tests/headers/PartialRegisterFwdHeaderProbe.cpp)
+		simdlib_register_development_target(HeaderPartialRegisterFwdProbe COMPILER_CONTRACT)
+		target_link_libraries(HeaderPartialRegisterFwdProbe PRIVATE SimdLib::Register)
+		simdlib_enable_development_warnings(HeaderPartialRegisterFwdProbe)
+		simdlib_enable_register_sse42(HeaderPartialRegisterFwdProbe)
+
+		add_library(HeaderPartialRegisterProbe OBJECT
+			tests/headers/PartialRegisterHeaderProbe.cpp)
+		simdlib_register_development_target(HeaderPartialRegisterProbe COMPILER_CONTRACT)
+		target_link_libraries(HeaderPartialRegisterProbe PRIVATE SimdLib::Register)
+		simdlib_enable_development_warnings(HeaderPartialRegisterProbe)
+		simdlib_enable_register_sse42(HeaderPartialRegisterProbe)
 
 		add_library(HeaderRegisterMaskProbe OBJECT
 			tests/headers/RegisterMaskHeaderProbe.cpp)

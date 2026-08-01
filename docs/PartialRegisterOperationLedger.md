@@ -87,6 +87,11 @@ Conversions between public value types are explicit:
 alias. It chooses the same widest available width rule as `NativeRegister`,
 then requires that `active_lane_count` is valid for the selected width.
 
+`SimdLib::Register` owns both register-shaped public types. It already carries
+the C++23 explicit-object and compiler-boundary requirements needed by
+`PartialRegister`, so a separate CMake interface target would only duplicate
+the same contract. The core `SimdLib::SimdLib` target remains C++20.
+
 ## Evaluation rule
 
 For a lane-preserving value operation, the active result is the corresponding

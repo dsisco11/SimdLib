@@ -7,6 +7,7 @@
 #include <SimdLib/IRegisterMask.h>
 #if SIMDLIB_REGISTER_INTERFACE_AVAILABLE
 #include <SimdLib/Aliases.h>
+#include <SimdLib/PartialRegister.h>
 #include <SimdLib/Register.h>
 #endif
 #include <SimdLib/SimdAlgo.h>

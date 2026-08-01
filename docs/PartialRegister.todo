@@ -119,18 +119,18 @@ PartialRegister Implementation Plan:
     ☐ Add compile-time parity assertions that compare every applicable PartialRegister method/operator availability against the corresponding Register surface before applying partial-only result and extent constraints.
 
   Phase 2 - Establish Headers, Availability, and the Object Model:
-    ☐ Add `include/SimdLib/PartialRegisterFwd.h` with the constrained forward declaration and any target-selected alias approved by the public contract.
-    ☐ Add `include/SimdLib/PartialRegister.h` by copying `Register.h`, then rename the type and remove all copied claims that every native lane is active.
-    ☐ Keep `PartialRegister` final, non-polymorphic, non-allocating, and backed by exactly one `Api::vector_t` value with no additional data members or base classes.
-    ☐ Initialize the native value to zero and ensure every supported construction path establishes the inactive-lane invariant.
-    ☐ Add compile-time metadata for physical width, physical byte count, native lane count, active lane count, active byte count, and inactive lane count.
-    ☐ Add a reusable internal active-lane mask or equivalent compile-time value derived only from the template arguments; do not store it per object.
-    ☐ Add one private invariant-preserving construction boundary used by operation results, with a clear distinction between already-clean results and results requiring normalization.
-    ☐ Add a checks-enabled invariant validator that verifies inactive lanes by bit representation and returns its input unchanged for optimized builds.
-    ☐ Ensure every new class and method has a Doxygen contract covering logical lanes, inactive-lane behavior, availability, result type, and preconditions.
-    ☐ Add first-include, umbrella-header, unavailable-language-mode, required-interface, and availability probes corresponding to the existing Register header boundaries.
-    ☐ Decide whether the existing `SimdLib::Register` CMake interface target owns both register-shaped types or whether a separate `SimdLib::PartialRegister` target is needed; do not raise the core C++20 target requirement.
-    ☐ Add object-model assertions for size, alignment, standard layout, trivial copy/move/destruction, trivial copyability, and absence of runtime metadata for every supported type/width cell.
+    ☒ Add `include/SimdLib/PartialRegisterFwd.h` with the constrained forward declaration and any target-selected alias approved by the public contract.
+    ☒ Add `include/SimdLib/PartialRegister.h` as an independent, Register-shaped initial skeleton; retain only the object-model and invariant-boundary surface needed before the operation-specific implementation work, and document the deferred Register counterparts in the approved operation ledger.
+    ☒ Keep `PartialRegister` final, non-polymorphic, non-allocating, and backed by exactly one `Api::vector_t` value with no additional data members or base classes.
+    ☒ Initialize the native value to zero and ensure every supported construction path establishes the inactive-lane invariant.
+    ☒ Add compile-time metadata for physical width, physical byte count, native lane count, active lane count, active byte count, and inactive lane count.
+    ☒ Add a reusable internal active-lane mask or equivalent compile-time value derived only from the template arguments; do not store it per object.
+    ☒ Add one private invariant-preserving construction boundary used by operation results, with a clear distinction between already-clean results and results requiring normalization.
+    ☒ Add a checks-enabled invariant validator that verifies inactive lanes by bit representation and returns its input unchanged for optimized builds.
+    ☒ Ensure every new class and method has a Doxygen contract covering logical lanes, inactive-lane behavior, availability, result type, and preconditions.
+    ☒ Add first-include, umbrella-header, unavailable-language-mode, required-interface, and availability probes corresponding to the existing Register header boundaries.
+    ☒ Decide whether the existing `SimdLib::Register` CMake interface target owns both register-shaped types or whether a separate `SimdLib::PartialRegister` target is needed; do not raise the core C++20 target requirement.
+    ☒ Add object-model assertions for size, alignment, standard layout, trivial copy/move/destruction, trivial copyability, and absence of runtime metadata for every supported type/width cell.
 
   Phase 3 - Implement PartialRegisterMask and Predicate Semantics:
     ☐ Decide the companion predicate spelling and template shape, with `PartialRegisterMask<element_t, register_width, active_lane_count>` as the default design.

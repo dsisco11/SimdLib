@@ -95,6 +95,20 @@ if(SIMDLIB_BUILD_RUNTIME_TESTS)
 				TIMEOUT 10)
 		simdlib_label_discovered_tests(RegisterPreconditionTests_DISCOVERED_TESTS
 			"REGISTER;PRECONDITIONS;AVX2" CHECKS_VALIDATION)
+
+		simdlib_add_catch_test(PartialRegisterAvx2Tests tests/PartialRegisterObjectModel.tests.cpp
+			PartialRegister.AVX2 "PARTIAL_REGISTER;AVX2")
+		target_link_libraries(PartialRegisterAvx2Tests PRIVATE SimdLib::Register)
+		target_compile_definitions(PartialRegisterAvx2Tests PRIVATE
+			SIMDLIB_PARTIAL_REGISTER_TEST_ENABLE_256=1)
+		simdlib_enable_register_avx2(PartialRegisterAvx2Tests)
+
+		simdlib_add_catch_test(PartialRegisterSse42Tests tests/PartialRegisterObjectModel.tests.cpp
+			PartialRegister.SSE42 "PARTIAL_REGISTER;SSE42")
+		target_link_libraries(PartialRegisterSse42Tests PRIVATE SimdLib::Register)
+		target_compile_definitions(PartialRegisterSse42Tests PRIVATE
+			SIMDLIB_PARTIAL_REGISTER_TEST_ENABLE_256=0)
+		simdlib_enable_register_sse42(PartialRegisterSse42Tests)
 	endif()
 
     simdlib_add_catch_test(BmiPortableTests tests/Bmi.tests.cpp

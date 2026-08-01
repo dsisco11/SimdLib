@@ -144,6 +144,8 @@ if(SIMDLIB_BUILD_CONFIGURATION_PROBES)
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/config/MethodFlagsConfigUnsupportedTargetProbe.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/RegisterHeaderCxx20.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/RegisterRequirementCxx20.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/PartialRegisterHeaderCxx20.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/PartialRegisterRequirementCxx20.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/RegisterAvailabilityOverride.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/RegisterUnsupportedCompiler.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/RegisterPartialLaneList.cpp
@@ -196,6 +198,9 @@ if(SIMDLIB_BUILD_CONFIGURATION_PROBES)
 
 		simdlib_add_language_probe(RegisterEnabledProbe
 			tests/availability/RegisterEnabledProbe.cpp 23 SimdLib::Register)
+		simdlib_add_language_probe(PartialRegisterEnabledProbe
+			tests/availability/PartialRegisterEnabledProbe.cpp 23 SimdLib::Register)
+		simdlib_enable_register_sse42(PartialRegisterEnabledProbe)
 
 		foreach(register_width IN ITEMS 128 256)
 			add_library(RegisterRepresentation${register_width} OBJECT
@@ -210,6 +215,20 @@ if(SIMDLIB_BUILD_CONFIGURATION_PROBES)
 				simdlib_enable_register_sse42(RegisterRepresentation${register_width})
 			else()
 				simdlib_enable_register_avx2(RegisterRepresentation${register_width})
+			endif()
+
+			add_library(PartialRegisterRepresentation${register_width} OBJECT
+				tests/partial_register/PartialRegisterRepresentation.tests.cpp)
+			simdlib_register_development_target(
+				PartialRegisterRepresentation${register_width} COMPILER_CONTRACT)
+			target_link_libraries(PartialRegisterRepresentation${register_width} PRIVATE SimdLib::Register)
+			target_compile_definitions(PartialRegisterRepresentation${register_width} PRIVATE
+				SIMDLIB_REGISTER_TEST_WIDTH=${register_width})
+			simdlib_enable_development_warnings(PartialRegisterRepresentation${register_width})
+			if(register_width EQUAL 128)
+				simdlib_enable_register_sse42(PartialRegisterRepresentation${register_width})
+			else()
+				simdlib_enable_register_avx2(PartialRegisterRepresentation${register_width})
 			endif()
 		endforeach()
 
@@ -278,6 +297,12 @@ if(SIMDLIB_BUILD_CONFIGURATION_PROBES)
 		SIMDLIB_REGISTER_HEADER_REQUIRES_CXX23)
 	simdlib_expect_language_probe_failure(RegisterRequirementCxx20Failure
 		tests/compile_fail/register/RegisterRequirementCxx20.cpp 20
+		SIMDLIB_REGISTER_INTERFACE_UNAVAILABLE)
+	simdlib_expect_language_probe_failure(PartialRegisterHeaderCxx20Failure
+		tests/compile_fail/register/PartialRegisterHeaderCxx20.cpp 20
+		SIMDLIB_PARTIAL_REGISTER_HEADER_REQUIRES_CXX23)
+	simdlib_expect_language_probe_failure(PartialRegisterRequirementCxx20Failure
+		tests/compile_fail/register/PartialRegisterRequirementCxx20.cpp 20
 		SIMDLIB_REGISTER_INTERFACE_UNAVAILABLE)
 	simdlib_expect_language_probe_failure(RegisterAvailabilityOverrideFailure
 		tests/compile_fail/register/RegisterAvailabilityOverride.cpp 20
