@@ -64,6 +64,26 @@ function Invoke-DockerChecked {
 
 <#
 .SYNOPSIS
+Rejects Docker Compose versions that cannot control build provenance.
+#>
+function Assert-DockerComposeBuildVersion {
+    $versionText = [string](& docker compose version 2>&1)
+    if ($LASTEXITCODE -ne 0) {
+        throw "Unable to determine the Docker Compose version: $versionText"
+    }
+    if ($versionText -notmatch '\bv?(?<version>\d+\.\d+\.\d+)\b') {
+        throw "Unable to parse the Docker Compose version from: $versionText"
+    }
+    $minimumVersion = [version]'2.39.0'
+    $selectedVersion = [version]$Matches.version
+    if ($selectedVersion -lt $minimumVersion) {
+        throw "Docker Compose $minimumVersion or newer is required to disable build provenance, but PATH selected $selectedVersion."
+    }
+    Write-Host "Docker Compose version: $selectedVersion"
+}
+
+<#
+.SYNOPSIS
 Returns the selected compiler service names.
 .PARAMETER CompilerName
 User-facing compiler selection.
@@ -489,6 +509,7 @@ New-Item -ItemType Directory -Path $logDirectory -Force | Out-Null
 Write-Host "Container operation: action=$Action cells=$($cells.Count) maxParallel=$MaxParallel"
 
 if ($Action -in @('Build', 'BuildCompilerContracts', 'RecordCodegen', 'InspectEnvironment') -and -not $SkipImageBuild) {
+    Assert-DockerComposeBuildVersion
     $buildArguments = @(
         'compose', '--file', $composeFile, '--project-name', $imageBuildProjectName,
         '--profile', 'compilers', 'build', '--provenance=false'

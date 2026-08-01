@@ -21,6 +21,8 @@ Each image builds the checksum-verified CMake 4.4.0 source release and contains
 the exact Catch2 commit declared by its Dockerfile. Package versions, Alpine
 images, and the Dockerfile frontend are pinned. The entrypoint rejects an
 unexpected compiler or CMake version before configuring the project.
+Building these images requires Docker Compose 2.39.0 or newer so the runner can
+disable BuildKit provenance without changing the image-identity contract.
 
 The runtime containers:
 

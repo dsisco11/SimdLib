@@ -77,6 +77,25 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
+      - name: Install required Docker Compose
+        shell: bash
+        env:
+          DOCKER_COMPOSE_VERSION: v2.39.0
+        run: |
+          plugin_dir="${HOME}/.docker/cli-plugins"
+          asset_name="docker-compose-linux-x86_64"
+          release_url="https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}"
+          mkdir -p "${plugin_dir}"
+          curl --fail --location --silent --show-error \
+            "${release_url}/${asset_name}" \
+            --output "${plugin_dir}/docker-compose"
+          expected_sha256="$(curl --fail --location --silent --show-error \
+            "${release_url}/${asset_name}.sha256" | awk '{print $1}')"
+          actual_sha256="$(sha256sum "${plugin_dir}/docker-compose" | awk '{print $1}')"
+          test -n "${expected_sha256}"
+          test "${actual_sha256}" = "${expected_sha256}"
+          chmod +x "${plugin_dir}/docker-compose"
+          docker compose version
       - name: Build every Linux validation cell
         shell: pwsh
         run: tools/Build.ps1 -Scope Containers
