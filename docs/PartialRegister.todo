@@ -16,20 +16,22 @@ PartialRegister Implementation Plan:
     ☒ Share tests through parameterized test machinery only where the contracts truly coincide; inherited or existing Register coverage does not substitute for PartialRegister invariant coverage.
 
   Phase 1 - Freeze the Public Contract and Operation Ledger:
-    ☐ Confirm public template order as `<element_t, register_width, active_lane_count>` so the existing Register-facing `<T, Bits>` order remains the leading pair.
-    ☐ Constrain `element_t` and `register_width` through `RegisterAvailable<element_t, register_width>`.
-    ☐ Decide and document whether `active_lane_count` must be strictly between zero and the native lane count or whether a full-lane specialization is permitted; keep `Register` as the preferred full-lane spelling in either case.
-    ☐ Define `register_width` and physical `byte_count` as native-storage properties, `native_lane_count` as the hardware lane count, and `lane_count` as the logical active-lane count.
-    ☐ Define the meaning and public visibility of `active_byte_count` and `inactive_lane_count`.
-    ☐ Decide whether raw byte transfers expose only `active_byte_count` bytes or the complete native representation; reject an API that can silently import nonzero inactive bytes.
-    ☐ Decide how native-value interoperation can occur without exposing a writable path that violates the invariant; document whether native input is sanitized, checked, or intentionally unavailable.
-    ☐ Decide whether a writable public `native` member is compatible with the invariant; if it is retained, precisely document the caller precondition and the resulting limit on the phrase "always zeroed."
-    ☐ Define conversion rules between `PartialRegister`, `Register`, and `SimdVector`, including which directions are explicit and which preserve the inactive-lane invariant without work.
-    ☐ Inventory every public declaration in `Register.h` in a PartialRegister operation ledger and classify it as unchanged, active-lane constrained, input-adjusted, result-normalized, result-type-changing, or semantically redefined.
-    ☐ Record for every retained operation its active input lanes, required inactive operand values, inactive result policy, result type, preconditions, and expected generated-code overhead.
-    ☐ Preserve a PartialRegister counterpart for every method and operator currently exposed by Register; treat unresolved semantics as blockers rather than retaining copied complete-register behavior or omitting the surface.
-    ☐ Define the performance contract as exactly one native register of storage, no allocation or runtime metadata, Register-equivalent calling conventions where applicable, and no instructions beyond the selected `Api` operation plus work required to uphold partial semantics.
-    ☐ Review and approve the completed operation ledger before implementing behavior beyond the initial type skeleton.
+    ☒ Confirm public template order as `<element_t, register_width, active_lane_count>` so the existing Register-facing `<T, Bits>` order remains the leading pair.
+    ☒ Constrain `element_t` and `register_width` through `RegisterAvailable<element_t, register_width>`.
+    ☒ Decide and document whether `active_lane_count` must be strictly between zero and the native lane count or whether a full-lane specialization is permitted; keep `Register` as the preferred full-lane spelling in either case.
+    ☒ Define `register_width` and physical `byte_count` as native-storage properties, `native_lane_count` as the hardware lane count, and `lane_count` as the logical active-lane count.
+    ☒ Define the meaning and public visibility of `active_byte_count` and `inactive_lane_count`.
+    ☒ Decide whether raw byte transfers expose only `active_byte_count` bytes or the complete native representation; reject an API that can silently import nonzero inactive bytes.
+    ☒ Decide how native-value interoperation can occur without exposing a writable path that violates the invariant; document whether native input is sanitized, checked, or intentionally unavailable.
+    ☒ Decide whether a writable public `native` member is compatible with the invariant; if it is retained, precisely document the caller precondition and the resulting limit on the phrase "always zeroed."
+    ☒ Define conversion rules between `PartialRegister`, `Register`, and `SimdVector`, including which directions are explicit and which preserve the inactive-lane invariant without work.
+    ☒ Inventory every public declaration in `Register.h` in a PartialRegister operation ledger and classify it as unchanged, active-lane constrained, input-adjusted, result-normalized, result-type-changing, or semantically redefined.
+    ☒ Record for every retained operation its active input lanes, required inactive operand values, inactive result policy, result type, preconditions, and expected generated-code overhead.
+    ☒ Preserve a PartialRegister counterpart for every method and operator currently exposed by Register; treat unresolved semantics as blockers rather than retaining copied complete-register behavior or omitting the surface.
+    ☒ Define the performance contract as exactly one native register of storage, no allocation or runtime metadata, Register-equivalent calling conventions where applicable, and no instructions beyond the selected `Api` operation plus work required to uphold partial semantics.
+    ☒ Review and approve the completed operation ledger before implementing behavior beyond the initial type skeleton.
+
+    Evidence: `docs/PartialRegisterOperationLedger.md`.
 
   Register Public-Surface Parity Inventory:
     ☐ Preserve the public type aliases `element_type`, `api_type`, `native_type`, and `mask_type`, with `mask_type` naming the approved partial predicate type.
