@@ -84,6 +84,7 @@ if(SIMDLIB_BUILD_RUNTIME_TESTS)
 			CHECKS_VALIDATION)
 		target_link_libraries(RegisterPreconditionTests PRIVATE SimdLib::Register Catch2::Catch2WithMain)
 		simdlib_enable_development_warnings(RegisterPreconditionTests)
+		target_compile_definitions(RegisterPreconditionTests PRIVATE SIMDLIB_ENABLE_CHECKS=1)
 		simdlib_set_coverage_profile_prefix(RegisterPreconditionTests
 			"Register.AVX2Preconditions")
 		simdlib_enable_register_sse42(RegisterPreconditionTests)
@@ -94,7 +95,7 @@ if(SIMDLIB_BUILD_RUNTIME_TESTS)
 				PASS_REGULAR_EXPRESSION "SIMDLIB_REGISTER_PRECONDITION_FAILURE_EXPECTED_61B4C2"
 				TIMEOUT 10)
 		simdlib_label_discovered_tests(RegisterPreconditionTests_DISCOVERED_TESTS
-			"REGISTER;PRECONDITIONS;AVX2" CHECKS_VALIDATION)
+			"REGISTER;PARTIAL_REGISTER;PRECONDITIONS;AVX2" CHECKS_VALIDATION)
 
 		simdlib_add_catch_test(PartialRegisterAvx2Tests tests/PartialRegisterObjectModel.tests.cpp
 			PartialRegister.AVX2 "PARTIAL_REGISTER;AVX2")

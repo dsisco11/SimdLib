@@ -146,6 +146,7 @@ if(SIMDLIB_BUILD_CONFIGURATION_PROBES)
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/RegisterRequirementCxx20.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/PartialRegisterHeaderCxx20.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/PartialRegisterRequirementCxx20.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/PartialRegisterMaskInvalidActiveCount.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/RegisterAvailabilityOverride.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/RegisterUnsupportedCompiler.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/RegisterPartialLaneList.cpp
@@ -201,6 +202,9 @@ if(SIMDLIB_BUILD_CONFIGURATION_PROBES)
 		simdlib_add_language_probe(PartialRegisterEnabledProbe
 			tests/availability/PartialRegisterEnabledProbe.cpp 23 SimdLib::Register)
 		simdlib_enable_register_sse42(PartialRegisterEnabledProbe)
+		simdlib_expect_language_probe_failure(PartialRegisterMaskInvalidActiveCountFailure
+			tests/compile_fail/register/PartialRegisterMaskInvalidActiveCount.cpp 23
+			constraints)
 
 		foreach(register_width IN ITEMS 128 256)
 			add_library(RegisterRepresentation${register_width} OBJECT

@@ -125,7 +125,7 @@ PartialRegister Implementation Plan:
     ☒ Initialize the native value to zero and ensure every supported construction path establishes the inactive-lane invariant.
     ☒ Add compile-time metadata for physical width, physical byte count, native lane count, active lane count, active byte count, and inactive lane count.
     ☒ Add a reusable internal active-lane mask or equivalent compile-time value derived only from the template arguments; do not store it per object.
-    ☒ Add one private invariant-preserving construction boundary used by operation results, with a clear distinction between already-clean results and results requiring normalization.
+    ☒ Use Register-style aggregate native storage with no custom constructors; distinguish already-clean operation results from native imports that require normalization at method boundaries.
     ☒ Add a checks-enabled invariant validator that verifies inactive lanes by bit representation and returns its input unchanged for optimized builds.
     ☒ Ensure every new class and method has a Doxygen contract covering logical lanes, inactive-lane behavior, availability, result type, and preconditions.
     ☒ Add first-include, umbrella-header, unavailable-language-mode, required-interface, and availability probes corresponding to the existing Register header boundaries.
@@ -133,16 +133,22 @@ PartialRegister Implementation Plan:
     ☒ Add object-model assertions for size, alignment, standard layout, trivial copy/move/destruction, trivial copyability, and absence of runtime metadata for every supported type/width cell.
 
   Phase 3 - Implement PartialRegisterMask and Predicate Semantics:
-    ☐ Decide the companion predicate spelling and template shape, with `PartialRegisterMask<element_t, register_width, active_lane_count>` as the default design.
-    ☐ Implement the predicate as an independent final one-native-register type whose inactive mask lanes always have the all-bits-zero representation.
-    ☐ Define the RegisterMask-compatible `any()`, `all()`, `none()`, and `bits()` surface over active lanes only.
-    ☐ Ensure `all()` can return true when every active lane is true even though every inactive lane remains false.
-    ☐ Implement the RegisterMask-compatible `operator&`, `operator|`, `operator^`, and `operator~` surface with inactive-result normalization where the intrinsic result is not closed over zero, especially bitwise NOT.
-    ☐ Implement the RegisterMask-compatible `select(when_true, when_false)` surface so the returned PartialRegister preserves inactive zeros regardless of predicate or source values.
-    ☐ Preserve the deliberate absence of PartialRegisterMask `operator&=`, `operator|=`, and `operator^=`.
-    ☐ Prevent construction or native interoperation from importing true inactive predicate lanes without sanitizing or rejecting them according to the approved contract.
-    ☐ Add PartialRegisterMask concepts or extend the structural concept inventory without weakening the complete-register guarantees of `IRegisterMask`.
-    ☐ Add representation, constexpr, runtime, constraint, compile-failure, and generated-code coverage for the partial predicate type.
+    ☒ Decide the companion predicate spelling and template shape, with `PartialRegisterMask<element_t, register_width, active_lane_count>` as the default design.
+    ☒ Implement the predicate as an independent final one-native-register aggregate whose documented direct-initialization precondition and public operation results preserve all-bits-zero inactive mask lanes.
+    ☒ Define the RegisterMask-compatible `any()`, `all()`, `none()`, and `bits()` surface over active lanes only.
+    ☒ Ensure `all()` can return true when every active lane is true even though every inactive lane remains false.
+    ☒ Implement the RegisterMask-compatible `operator&`, `operator|`, `operator^`, and `operator~` surface with inactive-result normalization where the intrinsic result is not closed over zero, especially bitwise NOT.
+    ☒ Implement the RegisterMask-compatible `select(when_true, when_false)` surface so the returned PartialRegister preserves inactive zeros regardless of predicate or source values.
+    ☒ Preserve the deliberate absence of PartialRegisterMask `operator&=`, `operator|=`, and `operator^=`.
+    ☒ Sanitize true inactive predicate lanes in `from_native()` and validate the documented direct aggregate-initialization precondition at checked observation boundaries.
+    ☒ Add PartialRegisterMask concepts or extend the structural concept inventory without weakening the complete-register guarantees of `IRegisterMask`.
+    ☒ Complete the partial-predicate qualification coverage below; do not treat a compile-only fixture or structural assertions as generated-code or operational constexpr proof.
+    ☒ Add operational constexpr assertions for `bits()`, `any()`, `all()`, `none()`, Boolean composition, and `select()` at representative partial extents.
+    ☒ Add mixed-predicate runtime selection tests that choose both `when_true` and `when_false` lanes, verify each active lane, and verify every inactive result lane is bitwise zero.
+    ☒ Add checks-enabled negative coverage proving noncanonical active native predicate lanes are rejected, while true inactive native predicate lanes are sanitized at the import boundary.
+    ☒ Add compile-time surface assertions that `PartialRegisterMask` deliberately has no `operator&=`, `operator|=`, or `operator^=`.
+    ☒ Expand runtime predicate coverage across the supported element-type matrix and representative interior active counts, in addition to the existing one-lane and one-fewer-than-native boundaries.
+    ☒ Replace the compile-only predicate fixture with paired wrapper/raw generated-code fixtures, mandatory disassembly comparisons, and SSE4.2-128/AVX2-256 coverage; the raw mirror must include the same required inactive-suffix normalization.
 
   Phase 4 - Implement Construction, Transfer, and Observation:
     ☐ Implement `zero()` with every native lane zero.
@@ -156,7 +162,7 @@ PartialRegister Implementation Plan:
     ☐ Constrain `lane<index>()` and `with_lane<index>()` to active lanes only.
     ☐ Ensure `with_lane<index>()` cannot alter the inactive suffix and preserves it bitwise.
     ☐ Add positive tests for every active count, including one active lane and one fewer than the native lane count, across all supported element types and widths.
-    ☐ Add compile-failure probes for zero or excessive active counts, oversized lane lists, full-register transfer extents, inactive lane indices, unsafe native construction, implicit scalar/native conversion, and unavailable width cells.
+    ☐ Add compile-failure probes for zero or excessive active counts, oversized lane lists, full-register transfer extents, inactive lane indices, implicit scalar/native conversion, and unavailable width cells; add checks-enabled coverage for violated direct native aggregate preconditions.
 
   Phase 5 - Implement Arithmetic and Specialized Operations:
     ☐ Implement addition, subtraction, multiplication, negation, minimum, maximum, absolute value, square root, average, saturating arithmetic, and multiply-add forms according to the operation ledger.

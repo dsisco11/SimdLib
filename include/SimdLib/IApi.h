@@ -167,6 +167,32 @@ template <class api_t, int immediate>
 concept DotProduct = immediate >= 0 && immediate <= 255 && Type<api_t> &&
 					 requires(typename api_t::vector_t lhs, typename api_t::vector_t rhs) { api_t::template dot_product<immediate>(lhs, rhs); };
 
+/** @brief Reports whether an API exposes bitwise intersection. */
+template <class api_t>
+concept BitwiseAnd = Type<api_t> && requires(typename api_t::vector_t lhs, typename api_t::vector_t rhs) { api_t::bitwise_and(lhs, rhs); };
+
+/** @brief Reports whether an API exposes bitwise union. */
+template <class api_t>
+concept BitwiseOr = Type<api_t> && requires(typename api_t::vector_t lhs, typename api_t::vector_t rhs) { api_t::bitwise_or(lhs, rhs); };
+
+/** @brief Reports whether an API exposes bitwise exclusive union. */
+template <class api_t>
+concept BitwiseXor = Type<api_t> && requires(typename api_t::vector_t lhs, typename api_t::vector_t rhs) { api_t::bitwise_xor(lhs, rhs); };
+
+/** @brief Reports whether an API exposes bitwise complement. */
+template <class api_t>
+concept BitwiseNot = Type<api_t> && requires(typename api_t::vector_t value) { api_t::bitwise_not(value); };
+
+/** @brief Reports whether an API exposes native predicate selection. */
+template <class api_t>
+concept Select = Type<api_t> && requires(typename api_t::vector_t condition, typename api_t::vector_t when_true, typename api_t::vector_t when_false) {
+	api_t::select(condition, when_true, when_false);
+};
+
+/** @brief Reports whether an API exposes one sign bit per logical lane. */
+template <class api_t>
+concept MovemaskSlim = Type<api_t> && requires(typename api_t::vector_t value) { api_t::movemask_slim(value); };
+
 /** @brief Reports whether an API exposes per-lane left shift. */
 template <class api_t>
 concept ShiftLeft = Type<api_t> && requires(typename api_t::vector_t value) { api_t::shift_left(value, 1); };

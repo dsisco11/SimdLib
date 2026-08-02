@@ -41,10 +41,10 @@ class PartialRegister final
 	constexpr static inline std::size_t inactive_lane_count = native_lane_count - lane_count;
 
 	/**
-	 * @brief Initializes every native lane to all-bits zero.
-	 * @remarks The logical prefix and inactive suffix are both zero after default construction.
+	 * @brief Owns the partial native register represented by this aggregate.
+	 * @pre Direct aggregate initialization must supply a value with a bitwise-zero inactive suffix.
 	 */
-	constexpr PartialRegister() noexcept = default;
+	native_type native = api_type::setzero();
 
 	/**
 	 * @brief Returns a value with every active and inactive lane set to all-bits zero.
@@ -52,7 +52,7 @@ class PartialRegister final
 	 */
 	[[nodiscard]] constexpr static PartialRegister SIMD_FLAGS(Out, RegisterOnly, ForceInline, Flatten) zero() noexcept
 	{
-		return from_clean_native(api_type::setzero());
+		return PartialRegister{api_type::setzero()};
 	}
 
 	/**
@@ -61,8 +61,9 @@ class PartialRegister final
 	 * @return A PartialRegister with a bitwise-zero inactive suffix.
 	 */
 	[[nodiscard]] constexpr static PartialRegister SIMD_FLAGS(Out, RegisterOnly, ForceInline, Flatten) from_native(native_type native) noexcept
+		requires IApi::BitwiseAnd<api_type>
 	{
-		return from_clean_native(normalize_native(native));
+		return PartialRegister{normalize_native(native)};
 	}
 
 	/**
@@ -71,60 +72,38 @@ class PartialRegister final
 	 */
 	[[nodiscard]] constexpr native_type SIMD_FLAGS(In, ForceInline, Flatten) to_native(this PartialRegister value) noexcept
 	{
-		return validate_native(value.native_);
+		return validate_native(value.native);
 	}
 
   private:
-	/** @brief Tags native values whose inactive suffix is already known to be zero. */
-	struct clean_native_t
-	{
-		/** @brief Creates the private clean-native construction tag. */
-		explicit constexpr clean_native_t() noexcept = default;
-	};
-
-	/** @brief Compile-time logical-prefix mask with no per-object storage. */
-	constexpr static inline std::array<bool, native_lane_count> active_lane_mask = []() constexpr {
-		std::array<bool, native_lane_count> result{};
+	/** @brief Compile-time all-bits-one active prefix and all-bits-zero inactive suffix. */
+	constexpr static inline std::array<element_type, native_lane_count> active_lane_filter = []() constexpr {
+		std::array<element_type, native_lane_count> result{};
+		std::array<std::byte, sizeof(element_type)> one_bytes{};
+		for (auto &byte : one_bytes)
+			byte = std::byte{0xff};
+		const auto one = std::bit_cast<element_type>(one_bytes);
 		for (std::size_t lane = 0; lane < lane_count; ++lane)
-			result[lane] = true;
+			result[lane] = one;
 		return result;
 	}();
-
-	/** @brief Sole native register storage; never exposed as a writable public member. */
-	native_type native_ = api_type::setzero();
-
-	/**
-	 * @brief Constructs a value from a native register that already satisfies the invariant.
-	 * @param native Native value with a bitwise-zero inactive suffix.
-	 * @param clean Private proof that normalization was performed or unnecessary.
-	 */
-	constexpr explicit PartialRegister(native_type native, clean_native_t clean) noexcept : native_(validate_native(native))
-	{
-		static_cast<void>(clean);
-	}
-
-	/**
-	 * @brief Constructs a value at the invariant-preserving operation boundary.
-	 * @param native Native value already proven clean for the inactive suffix.
-	 * @return A PartialRegister that validates the supplied clean native value.
-	 */
-	[[nodiscard]] constexpr static PartialRegister from_clean_native(native_type native) noexcept
-	{
-		return PartialRegister{native, clean_native_t{}};
-	}
 
 	/**
 	 * @brief Clears inactive high lanes from an arbitrary native value.
 	 * @param native Native value whose logical low prefix is retained.
 	 * @return Native value with an all-bits-zero inactive suffix.
 	 */
-	[[nodiscard]] constexpr static native_type normalize_native(native_type native) noexcept
+	[[nodiscard]] constexpr static native_type SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) normalize_native(native_type native) noexcept
+		requires IApi::BitwiseAnd<api_type>
 	{
-		auto lanes = api_type::to_array(native);
-		for (std::size_t lane = 0; lane < native_lane_count; ++lane)
-			if (!active_lane_mask[lane])
+		if consteval
+		{
+			auto lanes = api_type::to_array(native);
+			for (std::size_t lane = lane_count; lane < native_lane_count; ++lane)
 				lanes[lane] = element_type{};
-		return api_type::construct(lanes);
+			return api_type::construct(lanes);
+		}
+		return api_type::bitwise_and(native, api_type::construct(active_lane_filter));
 	}
 
 	/**
@@ -135,16 +114,18 @@ class PartialRegister final
 	[[nodiscard]] constexpr static native_type validate_native(native_type native) noexcept
 	{
 #if SIMDLIB_ENABLE_CHECKS
-		const auto lanes = api_type::to_array(native);
-		for (std::size_t lane = lane_count; lane < native_lane_count; ++lane)
-		{
-			const auto bytes = std::bit_cast<std::array<std::byte, sizeof(element_type)>>(lanes[lane]);
-			for (const std::byte byte : bytes)
-				SIMDLIB_PRECONDITION(byte == std::byte{}, "PartialRegister inactive lanes must have an all-bits-zero representation");
-		}
+		using byte_api_type = Api<register_width, std::uint8_t>;
+		const auto bytes = api_type::template bit_cast<std::uint8_t>(native);
+		const auto zero_bytes = byte_api_type::compare_equal(bytes, byte_api_type::setzero());
+		const auto zero_bits = byte_api_type::movemask_slim(zero_bytes);
+		for (std::size_t byte = active_byte_count; byte < byte_count; ++byte)
+			SIMDLIB_PRECONDITION((zero_bits & (typename byte_api_type::mask_t{1} << byte)) != 0,
+				"PartialRegister inactive lanes must have an all-bits-zero representation");
 #endif
 		return native;
 	}
 };
 
 } // namespace SimdLib
+
+#include <SimdLib/PartialRegisterMask.h>

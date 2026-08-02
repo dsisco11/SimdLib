@@ -33,6 +33,7 @@ inline constexpr int register_precondition_failure_exit_code = 74;
 	} while (false)
 
 #include <SimdLib/Register.h>
+#include <SimdLib/PartialRegister.h>
 
 #undef SIMDLIB_PRECONDITION
 
@@ -75,4 +76,36 @@ TEST_CASE("Register aligned store rejects a misaligned destination", "[simdlib][
 	alignas(register_type::byte_count) std::array<std::uint32_t, register_type::lane_count + 1> destination{};
 	register_type::zero().store_aligned(std::span<std::uint32_t, register_type::lane_count>{destination.data() + 1, register_type::lane_count});
 	FAIL("Register aligned store accepted a misaligned destination");
+}
+
+TEST_CASE("PartialRegisterMask rejects a noncanonical active native predicate", "[simdlib][partial_register][preconditions]")
+{
+	using mask_type = SimdLib::PartialRegisterMask<std::uint32_t, 128, 3>;
+	using api_type = typename mask_type::api_type;
+	std::array<std::uint32_t, mask_type::native_lane_count> lanes{};
+	lanes[0] = 1U;
+	(void)mask_type::from_native(api_type::construct(lanes));
+	FAIL("PartialRegisterMask accepted a noncanonical active native predicate");
+}
+
+TEST_CASE("PartialRegister rejects a nonzero inactive lane from direct aggregate initialization", "[simdlib][partial_register][preconditions]")
+{
+	using value_type = SimdLib::PartialRegister<std::uint32_t, 128, 3>;
+	using api_type = typename value_type::api_type;
+	std::array<std::uint32_t, value_type::native_lane_count> lanes{};
+	lanes[3] = 1U;
+	const value_type value{api_type::construct(lanes)};
+	(void)value.to_native();
+	FAIL("PartialRegister accepted a nonzero inactive lane from direct aggregate initialization");
+}
+
+TEST_CASE("PartialRegisterMask rejects a true inactive lane from direct aggregate initialization", "[simdlib][partial_register][preconditions]")
+{
+	using mask_type = SimdLib::PartialRegisterMask<std::uint32_t, 128, 3>;
+	using api_type = typename mask_type::api_type;
+	std::array<std::uint32_t, mask_type::native_lane_count> lanes{};
+	lanes[3] = 0xffffffffU;
+	const mask_type value{api_type::construct(lanes)};
+	(void)value.to_native();
+	FAIL("PartialRegisterMask accepted a true inactive lane from direct aggregate initialization");
 }
