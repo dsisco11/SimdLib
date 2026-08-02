@@ -156,6 +156,10 @@ if(SIMDLIB_BUILD_CONFIGURATION_PROBES)
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/PartialRegisterImplicitScalar.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/PartialRegisterImplicitNative.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/PartialRegisterUnavailableWidth.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/PartialRegisterNegativeByteShiftLeft.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/PartialRegisterNegativeByteShiftRight.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/PartialRegisterNegativeBitShiftLeft.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/PartialRegisterNegativeBitShiftRight.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/RegisterAvailabilityOverride.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/RegisterUnsupportedCompiler.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/RegisterPartialLaneList.cpp
@@ -241,6 +245,18 @@ if(SIMDLIB_BUILD_CONFIGURATION_PROBES)
 		simdlib_expect_language_probe_failure(PartialRegisterUnavailableWidthFailure
 			tests/compile_fail/register/PartialRegisterUnavailableWidth.cpp 23
 			constraints)
+		simdlib_expect_language_probe_failure(PartialRegisterNegativeByteShiftLeftFailure
+			tests/compile_fail/register/PartialRegisterNegativeByteShiftLeft.cpp 23
+			shift_bytes_left)
+		simdlib_expect_language_probe_failure(PartialRegisterNegativeByteShiftRightFailure
+			tests/compile_fail/register/PartialRegisterNegativeByteShiftRight.cpp 23
+			shift_bytes_right)
+		simdlib_expect_language_probe_failure(PartialRegisterNegativeBitShiftLeftFailure
+			tests/compile_fail/register/PartialRegisterNegativeBitShiftLeft.cpp 23
+			shift_bits_left)
+		simdlib_expect_language_probe_failure(PartialRegisterNegativeBitShiftRightFailure
+			tests/compile_fail/register/PartialRegisterNegativeBitShiftRight.cpp 23
+			shift_bits_right)
 
 		foreach(register_width IN ITEMS 128 256)
 			add_library(RegisterRepresentation${register_width} OBJECT

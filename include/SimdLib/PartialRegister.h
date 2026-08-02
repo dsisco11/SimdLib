@@ -820,6 +820,332 @@ class PartialRegister final
 
 #pragma endregion
 
+#pragma region Bitwise Operations
+
+	/**
+	 * @brief Computes the bitwise intersection of corresponding active lanes.
+	 * @param lhs Left active bit pattern.
+	 * @param rhs Right active bit pattern.
+	 * @return Same-shaped partial register containing `lhs & rhs` and an inactive zero suffix.
+	 * @remarks Available exactly when `IApi::BitwiseAnd<api_type>` is satisfied.
+	 */
+	[[nodiscard]] constexpr PartialRegister SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten)
+		operator&(this PartialRegister lhs, PartialRegister rhs) noexcept
+		requires IApi::BitwiseAnd<api_type>
+	{
+		return PartialRegister{api_type::bitwise_and(lhs.native, rhs.native)};
+	}
+
+	/**
+	 * @brief Computes the bitwise union of corresponding active lanes.
+	 * @param lhs Left active bit pattern.
+	 * @param rhs Right active bit pattern.
+	 * @return Same-shaped partial register containing `lhs | rhs` and an inactive zero suffix.
+	 * @remarks Available exactly when `IApi::BitwiseOr<api_type>` is satisfied.
+	 */
+	[[nodiscard]] constexpr PartialRegister SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten)
+		operator|(this PartialRegister lhs, PartialRegister rhs) noexcept
+		requires IApi::BitwiseOr<api_type>
+	{
+		return PartialRegister{api_type::bitwise_or(lhs.native, rhs.native)};
+	}
+
+	/**
+	 * @brief Computes the bitwise exclusive union of corresponding active lanes.
+	 * @param lhs Left active bit pattern.
+	 * @param rhs Right active bit pattern.
+	 * @return Same-shaped partial register containing `lhs ^ rhs` and an inactive zero suffix.
+	 * @remarks Available exactly when `IApi::BitwiseXor<api_type>` is satisfied.
+	 */
+	[[nodiscard]] constexpr PartialRegister SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten)
+		operator^(this PartialRegister lhs, PartialRegister rhs) noexcept
+		requires IApi::BitwiseXor<api_type>
+	{
+		return PartialRegister{api_type::bitwise_xor(lhs.native, rhs.native)};
+	}
+
+	/**
+	 * @brief Complements every active bit and clears every inactive bit.
+	 * @param value Active bit pattern to complement.
+	 * @return Same-shaped complemented partial register with an inactive zero suffix.
+	 * @remarks Available when `IApi::BitwiseNot<api_type>` and `IApi::BitwiseAnd<api_type>` are satisfied.
+	 */
+	[[nodiscard]] constexpr PartialRegister SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten)
+		operator~(this PartialRegister value) noexcept
+		requires IApi::BitwiseNot<api_type> && IApi::BitwiseAnd<api_type>
+	{
+		return PartialRegister{normalize_native(api_type::bitwise_not(value.native))};
+	}
+
+	/**
+	 * @brief Computes `(~lhs) & rhs` for corresponding active bits.
+	 * @param lhs Active bit pattern complemented before intersection.
+	 * @param rhs Active bit pattern intersected with the complemented left operand.
+	 * @return Same-shaped partial register containing `(~lhs) & rhs` and inactive zeros.
+	 * @remarks Available exactly when `IApi::BitwiseAndNot<api_type>` is satisfied.
+	 */
+	[[nodiscard]] constexpr PartialRegister SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten)
+		andnot(this PartialRegister lhs, PartialRegister rhs) noexcept
+		requires IApi::BitwiseAndNot<api_type>
+	{
+		return PartialRegister{api_type::bitwise_andnot(lhs.native, rhs.native)};
+	}
+
+	/**
+	 * @brief Returns the API's native-granularity sign-bit mask for the active payload.
+	 * @param value Partial register whose active sign bits are observed.
+	 * @return Native-granularity scalar mask with no bits sourced from inactive bytes.
+	 * @remarks Available exactly when `IApi::Movemask<api_type>` is satisfied.
+	 */
+	[[nodiscard]] constexpr typename api_type::mask_t SIMD_FLAGS(In, RegisterOnly, ForceInline, Flatten)
+		movemask(this PartialRegister value) noexcept
+		requires IApi::Movemask<api_type>
+	{
+		return api_type::movemask(value.native);
+	}
+
+	/**
+	 * @brief Returns one sign bit for every active logical lane.
+	 * @param value Partial register whose active lane sign bits are observed.
+	 * @return Compact scalar mask whose unused high bits are zero.
+	 * @remarks Available exactly when `IApi::MovemaskSlim<api_type>` is satisfied.
+	 */
+	[[nodiscard]] constexpr typename api_type::mask_t SIMD_FLAGS(In, RegisterOnly, ForceInline, Flatten)
+		lane_sign_bits(this PartialRegister value) noexcept
+		requires IApi::MovemaskSlim<api_type>
+	{
+		return api_type::movemask_slim(value.native);
+	}
+
+#pragma endregion
+
+#pragma region Shifting Operations
+
+	/**
+	 * @brief Left-shifts every active integral lane with zero fill.
+	 * @param value Active integral lanes to shift.
+	 * @param count Runtime shift count applied to each active lane.
+	 * @return Same-shaped shifted result with an inactive zero suffix.
+	 * @pre `count >= 0`; counts at least the lane width produce zero lanes.
+	 * @remarks Available exactly when `IApi::ShiftLeft<api_type>` is satisfied.
+	 */
+	[[nodiscard]] constexpr PartialRegister SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten)
+		operator<<(this PartialRegister value, int count) noexcept
+		requires IApi::ShiftLeft<api_type>
+	{
+		return PartialRegister{api_type::shift_left(value.native, count)};
+	}
+
+	/**
+	 * @brief Right-shifts every active integral lane with zero fill.
+	 * @param value Active integral lanes to shift.
+	 * @param count Runtime shift count applied to each active lane.
+	 * @return Same-shaped shifted result with an inactive zero suffix.
+	 * @pre `count >= 0`; counts at least the lane width produce zero lanes.
+	 * @remarks Available exactly when `IApi::ShiftRight<api_type>` is satisfied.
+	 */
+	[[nodiscard]] constexpr PartialRegister SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten)
+		logical_shift_right(this PartialRegister value, int count) noexcept
+		requires IApi::ShiftRight<api_type>
+	{
+		return PartialRegister{api_type::shift_right(value.native, count)};
+	}
+
+	/**
+	 * @brief Right-shifts unsigned active lanes logically and signed active lanes arithmetically.
+	 * @param value Active integral lanes to shift.
+	 * @param count Runtime shift count applied to each active lane.
+	 * @return Same-shaped signedness-selected result with an inactive zero suffix.
+	 * @pre `count >= 0`; oversized signed counts clamp and unsigned counts produce zero lanes.
+	 */
+	[[nodiscard]] constexpr PartialRegister SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten)
+		operator>>(this PartialRegister value, int count) noexcept
+		requires((std::is_signed_v<element_type> && IApi::ArithmeticShiftRight<api_type>) ||
+			(std::is_unsigned_v<element_type> && IApi::ShiftRight<api_type>))
+	{
+		if constexpr (std::is_signed_v<element_type>)
+			return PartialRegister{api_type::shift_right_arithmetic(value.native, count)};
+		else
+			return PartialRegister{api_type::shift_right(value.native, count)};
+	}
+
+	/**
+	 * @brief Runtime-shifts the logical active byte payload toward higher indices.
+	 * @param value Active byte payload to shift.
+	 * @param count Runtime byte count; nonpositive values are identity and counts at least the active extent produce zero.
+	 * @return Logical active-byte shift with discarded overflow and inactive zeros.
+	 */
+	[[nodiscard]] constexpr PartialRegister SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten)
+		shift_bytes_left_slow(this PartialRegister value, int count) noexcept
+		requires(register_width == 128 && IApi::ShiftBytesSlow<api_type> && IApi::BitwiseAnd<api_type>)
+	{
+		return PartialRegister{normalize_native(api_type::shift_bytes_left_slow(value.native, count))};
+	}
+
+	/**
+	 * @brief Compile-time shifts the logical active byte payload toward higher indices.
+	 * @tparam count Nonnegative byte count.
+	 * @param value Active byte payload to shift.
+	 * @return Logical active-byte shift with discarded overflow and inactive zeros.
+	 */
+	template <int count>
+		requires(count >= 0 && IApi::ShiftBytesLeft<api_type, count> && IApi::BitwiseAnd<api_type>)
+	[[nodiscard]] constexpr PartialRegister SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten)
+		shift_bytes_left(this PartialRegister value) noexcept
+	{
+		return PartialRegister{normalize_native(api_type::template shift_bytes_left<count>(value.native))};
+	}
+
+	/**
+	 * @brief Runtime-shifts the logical active byte payload toward lower indices.
+	 * @param value Active byte payload to shift.
+	 * @param count Runtime byte count; nonpositive values are identity and counts at least the active extent produce zero.
+	 * @return Logical active-byte shift with zero-filled high logical bytes.
+	 */
+	[[nodiscard]] constexpr PartialRegister SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten)
+		shift_bytes_right_slow(this PartialRegister value, int count) noexcept
+		requires(register_width == 128 && IApi::ShiftBytesSlow<api_type>)
+	{
+		return PartialRegister{api_type::shift_bytes_right_slow(value.native, count)};
+	}
+
+	/**
+	 * @brief Compile-time shifts the logical active byte payload toward lower indices.
+	 * @tparam count Nonnegative byte count.
+	 * @param value Active byte payload to shift.
+	 * @return Logical active-byte shift with zero-filled high logical bytes.
+	 */
+	template <int count>
+		requires(count >= 0 && IApi::ShiftBytesRight<api_type, count>)
+	[[nodiscard]] constexpr PartialRegister SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten)
+		shift_bytes_right(this PartialRegister value) noexcept
+	{
+		return PartialRegister{api_type::template shift_bytes_right<count>(value.native)};
+	}
+
+	/**
+	 * @brief Runtime-shifts the logical active bit payload toward higher indices.
+	 * @param value Active bit payload to shift.
+	 * @param count Runtime bit count; nonpositive values are identity and counts at least the active extent produce zero.
+	 * @return Logical active-bit shift with discarded overflow and inactive zeros.
+	 */
+	[[nodiscard]] constexpr PartialRegister SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten)
+		shift_bits_left_slow(this PartialRegister value, int count) noexcept
+		requires(register_width == 128 && IApi::ShiftBitsSlow<api_type> && IApi::BitwiseAnd<api_type>)
+	{
+		return PartialRegister{normalize_native(api_type::shift_bits_left_slow(value.native, count))};
+	}
+
+	/**
+	 * @brief Runtime-shifts the logical active bit payload toward lower indices.
+	 * @param value Active bit payload to shift.
+	 * @param count Runtime bit count; nonpositive values are identity and counts at least the active extent produce zero.
+	 * @return Logical active-bit shift with zero-filled high logical bits.
+	 */
+	[[nodiscard]] constexpr PartialRegister SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten)
+		shift_bits_right_slow(this PartialRegister value, int count) noexcept
+		requires(register_width == 128 && IApi::ShiftBitsSlow<api_type>)
+	{
+		return PartialRegister{api_type::shift_bits_right_slow(value.native, count)};
+	}
+
+	/**
+	 * @brief Compile-time shifts the logical active bit payload toward higher indices.
+	 * @tparam count Nonnegative bit count.
+	 * @param value Active bit payload to shift.
+	 * @return Logical active-bit shift with discarded overflow and inactive zeros.
+	 */
+	template <int count>
+		requires(register_width == 128 && count >= 0 && IApi::ShiftBits<api_type, count> && IApi::BitwiseAnd<api_type>)
+	[[nodiscard]] constexpr PartialRegister SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten)
+		shift_bits_left(this PartialRegister value) noexcept
+	{
+		return PartialRegister{normalize_native(api_type::template shift_bits_left<count>(value.native))};
+	}
+
+	/**
+	 * @brief Compile-time shifts the logical active bit payload toward lower indices.
+	 * @tparam count Nonnegative bit count.
+	 * @param value Active bit payload to shift.
+	 * @return Logical active-bit shift with zero-filled high logical bits.
+	 */
+	template <int count>
+		requires(register_width == 128 && count >= 0 && IApi::ShiftBits<api_type, count>)
+	[[nodiscard]] constexpr PartialRegister SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten)
+		shift_bits_right(this PartialRegister value) noexcept
+	{
+		return PartialRegister{api_type::template shift_bits_right<count>(value.native)};
+	}
+
+#pragma endregion
+
+#pragma region Comparison Operations
+
+	/** @brief Compares active lanes for ordered equality and clears inactive predicate lanes. */
+	[[nodiscard]] constexpr mask_type SIMD_FLAGS(In, RegisterOnly, ForceInline, Flatten)
+		compare_equal(this PartialRegister lhs, PartialRegister rhs) noexcept
+		requires IApi::CompareEqual<api_type> && IApi::BitwiseAnd<api_type>
+	{
+		return mask_type::from_native(api_type::compare_equal(lhs.native, rhs.native));
+	}
+
+	/** @brief Compares active lanes for ordered greater-than and clears inactive predicate lanes. */
+	[[nodiscard]] constexpr mask_type SIMD_FLAGS(In, RegisterOnly, ForceInline, Flatten)
+		compare_greater(this PartialRegister lhs, PartialRegister rhs) noexcept
+		requires IApi::CompareGreater<api_type> && IApi::BitwiseAnd<api_type>
+	{
+		return mask_type::from_native(api_type::compare_greater(lhs.native, rhs.native));
+	}
+
+	/** @brief Compares active lanes for ordered greater-than-or-equal and clears inactive predicate lanes. */
+	[[nodiscard]] constexpr mask_type SIMD_FLAGS(In, RegisterOnly, ForceInline, Flatten)
+		compare_greater_equal(this PartialRegister lhs, PartialRegister rhs) noexcept
+		requires IApi::CompareGreaterEqual<api_type> && IApi::BitwiseAnd<api_type>
+	{
+		return mask_type::from_native(api_type::compare_greater_equal(lhs.native, rhs.native));
+	}
+
+	/** @brief Compares active lanes for ordered less-than and clears inactive predicate lanes. */
+	[[nodiscard]] constexpr mask_type SIMD_FLAGS(In, RegisterOnly, ForceInline, Flatten)
+		compare_less(this PartialRegister lhs, PartialRegister rhs) noexcept
+		requires IApi::CompareLess<api_type> && IApi::BitwiseAnd<api_type>
+	{
+		return mask_type::from_native(api_type::compare_less(lhs.native, rhs.native));
+	}
+
+	/** @brief Compares active lanes for ordered less-than-or-equal and clears inactive predicate lanes. */
+	[[nodiscard]] constexpr mask_type SIMD_FLAGS(In, RegisterOnly, ForceInline, Flatten)
+		compare_less_equal(this PartialRegister lhs, PartialRegister rhs) noexcept
+		requires IApi::CompareLessEqual<api_type> && IApi::BitwiseAnd<api_type>
+	{
+		return mask_type::from_native(api_type::compare_less_equal(lhs.native, rhs.native));
+	}
+
+	/**
+	 * @brief Tests whether every corresponding active lane compares equal.
+	 * @return True only when all active lanes compare equal; inactive lanes are ignored.
+	 * @remarks Floating NaNs compare unequal and signed zeros compare equal.
+	 */
+	[[nodiscard]] constexpr bool SIMD_FLAGS(In, RegisterOnly, ForceInline, Flatten)
+		operator==(this PartialRegister lhs, PartialRegister rhs) noexcept
+		requires IApi::CompareEqual<api_type> && IApi::BitwiseAnd<api_type> && IApi::MovemaskSlim<api_type>
+	{
+		return lhs.compare_equal(rhs).all();
+	}
+
+	/**
+	 * @brief Tests whether at least one corresponding active lane fails ordered equality.
+	 * @return Logical negation of active-prefix equality.
+	 */
+	[[nodiscard]] constexpr bool SIMD_FLAGS(In, RegisterOnly, ForceInline, Flatten)
+		operator!=(this PartialRegister lhs, PartialRegister rhs) noexcept
+		requires IApi::CompareEqual<api_type> && IApi::BitwiseAnd<api_type> && IApi::MovemaskSlim<api_type>
+	{
+		return !lhs.compare_equal(rhs).all();
+	}
+
+#pragma endregion
+
 };
 
 } // namespace SimdLib

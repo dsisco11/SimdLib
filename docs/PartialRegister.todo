@@ -192,16 +192,17 @@ PartialRegister Implementation Plan:
     ☒ Constrain every partial specialized-result alias and lane-count helper to a valid partial source geometry and the corresponding operation's exact availability contract; in particular, restrict checked-magnitude aliases to integral sources satisfying `IApi::MagnitudeChecked`, and add compile-time rejection coverage for floating, zero-lane, full-lane, excessive-lane, and unavailable type/width cells.
 
   Phase 6 - Implement Bitwise, Shift, and Comparison Operations:
-    ☐ Implement bitwise AND, OR, XOR, NOT, and AND-NOT with explicit inactive-lane closure or normalization decisions.
-    ☐ Mask bitwise NOT results so inactive lanes remain all-bits-zero.
-    ☐ Define compact movemask and lane-sign-bit results over active lanes only, with no observable bits for inactive lanes.
-    ☐ Implement per-lane logical, arithmetic, and immediate shifts while preserving existing active-lane count and precondition behavior.
-    ☐ Define whole-register byte and bit shifts over the logical active payload rather than accidentally treating inactive padding as active data.
-    ☐ Normalize shift results whenever active values can move into the inactive suffix.
-    ☐ Implement comparisons through PartialRegisterMask and ensure every inactive predicate lane remains false, including equality of two inactive zero lanes.
-    ☐ Implement scalar equality and inequality over active lanes only and preserve the existing floating NaN and signed-zero contract for those lanes.
-    ☐ Add boundary tests for active counts that do not fill a byte-shift or half-register grouping cleanly.
-    ☐ Add runtime, constexpr, compile-time surface, and compile-failure coverage for every retained bitwise, shift, comparison, and immediate-count form.
+    ☒ Implement bitwise AND, OR, XOR, NOT, and AND-NOT with explicit inactive-lane closure or normalization decisions.
+    ☒ Mask bitwise NOT results so inactive lanes remain all-bits-zero.
+    ☒ Define compact movemask and lane-sign-bit results over active lanes only, with no observable bits for inactive lanes.
+    ☒ Implement per-lane logical, arithmetic, and immediate shifts while preserving existing active-lane count and precondition behavior.
+    ☒ Define whole-register byte and bit shifts over the logical active payload rather than accidentally treating inactive padding as active data.
+    ☒ Normalize shift results whenever active values can move into the inactive suffix.
+    ☒ Implement comparisons through PartialRegisterMask and ensure every inactive predicate lane remains false, including equality of two inactive zero lanes.
+    ☒ Implement scalar equality and inequality over active lanes only and preserve the existing floating NaN and signed-zero contract for those lanes.
+    ☒ Add boundary tests for active counts that do not fill a byte-shift or half-register grouping cleanly.
+    ☒ Add runtime, constexpr, compile-time surface, and compile-failure coverage for every retained bitwise, shift, comparison, and immediate-count form.
+    ☒ Expand constexpr coverage to validate every retained bitwise, sign-mask, per-lane shift, whole-payload shift, comparison, and immediate-count form, including active results and inactive-suffix invariants.
 
   Phase 7 - Implement Rearrangement and Conversion Operations:
     ☐ Define logical shuffle selectors over `active_lane_count`, including whether output selectors may explicitly request a zero-filled lane.

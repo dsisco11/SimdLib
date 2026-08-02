@@ -102,6 +102,7 @@ if(SIMDLIB_BUILD_RUNTIME_TESTS)
 		target_sources(PartialRegisterAvx2Tests PRIVATE
 			tests/PartialRegisterConstructionTransfer.tests.cpp
 			tests/PartialRegisterArithmetic.tests.cpp
+			tests/PartialRegisterBitwiseShiftComparison.tests.cpp
 			tests/PartialRegisterOperationMatrix.tests.cpp
 			tests/PartialRegisterSpecializedOperations.tests.cpp)
 		target_link_libraries(PartialRegisterAvx2Tests PRIVATE SimdLib::Register)
@@ -117,6 +118,7 @@ if(SIMDLIB_BUILD_RUNTIME_TESTS)
 		target_sources(PartialRegisterSse42Tests PRIVATE
 			tests/PartialRegisterConstructionTransfer.tests.cpp
 			tests/PartialRegisterArithmetic.tests.cpp
+			tests/PartialRegisterBitwiseShiftComparison.tests.cpp
 			tests/PartialRegisterOperationMatrix.tests.cpp
 			tests/PartialRegisterSpecializedOperations.tests.cpp)
 		target_link_libraries(PartialRegisterSse42Tests PRIVATE SimdLib::Register)

@@ -63,6 +63,27 @@ TEST_CASE("Register arithmetic right shift rejects a negative per-lane count", "
 	FAIL("Register arithmetic right shift accepted a negative count");
 }
 
+TEST_CASE("PartialRegister left shift rejects a negative per-lane count", "[simdlib][partial_register][preconditions]")
+{
+	using value_type = SimdLib::PartialRegister<std::uint32_t, 128, 3>;
+	(void)(value_type::broadcast(1U) << -1);
+	FAIL("PartialRegister left shift accepted a negative count");
+}
+
+TEST_CASE("PartialRegister logical right shift rejects a negative per-lane count", "[simdlib][partial_register][preconditions]")
+{
+	using value_type = SimdLib::PartialRegister<std::int32_t, 128, 3>;
+	(void)value_type::broadcast(-1).logical_shift_right(-1);
+	FAIL("PartialRegister logical right shift accepted a negative count");
+}
+
+TEST_CASE("PartialRegister arithmetic right shift rejects a negative per-lane count", "[simdlib][partial_register][preconditions]")
+{
+	using value_type = SimdLib::PartialRegister<std::int32_t, 128, 3>;
+	(void)(value_type::broadcast(-1) >> -1);
+	FAIL("PartialRegister arithmetic right shift accepted a negative count");
+}
+
 TEST_CASE("Register aligned load rejects a misaligned source", "[simdlib][register][preconditions]")
 {
 	using register_type = SimdLib::Register<std::uint32_t, 128>;

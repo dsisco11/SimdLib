@@ -252,6 +252,16 @@ concept BitwiseXor = Type<api_t> && requires(typename api_t::vector_t lhs, typen
 template <class api_t>
 concept BitwiseNot = Type<api_t> && requires(typename api_t::vector_t value) { api_t::bitwise_not(value); };
 
+/** @brief Reports whether an API exposes complemented-left bitwise intersection. */
+template <class api_t>
+concept BitwiseAndNot = Type<api_t> && requires(typename api_t::vector_t lhs, typename api_t::vector_t rhs) {
+	api_t::bitwise_andnot(lhs, rhs);
+};
+
+/** @brief Reports whether an API exposes its native-granularity sign-bit mask. */
+template <class api_t>
+concept Movemask = Type<api_t> && requires(typename api_t::vector_t value) { api_t::movemask(value); };
+
 /** @brief Reports whether an API exposes native predicate selection. */
 template <class api_t>
 concept Select = Type<api_t> && requires(typename api_t::vector_t condition, typename api_t::vector_t when_true, typename api_t::vector_t when_false) {
@@ -261,6 +271,36 @@ concept Select = Type<api_t> && requires(typename api_t::vector_t condition, typ
 /** @brief Reports whether an API exposes one sign bit per logical lane. */
 template <class api_t>
 concept MovemaskSlim = Type<api_t> && requires(typename api_t::vector_t value) { api_t::movemask_slim(value); };
+
+/** @brief Reports whether an API exposes ordered per-lane equality comparison. */
+template <class api_t>
+concept CompareEqual = Type<api_t> && requires(typename api_t::vector_t lhs, typename api_t::vector_t rhs) {
+	api_t::compare_equal(lhs, rhs);
+};
+
+/** @brief Reports whether an API exposes ordered per-lane greater-than comparison. */
+template <class api_t>
+concept CompareGreater = Type<api_t> && requires(typename api_t::vector_t lhs, typename api_t::vector_t rhs) {
+	api_t::compare_greater(lhs, rhs);
+};
+
+/** @brief Reports whether an API exposes ordered per-lane greater-than-or-equal comparison. */
+template <class api_t>
+concept CompareGreaterEqual = Type<api_t> && requires(typename api_t::vector_t lhs, typename api_t::vector_t rhs) {
+	api_t::compare_greater_equal(lhs, rhs);
+};
+
+/** @brief Reports whether an API exposes ordered per-lane less-than comparison. */
+template <class api_t>
+concept CompareLess = Type<api_t> && requires(typename api_t::vector_t lhs, typename api_t::vector_t rhs) {
+	api_t::compare_less(lhs, rhs);
+};
+
+/** @brief Reports whether an API exposes ordered per-lane less-than-or-equal comparison. */
+template <class api_t>
+concept CompareLessEqual = Type<api_t> && requires(typename api_t::vector_t lhs, typename api_t::vector_t rhs) {
+	api_t::compare_less_equal(lhs, rhs);
+};
 
 /** @brief Reports whether an API exposes per-lane left shift. */
 template <class api_t>
