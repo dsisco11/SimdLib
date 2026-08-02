@@ -151,18 +151,18 @@ PartialRegister Implementation Plan:
     ☒ Replace the compile-only predicate fixture with paired wrapper/raw generated-code fixtures, mandatory disassembly comparisons, and SSE4.2-128/AVX2-256 coverage; the raw mirror must include the same required inactive-suffix normalization.
 
   Phase 4 - Implement Construction, Transfer, and Observation:
-    ☐ Implement `zero()` with every native lane zero.
-    ☐ Implement `broadcast(value)` over active lanes only and explicitly zero the inactive suffix.
-    ☐ Implement logical lane-list and fixed-array construction with exactly `active_lane_count` source elements in low-to-high order.
-    ☐ Implement aligned and unaligned element loads from exactly the approved logical extent without reading beyond caller-provided active data.
-    ☐ Implement byte loads according to the approved active-byte transfer contract without reading beyond that extent.
-    ☐ Implement aligned and unaligned stores that write only active logical elements and leave surrounding destination canaries unchanged.
-    ☐ Implement byte stores according to the approved active-byte transfer contract and verify surrounding byte canaries.
-    ☐ Implement `to_array()` with active logical extent rather than native lane extent.
-    ☐ Constrain `lane<index>()` and `with_lane<index>()` to active lanes only.
-    ☐ Ensure `with_lane<index>()` cannot alter the inactive suffix and preserves it bitwise.
-    ☐ Add positive tests for every active count, including one active lane and one fewer than the native lane count, across all supported element types and widths.
-    ☐ Add compile-failure probes for zero or excessive active counts, oversized lane lists, full-register transfer extents, inactive lane indices, implicit scalar/native conversion, and unavailable width cells; add checks-enabled coverage for violated direct native aggregate preconditions.
+    ☒ Implement `zero()` with every native lane zero.
+    ☒ Implement `broadcast(value)` over active lanes only and explicitly zero the inactive suffix.
+    ☒ Implement logical lane-list and fixed-array construction with exactly `active_lane_count` source elements in low-to-high order.
+    ☒ Implement aligned and unaligned element loads from exactly the approved logical extent without reading beyond caller-provided active data.
+    ☒ Implement byte loads according to the approved active-byte transfer contract without reading beyond that extent.
+    ☒ Implement aligned and unaligned stores that write only active logical elements and leave surrounding destination canaries unchanged.
+    ☒ Implement byte stores according to the approved active-byte transfer contract and verify surrounding byte canaries.
+    ☒ Implement `to_array()` with active logical extent rather than native lane extent.
+    ☒ Constrain `lane<index>()` and `with_lane<index>()` to active lanes only.
+    ☒ Ensure `with_lane<index>()` cannot alter the inactive suffix and preserves it bitwise.
+    ☒ Add positive tests for every active count, including one active lane and one fewer than the native lane count, across all supported element types and widths.
+    ☒ Add compile-failure probes for zero or excessive active counts, oversized lane lists, full-register transfer extents, inactive lane indices, implicit scalar/native conversion, and unavailable width cells; add checks-enabled coverage for violated direct native aggregate preconditions.
 
   Phase 5 - Implement Arithmetic and Specialized Operations:
     ☐ Implement addition, subtraction, multiplication, negation, minimum, maximum, absolute value, square root, average, saturating arithmetic, and multiply-add forms according to the operation ledger.

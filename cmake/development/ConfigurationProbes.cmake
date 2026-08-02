@@ -147,6 +147,14 @@ if(SIMDLIB_BUILD_CONFIGURATION_PROBES)
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/PartialRegisterHeaderCxx20.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/PartialRegisterRequirementCxx20.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/PartialRegisterMaskInvalidActiveCount.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/PartialRegisterZeroActiveCount.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/PartialRegisterExcessiveActiveCount.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/PartialRegisterOversizedLaneList.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/PartialRegisterFullTransferExtent.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/PartialRegisterInactiveLaneIndex.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/PartialRegisterImplicitScalar.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/PartialRegisterImplicitNative.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/PartialRegisterUnavailableWidth.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/RegisterAvailabilityOverride.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/RegisterUnsupportedCompiler.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/RegisterPartialLaneList.cpp
@@ -204,6 +212,30 @@ if(SIMDLIB_BUILD_CONFIGURATION_PROBES)
 		simdlib_enable_register_sse42(PartialRegisterEnabledProbe)
 		simdlib_expect_language_probe_failure(PartialRegisterMaskInvalidActiveCountFailure
 			tests/compile_fail/register/PartialRegisterMaskInvalidActiveCount.cpp 23
+			constraints)
+		simdlib_expect_language_probe_failure(PartialRegisterZeroActiveCountFailure
+			tests/compile_fail/register/PartialRegisterZeroActiveCount.cpp 23
+			constraints)
+		simdlib_expect_language_probe_failure(PartialRegisterExcessiveActiveCountFailure
+			tests/compile_fail/register/PartialRegisterExcessiveActiveCount.cpp 23
+			constraints)
+		simdlib_expect_language_probe_failure(PartialRegisterOversizedLaneListFailure
+			tests/compile_fail/register/PartialRegisterOversizedLaneList.cpp 23
+			SIMDLIB_PARTIAL_REGISTER_REJECTS_OVERSIZED_LANE_LIST)
+		simdlib_expect_language_probe_failure(PartialRegisterFullTransferExtentFailure
+			tests/compile_fail/register/PartialRegisterFullTransferExtent.cpp 23
+			SIMDLIB_PARTIAL_REGISTER_REJECTS_FULL_TRANSFER_EXTENT)
+		simdlib_expect_language_probe_failure(PartialRegisterInactiveLaneIndexFailure
+			tests/compile_fail/register/PartialRegisterInactiveLaneIndex.cpp 23
+			SIMDLIB_PARTIAL_REGISTER_REJECTS_INACTIVE_LANE_INDEX)
+		simdlib_expect_language_probe_failure(PartialRegisterImplicitScalarFailure
+			tests/compile_fail/register/PartialRegisterImplicitScalar.cpp 23
+			SIMDLIB_PARTIAL_REGISTER_REJECTS_IMPLICIT_SCALAR)
+		simdlib_expect_language_probe_failure(PartialRegisterImplicitNativeFailure
+			tests/compile_fail/register/PartialRegisterImplicitNative.cpp 23
+			SIMDLIB_PARTIAL_REGISTER_REJECTS_IMPLICIT_NATIVE)
+		simdlib_expect_language_probe_failure(PartialRegisterUnavailableWidthFailure
+			tests/compile_fail/register/PartialRegisterUnavailableWidth.cpp 23
 			constraints)
 
 		foreach(register_width IN ITEMS 128 256)

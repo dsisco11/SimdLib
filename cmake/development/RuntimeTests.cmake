@@ -99,16 +99,26 @@ if(SIMDLIB_BUILD_RUNTIME_TESTS)
 
 		simdlib_add_catch_test(PartialRegisterAvx2Tests tests/PartialRegisterObjectModel.tests.cpp
 			PartialRegister.AVX2 "PARTIAL_REGISTER;AVX2")
+		target_sources(PartialRegisterAvx2Tests PRIVATE
+			tests/PartialRegisterConstructionTransfer.tests.cpp)
 		target_link_libraries(PartialRegisterAvx2Tests PRIVATE SimdLib::Register)
 		target_compile_definitions(PartialRegisterAvx2Tests PRIVATE
 			SIMDLIB_PARTIAL_REGISTER_TEST_ENABLE_256=1)
+		if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+			target_compile_options(PartialRegisterAvx2Tests PRIVATE /bigobj)
+		endif()
 		simdlib_enable_register_avx2(PartialRegisterAvx2Tests)
 
 		simdlib_add_catch_test(PartialRegisterSse42Tests tests/PartialRegisterObjectModel.tests.cpp
 			PartialRegister.SSE42 "PARTIAL_REGISTER;SSE42")
+		target_sources(PartialRegisterSse42Tests PRIVATE
+			tests/PartialRegisterConstructionTransfer.tests.cpp)
 		target_link_libraries(PartialRegisterSse42Tests PRIVATE SimdLib::Register)
 		target_compile_definitions(PartialRegisterSse42Tests PRIVATE
 			SIMDLIB_PARTIAL_REGISTER_TEST_ENABLE_256=0)
+		if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+			target_compile_options(PartialRegisterSse42Tests PRIVATE /bigobj)
+		endif()
 		simdlib_enable_register_sse42(PartialRegisterSse42Tests)
 	endif()
 
@@ -156,6 +166,20 @@ if(SIMDLIB_BUILD_RUNTIME_TESTS)
 	endif()
 
     if(SIMDLIB_BUILD_API_SSE42_TESTS)
+		simdlib_add_catch_test(ImplHalfTransfer128Tests tests/ImplementationHalfTransfer.tests.cpp
+			Implementation.HalfTransfer128 "IMPLEMENTATION;PARTIAL_TRANSFER;SSE42")
+		target_compile_definitions(ImplHalfTransfer128Tests PRIVATE
+			SIMDLIB_IMPLEMENTATION_HALF_TRANSFER_TEST_WIDTH=128)
+		if(SIMDLIB_MSVC_STYLE_DRIVER)
+			target_compile_definitions(ImplHalfTransfer128Tests PRIVATE
+				SIMDLIB_HAS_SSE3=1 SIMDLIB_HAS_SSSE3=1 SIMDLIB_HAS_SSE41=1 SIMDLIB_HAS_SSE42=1)
+			if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+				target_compile_options(ImplHalfTransfer128Tests PRIVATE /arch:AVX2)
+			endif()
+		else()
+			target_compile_options(ImplHalfTransfer128Tests PRIVATE -msse4.2)
+		endif()
+
         simdlib_add_catch_test(LogicalShuffleImpl128Tests tests/LogicalShuffleImpl128.tests.cpp
             LogicalShuffle.Impl128 "LOGICAL_SHUFFLE;SSE42")
         if(SIMDLIB_MSVC_STYLE_DRIVER)
@@ -171,10 +195,12 @@ if(SIMDLIB_BUILD_RUNTIME_TESTS)
         simdlib_add_catch_test(ApiSse42Tests tests/Api128.tests.cpp
             Api.SSE42 "SSE42")
 		target_sources(ApiSse42Tests PRIVATE
+			tests/ApiPartialTransfer.tests.cpp
 			tests/LogicalShuffleApi.tests.cpp
 			tests/ImmediateControlSlowPaths.tests.cpp
 			tests/CompleteRegisterShift.tests.cpp)
 		target_compile_definitions(ApiSse42Tests PRIVATE
+			SIMDLIB_API_PARTIAL_TRANSFER_TEST_WIDTH=128
 			SIMDLIB_LOGICAL_SHUFFLE_TEST_WIDTH=128
 			SIMDLIB_IMMEDIATE_CONTROL_TEST_WIDTH=128
 			SIMDLIB_COMPLETE_SHIFT_TEST_WIDTH=128)
@@ -243,6 +269,16 @@ if(SIMDLIB_BUILD_RUNTIME_TESTS)
     endif()
 
     if(SIMDLIB_BUILD_API_AVX2_TESTS)
+		simdlib_add_catch_test(ImplHalfTransfer256Tests tests/ImplementationHalfTransfer.tests.cpp
+			Implementation.HalfTransfer256 "IMPLEMENTATION;PARTIAL_TRANSFER;AVX2")
+		target_compile_definitions(ImplHalfTransfer256Tests PRIVATE
+			SIMDLIB_IMPLEMENTATION_HALF_TRANSFER_TEST_WIDTH=256)
+		if(SIMDLIB_MSVC_STYLE_DRIVER)
+			target_compile_options(ImplHalfTransfer256Tests PRIVATE /arch:AVX2)
+		else()
+			target_compile_options(ImplHalfTransfer256Tests PRIVATE -mavx2)
+		endif()
+
         simdlib_add_catch_test(LogicalShuffleImpl256Tests tests/LogicalShuffleImpl256.tests.cpp
             LogicalShuffle.Impl256 "LOGICAL_SHUFFLE;AVX2")
         if(SIMDLIB_MSVC_STYLE_DRIVER)
@@ -254,10 +290,12 @@ if(SIMDLIB_BUILD_RUNTIME_TESTS)
         simdlib_add_catch_test(ApiAvx2Tests tests/Api256.tests.cpp
             Api.AVX2 "AVX2")
 		target_sources(ApiAvx2Tests PRIVATE
+			tests/ApiPartialTransfer.tests.cpp
 			tests/LogicalShuffleApi.tests.cpp
 			tests/ImmediateControlSlowPaths.tests.cpp
 			tests/CompleteRegisterShift.tests.cpp)
 		target_compile_definitions(ApiAvx2Tests PRIVATE
+			SIMDLIB_API_PARTIAL_TRANSFER_TEST_WIDTH=256
 			SIMDLIB_LOGICAL_SHUFFLE_TEST_WIDTH=256
 			SIMDLIB_IMMEDIATE_CONTROL_TEST_WIDTH=256
 			SIMDLIB_COMPLETE_SHIFT_TEST_WIDTH=256)

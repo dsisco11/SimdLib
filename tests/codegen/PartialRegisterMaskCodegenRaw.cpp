@@ -44,3 +44,11 @@ simdlib_partial_register_codegen_import(typename SimdLib::Api<SIMDLIB_PARTIAL_MA
 {
 	return normalize_partial_mask_native(native);
 }
+
+/** @brief Raw Api mirror for the PartialRegister three-lane broadcast adapter. */
+extern "C" [[nodiscard]] typename SimdLib::Api<SIMDLIB_PARTIAL_MASK_CODEGEN_WIDTH, std::uint32_t>::vector_t
+simdlib_partial_register_codegen_broadcast(std::uint32_t value) noexcept
+{
+	using api_t = SimdLib::Api<SIMDLIB_PARTIAL_MASK_CODEGEN_WIDTH, std::uint32_t>;
+	return api_t::template broadcast_partial<3>(value);
+}

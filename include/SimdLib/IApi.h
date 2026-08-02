@@ -2,9 +2,11 @@
 
 #include <SimdLib/Config.h>
 
+#include <array>
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
+#include <span>
 #include <type_traits>
 #include <utility>
 
@@ -36,6 +38,73 @@ template <class api_t>
 concept Type = requires {
 	typename api_t::element_type;
 	typename api_t::vector_t;
+};
+
+/** @brief Reports whether an API exposes scalar broadcast. */
+template <class api_t>
+concept SetOne = Type<api_t> && requires(typename api_t::element_type value) { api_t::set1(value); };
+
+/** @brief Reports whether an API exposes zero-filling reverse lane construction. */
+template <class api_t, class... lane_types>
+concept SetReversePartial = Type<api_t> && requires(lane_types &&...lanes) { api_t::setr_partial(std::forward<lane_types>(lanes)...); };
+
+/** @brief Reports whether an API exposes scalar broadcast into an exact active-prefix lane count. */
+template <class api_t, std::size_t lane_count>
+concept BroadcastPartial = Type<api_t> && requires(typename api_t::element_type value) {
+	api_t::template broadcast_partial<lane_count>(value);
+};
+
+/** @brief Reports whether an API exposes exact-prefix element loading. */
+template <class api_t, std::size_t active_count>
+concept LoadPartial = Type<api_t> && requires(std::span<const typename api_t::element_type, active_count> source) {
+	api_t::template load_partial<active_count>(source);
+};
+
+/** @brief Reports whether an API exposes aligned exact-prefix element loading. */
+template <class api_t, std::size_t active_count>
+concept LoadPartialAligned = Type<api_t> && requires(std::span<const typename api_t::element_type, active_count> source) {
+	api_t::template load_partial_aligned<active_count>(source);
+};
+
+/** @brief Reports whether an API exposes exact-prefix byte loading. */
+template <class api_t, std::size_t active_byte_count>
+concept LoadBytesPartial = Type<api_t> && requires(std::span<const std::byte, active_byte_count> source) {
+	api_t::template load_bytes_partial<active_byte_count>(source);
+};
+
+/** @brief Reports whether an API exposes exact-prefix element storage. */
+template <class api_t, std::size_t active_count>
+concept StorePartial = Type<api_t> && requires(typename api_t::vector_t value, std::span<typename api_t::element_type, active_count> destination) {
+	api_t::template store_partial<active_count>(value, destination);
+};
+
+/** @brief Reports whether an API exposes aligned exact-prefix element storage. */
+template <class api_t, std::size_t active_count>
+concept StorePartialAligned =
+	Type<api_t> && requires(typename api_t::vector_t value, std::span<typename api_t::element_type, active_count> destination) {
+		api_t::template store_partial_aligned<active_count>(value, destination);
+	};
+
+/** @brief Reports whether an API exposes exact-prefix byte storage. */
+template <class api_t, std::size_t active_byte_count>
+concept StoreBytesPartial = Type<api_t> && requires(typename api_t::vector_t value, std::span<std::byte, active_byte_count> destination) {
+	api_t::template store_bytes_partial<active_byte_count>(value, destination);
+};
+
+/** @brief Reports whether an API exposes exactly sized prefix observation. */
+template <class api_t, std::size_t active_count>
+concept ToArrayPartial = Type<api_t> && requires(typename api_t::vector_t value) {
+	{ api_t::template to_array_partial<active_count>(value) } -> std::same_as<std::array<typename api_t::element_type, active_count>>;
+};
+
+/** @brief Reports whether an API exposes compile-time-selected lane extraction. */
+template <class api_t, std::size_t index>
+concept Extract = Type<api_t> && requires(typename api_t::vector_t value) { api_t::template extract<static_cast<int>(index)>(value); };
+
+/** @brief Reports whether an API exposes compile-time-selected lane insertion. */
+template <class api_t, std::size_t index>
+concept Insert = Type<api_t> && requires(typename api_t::vector_t value, typename api_t::element_type replacement) {
+	api_t::template insert<index>(value, replacement);
 };
 
 /** @brief Identifies a valid widening destination API shape. */

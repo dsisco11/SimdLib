@@ -127,9 +127,30 @@ template <std::size_t Width, class Element> [[nodiscard]] consteval bool constru
 	if (simd::to_array(constructed) != values)
 		return false;
 	constexpr auto partial = simd::template load_partial<simd::element_count - 1>(std::span<const Element>{values});
+	constexpr auto alignedPartial = simd::template load_partial_aligned<simd::element_count - 1>(std::span<const Element>{values});
 	auto partialExpected = values;
 	partialExpected.back() = Element{};
-	if (simd::to_array(partial) != partialExpected)
+	if (simd::to_array(partial) != partialExpected || simd::to_array(alignedPartial) != partialExpected ||
+		simd::template to_array_partial<simd::element_count - 1>(partial) !=
+			[]<std::size_t... indices>(const auto &source, std::index_sequence<indices...>) constexpr noexcept
+			{ return std::array<Element, sizeof...(indices)>{source[indices]...}; }(
+				values, std::make_index_sequence<simd::element_count - 1>{}))
+		return false;
+	std::array<Element, simd::element_count> partialStored{};
+	partialStored.fill(static_cast<Element>(99));
+	simd::template store_partial<simd::element_count - 1>(partial, std::span<Element>{partialStored});
+	for (std::size_t index = 0; index < simd::element_count - 1; ++index)
+		if (partialStored[index] != values[index])
+			return false;
+	if (partialStored.back() != static_cast<Element>(99))
+		return false;
+	std::array<Element, simd::element_count> alignedPartialStored{};
+	alignedPartialStored.fill(static_cast<Element>(98));
+	simd::template store_partial_aligned<simd::element_count - 1>(partial, std::span<Element>{alignedPartialStored});
+	for (std::size_t index = 0; index < simd::element_count - 1; ++index)
+		if (alignedPartialStored[index] != values[index])
+			return false;
+	if (alignedPartialStored.back() != static_cast<Element>(98))
 		return false;
 	if (simd::to_array(simd::setzero()) != std::array<Element, simd::element_count>{})
 		return false;
@@ -137,6 +158,10 @@ template <std::size_t Width, class Element> [[nodiscard]] consteval bool constru
 	std::array<Element, simd::element_count> broadcastExpected{};
 	broadcastExpected.fill(static_cast<Element>(7));
 	if (simd::to_array(simd::set1(static_cast<Element>(7))) != broadcastExpected)
+		return false;
+	auto partialBroadcastExpected = broadcastExpected;
+	partialBroadcastExpected.back() = Element{};
+	if (simd::to_array(simd::template broadcast_partial<simd::element_count - 1>(static_cast<Element>(7))) != partialBroadcastExpected)
 		return false;
 
 	constexpr auto setrValue = []<std::size_t... Indices>(std::index_sequence<Indices...>) constexpr noexcept

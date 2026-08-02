@@ -22,3 +22,11 @@ simdlib_partial_register_codegen_import(typename SimdLib::Api<SIMDLIB_PARTIAL_MA
 	using register_t = SimdLib::PartialRegister<std::uint32_t, SIMDLIB_PARTIAL_MASK_CODEGEN_WIDTH, 3>;
 	return register_t::from_native(native).to_native();
 }
+
+/** @brief Broadcasts one scalar directly into a three-lane partial register. */
+extern "C" [[nodiscard]] typename SimdLib::Api<SIMDLIB_PARTIAL_MASK_CODEGEN_WIDTH, std::uint32_t>::vector_t
+simdlib_partial_register_codegen_broadcast(std::uint32_t value) noexcept
+{
+	using register_t = SimdLib::PartialRegister<std::uint32_t, SIMDLIB_PARTIAL_MASK_CODEGEN_WIDTH, 3>;
+	return register_t::broadcast(value).native;
+}

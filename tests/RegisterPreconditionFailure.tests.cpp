@@ -109,3 +109,19 @@ TEST_CASE("PartialRegisterMask rejects a true inactive lane from direct aggregat
 	(void)value.to_native();
 	FAIL("PartialRegisterMask accepted a true inactive lane from direct aggregate initialization");
 }
+
+TEST_CASE("PartialRegister aligned load rejects a misaligned active source", "[simdlib][partial_register][preconditions]")
+{
+	using value_type = SimdLib::PartialRegister<std::uint32_t, 128, 3>;
+	alignas(value_type::byte_count) std::array<std::uint32_t, value_type::lane_count + 1> source{};
+	(void)value_type::load_aligned(std::span<const std::uint32_t, value_type::lane_count>{source.data() + 1, value_type::lane_count});
+	FAIL("PartialRegister aligned load accepted a misaligned active source");
+}
+
+TEST_CASE("PartialRegister aligned store rejects a misaligned active destination", "[simdlib][partial_register][preconditions]")
+{
+	using value_type = SimdLib::PartialRegister<std::uint32_t, 128, 3>;
+	alignas(value_type::byte_count) std::array<std::uint32_t, value_type::lane_count + 1> destination{};
+	value_type::zero().store_aligned(std::span<std::uint32_t, value_type::lane_count>{destination.data() + 1, value_type::lane_count});
+	FAIL("PartialRegister aligned store accepted a misaligned active destination");
+}
