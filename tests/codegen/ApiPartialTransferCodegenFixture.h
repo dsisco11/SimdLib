@@ -21,7 +21,7 @@ constexpr inline std::size_t active_byte_count = api_t::byte_count / 2;
 using partial_array_t = std::array<std::uint32_t, active_count>;
 
 /** @brief Broadcasts one scalar into exactly three active lanes and zero-fills the suffix. */
-extern "C" [[nodiscard]] vector_t simdlib_api_partial_codegen_broadcast(std::uint32_t value) noexcept
+extern "C" [[nodiscard]] vector_t simdlib_api_partial_codegen_broadcast_partial(std::uint32_t value) noexcept
 {
 #if SIMDLIB_CODEGEN_USE_API
 	return api_t::template broadcast_partial<3>(value);

@@ -146,7 +146,12 @@ template <class element_t, std::size_t bits, std::size_t active_lane_count>
 template <class element_t, std::size_t bits, std::size_t... active_lane_counts>
 [[nodiscard]] bool has_all_active_counts(std::index_sequence<active_lane_counts...>)
 {
-	return (has_construction_transfer_contract<element_t, bits, active_lane_counts + 1>() && ...);
+	return ([]<std::size_t active_lane_count>() {
+		if constexpr (SimdLib::PartialRegisterAvailable<element_t, bits, active_lane_count>)
+			return has_construction_transfer_contract<element_t, bits, active_lane_count>();
+		else
+			return true;
+	}.template operator()<active_lane_counts + 1>() && ...);
 }
 
 /** @brief Reports whether the full supported element-type matrix passes for one native width. */
@@ -171,8 +176,8 @@ TEST_CASE("PartialRegister construction and transfer preserve every 128-bit part
 }
 
 #if SIMDLIB_PARTIAL_REGISTER_TEST_ENABLE_256
-/** @brief Verifies exact-extent construction, transfer, and observation for every 256-bit partial geometry. */
-TEST_CASE("PartialRegister construction and transfer preserve every 256-bit partial extent", "[PARTIAL_REGISTER][AVX2]")
+/** @brief Verifies exact-extent construction, transfer, and observation for every permitted 256-bit partial geometry. */
+TEST_CASE("PartialRegister construction and transfer preserve every permitted 256-bit partial extent", "[PARTIAL_REGISTER][AVX2]")
 {
 	REQUIRE(has_construction_transfer_matrix<256>());
 }

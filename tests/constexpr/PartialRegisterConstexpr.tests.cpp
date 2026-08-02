@@ -47,7 +47,17 @@ consteval bool has_constexpr_partial_lane_access() noexcept
 	return original.template lane<0>() == 11U && replaced.template lane<0>() == 29U && native[0] == 29U && has_zero_bits(native[1]);
 }
 
+/** @brief Verifies constant-evaluated extrema positions ignore the inactive zero suffix. */
+consteval bool has_constexpr_partial_positions() noexcept
+{
+	using value_t = SimdLib::PartialRegister<std::int32_t, 128, 3>;
+	const auto value = value_t::from_lanes(5, 2, 9);
+	const auto ties = value_t::from_lanes(4, 4, 4);
+	return value.min_position() == 1 && value.max_position() == 2 && ties.min_position() == 0 && ties.max_position() == 0;
+}
+
 static_assert(has_constexpr_partial_construction());
 static_assert(has_constexpr_partial_lane_access());
+static_assert(has_constexpr_partial_positions());
 
 } // namespace

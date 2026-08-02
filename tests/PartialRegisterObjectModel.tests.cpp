@@ -71,7 +71,8 @@ template <class element_t, std::size_t bits, std::size_t active_lane_count> void
 template <class element_t, std::size_t bits> void require_native_boundary_extremes()
 {
 	using api_t = SimdLib::Api<bits, element_t>;
-	require_native_boundary_contract<element_t, bits, 1>();
+	constexpr std::size_t first_active_lane_count = bits == 256 ? 128 / (sizeof(element_t) * 8) + 1 : 1;
+	require_native_boundary_contract<element_t, bits, first_active_lane_count>();
 	require_native_boundary_contract<element_t, bits, api_t::element_count - 1>();
 }
 
@@ -134,7 +135,8 @@ template <class element_t, std::size_t bits, std::size_t active_lane_count> void
 template <class element_t, std::size_t bits> void require_mask_contract_extremes()
 {
 	using api_t = SimdLib::Api<bits, element_t>;
-	require_mask_contract<element_t, bits, 1>();
+	constexpr std::size_t first_active_lane_count = bits == 256 ? 128 / (sizeof(element_t) * 8) + 1 : 1;
+	require_mask_contract<element_t, bits, first_active_lane_count>();
 	require_mask_contract<element_t, bits, api_t::element_count - 1>();
 }
 
@@ -142,7 +144,10 @@ template <class element_t, std::size_t bits> void require_mask_contract_extremes
 template <class element_t, std::size_t bits, std::size_t... active_lane_counts>
 void require_mask_contracts(std::index_sequence<active_lane_counts...>)
 {
-	(require_mask_contract<element_t, bits, active_lane_counts + 1>(), ...);
+	([]<std::size_t active_lane_count>() {
+		if constexpr (SimdLib::PartialRegisterAvailable<element_t, bits, active_lane_count>)
+			require_mask_contract<element_t, bits, active_lane_count>();
+	}.template operator()<active_lane_counts + 1>(), ...);
 }
 
 /** @brief Verifies all supported predicate extents for one element and native width. */

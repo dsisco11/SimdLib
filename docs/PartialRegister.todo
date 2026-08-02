@@ -50,35 +50,35 @@ PartialRegister Implementation Plan:
     ☐ Cover `to_array()`.
     ☐ Cover `lane<index>()`.
     ☐ Cover `with_lane<index>(replacement)`.
-    ☐ Cover binary `operator+`.
-    ☐ Cover binary `operator-`.
-    ☐ Cover `operator*`.
-    ☐ Cover `operator/`.
-    ☐ Cover `operator%`.
-    ☐ Cover unary `operator-`.
-    ☐ Cover `min(rhs)`.
-    ☐ Cover `max(rhs)`.
-    ☐ Cover `absolute()`.
-    ☐ Cover `sqrt()`.
-    ☐ Cover `average(rhs)`.
-    ☐ Cover `multiply_add(rhs, addend)`.
-    ☐ Cover `magnitude()`.
-    ☐ Cover `magnitude_checked()`.
-    ☐ Cover `normalize()`.
-    ☐ Cover `horizontal_add(rhs)`.
-    ☐ Cover `horizontal_subtract(rhs)`.
-    ☐ Cover `multiply_add_adjacent(rhs)` and define its partial result alias.
-    ☐ Cover `multiply_add_unsigned_signed_bytes(rhs)` and define its partial result alias.
-    ☐ Cover `sum_absolute_byte_differences(rhs)` and define its partial result alias.
-    ☐ Cover `multi_sum_absolute_byte_differences<immediate>(rhs)` and define its partial result alias.
-    ☐ Cover `min_position()`.
-    ☐ Cover `max_position()`.
-    ☐ Cover `add_saturated(rhs)`.
-    ☐ Cover `subtract_saturated(rhs)`.
-    ☐ Cover `horizontal_add_saturated(rhs)`.
-    ☐ Cover `horizontal_subtract_saturated(rhs)`.
-    ☐ Cover `add_subtract(rhs)`.
-    ☐ Cover `dot_product<immediate>(rhs)`.
+    ☒ Cover binary `operator+`.
+    ☒ Cover binary `operator-`.
+    ☒ Cover `operator*`.
+    ☒ Cover `operator/`.
+    ☒ Cover `operator%`.
+    ☒ Cover unary `operator-`.
+    ☒ Cover `min(rhs)`.
+    ☒ Cover `max(rhs)`.
+    ☒ Cover `absolute()`.
+    ☒ Cover `sqrt()`.
+    ☒ Cover `average(rhs)`.
+    ☒ Cover `multiply_add(rhs, addend)`.
+    ☒ Cover `magnitude()`.
+    ☒ Cover `magnitude_checked()`.
+    ☒ Cover `normalize()`.
+    ☒ Cover `horizontal_add(rhs)`.
+    ☒ Cover `horizontal_subtract(rhs)`.
+    ☒ Cover `multiply_add_adjacent(rhs)` and define its partial result alias.
+    ☒ Cover `multiply_add_unsigned_signed_bytes(rhs)` and define its partial result alias.
+    ☒ Cover `sum_absolute_byte_differences(rhs)` and define its partial result alias.
+    ☒ Cover `multi_sum_absolute_byte_differences<immediate>(rhs)` and define its partial result alias.
+    ☒ Cover `min_position()`.
+    ☒ Cover `max_position()`.
+    ☒ Cover `add_saturated(rhs)`.
+    ☒ Cover `subtract_saturated(rhs)`.
+    ☒ Cover `horizontal_add_saturated(rhs)`.
+    ☒ Cover `horizontal_subtract_saturated(rhs)`.
+    ☒ Cover `add_subtract(rhs)`.
+    ☒ Cover `dot_product<immediate>(rhs)`.
     ☐ Cover `operator&`.
     ☐ Cover `operator|`.
     ☐ Cover `operator^`.
@@ -165,16 +165,31 @@ PartialRegister Implementation Plan:
     ☒ Add compile-failure probes for zero or excessive active counts, oversized lane lists, full-register transfer extents, inactive lane indices, implicit scalar/native conversion, and unavailable width cells; add checks-enabled coverage for violated direct native aggregate preconditions.
 
   Phase 5 - Implement Arithmetic and Specialized Operations:
-    ☐ Implement addition, subtraction, multiplication, negation, minimum, maximum, absolute value, square root, average, saturating arithmetic, and multiply-add forms according to the operation ledger.
-    ☐ Retain an unnormalized result only when the selected `Api` operation is proven to map zero inactive inputs to all-bits-zero inactive outputs for every supported element type and compiler profile.
-    ☐ Normalize results for operations whose inactive output is not closed over all-bits-zero inputs.
-    ☐ For division and modulus, provide valid neutral inactive divisor lanes before invoking `Api`, preserve existing active-lane preconditions, and restore the inactive result to zero.
-    ☐ Define whether magnitude, checked magnitude, and normalization operate over active lanes only; ensure inactive lanes do not contribute to scalar intermediates or error conditions.
-    ☐ Define the logical output layout and active-lane count for adjacent, horizontal, SAD, multi-SAD, dot-product, and other lane-combining operations before implementing them.
-    ☐ Return `Register`, `PartialRegister`, or a scalar deliberately for each type-changing or lane-reducing specialized operation; do not choose a result solely because it matches the copied signature.
-    ☐ Ensure scalar reductions, minimum/maximum positions, and reduction predicates inspect only active lanes and report logical indices.
-    ☐ Add independent scalar-oracle tests for active results and bitwise-zero assertions for every inactive result lane.
-    ☐ Add checks-enabled negative tests for active-lane division, modulus, normalization, and other retained preconditions without triggering failures from sanitized inactive operands.
+    ☒ Implement addition, subtraction, multiplication, negation, minimum, maximum, absolute value, square root, average, saturating arithmetic, and multiply-add forms according to the operation ledger.
+    ☒ Retain an unnormalized result only when the selected `Api` operation is proven to map zero inactive inputs to all-bits-zero inactive outputs for every supported element type and compiler profile.
+    ☒ Normalize results for operations whose inactive output is not closed over all-bits-zero inputs.
+    ☒ For division and modulus, provide valid neutral inactive divisor lanes before invoking `Api`, preserve existing active-lane preconditions, and restore the inactive result to zero.
+    ☒ Define whether magnitude, checked magnitude, and normalization operate over active lanes only; ensure inactive lanes do not contribute to scalar intermediates or error conditions.
+    ☒ Define the logical output layout and active-lane count for adjacent, horizontal, SAD, multi-SAD, dot-product, and other lane-combining operations before implementing them.
+    ☒ Return `Register`, `PartialRegister`, or a scalar deliberately for each type-changing or lane-reducing specialized operation; do not choose a result solely because it matches the copied signature.
+    ☒ Ensure scalar reductions, minimum/maximum positions, and reduction predicates inspect only active lanes and report logical indices.
+    ☒ Add independent scalar-oracle tests for active results and bitwise-zero assertions for every inactive result lane.
+    ☒ Add checks-enabled negative tests for active-lane division, modulus, and other retained preconditions without triggering failures from sanitized inactive operands; retain positive exceptional-result coverage for normalization.
+
+  Phase 5 Review Corrections:
+    ☒ Correct `partial_multiply_add_adjacent_result_t` for 256-bit signed and unsigned 64-bit sources whose active prefix crosses the 128-bit-group boundary: return a complete `Register<element_t, 256>` that preserves the API's sparse results in physical lanes zero and two, retain `(active_lane_count + 1) / 2` only for naturally contiguous result layouts, update the operation ledger, and add exact result-type and scalar-oracle coverage.
+    ☒ Reject `PartialRegister` specializations at compile time when a 256-bit register's active payload does not occupy any lane in the upper 128-bit group; require `active_lane_count * sizeof(element_t) * 8 > 128` for 256-bit specializations, retain the existing strict partial-count constraints, update the public contract and operation ledger, and add compile-failure probes for the last wholly-low-half count and positive compile-time coverage for the first count that crosses the 128-bit boundary for every supported element type.
+    ☒ Add a complete compile-time arithmetic and specialized-operation surface matrix equivalent to `RegisterOperationMatrix.tests.cpp`, covering every supported element type and width, exact operation availability, invalid immediate boundaries, invalid operand/source types, and absence of unsupported forms.
+    ☒ Add exact specialized-result alias assertions equivalent to the `Register` specialized surface tests, covering every supported element type and width, every valid active-lane geometry, every distinct contiguous or sparse physical result layout, and compile-time rejection of invalid source geometries and unavailable operation cells.
+    ☒ Replace representative-type specialized runtime coverage with templated independent scalar-oracle matrices equivalent to `RegisterSpecializedOperations.tests.cpp`, covering every supported element type and width and computing expected results without calling the SIMD implementation under test.
+    ☒ Add focused physical-layout boundary cases for operations defined independently within 128-bit groups, including the first permitted 256-bit active count crossing the group boundary, odd active counts, partially occupied upper groups, and every operation whose result lanes are sparse or whose result active count changes.
+    ☒ Add complete immediate-control runtime matrices for retained specialized operations, including zero, maximum, mixed-bit, and representative interior controls, while keeping invalid immediate values in compile-time rejection coverage.
+    ☒ Register the PartialRegister arithmetic and specialized-operation suites in the existing SSE4.2 128-bit and AVX2 256-bit runtime executables so the same test machinery is exercised under both established ISA profiles.
+    ☒ Keep positive checks-enabled behavior tests in the normal runtime suites and add one isolated failure case per actual retained precondition to the existing checks-enabled precondition executable; do not introduce a normalization death test because normalization retains the `Register` contract.
+    ☒ Add paired PartialRegister wrapper and raw-API generated-code fixtures for every performance-sensitive arithmetic and specialized operation, register their symbols in the existing SSE4.2 and AVX2 codegen profiles, and require the same disassembly-comparison gates used by the corresponding `Register` fixtures.
+    ☒ Replace the inaccurate normalization negative-precondition task with the retained `Register` contract: keep checks-enabled failure tests for division, modulus, and every actual retained precondition, and add checks-enabled positive coverage proving zero-magnitude normalization follows the selected floating-point behavior while the inactive suffix remains bitwise zero.
+    ☒ Remove avoidable inactive-suffix normalization and its extra availability constraints from zero-closed operations, beginning with `min()` and `max()`; audit `dot_product()` for redundant simultaneous output restrictions and projection, then add strict wrapper/raw codegen comparisons for every changed operation.
+    ☒ Constrain every partial specialized-result alias and lane-count helper to a valid partial source geometry and the corresponding operation's exact availability contract; in particular, restrict checked-magnitude aliases to integral sources satisfying `IApi::MagnitudeChecked`, and add compile-time rejection coverage for floating, zero-lane, full-lane, excessive-lane, and unavailable type/width cells.
 
   Phase 6 - Implement Bitwise, Shift, and Comparison Operations:
     ☐ Implement bitwise AND, OR, XOR, NOT, and AND-NOT with explicit inactive-lane closure or normalization decisions.

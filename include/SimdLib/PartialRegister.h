@@ -7,12 +7,14 @@
 #endif
 
 #include <SimdLib/PartialRegisterFwd.h>
+#include <SimdLib/Register.h>
 
 #include <array>
 #include <bit>
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 #include <span>
 #include <utility>
 
@@ -28,7 +30,7 @@ namespace SimdLib
  * @remarks The type is available only for a non-empty, non-complete active prefix.
  */
 template <class element_t, std::size_t bits, std::size_t active_lane_count>
-	requires RegisterAvailable<element_t, bits> && (active_lane_count > 0) && (active_lane_count < Api<bits, element_t>::element_count)
+	requires PartialRegisterAvailable<element_t, bits, active_lane_count>
 class PartialRegister final
 {
   public:
@@ -44,11 +46,163 @@ class PartialRegister final
 	constexpr static inline std::size_t active_byte_count = lane_count * sizeof(element_type);
 	constexpr static inline std::size_t inactive_lane_count = native_lane_count - lane_count;
 
+  private:
+	/** @brief Compile-time inactive-lane divisor identity used by division and modulus. */
+	constexpr static inline std::array<element_type, native_lane_count> inactive_divisor_identity = []() constexpr {
+		std::array<element_type, native_lane_count> result{};
+		for (std::size_t lane = lane_count; lane < native_lane_count; ++lane)
+			result[lane] = element_type{1};
+		return result;
+	}();
+
+	/** @brief Compile-time inactive-lane maximum used to exclude the suffix from minimum-position searches. */
+	constexpr static inline std::array<element_type, native_lane_count> inactive_min_position_identity = []() constexpr {
+		std::array<element_type, native_lane_count> result{};
+		for (std::size_t lane = lane_count; lane < native_lane_count; ++lane)
+			result[lane] = std::numeric_limits<element_type>::max();
+		return result;
+	}();
+
+	/** @brief Compile-time inactive-lane minimum used to exclude the suffix from maximum-position searches. */
+	constexpr static inline std::array<element_type, native_lane_count> inactive_max_position_identity = []() constexpr {
+		std::array<element_type, native_lane_count> result{};
+		for (std::size_t lane = lane_count; lane < native_lane_count; ++lane)
+			result[lane] = std::numeric_limits<element_type>::lowest();
+		return result;
+	}();
+
+	/** @brief Compile-time all-bits-one active prefix and all-bits-zero inactive suffix. */
+	constexpr static inline std::array<element_type, native_lane_count> active_lane_filter = []() constexpr {
+		std::array<element_type, native_lane_count> result{};
+		std::array<std::byte, sizeof(element_type)> one_bytes{};
+		for (auto &byte : one_bytes)
+			byte = std::byte{0xff};
+		const auto one = std::bit_cast<element_type>(one_bytes);
+		for (std::size_t lane = 0; lane < lane_count; ++lane)
+			result[lane] = one;
+		return result;
+	}();
+
+	/**
+	 * @brief Wraps a lane-combining native result in its deliberate partial or complete result type.
+	 * @tparam result_t Public result type selected by the corresponding result alias.
+	 * @param native Native result produced by the source API operation.
+	 * @return Complete result unchanged, or partial result with its inactive suffix cleared.
+	 */
+	template <class result_t, class result_native_t>
+	[[nodiscard]] static result_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten)
+		make_specialized_result(result_native_t native) noexcept
+	{
+		if constexpr (result_t::lane_count == result_t::api_type::element_count)
+			return result_t{native};
+		else
+			return result_t::from_native(native);
+	}
+
+	/**
+	 * @brief Reports whether a dot-product immediate writes only active result lanes.
+	 * @tparam imm8 Intrinsic dot-product control byte.
+	 * @return True when every selected destination position is active in every physical 128-bit group.
+	 */
+	template <int imm8> [[nodiscard]] consteval static bool dot_product_outputs_are_active() noexcept
+	{
+		constexpr std::size_t group_lane_count = 128 / (sizeof(element_type) * 8);
+		for (std::size_t lane = lane_count; lane < native_lane_count; ++lane)
+			if ((imm8 & (1 << (lane % group_lane_count))) != 0)
+				return false;
+		return true;
+	}
+
+	/**
+	 * @brief Validates division and modulus preconditions over active lanes only when checks are enabled.
+	 * @param dividends Native dividend lanes with a zero inactive suffix.
+	 * @param divisors Native divisor lanes with a zero inactive suffix.
+	 */
+	static void SIMD_FLAGS(In, RegisterOnly, ForceInline, Flatten)
+		validate_active_divisors(native_type dividends, native_type divisors) noexcept
+	{
+#if SIMDLIB_ENABLE_CHECKS
+		using mask_t = typename api_type::mask_t;
+		constexpr mask_t active_bits = (mask_t{1} << lane_count) - mask_t{1};
+		const auto zero_divisor_bits = api_type::cmp_eq_slim(divisors, api_type::setzero()) & active_bits;
+		SIMDLIB_PRECONDITION(zero_divisor_bits == 0, "PartialRegister active divisor lanes must be nonzero");
+		if constexpr (std::is_integral_v<element_type> && std::is_signed_v<element_type>)
+		{
+			const auto minimum_bits = api_type::cmp_eq_slim(dividends, api_type::set1(std::numeric_limits<element_type>::lowest()));
+			const auto negative_one_bits = api_type::cmp_eq_slim(divisors, api_type::set1(element_type{-1}));
+			SIMDLIB_PRECONDITION((minimum_bits & negative_one_bits & active_bits) == 0,
+				"PartialRegister signed minimum cannot be divided by negative one");
+		}
+#else
+		(void)dividends;
+		(void)divisors;
+#endif
+	}
+
+	/**
+	 * @brief Clears inactive high lanes from an arbitrary native value.
+	 * @param native Native value whose logical low prefix is retained.
+	 * @return Native value with an all-bits-zero inactive suffix.
+	 */
+	[[nodiscard]] constexpr static native_type SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) normalize_native(native_type native) noexcept
+		requires IApi::BitwiseAnd<api_type>
+	{
+		if consteval
+		{
+			auto lanes = api_type::to_array(native);
+			for (std::size_t lane = lane_count; lane < native_lane_count; ++lane)
+				lanes[lane] = element_type{};
+			return api_type::construct(lanes);
+		}
+		return api_type::bitwise_and(native, api_type::construct(active_lane_filter));
+	}
+
+	/**
+	 * @brief Validates the bit representation of every inactive lane when checks are enabled.
+	 * @param native Native value expected to have an all-bits-zero inactive suffix.
+	 * @return The unchanged native value.
+	 */
+	[[nodiscard]] constexpr static native_type validate_native(native_type native) noexcept
+	{
+#if SIMDLIB_ENABLE_CHECKS
+		using byte_api_type = Api<register_width, std::uint8_t>;
+		const auto bytes = api_type::template bit_cast<std::uint8_t>(native);
+		const auto zero_bytes = byte_api_type::compare_equal(bytes, byte_api_type::setzero());
+		const auto zero_bits = byte_api_type::movemask_slim(zero_bytes);
+		for (std::size_t byte = active_byte_count; byte < byte_count; ++byte)
+			SIMDLIB_PRECONDITION((zero_bits & (typename byte_api_type::mask_t{1} << byte)) != 0,
+				"PartialRegister inactive lanes must have an all-bits-zero representation");
+#endif
+		return native;
+	}
+
+  public:
+
 	/**
 	 * @brief Owns the partial native register represented by this aggregate.
 	 * @pre Direct aggregate initialization must supply a value with a bitwise-zero inactive suffix.
 	 */
 	native_type native = api_type::setzero();
+
+	/**
+	 * @brief Imports a native value after clearing its inactive high-lane suffix.
+	 * @param native Native register value whose logical low prefix is retained.
+	 * @return A PartialRegister with a bitwise-zero inactive suffix.
+	 */
+	[[nodiscard]] constexpr static PartialRegister SIMD_FLAGS(Out, RegisterOnly, ForceInline, Flatten) from_native(native_type native) noexcept
+		requires IApi::BitwiseAnd<api_type>
+	{
+		return PartialRegister{normalize_native(native)};
+	}
+
+	/**
+	 * @brief Exports the sole native register value by value.
+	 * @return A native value whose inactive high-lane suffix is all-bits zero.
+	 */
+	[[nodiscard]] constexpr native_type SIMD_FLAGS(In, ForceInline, Flatten) to_native(this PartialRegister value) noexcept
+	{
+		return validate_native(value.native);
+	}
 
 	/**
 	 * @brief Returns a value with every active and inactive lane set to all-bits zero.
@@ -220,75 +374,452 @@ class PartialRegister final
 		return value;
 	}
 
+#pragma region Arithmetic Operations
+
 	/**
-	 * @brief Imports a native value after clearing its inactive high-lane suffix.
-	 * @param native Native register value whose logical low prefix is retained.
-	 * @return A PartialRegister with a bitwise-zero inactive suffix.
+	 * @brief Adds corresponding active lanes and preserves the zero inactive suffix.
+	 * @param lhs Left active-lane addends.
+	 * @param rhs Right active-lane addends.
+	 * @return Same-shaped partial register containing the active sums and inactive zeros.
+	 * @remarks Available exactly when `IApi::Add<api_type>` is satisfied.
 	 */
-	[[nodiscard]] constexpr static PartialRegister SIMD_FLAGS(Out, RegisterOnly, ForceInline, Flatten) from_native(native_type native) noexcept
-		requires IApi::BitwiseAnd<api_type>
+	[[nodiscard]] PartialRegister SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten)
+		operator+(this PartialRegister lhs, PartialRegister rhs) noexcept
+		requires IApi::Add<api_type>
 	{
-		return PartialRegister{normalize_native(native)};
+		return PartialRegister{api_type::add(lhs.native, rhs.native)};
 	}
 
 	/**
-	 * @brief Exports the sole native register value by value.
-	 * @return A native value whose inactive high-lane suffix is all-bits zero.
+	 * @brief Subtracts corresponding active lanes and clears any inactive negative-zero representations.
+	 * @param lhs Active-lane minuends.
+	 * @param rhs Active-lane subtrahends.
+	 * @return Same-shaped partial register containing the active differences and inactive bitwise zeros.
+	 * @remarks Floating results require suffix normalization. Available when the listed `IApi` contracts are satisfied.
 	 */
-	[[nodiscard]] constexpr native_type SIMD_FLAGS(In, ForceInline, Flatten) to_native(this PartialRegister value) noexcept
+	[[nodiscard]] PartialRegister SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten)
+		operator-(this PartialRegister lhs, PartialRegister rhs) noexcept
+		requires IApi::Subtract<api_type> && (!std::is_floating_point_v<element_type> || IApi::BitwiseAnd<api_type>)
 	{
-		return validate_native(value.native);
-	}
-
-  private:
-	/** @brief Compile-time all-bits-one active prefix and all-bits-zero inactive suffix. */
-	constexpr static inline std::array<element_type, native_lane_count> active_lane_filter = []() constexpr {
-		std::array<element_type, native_lane_count> result{};
-		std::array<std::byte, sizeof(element_type)> one_bytes{};
-		for (auto &byte : one_bytes)
-			byte = std::byte{0xff};
-		const auto one = std::bit_cast<element_type>(one_bytes);
-		for (std::size_t lane = 0; lane < lane_count; ++lane)
-			result[lane] = one;
-		return result;
-	}();
-
-	/**
-	 * @brief Clears inactive high lanes from an arbitrary native value.
-	 * @param native Native value whose logical low prefix is retained.
-	 * @return Native value with an all-bits-zero inactive suffix.
-	 */
-	[[nodiscard]] constexpr static native_type SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) normalize_native(native_type native) noexcept
-		requires IApi::BitwiseAnd<api_type>
-	{
-		if consteval
-		{
-			auto lanes = api_type::to_array(native);
-			for (std::size_t lane = lane_count; lane < native_lane_count; ++lane)
-				lanes[lane] = element_type{};
-			return api_type::construct(lanes);
-		}
-		return api_type::bitwise_and(native, api_type::construct(active_lane_filter));
+		const auto result = api_type::subtract(lhs.native, rhs.native);
+		if constexpr (std::is_floating_point_v<element_type>)
+			return PartialRegister{normalize_native(result)};
+		else
+			return PartialRegister{result};
 	}
 
 	/**
-	 * @brief Validates the bit representation of every inactive lane when checks are enabled.
-	 * @param native Native value expected to have an all-bits-zero inactive suffix.
-	 * @return The unchanged native value.
+	 * @brief Multiplies corresponding active lanes and preserves the zero inactive suffix.
+	 * @param lhs Left active-lane factors.
+	 * @param rhs Right active-lane factors.
+	 * @return Same-shaped partial register containing the active products and inactive zeros.
+	 * @remarks Available exactly when `IApi::Multiply<api_type>` is satisfied.
 	 */
-	[[nodiscard]] constexpr static native_type validate_native(native_type native) noexcept
+	[[nodiscard]] PartialRegister SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten)
+		operator*(this PartialRegister lhs, PartialRegister rhs) noexcept
+		requires IApi::Multiply<api_type>
 	{
-#if SIMDLIB_ENABLE_CHECKS
-		using byte_api_type = Api<register_width, std::uint8_t>;
-		const auto bytes = api_type::template bit_cast<std::uint8_t>(native);
-		const auto zero_bytes = byte_api_type::compare_equal(bytes, byte_api_type::setzero());
-		const auto zero_bits = byte_api_type::movemask_slim(zero_bytes);
-		for (std::size_t byte = active_byte_count; byte < byte_count; ++byte)
-			SIMDLIB_PRECONDITION((zero_bits & (typename byte_api_type::mask_t{1} << byte)) != 0,
-				"PartialRegister inactive lanes must have an all-bits-zero representation");
-#endif
-		return native;
+		return PartialRegister{api_type::multiply(lhs.native, rhs.native)};
 	}
+
+	/**
+	 * @brief Divides corresponding active lanes after replacing inactive divisors with one.
+	 * @param lhs Active-lane dividends.
+	 * @param rhs Active-lane divisors.
+	 * @return Same-shaped partial register containing active quotients and inactive bitwise zeros.
+	 * @pre Every active divisor is nonzero and signed minimum is not divided by negative one.
+	 * @remarks Available when the listed `IApi` contracts are satisfied.
+	 */
+	[[nodiscard]] PartialRegister SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten)
+		operator/(this PartialRegister lhs, PartialRegister rhs) noexcept
+		requires IApi::Divide<api_type> && IApi::BitwiseOr<api_type> && IApi::BitwiseAnd<api_type>
+	{
+		validate_active_divisors(lhs.native, rhs.native);
+		const auto divisors = api_type::bitwise_or(rhs.native, api_type::construct(PartialRegister::inactive_divisor_identity));
+		return PartialRegister{normalize_native(api_type::divide(lhs.native, divisors))};
+	}
+
+	/**
+	 * @brief Computes corresponding active-lane remainders after replacing inactive divisors with one.
+	 * @param lhs Active-lane dividends.
+	 * @param rhs Active-lane divisors.
+	 * @return Same-shaped partial register containing active remainders and inactive bitwise zeros.
+	 * @pre Every active divisor is nonzero and signed minimum is not divided by negative one.
+	 * @remarks Available when the listed `IApi` contracts are satisfied.
+	 */
+	[[nodiscard]] PartialRegister SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten)
+		operator%(this PartialRegister lhs, PartialRegister rhs) noexcept
+		requires IApi::Modulus<api_type> && IApi::BitwiseOr<api_type> && IApi::BitwiseAnd<api_type>
+	{
+		validate_active_divisors(lhs.native, rhs.native);
+		const auto divisors = api_type::bitwise_or(rhs.native, api_type::construct(PartialRegister::inactive_divisor_identity));
+		return PartialRegister{normalize_native(api_type::modulus(lhs.native, divisors))};
+	}
+
+	/**
+	 * @brief Negates every active lane and clears negative-zero bit patterns from the inactive suffix.
+	 * @param value Active lanes to negate.
+	 * @return Same-shaped partial register containing active negations and inactive bitwise zeros.
+	 * @remarks Available when `IApi::Negate<api_type>` and `IApi::BitwiseAnd<api_type>` are satisfied.
+	 */
+	[[nodiscard]] PartialRegister SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten)
+		operator-(this PartialRegister value) noexcept
+		requires IApi::Negate<api_type> && IApi::BitwiseAnd<api_type>
+	{
+		return PartialRegister{normalize_native(api_type::negate(value.native))};
+	}
+
+#pragma endregion
+#pragma region Specialized Arithmetic and Reductions
+
+	/**
+	 * @brief Selects the intrinsic-defined minimum for each active lane and clears the suffix.
+	 * @param lhs First active-lane candidates.
+	 * @param rhs Second active-lane candidates.
+	 * @return Same-shaped partial register containing active minima and inactive bitwise zeros.
+	 * @remarks Available when `IApi::Min<api_type>` and `IApi::BitwiseAnd<api_type>` are satisfied.
+	 */
+	[[nodiscard]] PartialRegister SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten)
+		min(this PartialRegister lhs, PartialRegister rhs) noexcept
+		requires IApi::Min<api_type>
+	{
+		return PartialRegister{api_type::min(lhs.native, rhs.native)};
+	}
+
+	/**
+	 * @brief Selects the intrinsic-defined maximum for each active lane and clears the suffix.
+	 * @param lhs First active-lane candidates.
+	 * @param rhs Second active-lane candidates.
+	 * @return Same-shaped partial register containing active maxima and inactive bitwise zeros.
+	 * @remarks Available when `IApi::Max<api_type>` and `IApi::BitwiseAnd<api_type>` are satisfied.
+	 */
+	[[nodiscard]] PartialRegister SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten)
+		max(this PartialRegister lhs, PartialRegister rhs) noexcept
+		requires IApi::Max<api_type>
+	{
+		return PartialRegister{api_type::max(lhs.native, rhs.native)};
+	}
+
+	/**
+	 * @brief Computes the absolute value of each active lane and preserves inactive zeros.
+	 * @param value Active lanes whose absolute values are requested.
+	 * @return Same-shaped partial register containing active absolute values and inactive zeros.
+	 * @remarks Available exactly when `IApi::Absolute<api_type>` is satisfied.
+	 */
+	[[nodiscard]] PartialRegister SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten)
+		absolute(this PartialRegister value) noexcept
+		requires IApi::Absolute<api_type>
+	{
+		return PartialRegister{api_type::absolute(value.native)};
+	}
+
+	/**
+	 * @brief Computes the square root of each active lane and preserves inactive positive zeros.
+	 * @param value Active lanes whose square roots are requested.
+	 * @return Same-shaped partial register containing active square roots and inactive positive zeros.
+	 * @remarks Exceptional active inputs follow the API contract. Available exactly when `IApi::Sqrt<api_type>` is satisfied.
+	 */
+	[[nodiscard]] PartialRegister SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten)
+		sqrt(this PartialRegister value) noexcept
+		requires IApi::Sqrt<api_type>
+	{
+		return PartialRegister{api_type::sqrt(value.native)};
+	}
+
+	/**
+	 * @brief Computes the intrinsic-defined average of corresponding active lanes.
+	 * @param lhs Left active-lane inputs.
+	 * @param rhs Right active-lane inputs.
+	 * @return Same-shaped partial register containing active averages and inactive zeros.
+	 * @remarks Rounding follows the API contract. Available exactly when `IApi::Average<api_type>` is satisfied.
+	 */
+	[[nodiscard]] PartialRegister SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten)
+		average(this PartialRegister lhs, PartialRegister rhs) noexcept
+		requires IApi::Average<api_type>
+	{
+		return PartialRegister{api_type::avg(lhs.native, rhs.native)};
+	}
+
+	/**
+	 * @brief Multiplies corresponding active lanes and adds the corresponding active addend.
+	 * @param lhs Left active-lane multiplicands.
+	 * @param rhs Right active-lane multiplicands.
+	 * @param addend Active-lane addends.
+	 * @return Same-shaped partial register containing active multiply-add results and inactive zeros.
+	 * @remarks Fusion follows the API configuration. Available exactly when `IApi::MultiplyAdd<api_type>` is satisfied.
+	 */
+	[[nodiscard]] PartialRegister SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten)
+		multiply_add(this PartialRegister lhs, PartialRegister rhs, PartialRegister addend) noexcept
+		requires IApi::MultiplyAdd<api_type>
+	{
+		return PartialRegister{api_type::multiply_add(lhs.native, rhs.native, addend.native)};
+	}
+
+	/**
+	 * @brief Computes the Register-defined magnitude for each 128-bit group containing active lanes.
+	 * @param value Active lanes contributing to each grouped magnitude; inactive lanes contribute zero.
+	 * @return Same-shaped partial result with the API-defined active layout and inactive bitwise zeros.
+	 * @pre Every active integer-group magnitude is representable in `element_type`.
+	 * @remarks Available when `IApi::Magnitude<api_type>` and `IApi::BitwiseAnd<api_type>` are satisfied.
+	 */
+	[[nodiscard]] PartialRegister SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten)
+		magnitude(this PartialRegister value) noexcept
+		requires IApi::Magnitude<api_type> && IApi::BitwiseAnd<api_type>
+	{
+		return PartialRegister{normalize_native(api_type::magnitude(value.native))};
+	}
+
+	/**
+	 * @brief Computes checked integer magnitudes and retains the overflow lane of every occupied 128-bit group.
+	 * @tparam source_element_t Deferred source type used to constrain result availability.
+	 * @param value Active lanes contributing to each grouped checked magnitude.
+	 * @return A partial or complete result ending after the final occupied group's overflow lane.
+	 * @remarks Available when `IApi::MagnitudeChecked<api_type>` and `IApi::BitwiseAnd<api_type>` are satisfied.
+	 */
+	template <class source_element_t = element_type>
+		requires std::same_as<source_element_t, element_type> && IApi::MagnitudeChecked<api_type> && IApi::BitwiseAnd<api_type>
+	[[nodiscard]] partial_magnitude_checked_result_t<source_element_t, register_width, lane_count>
+		SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten)
+		magnitude_checked(this PartialRegister value) noexcept
+	{
+		using result_t = partial_magnitude_checked_result_t<source_element_t, register_width, lane_count>;
+		return PartialRegister::template make_specialized_result<result_t>(api_type::magnitude_checked(value.native));
+	}
+
+	/**
+	 * @brief Normalizes active floating lanes by their active 128-bit-group magnitude and clears the suffix.
+	 * @param value Floating-point source whose active group prefixes determine each magnitude.
+	 * @return Active lanes divided by their group magnitude with an all-bits-zero inactive suffix.
+	 * @remarks Inactive divisors are neutralized at the abstract operation boundary. Floating-environment status follows the
+	 * selected compiler model, matching Register. Available when the listed `IApi` contracts are satisfied.
+	 */
+	[[nodiscard]] PartialRegister SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten)
+		normalize(this PartialRegister value) noexcept
+		requires IApi::Normalize<api_type> && IApi::BitwiseAnd<api_type>
+	{
+		return PartialRegister{normalize_native(api_type::normalize(value.native))};
+	}
+
+	/**
+	 * @brief Returns the low logical prefix of intrinsic-ordered adjacent-pair sums.
+	 * @param lhs Supplies the first intrinsic-ordered active results.
+	 * @param rhs Supplies the remaining intrinsic-ordered active results.
+	 * @return Same-shaped partial result with its inactive suffix cleared.
+	 * @remarks Available when `IApi::HorizontalAdd<api_type>` and `IApi::BitwiseAnd<api_type>` are satisfied.
+	 */
+	[[nodiscard]] PartialRegister SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten)
+		horizontal_add(this PartialRegister lhs, PartialRegister rhs) noexcept
+		requires IApi::HorizontalAdd<api_type> && IApi::BitwiseAnd<api_type>
+	{
+		return PartialRegister{normalize_native(api_type::add_horizontal(lhs.native, rhs.native))};
+	}
+
+	/**
+	 * @brief Returns the low logical prefix of intrinsic-ordered adjacent-pair differences.
+	 * @param lhs Supplies the first intrinsic-ordered active results.
+	 * @param rhs Supplies the remaining intrinsic-ordered active results.
+	 * @return Same-shaped partial result with its inactive suffix cleared.
+	 * @remarks Available when `IApi::HorizontalSubtract<api_type>` and `IApi::BitwiseAnd<api_type>` are satisfied.
+	 */
+	[[nodiscard]] PartialRegister SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten)
+		horizontal_subtract(this PartialRegister lhs, PartialRegister rhs) noexcept
+		requires IApi::HorizontalSubtract<api_type> && IApi::BitwiseAnd<api_type>
+	{
+		return PartialRegister{normalize_native(api_type::subtract_horizontal(lhs.native, rhs.native))};
+	}
+
+	/**
+	 * @brief Multiplies adjacent active integral lane pairs, pairing an unmatched final lane with zero.
+	 * @tparam source_element_t Deferred source type used to constrain result availability.
+	 * @param lhs Left active-lane factors.
+	 * @param rhs Right active-lane factors.
+	 * @return Contiguous promoted partial or complete result with `ceil(lane_count / 2)` logical lanes.
+	 * @remarks Available exactly when the listed source and `IApi::MultiplyAddAdjacent` constraints are satisfied.
+	 */
+	template <class source_element_t = element_type>
+		requires std::same_as<source_element_t, element_type> && std::is_integral_v<source_element_t> &&
+			IApi::MultiplyAddAdjacent<api_type>
+	[[nodiscard]] partial_multiply_add_adjacent_result_t<source_element_t, register_width, lane_count>
+		SIMD_FLAGS(In, RegisterOnly, ForceInline, Flatten)
+		multiply_add_adjacent(this PartialRegister lhs, PartialRegister rhs) noexcept
+	{
+		using result_t = partial_multiply_add_adjacent_result_t<source_element_t, register_width, lane_count>;
+		return PartialRegister::template make_specialized_result<result_t>(api_type::multiply_add_adjacent(lhs.native, rhs.native));
+	}
+
+	/**
+	 * @brief Multiplies unsigned and signed active byte pairs, pairing an unmatched final byte with zero.
+	 * @tparam source_element_t Deferred source type used to constrain result availability.
+	 * @param lhs Unsigned active-byte multiplicands.
+	 * @param rhs Signed active-byte multiplicands.
+	 * @return Contiguous signed 16-bit partial or complete result with `ceil(active_byte_count / 2)` logical lanes.
+	 * @remarks Available exactly when the listed source and `IApi::ByteMultiplyAdd` constraints are satisfied.
+	 */
+	template <class source_element_t = element_type>
+		requires std::same_as<source_element_t, element_type> && std::is_integral_v<source_element_t> && IApi::ByteMultiplyAdd<api_type>
+	[[nodiscard]] partial_byte_multiply_add_result_t<source_element_t, register_width, lane_count>
+		SIMD_FLAGS(In, RegisterOnly, ForceInline, Flatten)
+		multiply_add_unsigned_signed_bytes(this PartialRegister lhs, PartialRegister rhs) noexcept
+	{
+		using result_t = partial_byte_multiply_add_result_t<source_element_t, register_width, lane_count>;
+		return PartialRegister::template make_specialized_result<result_t>(
+			api_type::multiply_add_unsigned_signed_bytes(lhs.native, rhs.native));
+	}
+
+	/**
+	 * @brief Sums active byte-wise absolute differences into contiguous unsigned 64-bit groups.
+	 * @tparam source_element_t Deferred source type used to constrain result availability.
+	 * @param lhs Left active source bytes.
+	 * @param rhs Right active source bytes.
+	 * @return Contiguous unsigned 64-bit partial or complete result with `ceil(active_byte_count / 8)` logical lanes.
+	 * @remarks Inactive source bytes contribute zero. Available exactly when the listed source and `IApi::Sad` constraints are satisfied.
+	 */
+	template <class source_element_t = element_type>
+		requires std::same_as<source_element_t, element_type> && std::is_integral_v<source_element_t> && IApi::Sad<api_type>
+	[[nodiscard]] partial_sad_result_t<source_element_t, register_width, lane_count>
+		SIMD_FLAGS(In, RegisterOnly, ForceInline, Flatten)
+		sum_absolute_byte_differences(this PartialRegister lhs, PartialRegister rhs) noexcept
+	{
+		using result_t = partial_sad_result_t<source_element_t, register_width, lane_count>;
+		return PartialRegister::template make_specialized_result<result_t>(
+			api_type::sum_absolute_byte_differences(lhs.native, rhs.native));
+	}
+
+	/**
+	 * @brief Computes immediate-controlled multi-SAD with inactive source bytes fixed at zero.
+	 * @tparam imm8 Immediate selector in the API-defined range.
+	 * @tparam source_element_t Deferred source type used to constrain result availability.
+	 * @param lhs Left active source bytes.
+	 * @param rhs Right active source bytes.
+	 * @return Complete Register preserving the API's noncontiguous output layout.
+	 * @remarks Available exactly when the listed source and `IApi::MultiSad` constraints are satisfied.
+	 */
+	template <int imm8, class source_element_t = element_type>
+		requires(imm8 >= 0 && imm8 <= 255 && std::same_as<source_element_t, element_type> && std::is_integral_v<source_element_t> &&
+			IApi::MultiSad<api_type, imm8>)
+	[[nodiscard]] multi_sad_result_t<source_element_t, register_width> SIMD_FLAGS(In, RegisterOnly, ForceInline, Flatten)
+		multi_sum_absolute_byte_differences(this PartialRegister lhs, PartialRegister rhs) noexcept
+	{
+		return multi_sad_result_t<source_element_t, register_width>{
+			api_type::template multi_sum_absolute_byte_differences<imm8>(lhs.native, rhs.native)};
+	}
+
+	/**
+	 * @brief Returns the first active logical lane containing the minimum integral value.
+	 * @param value Active integral lanes to search; the inactive suffix is excluded.
+	 * @return First minimum index in `[0, lane_count)`.
+	 * @remarks Available when `IApi::MinPosition<api_type>` and `IApi::BitwiseOr<api_type>` are satisfied.
+	 */
+	[[nodiscard]] constexpr std::size_t SIMD_FLAGS(In, RegisterOnly, ForceInline, Flatten)
+		min_position(this PartialRegister value) noexcept
+		requires IApi::MinPosition<api_type> && IApi::BitwiseOr<api_type>
+	{
+		return api_type::min_position(
+			api_type::bitwise_or(value.native, api_type::construct(PartialRegister::inactive_min_position_identity)));
+	}
+
+	/**
+	 * @brief Returns the first active logical lane containing the maximum integral value.
+	 * @param value Active integral lanes to search; the inactive suffix is excluded.
+	 * @return First maximum index in `[0, lane_count)`.
+	 * @remarks Available when `IApi::MaxPosition<api_type>` and `IApi::BitwiseOr<api_type>` are satisfied.
+	 */
+	[[nodiscard]] constexpr std::size_t SIMD_FLAGS(In, RegisterOnly, ForceInline, Flatten)
+		max_position(this PartialRegister value) noexcept
+		requires IApi::MaxPosition<api_type> && IApi::BitwiseOr<api_type>
+	{
+		return api_type::max_position(
+			api_type::bitwise_or(value.native, api_type::construct(PartialRegister::inactive_max_position_identity)));
+	}
+
+	/**
+	 * @brief Adds corresponding active lanes with intrinsic saturation.
+	 * @param lhs Left active-lane addends.
+	 * @param rhs Right active-lane addends.
+	 * @return Same-shaped saturated result with an inactive zero suffix.
+	 * @remarks Available exactly when `IApi::AddSaturated<api_type>` is satisfied.
+	 */
+	[[nodiscard]] PartialRegister SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten)
+		add_saturated(this PartialRegister lhs, PartialRegister rhs) noexcept
+		requires IApi::AddSaturated<api_type>
+	{
+		return PartialRegister{api_type::add_saturated(lhs.native, rhs.native)};
+	}
+
+	/**
+	 * @brief Subtracts corresponding active lanes with intrinsic saturation.
+	 * @param lhs Active-lane minuends.
+	 * @param rhs Active-lane subtrahends.
+	 * @return Same-shaped saturated result with an inactive zero suffix.
+	 * @remarks Available exactly when `IApi::SubtractSaturated<api_type>` is satisfied.
+	 */
+	[[nodiscard]] PartialRegister SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten)
+		subtract_saturated(this PartialRegister lhs, PartialRegister rhs) noexcept
+		requires IApi::SubtractSaturated<api_type>
+	{
+		return PartialRegister{api_type::subtract_saturated(lhs.native, rhs.native)};
+	}
+
+	/**
+	 * @brief Returns the low logical prefix of intrinsic-ordered saturated adjacent-pair sums.
+	 * @param lhs Supplies the first intrinsic-ordered active results.
+	 * @param rhs Supplies the remaining intrinsic-ordered active results.
+	 * @return Same-shaped saturated partial result with its inactive suffix cleared.
+	 * @remarks Available when `IApi::HorizontalAddSaturated<api_type>` and `IApi::BitwiseAnd<api_type>` are satisfied.
+	 */
+	[[nodiscard]] PartialRegister SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten)
+		horizontal_add_saturated(this PartialRegister lhs, PartialRegister rhs) noexcept
+		requires IApi::HorizontalAddSaturated<api_type> && IApi::BitwiseAnd<api_type>
+	{
+		return PartialRegister{normalize_native(api_type::hadd_saturated(lhs.native, rhs.native))};
+	}
+
+	/**
+	 * @brief Returns the low logical prefix of intrinsic-ordered saturated adjacent-pair differences.
+	 * @param lhs Supplies the first intrinsic-ordered active results.
+	 * @param rhs Supplies the remaining intrinsic-ordered active results.
+	 * @return Same-shaped saturated partial result with its inactive suffix cleared.
+	 * @remarks Available when `IApi::HorizontalSubtractSaturated<api_type>` and `IApi::BitwiseAnd<api_type>` are satisfied.
+	 */
+	[[nodiscard]] PartialRegister SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten)
+		horizontal_subtract_saturated(this PartialRegister lhs, PartialRegister rhs) noexcept
+		requires IApi::HorizontalSubtractSaturated<api_type> && IApi::BitwiseAnd<api_type>
+	{
+		return PartialRegister{normalize_native(api_type::hsubtract_saturated(lhs.native, rhs.native))};
+	}
+
+	/**
+	 * @brief Alternates subtraction and addition across active floating lanes and clears the suffix.
+	 * @param lhs Left active-lane inputs.
+	 * @param rhs Right active-lane inputs.
+	 * @return Same-shaped intrinsic-ordered result with inactive bitwise-zero lanes.
+	 * @remarks Lane polarity repeats per 128-bit group. Available when the listed `IApi` contracts are satisfied.
+	 */
+	[[nodiscard]] PartialRegister SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten)
+		add_subtract(this PartialRegister lhs, PartialRegister rhs) noexcept
+		requires IApi::AddSubtract<api_type> && IApi::BitwiseAnd<api_type>
+	{
+		return PartialRegister{normalize_native(api_type::add_subtract(lhs.native, rhs.native))};
+	}
+
+	/**
+	 * @brief Computes an immediate-controlled dot product and clears every inactive output lane.
+	 * @tparam imm8 API-defined source and destination selection control.
+	 * @param lhs Left active-lane factors.
+	 * @param rhs Right active-lane factors.
+	 * @return Same-shaped partial result when every selected destination lane is active.
+	 * @remarks Inactive input lanes contribute zero. Available only when the listed API and active-output constraints are satisfied.
+	 */
+	template <int imm8>
+		requires IApi::DotProduct<api_type, imm8> && (PartialRegister::template dot_product_outputs_are_active<imm8>())
+	[[nodiscard]] PartialRegister SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten)
+		dot_product(this PartialRegister lhs, PartialRegister rhs) noexcept
+	{
+		return PartialRegister{api_type::template dot_product<imm8>(lhs.native, rhs.native)};
+	}
+
+#pragma endregion
+
 };
 
 } // namespace SimdLib

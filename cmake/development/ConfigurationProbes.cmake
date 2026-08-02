@@ -149,6 +149,7 @@ if(SIMDLIB_BUILD_CONFIGURATION_PROBES)
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/PartialRegisterMaskInvalidActiveCount.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/PartialRegisterZeroActiveCount.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/PartialRegisterExcessiveActiveCount.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/PartialRegisterInactiveUpperHalf.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/PartialRegisterOversizedLaneList.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/PartialRegisterFullTransferExtent.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/PartialRegisterInactiveLaneIndex.cpp
@@ -219,6 +220,9 @@ if(SIMDLIB_BUILD_CONFIGURATION_PROBES)
 		simdlib_expect_language_probe_failure(PartialRegisterExcessiveActiveCountFailure
 			tests/compile_fail/register/PartialRegisterExcessiveActiveCount.cpp 23
 			constraints)
+		simdlib_expect_language_probe_failure(PartialRegisterInactiveUpperHalfFailure
+			tests/compile_fail/register/PartialRegisterInactiveUpperHalf.cpp 23
+			SIMDLIB_PARTIAL_REGISTER_REJECTS_INACTIVE_UPPER_HALF)
 		simdlib_expect_language_probe_failure(PartialRegisterOversizedLaneListFailure
 			tests/compile_fail/register/PartialRegisterOversizedLaneList.cpp 23
 			SIMDLIB_PARTIAL_REGISTER_REJECTS_OVERSIZED_LANE_LIST)

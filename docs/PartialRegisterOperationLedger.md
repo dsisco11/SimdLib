@@ -22,6 +22,8 @@ It is available exactly when all of the following are true:
 - `active_lane_count` is greater than zero.
 - `active_lane_count` is smaller than the native lane count for
   `Api<register_width, element_t>`.
+- For a 256-bit register, the active payload extends into the upper 128-bit
+  group: `active_lane_count * sizeof(element_t) * 8 > 128`.
 
 The strict upper bound deliberately reserves a fully populated native register
 for `Register<element_t, register_width>`.
@@ -54,9 +56,12 @@ The complete-register aliases `element_type`, `api_type`, `native_type`, and
 
 ## Construction, native interoperation, and conversions
 
-The native value is private. A writable public native member is incompatible
-with the invariant, because callers could populate inactive lanes without an
-operation boundary at which to clean them.
+The native value is the sole public non-static data member, matching
+`Register`'s aggregate object model and avoiding custom-constructor codegen.
+Direct aggregate initialization has a documented precondition that the native
+value already contains an all-bits-zero inactive suffix. Checked observation
+boundaries validate that precondition; ordinary operation results and imports
+establish the invariant themselves.
 
 The implementation provides two explicit native boundaries:
 
@@ -65,9 +70,9 @@ The implementation provides two explicit native boundaries:
 - `to_native()` returns a by-value native copy whose inactive suffix is known
   to be zero.
 
-These are the only public native interoperation paths. They preserve the
-one-register ABI and make the invariant observable without exposing mutable
-storage.
+These are the sanitizing and validating native interoperation paths. Direct
+access to `native` remains available for Register-equivalent low-level use,
+subject to the aggregate-initialization precondition above.
 
 All element and byte transfer APIs use the logical extent. `load_bytes()` and
 `store_bytes()` respectively consume and produce exactly `active_byte_count`
@@ -84,8 +89,9 @@ Conversions between public value types are explicit:
 | PartialRegister | SimdVector | No direct conversion. Callers stage through `to_array()` and an explicitly matching SimdVector construction path. |
 
 `NativePartialRegister<element_t, active_lane_count>` is the target-selected
-alias. It chooses the same widest available width rule as `NativeRegister`,
-then requires that `active_lane_count` is valid for the selected width.
+alias. It selects 256 bits only when that width is available and the active
+payload crosses into its upper 128-bit group; otherwise it selects an available
+valid 128-bit specialization.
 
 `SimdLib::Register` owns both register-shaped public types. It already carries
 the C++23 explicit-object and compiler-boundary requirements needed by
@@ -140,21 +146,43 @@ it never permits an inactive lane to be unspecified or nonzero.
 | --- | --- | --- |
 | binary `operator+`, binary `operator-`, `operator*`, unary `operator-` | Operate pairwise over logical lanes and return the same PartialRegister specialization. | Clean |
 | `operator/`, `operator%` | Operate pairwise over logical lanes. Inactive divisors are replaced with one before calling Api so they cannot create an inactive divide-by-zero or remainder-by-zero path. | Neutralize |
-| `min(rhs)`, `max(rhs)`, `absolute()`, `sqrt()`, `average(rhs)`, `multiply_add(rhs, addend)`, `add_saturated(rhs)`, `subtract_saturated(rhs)`, `add_subtract(rhs)` | Retain the Register operation's active-lane intrinsic semantics and return the same PartialRegister specialization. | Project |
-| `magnitude()`, `magnitude_checked()`, `normalize()` | Retain the Register operation's documented 128-bit-group semantics for the logical prefix. Inactive lanes are zero inputs, do not contribute to group values, and are cleared after the operation. Register-specified sparse logical lanes retain their documented status. | Project |
+| `min(rhs)`, `max(rhs)` | Retain the Register operation's active-lane intrinsic semantics. Zero inactive inputs remain zero, so no suffix projection is required. | Clean |
+| `absolute()`, `sqrt()`, `average(rhs)`, `multiply_add(rhs, addend)`, `add_saturated(rhs)`, `subtract_saturated(rhs)`, `add_subtract(rhs)` | Retain the Register operation's active-lane intrinsic semantics and return the same PartialRegister specialization. | Project |
+| `magnitude()` | Retains the Register operation's documented 128-bit-group semantics for the logical prefix. Inactive lanes are zero inputs, do not contribute to group values, and are cleared after the operation. Register-specified sparse logical lanes retain their documented status. | Project |
+| `magnitude_checked()` | Returns `partial_magnitude_checked_result_t`, whose logical prefix ends after the magnitude and overflow lane of the final occupied 128-bit group. Intermediate lanes retain the underlying API's documented unspecified status. It becomes `Register` when the final required status lane fills the native result. | Re-map |
+| `normalize()` | Computes each occupied 128-bit group's magnitude through `Api` from zero-padded inputs, then clears the suffix. Every permitted 256-bit geometry occupies both physical groups, so there is no wholly inactive group requiring a fabricated divisor. Floating-environment status remains subject to the selected compiler's floating-point model, matching the existing `Register` contract. | Project |
 | `horizontal_add(rhs)`, `horizontal_subtract(rhs)`, `horizontal_add_saturated(rhs)`, `horizontal_subtract_saturated(rhs)` | Retain the underlying intrinsic order, expose its low `lane_count` output lanes as the logical result prefix, and clear the suffix. | Project |
-| `multiply_add_adjacent(rhs)` | Returns `PartialRegister<promoted_t, register_width, ceil(active_byte_count / (2 * sizeof(promoted_t)))>`; a final unmatched source lane is paired with zero. | Re-map |
-| `multiply_add_unsigned_signed_bytes(rhs)` | Returns `PartialRegister<int16_t, register_width, ceil(active_byte_count / 2)>`; a final unmatched byte is paired with zero. | Re-map |
-| `sum_absolute_byte_differences(rhs)` | Returns `PartialRegister<uint64_t, register_width, ceil(active_byte_count / 8)>`; incomplete final eight-byte groups use zero for their inactive input bytes. | Re-map |
+| `multiply_add_adjacent(rhs)` | Normally returns a contiguous promoted result with `ceil(lane_count / 2)` logical lanes; a final unmatched source lane is paired with zero. For 256-bit 64-bit sources, the intrinsic instead places per-group results in physical lanes zero and two, so the result is a complete `Register<element_t, 256>` preserving that sparse layout. | Re-map or complete result |
+| `multiply_add_unsigned_signed_bytes(rhs)` | Returns a contiguous signed 16-bit result with `ceil(active_byte_count / 2)` logical lanes; a final unmatched byte is paired with zero. | Re-map |
+| `sum_absolute_byte_differences(rhs)` | Returns a contiguous unsigned 64-bit result with `ceil(active_byte_count / 8)` logical lanes; incomplete final eight-byte groups use zero for their inactive input bytes. | Re-map |
 | `multi_sum_absolute_byte_differences<imm8>(rhs)` | Returns the existing `multi_sad_result_t` complete Register type. Its immediate-selected output layout is not a contiguous logical-prefix layout. Inactive source bytes are zero. | Complete result |
 | `min_position()`, `max_position()` | Consider only logical lanes and return an index in `[0, lane_count)`, choosing the first logical occurrence on ties. | Logical |
-| `dot_product<imm8>(rhs)` | Retains Register's immediate-controlled active-lane semantics, rejects immediate controls that select an inactive output lane, and returns the same PartialRegister specialization with its suffix cleared. | Project |
+| `dot_product<imm8>(rhs)` | Retains Register's immediate-controlled active-lane semantics and rejects immediate controls that select an inactive output lane. That restriction itself guarantees a zero suffix, so no redundant projection is performed. | Clean |
+
+`normalize()` retains `Register`'s absence of a checks-enabled precondition:
+zero-magnitude active groups follow the selected floating-point behavior and
+are covered as an exceptional-result case, while the inactive suffix is still
+projected to bitwise zero. Division and modulus retain their active-lane
+nonzero and signed-minimum preconditions; checks-enabled coverage first proves
+that inactive zero divisor lanes are neutralized and then triggers each active
+failure case.
 
 The promoted type in `multiply_add_adjacent()` is the same type selected by
-`multiply_add_adjacent_result_t`; the distinct partial alias is
+`multiply_add_adjacent_result_t`; the distinct logical-result alias is
 `partial_multiply_add_adjacent_result_t`. The other two contiguous specialized
 results similarly use `partial_byte_multiply_add_result_t` and
-`partial_sad_result_t`. `multi_sad_result_t` intentionally remains complete.
+`partial_sad_result_t`. Checked magnitude uses
+`partial_magnitude_checked_result_t` so an occupied group's overflow lane is
+never discarded merely because its final source lane was the group's first,
+without exposing source-prefix lanes beyond the final defined status lane.
+Each alias selects `PartialRegister` while an inactive target suffix remains
+and the result crosses every required physical 128-bit group. It selects
+`Register` when the meaningful result count fills the target register or when
+a 256-bit result is sparse or would otherwise be confined to the low 128-bit
+group. This avoids discarding a valid final result lane or forming a forbidden
+`PartialRegister` specialization. `multi_sad_result_t`
+intentionally remains complete because its immediate-selected output layout is
+not a contiguous prefix.
 
 ## Bitwise, masks, and comparisons
 

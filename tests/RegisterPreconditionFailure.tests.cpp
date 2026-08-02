@@ -39,6 +39,7 @@ inline constexpr int register_precondition_failure_exit_code = 74;
 
 #include <array>
 #include <cstdint>
+#include <limits>
 #include <span>
 
 TEST_CASE("Register left shift rejects a negative per-lane count", "[simdlib][register][preconditions]")
@@ -124,4 +125,34 @@ TEST_CASE("PartialRegister aligned store rejects a misaligned active destination
 	alignas(value_type::byte_count) std::array<std::uint32_t, value_type::lane_count + 1> destination{};
 	value_type::zero().store_aligned(std::span<std::uint32_t, value_type::lane_count>{destination.data() + 1, value_type::lane_count});
 	FAIL("PartialRegister aligned store accepted a misaligned active destination");
+}
+
+TEST_CASE("PartialRegister division rejects a zero active divisor", "[simdlib][partial_register][preconditions]")
+{
+	using value_type = SimdLib::PartialRegister<std::int32_t, 128, 3>;
+	(void)(value_type::broadcast(8) / value_type::from_lanes(2, 4, 8));
+	(void)(value_type::broadcast(8) / value_type::from_lanes(2, 0, 4));
+	FAIL("PartialRegister division accepted a zero active divisor");
+}
+
+TEST_CASE("PartialRegister modulus rejects a zero active divisor", "[simdlib][partial_register][preconditions]")
+{
+	using value_type = SimdLib::PartialRegister<std::int32_t, 128, 3>;
+	(void)(value_type::broadcast(8) % value_type::from_lanes(2, 4, 8));
+	(void)(value_type::broadcast(8) % value_type::from_lanes(2, 4, 0));
+	FAIL("PartialRegister modulus accepted a zero active divisor");
+}
+
+TEST_CASE("PartialRegister division rejects signed minimum divided by negative one", "[simdlib][partial_register][preconditions]")
+{
+	using value_type = SimdLib::PartialRegister<std::int32_t, 128, 3>;
+	(void)(value_type::from_lanes(8, std::numeric_limits<std::int32_t>::lowest(), 4) / value_type::from_lanes(2, -1, 2));
+	FAIL("PartialRegister division accepted signed minimum divided by negative one");
+}
+
+TEST_CASE("PartialRegister modulus rejects signed minimum divided by negative one", "[simdlib][partial_register][preconditions]")
+{
+	using value_type = SimdLib::PartialRegister<std::int32_t, 128, 3>;
+	(void)(value_type::from_lanes(8, 4, std::numeric_limits<std::int32_t>::lowest()) % value_type::from_lanes(2, 2, -1));
+	FAIL("PartialRegister modulus accepted signed minimum divided by negative one");
 }

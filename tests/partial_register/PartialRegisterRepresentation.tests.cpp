@@ -52,14 +52,24 @@ template <class element_t, std::size_t bits, std::size_t active_lane_count> cons
 template <class element_t, std::size_t bits, std::size_t... active_lane_counts>
 consteval bool has_partial_register_shapes(std::index_sequence<active_lane_counts...>)
 {
-	return (has_partial_register_shape<element_t, bits, active_lane_counts + 1>() && ...);
+	return ([]<std::size_t active_lane_count>() consteval {
+		if constexpr (SimdLib::PartialRegisterAvailable<element_t, bits, active_lane_count>)
+			return has_partial_register_shape<element_t, bits, active_lane_count>();
+		else
+			return true;
+	}.template operator()<active_lane_counts + 1>() && ...);
 }
 
 /** @brief Checks every supported partial predicate extent for one element and register-width pair. */
 template <class element_t, std::size_t bits, std::size_t... active_lane_counts>
 consteval bool has_partial_register_mask_shapes(std::index_sequence<active_lane_counts...>)
 {
-	return (has_partial_register_mask_shape<element_t, bits, active_lane_counts + 1>() && ...);
+	return ([]<std::size_t active_lane_count>() consteval {
+		if constexpr (SimdLib::PartialRegisterAvailable<element_t, bits, active_lane_count>)
+			return has_partial_register_mask_shape<element_t, bits, active_lane_count>();
+		else
+			return true;
+	}.template operator()<active_lane_counts + 1>() && ...);
 }
 
 /** @brief Checks all non-complete logical extents for one element and register-width pair. */
@@ -94,6 +104,6 @@ SIMDLIB_ASSERT_PARTIAL_REGISTER_SHAPES(double, SIMDLIB_REGISTER_TEST_WIDTH);
 #undef SIMDLIB_ASSERT_PARTIAL_REGISTER_SHAPES
 
 using native_partial_register_type = SimdLib::NativePartialRegister<float, 1>;
-static_assert(native_partial_register_type::register_width == (SimdLib::is_register_available_v<float, 256> ? 256 : 128));
+static_assert(native_partial_register_type::register_width == 128);
 
 } // namespace

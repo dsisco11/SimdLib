@@ -26,7 +26,7 @@ namespace SimdLib
  * @invariant Active lanes are canonical all-zero or all-one predicates; inactive lanes are all-bits zero.
  */
 template <class element_t, std::size_t register_bits, std::size_t active_lane_count>
-	requires RegisterAvailable<element_t, register_bits> && (active_lane_count > 0) && (active_lane_count < Api<register_bits, element_t>::element_count)
+	requires PartialRegisterAvailable<element_t, register_bits, active_lane_count>
 class PartialRegisterMask final
 {
   public:

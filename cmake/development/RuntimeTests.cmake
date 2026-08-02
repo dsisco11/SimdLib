@@ -100,7 +100,10 @@ if(SIMDLIB_BUILD_RUNTIME_TESTS)
 		simdlib_add_catch_test(PartialRegisterAvx2Tests tests/PartialRegisterObjectModel.tests.cpp
 			PartialRegister.AVX2 "PARTIAL_REGISTER;AVX2")
 		target_sources(PartialRegisterAvx2Tests PRIVATE
-			tests/PartialRegisterConstructionTransfer.tests.cpp)
+			tests/PartialRegisterConstructionTransfer.tests.cpp
+			tests/PartialRegisterArithmetic.tests.cpp
+			tests/PartialRegisterOperationMatrix.tests.cpp
+			tests/PartialRegisterSpecializedOperations.tests.cpp)
 		target_link_libraries(PartialRegisterAvx2Tests PRIVATE SimdLib::Register)
 		target_compile_definitions(PartialRegisterAvx2Tests PRIVATE
 			SIMDLIB_PARTIAL_REGISTER_TEST_ENABLE_256=1)
@@ -112,7 +115,10 @@ if(SIMDLIB_BUILD_RUNTIME_TESTS)
 		simdlib_add_catch_test(PartialRegisterSse42Tests tests/PartialRegisterObjectModel.tests.cpp
 			PartialRegister.SSE42 "PARTIAL_REGISTER;SSE42")
 		target_sources(PartialRegisterSse42Tests PRIVATE
-			tests/PartialRegisterConstructionTransfer.tests.cpp)
+			tests/PartialRegisterConstructionTransfer.tests.cpp
+			tests/PartialRegisterArithmetic.tests.cpp
+			tests/PartialRegisterOperationMatrix.tests.cpp
+			tests/PartialRegisterSpecializedOperations.tests.cpp)
 		target_link_libraries(PartialRegisterSse42Tests PRIVATE SimdLib::Register)
 		target_compile_definitions(PartialRegisterSse42Tests PRIVATE
 			SIMDLIB_PARTIAL_REGISTER_TEST_ENABLE_256=0)
