@@ -160,6 +160,11 @@ if(SIMDLIB_BUILD_CONFIGURATION_PROBES)
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/PartialRegisterNegativeByteShiftRight.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/PartialRegisterNegativeBitShiftLeft.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/PartialRegisterNegativeBitShiftRight.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/PartialRegisterInvalidShuffleSelector.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/PartialRegisterInvalidShuffleSelectorCount.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/PartialRegisterInvalidByteShuffleSelector.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/PartialRegisterFractionalBitCast.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/PartialRegisterInactiveWidenResult.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/RegisterAvailabilityOverride.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/RegisterUnsupportedCompiler.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/RegisterPartialLaneList.cpp
@@ -257,6 +262,21 @@ if(SIMDLIB_BUILD_CONFIGURATION_PROBES)
 		simdlib_expect_language_probe_failure(PartialRegisterNegativeBitShiftRightFailure
 			tests/compile_fail/register/PartialRegisterNegativeBitShiftRight.cpp 23
 			shift_bits_right)
+		simdlib_expect_language_probe_failure(PartialRegisterInvalidShuffleSelectorFailure
+			tests/compile_fail/register/PartialRegisterInvalidShuffleSelector.cpp 23
+			SIMDLIB_PARTIAL_REGISTER_REJECTS_INVALID_SHUFFLE_SELECTOR)
+		simdlib_expect_language_probe_failure(PartialRegisterInvalidShuffleSelectorCountFailure
+			tests/compile_fail/register/PartialRegisterInvalidShuffleSelectorCount.cpp 23
+			SIMDLIB_PARTIAL_REGISTER_REJECTS_INVALID_SHUFFLE_SELECTOR_COUNT)
+		simdlib_expect_language_probe_failure(PartialRegisterInvalidByteShuffleSelectorFailure
+			tests/compile_fail/register/PartialRegisterInvalidByteShuffleSelector.cpp 23
+			SIMDLIB_PARTIAL_REGISTER_REJECTS_INVALID_BYTE_SHUFFLE_SELECTOR)
+		simdlib_expect_language_probe_failure(PartialRegisterFractionalBitCastFailure
+			tests/compile_fail/register/PartialRegisterFractionalBitCast.cpp 23
+			SIMDLIB_PARTIAL_REGISTER_REJECTS_FRACTIONAL_BIT_CAST_RESULT)
+		simdlib_expect_language_probe_failure(PartialRegisterInactiveWidenResultFailure
+			tests/compile_fail/register/PartialRegisterInactiveWidenResult.cpp 23
+			SIMDLIB_PARTIAL_REGISTER_REJECTS_INACTIVE_UPPER_HALF_WIDEN_RESULT)
 
 		foreach(register_width IN ITEMS 128 256)
 			add_library(RegisterRepresentation${register_width} OBJECT

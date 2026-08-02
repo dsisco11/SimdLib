@@ -7,6 +7,10 @@
 #include <cstdint>
 #include <limits>
 
+#ifndef SIMDLIB_PARTIAL_REGISTER_CONSTEXPR_ENABLE_256
+#define SIMDLIB_PARTIAL_REGISTER_CONSTEXPR_ENABLE_256 0
+#endif
+
 namespace
 {
 
@@ -173,6 +177,53 @@ consteval bool has_constexpr_partial_floating_equality() noexcept
 	return positive_zero == negative_zero && !(nan_value == nan_value) && nan_value != nan_value;
 }
 
+/** @brief Verifies constant-evaluated rearrangements retain only their documented logical prefix. */
+consteval bool has_constexpr_partial_rearrangements() noexcept
+{
+	using lane_value_t = SimdLib::PartialRegister<std::uint32_t, 128, 3>;
+	const auto lhs = lane_value_t::from_lanes(1U, 2U, 3U);
+	const auto rhs = lane_value_t::from_lanes(4U, 5U, 6U);
+	const auto shuffled = lhs.template shuffle<2, 0, 1>();
+	const auto low = lhs.unpack_low(rhs);
+	const auto high = lhs.unpack_high(rhs);
+	const auto blended = lhs.template blend<0b101>(rhs);
+	using byte_value_t = SimdLib::PartialRegister<std::uint8_t, 128, 3>;
+	const auto bytes = byte_value_t::from_lanes(1U, 2U, 3U).template shuffle_bytes<2, 1, 0>();
+	using half_value_t = SimdLib::PartialRegister<std::int16_t, 128, 5>;
+	const auto half = half_value_t::from_lanes(1, 2, 3, 4, 5).template shuffle_low<0x1b>();
+	return shuffled.to_array() == std::array<std::uint32_t, 3>{3U, 1U, 2U} && low.to_array() == std::array<std::uint32_t, 3>{1U, 4U, 2U} &&
+		   high.to_array() == std::array<std::uint32_t, 3>{3U, 6U, 0U} && blended.to_array() == std::array<std::uint32_t, 3>{4U, 2U, 6U} &&
+		   bytes.to_array() == std::array<std::uint8_t, 3>{3U, 2U, 1U} && half.to_array() == std::array<std::int16_t, 5>{4, 3, 2, 1, 5} &&
+		   has_zero_native_suffix(shuffled) && has_zero_native_suffix(low) && has_zero_native_suffix(high) && has_zero_native_suffix(blended) &&
+		   has_zero_native_suffix(bytes) && has_zero_native_suffix(half);
+}
+
+/** @brief Verifies constant-evaluated conversions derive and preserve their meaningful target-lane counts. */
+consteval bool has_constexpr_partial_conversions() noexcept
+{
+	using byte_value_t = SimdLib::PartialRegister<std::uint8_t, 128, 8>;
+	const auto cast = byte_value_t::from_lanes(1U, 2U, 3U, 4U, 5U, 6U, 7U, 8U).template bit_cast<std::uint32_t>();
+	using integer_value_t = SimdLib::PartialRegister<std::int32_t, 128, 3>;
+	const auto converted = integer_value_t::from_lanes(-2, 0, 3).template convert<float>();
+	using narrow_value_t = SimdLib::PartialRegister<std::int8_t, 128, 13>;
+	const auto widened = narrow_value_t::from_lanes(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13).template widen_low<std::int16_t, 128>();
+	return cast.to_array() == std::array<std::uint32_t, 2>{0x04030201U, 0x08070605U} && converted.to_array() == std::array<float, 3>{-2.0F, 0.0F, 3.0F} &&
+		   widened.to_array() == std::array<std::int16_t, 8>{1, 2, 3, 4, 5, 6, 7, 8} && has_zero_native_suffix(cast) && has_zero_native_suffix(converted);
+}
+
+#if SIMDLIB_PARTIAL_REGISTER_CONSTEXPR_ENABLE_256
+/** @brief Verifies constant-evaluated 256-bit cross-half rearrangement and low-half extraction. */
+consteval bool has_constexpr_partial_256_rearrangements() noexcept
+{
+	using value_t = SimdLib::PartialRegister<std::uint32_t, 256, 5>;
+	const auto value = value_t::from_lanes(1U, 2U, 3U, 4U, 5U);
+	const auto shuffled = value.template shuffle<4, 3, 2, 1, 0>();
+	const auto lower = value.lower_half();
+	return shuffled.to_array() == std::array<std::uint32_t, 5>{5U, 4U, 3U, 2U, 1U} && lower.to_array() == std::array<std::uint32_t, 4>{1U, 2U, 3U, 4U} &&
+		   has_zero_native_suffix(shuffled);
+}
+#endif
+
 static_assert(has_constexpr_partial_construction());
 static_assert(has_constexpr_partial_lane_access());
 static_assert(has_constexpr_partial_positions());
@@ -183,6 +234,11 @@ static_assert(has_constexpr_partial_lane_shifts());
 static_assert(has_constexpr_partial_payload_shifts());
 static_assert(has_constexpr_partial_comparisons());
 static_assert(has_constexpr_partial_floating_equality());
+static_assert(has_constexpr_partial_rearrangements());
+static_assert(has_constexpr_partial_conversions());
+#if SIMDLIB_PARTIAL_REGISTER_CONSTEXPR_ENABLE_256
+static_assert(has_constexpr_partial_256_rearrangements());
+#endif
 #endif
 
 } // namespace

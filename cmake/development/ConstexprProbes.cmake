@@ -110,6 +110,15 @@ if(SIMDLIB_BUILD_CONSTEXPR_PROBES)
 		simdlib_enable_development_warnings(PartialRegisterConstexprProbe)
 		simdlib_enable_register_sse42(PartialRegisterConstexprProbe)
 		list(APPEND simdlib_constexpr_targets PartialRegisterConstexprProbe)
+
+		add_library(PartialRegisterAvx2ConstexprProbe OBJECT tests/constexpr/PartialRegisterConstexpr.tests.cpp)
+		simdlib_register_development_target(PartialRegisterAvx2ConstexprProbe CONSTEXPR_CONTRACT)
+		target_link_libraries(PartialRegisterAvx2ConstexprProbe PRIVATE SimdLib::Register)
+		target_compile_definitions(PartialRegisterAvx2ConstexprProbe PRIVATE
+			SIMDLIB_PARTIAL_REGISTER_CONSTEXPR_ENABLE_256=1)
+		simdlib_enable_development_warnings(PartialRegisterAvx2ConstexprProbe)
+		simdlib_enable_register_avx2(PartialRegisterAvx2ConstexprProbe)
+		list(APPEND simdlib_constexpr_targets PartialRegisterAvx2ConstexprProbe)
 	endif()
 
 	set(constexpr_object_expressions "")

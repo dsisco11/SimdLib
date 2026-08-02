@@ -97,17 +97,17 @@ PartialRegister Implementation Plan:
     ☐ Cover `shift_bits_right_slow(count)`.
     ☐ Cover `shift_bits_left<count>()`.
     ☐ Cover `shift_bits_right<count>()`.
-    ☐ Cover `lower_half()`.
-    ☐ Cover `unpack_low(rhs)`.
-    ☐ Cover `unpack_high(rhs)`.
-    ☐ Cover `shuffle<indices...>()`.
-    ☐ Cover `shuffle_bytes<indices...>()`.
-    ☐ Cover `shuffle_low<indices...>()` while it remains part of the Register surface.
-    ☐ Cover `shuffle_high<indices...>()` while it remains part of the Register surface.
-    ☐ Cover `blend<immediate>(rhs)`.
-    ☐ Cover `bit_cast<target_t>()`.
-    ☐ Cover `convert<target_t>()`.
-    ☐ Cover `widen_low<target_t, target_bits>()`.
+    ☒ Cover `lower_half()`.
+    ☒ Cover `unpack_low(rhs)`.
+    ☒ Cover `unpack_high(rhs)`.
+    ☒ Cover `shuffle<indices...>()`.
+    ☒ Cover `shuffle_bytes<indices...>()`.
+    ☒ Cover `shuffle_low<indices...>()` while it remains part of the Register surface.
+    ☒ Cover `shuffle_high<indices...>()` while it remains part of the Register surface.
+    ☒ Cover `blend<immediate>(rhs)`.
+    ☒ Cover `bit_cast<target_t>()`.
+    ☒ Cover `convert<target_t>()`.
+    ☒ Cover `widen_low<target_t, target_bits>()`.
     ☐ Cover `compare_equal(rhs)`.
     ☐ Cover `compare_greater(rhs)`.
     ☐ Cover `compare_greater_equal(rhs)`.
@@ -205,16 +205,16 @@ PartialRegister Implementation Plan:
     ☒ Expand constexpr coverage to validate every retained bitwise, sign-mask, per-lane shift, whole-payload shift, comparison, and immediate-count form, including active results and inactive-suffix invariants.
 
   Phase 7 - Implement Rearrangement and Conversion Operations:
-    ☐ Define logical shuffle selectors over `active_lane_count`, including whether output selectors may explicitly request a zero-filled lane.
-    ☐ Define byte-shuffle selectors over the active byte extent and ensure selector results cannot populate inactive bytes.
-    ☐ Define `unpack_low`, `unpack_high`, blend, and half-local shuffle behavior when the active count is odd or smaller than the intrinsic grouping.
-    ☐ Resolve and document every copied rearrangement's active-lane meaning; do not omit a Register method merely because its partial semantics require additional work.
-    ☐ Define `lower_half()` result types for active counts below, equal to, and above the destination native capacity.
-    ☐ Define bit-cast result active counts from the number of active source bits; reject target element types for which that logical bit extent cannot be represented as complete target lanes unless an explicit padding rule is approved.
-    ☐ Define numeric conversion result active counts independently from bit-cast rules and ensure converted inactive inputs do not create observable output lanes.
-    ☐ Define widening and narrowing operations by the number of consumed active source lanes and produced active target lanes.
-    ☐ Preserve zero inactive lanes after every shuffle, unpack, blend, extraction, bit cast, numeric conversion, and widening operation.
-    ☐ Add exhaustive selector tests for small logical lane counts, representative cross-half tests, conversion source/target matrix tests, and compile-failure probes for invalid selectors and result cells.
+    ☒ Define logical shuffle selectors over `active_lane_count`, including whether output selectors may explicitly request a zero-filled lane.
+    ☒ Define byte-shuffle selectors over the active byte extent and ensure selector results cannot populate inactive bytes.
+    ☒ Define `unpack_low`, `unpack_high`, blend, and half-local shuffle behavior when the active count is odd or smaller than the intrinsic grouping.
+    ☒ Resolve and document every copied rearrangement's active-lane meaning; do not omit a Register method merely because its partial semantics require additional work.
+    ☒ Define `lower_half()` result types for active counts below, equal to, and above the destination native capacity.
+    ☒ Define bit-cast result active counts from the number of active source bits; reject target element types for which that logical bit extent cannot be represented as complete target lanes unless an explicit padding rule is approved.
+    ☒ Define numeric conversion result active counts independently from bit-cast rules and ensure converted inactive inputs do not create observable output lanes.
+    ☒ Define widening and narrowing operations by the number of consumed active source lanes and produced active target lanes.
+    ☒ Preserve zero inactive lanes after every shuffle, unpack, blend, extraction, bit cast, numeric conversion, and widening operation.
+    ☒ Add exhaustive selector tests for small logical lane counts, representative cross-half tests, conversion source/target matrix tests, and compile-failure probes for invalid selectors and result cells.
 
   Phase 8 - Complete the Public Surface and Integration:
     ☐ Add or adapt structural concepts so the complete PartialRegister surface is audited without claiming complete-register lane semantics.

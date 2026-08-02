@@ -222,21 +222,19 @@ byte or bit extent.
 
 | Register surface | PartialRegister contract | Ledger action |
 | --- | --- | --- |
-| `lower_half()` | Returns `PartialRegister<element_t, 128, min(lane_count, Api<128, element_t>::element_count)>`. | Re-map |
-| `unpack_low(rhs)`, `unpack_high(rhs)` | Retain the underlying intrinsic order, expose its low `lane_count` output lanes as the logical result prefix, and clear the suffix. | Project |
+| `lower_half()` | A valid 256-bit PartialRegister necessarily has more than 128 active bits, so extraction always returns the complete `Register<element_t, 128>` low half. Counts below or equal to the destination capacity cannot produce a partial result under the source type's upper-half constraint; counts above it are truncated to the complete low half. | Re-map |
+| `unpack_low(rhs)`, `unpack_high(rhs)` | Retain the underlying intrinsic order and expose its low `lane_count` output lanes as the logical result prefix. `unpack_low` clears values that can spill into the suffix; `unpack_high` is zero-closed for active-prefix operands and needs no cleanup. | Project |
 | `shuffle<indices...>()` | Requires exactly `lane_count` selectors and every selector to be less than `lane_count`; returns the selected logical prefix. | Logical |
 | `shuffle_bytes<indices...>()` | Requires exactly `active_byte_count` selectors and every selector to be less than `active_byte_count`; returns the selected logical byte prefix. | Logical |
 | `shuffle_low<imm8>()`, `shuffle_high<imm8>()` | Retain Register's immediate selector semantics where they affect logical lanes, then clear the suffix. | Project |
 | `blend<imm8>(rhs)` | Retains Register's immediate selector semantics for logical lanes, then clears the suffix. | Project |
-| `bit_cast<target_t>()` | Requires `active_byte_count` to be divisible by `sizeof(target_t)` and returns `PartialRegister<target_t, register_width, active_byte_count / sizeof(target_t)>`. | Re-map |
-| `convert<target_t>()` | Returns `PartialRegister<target_t, register_width, lane_count>` for the same supported Api conversion cells. | Re-map |
-| `widen_low<target_t, target_bits>()` | Returns `PartialRegister<target_t, target_bits, min(lane_count, Api<target_bits, target_t>::element_count)>` and consumes only that many low logical source lanes. | Re-map |
+| `bit_cast<target_t>()` | Requires `active_byte_count` to be divisible by `sizeof(target_t)` and returns a partial or complete result exposing `active_byte_count / sizeof(target_t)` lanes. Because bit-casting preserves the active bit extent, every valid 256-bit source also produces a result whose active extent reaches the upper half. | Re-map |
+| `convert<target_t>()` | Returns a partial or complete target with one meaningful target lane per active source lane for the same supported Api conversion cells. | Re-map |
+| `widen_low<target_t, target_bits>()` | Returns a partial or complete target exposing `min(lane_count, Api<target_bits, target_t>::element_count)` consumed source lanes. A derived 256-bit result that would leave its upper half entirely inactive is unavailable. Register exposes no narrowing counterpart, so PartialRegister does not add one. | Re-map |
 
-`lower_half()`, `bit_cast()`, and `widen_low()` are available only when their
-derived destination active count is nonzero and strictly smaller than the
-destination native lane count. A result that would be complete remains a
-`Register` result with the corresponding existing Register type. This avoids
-instantiating a forbidden full-lane PartialRegister specialization.
+Any derived result that fills its destination register is represented by the
+corresponding complete `Register`. Any derived partial result must satisfy
+`PartialRegisterAvailable`, including the 256-bit upper-half rule.
 
 ## Surface and performance commitments
 
