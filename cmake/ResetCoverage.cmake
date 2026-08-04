@@ -1,9 +1,11 @@
+cmake_minimum_required(VERSION 3.31)
+
 if(NOT DEFINED BINARY_DIRECTORY)
     message(FATAL_ERROR "BINARY_DIRECTORY is required")
 endif()
 
-# CTest 4.4 clears profiles for tests selected in its current invocation. Clear
-# the entire build tree as well so a partial run cannot inherit unrelated data.
+# Clear the entire build tree so a partial run cannot inherit profiles from
+# unrelated tests or a previous coverage invocation.
 file(GLOB_RECURSE coverage_profiles LIST_DIRECTORIES FALSE
     "${BINARY_DIRECTORY}/*.profraw"
     "${BINARY_DIRECTORY}/*.profdata")

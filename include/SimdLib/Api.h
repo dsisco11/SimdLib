@@ -1,6 +1,7 @@
 #pragma once
-#include <SimdLib/Config.h>
 #include <SimdLib/Detail/Implementations.h>
+#include <SimdLib/IApi.h>
+#include <SimdLib/IImpl.h>
 #include <SimdLib/TemplateTools.h>
 #include <algorithm>
 #include <array>
@@ -11,14 +12,13 @@
 #include <cstring>
 #include <functional>
 #include <immintrin.h>
+#if SIMDLIB_COMPILER_MSVC && SIMDLIB_TARGET_X86
 #include <intrin.h>
+#endif
 #include <limits>
 #include <span>
 #include <type_traits>
 #include <utility>
-
-// This file contains SIMD implementations for 128-bit and 256-bit integer and floating-point types.
-// REFERENCE: http://www.alfredklomp.com/programming/sse-intrinsics/
 
 namespace SimdLib
 {
@@ -32,20 +32,8 @@ enum class comparison_operation
 	equivalent,
 	unordered,
 };
+
 } // namespace Detail
-
-template <std::size_t register_width, class element_t>
-inline constexpr bool is_api_available_v =
-	(std::same_as<element_t, std::int8_t> || std::same_as<element_t, std::uint8_t> ||
-	 std::same_as<element_t, std::int16_t> || std::same_as<element_t, std::uint16_t> ||
-	 std::same_as<element_t, std::int32_t> || std::same_as<element_t, std::uint32_t> ||
-	 std::same_as<element_t, std::int64_t> || std::same_as<element_t, std::uint64_t> ||
-	 std::same_as<element_t, float> || std::same_as<element_t, double>) &&
-	Config::target_x86 &&
-	((register_width == 128 && Config::has_sse42) || (register_width == 256 && Config::has_sse42 && Config::has_avx2));
-
-template <std::size_t register_width, class element_t>
-concept ApiAvailable = is_api_available_v<register_width, element_t>;
 
 /**
  * @brief Primary API for SIMD operations, parameterized by register width and element type.
@@ -104,32 +92,35 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 		(source_count * result_bit_width + std::numeric_limits<packed_element_t<result_bit_width>>::digits - 1) /
 		std::numeric_limits<packed_element_t<result_bit_width>>::digits;
 
-	template <class target_simd>
-	constexpr static inline bool is_widen_target_v = requires {
-		typename target_simd::element_type;
-		typename target_simd::vector_t;
-		{ target_simd::register_width } -> std::convertible_to<const std::size_t &>;
-	};
-
 #pragma region Data Transfer
 	/** @brief Loads element data into a SIMD register.
 	 *  @param data Source elements matching the full register width.
 	 *  @return Register populated with the provided elements.
 	 */
-	SIMDLIB_FORCE_INLINE static vector_t VECTORCALL load(std::span<const element_t, element_count> data) noexcept
+	static vector_t SIMD_FLAGS(Out, RegisterOnly, ForceInline, Flatten) load(std::span<const element_t, element_count> data) noexcept
 	{
 		return impl::load_unaligned(data.data());
 	}
 
+	/**
+	 * @brief Loads one complete register bit pattern from an exact byte span.
+	 * @param data Source containing exactly one register of bytes.
+	 * @return Register containing the source object representation.
+	 */
+	static vector_t SIMD_FLAGS(Out, RegisterOnly, ForceInline, Flatten) load(std::span<const std::byte, byte_count> data) noexcept
+	{
+		return impl::load_bytes(data.data());
+	}
+
 	/** @brief Loads a full register from storage aligned to the register byte width. */
-	SIMDLIB_FORCE_INLINE static vector_t VECTORCALL load_aligned(std::span<const element_t, element_count> data) noexcept
+	static vector_t SIMD_FLAGS(Out, RegisterOnly, ForceInline, Flatten) load_aligned(std::span<const element_t, element_count> data) noexcept
 	{
 		SIMDLIB_PRECONDITION(reinterpret_cast<std::uintptr_t>(data.data()) % byte_count == 0, "Aligned SIMD load requires register-width alignment");
 		return impl::load(data.data());
 	}
 
 	/** @brief Explicit spelling for an unaligned full-register load. */
-	SIMDLIB_FORCE_INLINE static vector_t VECTORCALL load_unaligned(std::span<const element_t, element_count> data) noexcept
+	static vector_t SIMD_FLAGS(Out, RegisterOnly, ForceInline, Flatten) load_unaligned(std::span<const element_t, element_count> data) noexcept
 	{
 		return impl::load_unaligned(data.data());
 	}
@@ -140,7 +131,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @return Register containing the requested active values followed by zero-filled inactive lanes.
 	 */
 	template <std::size_t active_count>
-	SIMDLIB_FORCE_INLINE constexpr static vector_t VECTORCALL load_partial(std::span<const element_t> data) noexcept
+	constexpr static vector_t SIMD_FLAGS(Out, RegisterOnly, ForceInline, Flatten) load_partial(std::span<const element_t> data) noexcept
 		requires(active_count <= element_count)
 	{
 		if (!std::is_constant_evaluated())
@@ -163,7 +154,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param data Source span whose leading elements are read into the register.
 	 *  @return Register populated from the provided span.
 	 */
-	SIMDLIB_FORCE_INLINE static vector_t VECTORCALL load_unsafe(std::span<const element_t> data) noexcept
+	static vector_t SIMD_FLAGS(Out, RegisterOnly, ForceInline, Flatten) load_unsafe(std::span<const element_t> data) noexcept
 	{
 		return impl::load_unaligned(data.data());
 	}
@@ -173,20 +164,30 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param data Destination span that receives all register elements.
 	 *  @return None.
 	 */
-	SIMDLIB_FORCE_INLINE static void VECTORCALL store(vector_t vector, std::span<element_t, element_count> data) noexcept
+	static void SIMD_FLAGS(In, ForceInline, Flatten) store(vector_t vector, std::span<element_t, element_count> data) noexcept
+	{
+		impl::store_unaligned(vector, data.data());
+	}
+
+	/**
+	 * @brief Stores one complete register bit pattern to an exact byte span.
+	 * @param vector Register value to store.
+	 * @param data Destination containing exactly one register of bytes.
+	 */
+	static void SIMD_FLAGS(In, ForceInline, Flatten) store(vector_t vector, std::span<std::byte, byte_count> data) noexcept
 	{
 		impl::store_unaligned(vector, data.data());
 	}
 
 	/** @brief Stores a full register to storage aligned to the register byte width. */
-	SIMDLIB_FORCE_INLINE static void VECTORCALL store_aligned(vector_t vector, std::span<element_t, element_count> data) noexcept
+	static void SIMD_FLAGS(In, ForceInline, Flatten) store_aligned(vector_t vector, std::span<element_t, element_count> data) noexcept
 	{
 		SIMDLIB_PRECONDITION(reinterpret_cast<std::uintptr_t>(data.data()) % byte_count == 0, "Aligned SIMD store requires register-width alignment");
 		impl::store(vector, data.data());
 	}
 
 	/** @brief Explicit spelling for an unaligned full-register store. */
-	SIMDLIB_FORCE_INLINE static void VECTORCALL store_unaligned(vector_t vector, std::span<element_t, element_count> data) noexcept
+	static void SIMD_FLAGS(In, ForceInline, Flatten) store_unaligned(vector_t vector, std::span<element_t, element_count> data) noexcept
 	{
 		impl::store_unaligned(vector, data.data());
 	}
@@ -196,7 +197,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param data Destination byte span with capacity for the full register payload.
 	 *  @return None.
 	 */
-	SIMDLIB_FORCE_INLINE static void VECTORCALL store(vector_t vector, std::span<std::byte> data) noexcept
+	static void SIMD_FLAGS(In, ForceInline, Flatten) store(vector_t vector, std::span<std::byte> data) noexcept
 	{
 		SIMDLIB_PRECONDITION(data.size() >= byte_count, "Data byte span must be at least the byte size of the register");
 		impl::store_unaligned(vector, data.data());
@@ -206,7 +207,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param data Source array containing one full register worth of elements.
 	 *  @return Register populated with the provided array contents.
 	 */
-	SIMDLIB_FORCE_INLINE constexpr static vector_t VECTORCALL construct(const std::array<element_t, element_count> &data) noexcept
+	constexpr static vector_t SIMD_FLAGS(Out, RegisterOnly, ForceInline, Flatten) construct(const std::array<element_t, element_count> &data) noexcept
 	{
 		return impl::construct(data);
 	}
@@ -215,59 +216,15 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param vector Register value to unpack.
 	 *  @return Array containing the register elements in lane order.
 	 */
-	SIMDLIB_FORCE_INLINE constexpr static std::array<element_t, element_count> VECTORCALL to_array(const vector_t vector) noexcept
+	constexpr static std::array<element_t, element_count> SIMD_FLAGS(In, ForceInline, Flatten) to_array(const vector_t vector) noexcept
 	{
-		std::array<element_t, element_count> result{};
 		if (std::is_constant_evaluated())
-		{
-			for (std::size_t index = 0; index < element_count; ++index)
-			{
-				result[index] = impl::get_element(vector, static_cast<int>(index));
-			}
-		}
-		else
-		{
-			impl::store_unaligned(vector, result.data());
-		}
+			return to_array_constexpr(vector);
+		std::array<element_t, element_count> result{};
+		impl::store_unaligned(vector, result.data());
 		return result;
 	}
 
-	/** @brief Finishes integer magnitude by summing the SIMD-produced pairwise squares per 128-bit lane and broadcasting the root.
-	 *  @tparam partial_element_t Integer lane type produced by the first pairwise square-and-sum step.
-	 *  @param pairSums Register containing `x*x + y*y` style partial sums for each 128-bit lane group.
-	 *  @return Register containing the lane-local magnitudes broadcast to every source lane.
-	 */
-	template <class partial_element_t>
-	SIMDLIB_FORCE_INLINE static vector_t VECTORCALL
-	FinishIntegerMagnitudeFromPairSums(typename Api<register_width, partial_element_t>::vector_t pairSums) noexcept
-	{
-		using partial_simd = Api<register_width, partial_element_t>;
-		using accumulation_t = std::conditional_t<std::is_signed_v<partial_element_t>, int64_t, uint64_t>;
-		constexpr std::size_t LaneGroupCount = register_width / 128;
-		constexpr std::size_t SourceLaneWidth = element_count / LaneGroupCount;
-		constexpr std::size_t PartialLaneWidth = partial_simd::element_count / LaneGroupCount;
-
-		const auto partialValues = partial_simd::to_array(pairSums);
-		std::array<element_t, element_count> output{};
-		for (std::size_t groupIndex = 0; groupIndex < LaneGroupCount; ++groupIndex)
-		{
-			accumulation_t total{};
-			const std::size_t partialStart = groupIndex * PartialLaneWidth;
-			for (std::size_t partialOffset = 0; partialOffset < PartialLaneWidth; ++partialOffset)
-			{
-				total += static_cast<accumulation_t>(partialValues[partialStart + partialOffset]);
-			}
-
-			const element_t laneMagnitude = static_cast<element_t>(std::round(std::sqrt(static_cast<long double>(total))));
-			const std::size_t laneStart = groupIndex * SourceLaneWidth;
-			for (std::size_t laneOffset = 0; laneOffset < SourceLaneWidth; ++laneOffset)
-			{
-				output[laneStart + laneOffset] = laneMagnitude;
-			}
-		}
-
-		return construct(output);
-	}
 #pragma endregion
 
 #pragma region Arithmetic Operations
@@ -275,8 +232,8 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	/** @brief Returns a zero-initialized SIMD register.
 	 *  @return Register with every lane initialized to zero.
 	 */
-	SIMDLIB_FORCE_INLINE constexpr static vector_t VECTORCALL setzero() noexcept
-		requires requires { impl::setzero(); }
+	constexpr static vector_t SIMD_FLAGS(Out, RegisterOnly, ForceInline, Flatten) setzero() noexcept
+		requires IImpl::SetZero<impl>
 	{
 		return impl::setzero();
 	}
@@ -285,8 +242,8 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param value Scalar value to broadcast.
 	 *  @return Register with every lane initialized to `value`.
 	 */
-	SIMDLIB_FORCE_INLINE constexpr static vector_t VECTORCALL set1(const element_t value) noexcept
-		requires requires(element_t scalar) { impl::set1(scalar); }
+	constexpr static vector_t SIMD_FLAGS(Out, RegisterOnly, ForceInline, Flatten) set1(const element_t value) noexcept
+		requires IImpl::SetOne<impl, element_t>
 	{
 		return impl::set1(value);
 	}
@@ -297,8 +254,8 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @return Register containing the provided lane values.
 	 */
 	template <class... Args>
-	SIMDLIB_FORCE_INLINE constexpr static auto VECTORCALL set(Args &&...args) noexcept
-		requires requires(Args &&...values) { impl::set(std::forward<Args>(values)...); }
+	constexpr static auto SIMD_FLAGS(Out, RegisterOnly, ForceInline, Flatten) set(Args &&...args) noexcept
+		requires IImpl::Set<impl, Args...>
 	{
 		return impl::set(std::forward<Args>(args)...);
 	}
@@ -309,11 +266,11 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @return Register containing the provided lanes with any remaining lanes initialized to zero.
 	 */
 	template <class... Args>
-	SIMDLIB_FORCE_INLINE constexpr static auto VECTORCALL set_partial(Args &&...args) noexcept
+	constexpr static auto SIMD_FLAGS(Out, RegisterOnly, ForceInline, Flatten) set_partial(Args &&...args) noexcept
 		requires(sizeof...(Args) <= element_count)
 	{
 		return []<std::size_t... ZeroIndices>(std::index_sequence<ZeroIndices...>, Args &&...values) constexpr noexcept
-			requires requires(Args &&...forwardedValues) { impl::set(std::forward<Args>(forwardedValues)..., ((void)ZeroIndices, element_t{})...); }
+			requires IImpl::Set<impl, Args..., decltype(((void)ZeroIndices, element_t{}))...>
 		{ return impl::set(std::forward<Args>(values)..., ((void)ZeroIndices, element_t{})...); }(std::make_index_sequence<element_count - sizeof...(Args)>{},
 																								  std::forward<Args>(args)...);
 	}
@@ -324,8 +281,8 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @return Register containing the provided lane values.
 	 */
 	template <class... Args>
-	SIMDLIB_FORCE_INLINE constexpr static auto VECTORCALL setr(Args &&...args) noexcept
-		requires requires(Args &&...values) { impl::setr(std::forward<Args>(values)...); }
+	constexpr static auto SIMD_FLAGS(Out, RegisterOnly, ForceInline, Flatten) setr(Args &&...args) noexcept
+		requires IImpl::SetReverse<impl, Args...>
 	{
 		return impl::setr(std::forward<Args>(args)...);
 	}
@@ -336,11 +293,11 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @return Register containing the provided lanes with any remaining lanes initialized to zero.
 	 */
 	template <class... Args>
-	SIMDLIB_FORCE_INLINE constexpr static auto VECTORCALL setr_partial(Args &&...args) noexcept
+	constexpr static auto SIMD_FLAGS(Out, RegisterOnly, ForceInline, Flatten) setr_partial(Args &&...args) noexcept
 		requires(sizeof...(Args) <= element_count)
 	{
 		return []<std::size_t... ZeroIndices>(std::index_sequence<ZeroIndices...>, Args &&...values) constexpr noexcept
-			requires requires(Args &&...forwardedValues) { impl::setr(std::forward<Args>(forwardedValues)..., ((void)ZeroIndices, element_t{})...); }
+			requires IImpl::SetReverse<impl, Args..., decltype(((void)ZeroIndices, element_t{}))...>
 		{ return impl::setr(std::forward<Args>(values)..., ((void)ZeroIndices, element_t{})...); }(std::make_index_sequence<element_count - sizeof...(Args)>{},
 																								   std::forward<Args>(args)...);
 	}
@@ -351,8 +308,8 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param addend Register added to the product.
 	 *  @return Register containing the multiply-add result.
 	 */
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL multiply_add(const vector_t lhs, const vector_t rhs, const vector_t addend) noexcept
-		requires requires(vector_t left, vector_t right, vector_t sum) { impl::multiply_add(left, right, sum); }
+	static auto SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) multiply_add(const vector_t lhs, const vector_t rhs, const vector_t addend) noexcept
+		requires IImpl::MultiplyAdd<impl>
 	{
 		return impl::multiply_add(lhs, rhs, addend);
 	}
@@ -362,26 +319,17 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param lhs Source register to widen.
 	 *  @return Destination register widened according to the source element signedness.
 	 */
-	template <class target_simd> SIMDLIB_FORCE_INLINE static typename target_simd::vector_t VECTORCALL widen(const vector_t lhs) noexcept
+	template <class target_simd>
+		requires IApi::WidenTarget<target_simd> && using_int && std::is_integral_v<typename target_simd::element_type> &&
+				 (std::is_signed_v<element_t> == std::is_signed_v<typename target_simd::element_type>) &&
+				 (sizeof(element_t) < sizeof(typename target_simd::element_type)) && (register_width == 128) &&
+				 (target_simd::register_width == 128 || target_simd::register_width == 256) &&
+				 ApiAvailable<target_simd::register_width, typename target_simd::element_type> && IImpl::Widen<impl, target_simd>
+	constexpr static typename target_simd::vector_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) widen(const vector_t lhs) noexcept
 	{
-		static_assert(is_widen_target_v<target_simd>,
-					  "Api::widen<target_simd> requires a destination SIMD type with element_type, vector_t, and register_width.");
-		static_assert(using_int, "Api::widen only supports integral source SIMD specializations.");
-		static_assert(std::is_integral_v<typename target_simd::element_type>, "Api::widen only supports integral destination SIMD specializations.");
-		static_assert(sizeof(element_t) < sizeof(typename target_simd::element_type),
-					  "Api::widen requires the destination element type to be wider than the source element type.");
-		static_assert(target_simd::register_width == 128 || target_simd::register_width == 256,
-					  "Api::widen currently supports only 128-bit or 256-bit destination SIMD widths.");
-
-		if constexpr (requires(vector_t value) { impl::template widen<target_simd>(value); })
-		{
-			return impl::template widen<target_simd>(lhs);
-		}
-		else
-		{
-			static_assert(requires(vector_t value) { impl::template widen<target_simd>(value); },
-				"Api::widen does not yet have a backend mapping for this source/destination SIMD pair.");
-		}
+		if (std::is_constant_evaluated())
+			return widen_constexpr<target_simd>(lhs);
+		return impl::template widen<target_simd>(lhs);
 	}
 
 	/** @brief Computes the remainder of each lhs element divided by the corresponding rhs element.
@@ -389,8 +337,8 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param rhs Divisor register.
 	 *  @return Register containing per-lane remainder results.
 	 */
-	SIMDLIB_FORCE_INLINE static vector_t VECTORCALL modulus(const vector_t lhs, const vector_t rhs) noexcept
-		requires requires(vector_t left, vector_t right) { impl::modulus(left, right); }
+	static vector_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) modulus(const vector_t lhs, const vector_t rhs) noexcept
+		requires IImpl::Modulus<impl>
 	{
 		return impl::modulus(lhs, rhs);
 	}
@@ -399,8 +347,8 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param lhs Input register.
 	 *  @return Register containing the negated element values.
 	 */
-	SIMDLIB_FORCE_INLINE static vector_t VECTORCALL negate(const vector_t lhs) noexcept
-		requires requires(vector_t value) { impl::negate(value); }
+	static vector_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) negate(const vector_t lhs) noexcept
+		requires IImpl::Negate<impl>
 	{
 		return impl::negate(lhs);
 	}
@@ -409,8 +357,8 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param lhs Input register.
 	 *  @return Register containing per-lane absolute values.
 	 */
-	SIMDLIB_FORCE_INLINE static vector_t VECTORCALL absolute(const vector_t lhs) noexcept
-		requires requires(vector_t value) { impl::absolute(value); }
+	static vector_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) absolute(const vector_t lhs) noexcept
+		requires IImpl::Absolute<impl>
 	{
 		return impl::absolute(lhs);
 	}
@@ -419,69 +367,38 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param lhs Input register.
 	 *  @return Register containing per-lane square roots.
 	 */
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL sqrt(const vector_t lhs) noexcept
-		requires requires(vector_t value) { impl::sqrt(value); }
+	static auto SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) sqrt(const vector_t lhs) noexcept
+		requires IImpl::Sqrt<impl>
 	{
 		return impl::sqrt(lhs);
 	}
 
-	/** @brief Computes the vector magnitude per 128-bit lane.
-	 *  @param lhs Input register.
-	 *  @return Register containing the lane-local magnitudes broadcast within each 128-bit lane.
+	/** @brief Computes the vector magnitude independently for each 128-bit group.
+	 *  @param lhs Input register. Integer inputs require a magnitude representable by `element_t`.
+	 *  @return Floating magnitudes broadcast within each group, or unchecked integer magnitudes in each group-leading lane.
 	 */
-	SIMDLIB_FORCE_INLINE static vector_t VECTORCALL magnitude(const vector_t lhs) noexcept
-		requires((std::is_floating_point_v<element_t> && requires(vector_t left, vector_t right) {
-					 impl::sqrt(left);
-					 impl::template dot_product<0x11>(left, right);
-				 }) || (using_int && requires(vector_t value) {
-					 impl::sqrt(value);
-					 impl::multiply_add_adjacent(value, value);
-				 }))
+	static vector_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) magnitude(const vector_t lhs) noexcept
+		requires IImpl::Magnitude<impl>
 	{
-		if constexpr (std::is_floating_point_v<element_t>)
-		{
-			if constexpr (std::same_as<element_t, float>)
-			{
-				return sqrt(dot_product<0xFF>(lhs, lhs));
-			}
-			else
-			{
-				return sqrt(dot_product<0x33>(lhs, lhs));
-			}
-		}
-		else
-		{
-			if constexpr (sizeof(element_t) == 1)
-			{
-				using partial_element_t = std::conditional_t<using_unsigned, uint16_t, int16_t>;
-				return FinishIntegerMagnitudeFromPairSums<partial_element_t>(multiply_add_adjacent(lhs, lhs));
-			}
-			else if constexpr (sizeof(element_t) == 2)
-			{
-				using partial_element_t = std::conditional_t<using_unsigned, uint32_t, int32_t>;
-				return FinishIntegerMagnitudeFromPairSums<partial_element_t>(multiply_add_adjacent(lhs, lhs));
-			}
-			else if constexpr (sizeof(element_t) == 4)
-			{
-				using partial_element_t = std::conditional_t<using_unsigned, uint64_t, int64_t>;
-				return FinishIntegerMagnitudeFromPairSums<partial_element_t>(multiply_add_adjacent(lhs, lhs));
-			}
-			else
-			{
-				return FinishIntegerMagnitudeFromPairSums<element_t>(multiply_add_adjacent(lhs, lhs));
-			}
-		}
+		return impl::magnitude(lhs);
+	}
+
+	/** @brief Computes saturated integer magnitudes with canonical overflow masks.
+	 *  @param lhs Input integer register.
+	 *  @return Each 128-bit group stores its magnitude in lane zero and a zero/all-ones overflow mask in lane one.
+	 */
+	static vector_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) magnitude_checked(const vector_t lhs) noexcept
+		requires(using_int && IImpl::MagnitudeChecked<impl>)
+	{
+		return impl::magnitude_checked(lhs);
 	}
 
 	/** @brief Normalizes floating-point lanes using the vector length computed per 128-bit lane.
 	 *  @param lhs Input floating-point register.
 	 *  @return Register containing the normalized per-lane values.
 	 */
-	SIMDLIB_FORCE_INLINE static vector_t VECTORCALL normalize(const vector_t lhs) noexcept
-		requires(std::is_floating_point_v<element_t> && requires(vector_t left, vector_t right) {
-			magnitude(left);
-			impl::divide(left, right);
-		})
+	static vector_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) normalize(const vector_t lhs) noexcept
+		requires(std::is_floating_point_v<element_t> && IImpl::Normalize<impl>)
 	{
 		return divide(lhs, magnitude(lhs));
 	}
@@ -491,8 +408,8 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param rhs Right-hand input register.
 	 *  @return Register containing per-lane averages.
 	 */
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL avg(const vector_t lhs, const vector_t rhs) noexcept
-		requires requires(vector_t left, vector_t right) { impl::avg(left, right); }
+	static auto SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) avg(const vector_t lhs, const vector_t rhs) noexcept
+		requires IImpl::Average<impl>
 	{
 		return impl::avg(lhs, rhs);
 	}
@@ -502,8 +419,8 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param rhs Right-hand input register.
 	 *  @return Register containing pairwise horizontal sums.
 	 */
-	SIMDLIB_FORCE_INLINE static vector_t VECTORCALL add_horizontal(const vector_t lhs, const vector_t rhs) noexcept
-		requires requires(vector_t left, vector_t right) { impl::add_horizontal(left, right); }
+	static vector_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) add_horizontal(const vector_t lhs, const vector_t rhs) noexcept
+		requires IImpl::HorizontalAdd<impl>
 	{
 		return impl::add_horizontal(lhs, rhs);
 	}
@@ -513,8 +430,8 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param rhs Right-hand input register.
 	 *  @return Register containing pairwise horizontal differences.
 	 */
-	SIMDLIB_FORCE_INLINE static vector_t VECTORCALL subtract_horizontal(const vector_t lhs, const vector_t rhs) noexcept
-		requires requires(vector_t left, vector_t right) { impl::subtract_horizontal(left, right); }
+	static vector_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) subtract_horizontal(const vector_t lhs, const vector_t rhs) noexcept
+		requires IImpl::HorizontalSubtract<impl>
 	{
 		return impl::subtract_horizontal(lhs, rhs);
 	}
@@ -524,8 +441,8 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param rhs Right-hand input register.
 	 *  @return Register whose lane type follows the promoted integer mapping rather than `vector_t`.
 	 */
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL multiply_add_adjacent(const vector_t lhs, const vector_t rhs) noexcept
-		requires(using_int && requires(vector_t left, vector_t right) { impl::multiply_add_adjacent(left, right); })
+	static auto SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) multiply_add_adjacent(const vector_t lhs, const vector_t rhs) noexcept
+		requires(using_int && IImpl::MultiplyAddAdjacent<impl>)
 	{
 		return impl::multiply_add_adjacent(lhs, rhs);
 	}
@@ -535,8 +452,8 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param rhs Right-hand input register whose bytes are interpreted as signed.
 	 *  @return Register containing signed 16-bit accumulation results derived from the raw register bytes.
 	 */
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL multiply_add_unsigned_signed_bytes(const vector_t lhs, const vector_t rhs) noexcept
-		requires(using_int && requires(vector_t left, vector_t right) { impl::multiply_add_unsigned_signed_bytes(left, right); })
+	static auto SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) multiply_add_unsigned_signed_bytes(const vector_t lhs, const vector_t rhs) noexcept
+		requires(using_int && IImpl::ByteMultiplyAdd<impl>)
 	{
 		return impl::multiply_add_unsigned_signed_bytes(lhs, rhs);
 	}
@@ -546,8 +463,8 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param rhs Right-hand input register interpreted byte-wise.
 	 *  @return Register containing 64-bit absolute-difference accumulations derived from the raw register bytes.
 	 */
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL sum_absolute_byte_differences(const vector_t lhs, const vector_t rhs) noexcept
-		requires(using_int && requires(vector_t left, vector_t right) { impl::sum_absolute_byte_differences(left, right); })
+	static auto SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) sum_absolute_byte_differences(const vector_t lhs, const vector_t rhs) noexcept
+		requires(using_int && IImpl::Sad<impl>)
 	{
 		return impl::sum_absolute_byte_differences(lhs, rhs);
 	}
@@ -559,8 +476,8 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @return Register containing byte-window absolute-difference accumulations derived from the raw register bytes.
 	 */
 	template <int imm8>
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL multi_sum_absolute_byte_differences(const vector_t lhs, const vector_t rhs) noexcept
-		requires(using_int && requires(vector_t left, vector_t right) { impl::template multi_sum_absolute_byte_differences<imm8>(left, right); })
+	static auto SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) multi_sum_absolute_byte_differences(const vector_t lhs, const vector_t rhs) noexcept
+		requires(using_int && IImpl::MultiSad<impl, imm8>)
 	{
 		return impl::template multi_sum_absolute_byte_differences<imm8>(lhs, rhs);
 	}
@@ -569,17 +486,11 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param lhs Input register.
 	 *  @return Zero-based index of the first minimum element across the full SIMD register.
 	 */
-	SIMDLIB_FORCE_INLINE constexpr static std::size_t VECTORCALL min_position(const vector_t lhs) noexcept
-		requires(using_int && requires(vector_t value) {
-			impl::min_position(value);
-			impl::template extract<1>(value);
-		})
+	constexpr static std::size_t SIMD_FLAGS(In, RegisterOnly, ForceInline, Flatten) min_position(const vector_t lhs) noexcept
+		requires(using_int && IImpl::Position<impl>)
 	{
 		if (std::is_constant_evaluated())
-		{
-			const auto values = to_array(lhs);
-			return static_cast<std::size_t>(std::min_element(values.begin(), values.end()) - values.begin());
-		}
+			return min_position_constexpr(lhs);
 
 		return static_cast<std::size_t>(impl::template extract<1>(impl::min_position(lhs)));
 	}
@@ -588,17 +499,11 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param lhs Input register.
 	 *  @return Zero-based index of the first maximum element across the full SIMD register.
 	 */
-	SIMDLIB_FORCE_INLINE constexpr static std::size_t VECTORCALL max_position(const vector_t lhs) noexcept
-		requires(using_int && requires(vector_t value) {
-			impl::min_position(value);
-			impl::template extract<1>(value);
-		})
+	constexpr static std::size_t SIMD_FLAGS(In, RegisterOnly, ForceInline, Flatten) max_position(const vector_t lhs) noexcept
+		requires(using_int && IImpl::Position<impl>)
 	{
 		if (std::is_constant_evaluated())
-		{
-			const auto values = to_array(lhs);
-			return static_cast<std::size_t>(std::max_element(values.begin(), values.end()) - values.begin());
-		}
+			return max_position_constexpr(lhs);
 
 		if constexpr (using_unsigned)
 		{
@@ -616,8 +521,8 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param rhs Right-hand input register.
 	 *  @return Register containing saturated sums.
 	 */
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL add_saturated(const vector_t lhs, const vector_t rhs) noexcept
-		requires requires(vector_t left, vector_t right) { impl::add_saturated(left, right); }
+	static auto SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) add_saturated(const vector_t lhs, const vector_t rhs) noexcept
+		requires IImpl::AddSaturated<impl>
 	{
 		return impl::add_saturated(lhs, rhs);
 	}
@@ -627,8 +532,8 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param rhs Right-hand input register.
 	 *  @return Register containing saturated differences.
 	 */
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL subtract_saturated(const vector_t lhs, const vector_t rhs) noexcept
-		requires requires(vector_t left, vector_t right) { impl::subtract_saturated(left, right); }
+	static auto SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) subtract_saturated(const vector_t lhs, const vector_t rhs) noexcept
+		requires IImpl::SubtractSaturated<impl>
 	{
 		return impl::subtract_saturated(lhs, rhs);
 	}
@@ -638,8 +543,8 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param rhs Right-hand input register.
 	 *  @return Register containing saturated horizontal sums.
 	 */
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL hadd_saturated(const vector_t lhs, const vector_t rhs) noexcept
-		requires requires(vector_t left, vector_t right) { impl::hadd_saturated(left, right); }
+	static auto SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) hadd_saturated(const vector_t lhs, const vector_t rhs) noexcept
+		requires IImpl::HorizontalAddSaturated<impl>
 	{
 		return impl::hadd_saturated(lhs, rhs);
 	}
@@ -649,8 +554,8 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param rhs Right-hand input register.
 	 *  @return Register containing saturated horizontal differences.
 	 */
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL hsubtract_saturated(const vector_t lhs, const vector_t rhs) noexcept
-		requires requires(vector_t left, vector_t right) { impl::hsubtract_saturated(left, right); }
+	static auto SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) hsubtract_saturated(const vector_t lhs, const vector_t rhs) noexcept
+		requires IImpl::HorizontalSubtractSaturated<impl>
 	{
 		return impl::hsubtract_saturated(lhs, rhs);
 	}
@@ -660,8 +565,8 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param rhs Right-hand input register.
 	 *  @return Register containing alternating subtract/add results.
 	 */
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL add_subtract(const vector_t lhs, const vector_t rhs) noexcept
-		requires requires(vector_t left, vector_t right) { impl::add_subtract(left, right); }
+	static auto SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) add_subtract(const vector_t lhs, const vector_t rhs) noexcept
+		requires IImpl::AddSubtract<impl>
 	{
 		return impl::add_subtract(lhs, rhs);
 	}
@@ -673,8 +578,8 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @return Register containing the masked dot-product result.
 	 */
 	template <int imm8>
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL dot_product(const vector_t lhs, const vector_t rhs) noexcept
-		requires requires(vector_t left, vector_t right) { impl::template dot_product<imm8>(left, right); }
+	static auto SIMD_FLAGS(In, RegisterOnly, ForceInline, Flatten) dot_product(const vector_t lhs, const vector_t rhs) noexcept
+		requires IImpl::DotProduct<impl, imm8>
 	{
 		return impl::template dot_product<imm8>(lhs, rhs);
 	}
@@ -688,10 +593,13 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param rhs Right-hand input register.
 	 *  @return Register containing the bitwise AND result.
 	 */
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL bitwise_and(const vector_t lhs, const vector_t rhs) noexcept
-		requires requires(vector_t left, vector_t right) { impl::bitwise_and(left, right); }
+	constexpr static vector_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) bitwise_and(const vector_t lhs, const vector_t rhs) noexcept
+		requires IImpl::BitwiseAnd<impl>
 	{
-		return impl::bitwise_and(lhs, rhs);
+		if (std::is_constant_evaluated())
+			return bitwise_and_constexpr(lhs, rhs);
+		else
+			return impl::bitwise_and(lhs, rhs);
 	}
 
 	/** @brief Computes a bitwise OR of two registers.
@@ -699,10 +607,13 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param rhs Right-hand input register.
 	 *  @return Register containing the bitwise OR result.
 	 */
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL bitwise_or(const vector_t lhs, const vector_t rhs) noexcept
-		requires requires(vector_t left, vector_t right) { impl::bitwise_or(left, right); }
+	constexpr static vector_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) bitwise_or(const vector_t lhs, const vector_t rhs) noexcept
+		requires IImpl::BitwiseOr<impl>
 	{
-		return impl::bitwise_or(lhs, rhs);
+		if (std::is_constant_evaluated())
+			return bitwise_or_constexpr(lhs, rhs);
+		else
+			return impl::bitwise_or(lhs, rhs);
 	}
 
 	/** @brief Computes a bitwise XOR of two registers.
@@ -710,10 +621,13 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param rhs Right-hand input register.
 	 *  @return Register containing the bitwise XOR result.
 	 */
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL bitwise_xor(const vector_t lhs, const vector_t rhs) noexcept
-		requires requires(vector_t left, vector_t right) { impl::bitwise_xor(left, right); }
+	constexpr static vector_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) bitwise_xor(const vector_t lhs, const vector_t rhs) noexcept
+		requires IImpl::BitwiseXor<impl>
 	{
-		return impl::bitwise_xor(lhs, rhs);
+		if (std::is_constant_evaluated())
+			return bitwise_xor_constexpr(lhs, rhs);
+		else
+			return impl::bitwise_xor(lhs, rhs);
 	}
 
 	/** @brief Computes a bitwise AND-NOT of two registers.
@@ -721,47 +635,62 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param rhs Right-hand input register.
 	 *  @return Register containing the bitwise AND-NOT result.
 	 */
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL bitwise_andnot(const vector_t lhs, const vector_t rhs) noexcept
-		requires requires(vector_t left, vector_t right) { impl::bitwise_andnot(left, right); }
+	constexpr static vector_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) bitwise_andnot(const vector_t lhs, const vector_t rhs) noexcept
+		requires IImpl::BitwiseAndNot<impl>
 	{
-		return impl::bitwise_andnot(lhs, rhs);
+		if (std::is_constant_evaluated())
+			return bitwise_andnot_constexpr(lhs, rhs);
+		else
+			return impl::bitwise_andnot(lhs, rhs);
 	}
 
 	/** @brief Computes a bitwise NOT of a register.
 	 *  @param lhs Input register.
 	 *  @return Register containing the bitwise NOT result.
 	 */
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL bitwise_not(const vector_t lhs) noexcept
-		requires requires(vector_t value) { impl::bitwise_not(value); }
+	constexpr static vector_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) bitwise_not(const vector_t lhs) noexcept
+		requires IImpl::BitwiseNot<impl>
 	{
-		return impl::bitwise_not(lhs);
+		if (std::is_constant_evaluated())
+			return bitwise_not_constexpr(lhs);
+		else
+			return impl::bitwise_not(lhs);
+	}
+
+#pragma endregion
+
+#pragma region Selection Operations
+
+	/** @brief Selects lanes from two registers using a canonical native predicate.
+	 *  @param condition Canonical predicate register containing all-zero or all-one lanes.
+	 *  @param when_true Register selected where the corresponding predicate lane is true.
+	 *  @param when_false Register selected where the corresponding predicate lane is false.
+	 *  @return Register containing the selected lanes without reducing the predicate.
+	 */
+	constexpr static vector_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten)
+		select(const vector_t condition, const vector_t when_true, const vector_t when_false) noexcept
+		requires IImpl::Select<impl>
+	{
+		if (std::is_constant_evaluated())
+			return select_constexpr(condition, when_true, when_false);
+		else
+			return impl::select(condition, when_true, when_false);
 	}
 
 #pragma endregion
 
 #pragma region Comparison Operations
 
+#pragma region Mask Reductions
+
 	/** @brief Returns a mask composed from the most significant bit of each byte in the register.
 	 *  @param lhs Input register.
 	 *  @return Byte-granular movemask for the register contents.
 	 */
-	SIMDLIB_FORCE_INLINE constexpr static mask_t VECTORCALL movemask(const vector_t lhs) noexcept
+	constexpr static mask_t SIMD_FLAGS(In, RegisterOnly, ForceInline, Flatten) movemask(const vector_t lhs) noexcept
 	{
 		if (std::is_constant_evaluated())
-		{
-			const auto lanes = to_array(lhs);
-			mask_t result = 0;
-			for (std::size_t laneIndex = 0; laneIndex < element_count; ++laneIndex)
-			{
-				const auto laneBytes = std::bit_cast<std::array<std::uint8_t, sizeof(element_t)>>(lanes[laneIndex]);
-				for (std::size_t byteIndex = 0; byteIndex < sizeof(element_t); ++byteIndex)
-				{
-					const std::size_t maskIndex = laneIndex * sizeof(element_t) + byteIndex;
-					result |= static_cast<mask_t>((laneBytes[byteIndex] >> 7) & 1u) << maskIndex;
-				}
-			}
-			return result;
-		}
+			return movemask_constexpr(lhs);
 		else
 		{
 			return impl::movemask(lhs);
@@ -772,139 +701,240 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param lhs Input register.
 	 *  @return Element-granular movemask for the register contents.
 	 */
-	SIMDLIB_FORCE_INLINE constexpr static mask_t VECTORCALL movemask_slim(const vector_t lhs) noexcept
+	constexpr static mask_t SIMD_FLAGS(In, RegisterOnly, ForceInline, Flatten) movemask_slim(const vector_t lhs) noexcept
 	{
 		if (std::is_constant_evaluated())
-		{
-			const auto lanes = to_array(lhs);
-			mask_t result = 0;
-			for (std::size_t laneIndex = 0; laneIndex < element_count; ++laneIndex)
-			{
-				const auto laneBytes = std::bit_cast<std::array<std::uint8_t, sizeof(element_t)>>(lanes[laneIndex]);
-				result |= static_cast<mask_t>((laneBytes.back() >> 7) & 1u) << laneIndex;
-			}
-			return result;
-		}
+			return movemask_slim_constexpr(lhs);
 		else
 		{
 			return impl::movemask_slim(lhs);
 		}
 	}
 
-	/** @brief Computes an equality comparison mask for two registers.
+#pragma endregion
+
+#pragma region Native Predicate Comparisons
+
+	/** @brief Compares corresponding lanes for ordered equality without reducing the result.
 	 *  @param lhs Left-hand input register.
 	 *  @param rhs Right-hand input register.
-	 *  @return Mask with bits set where corresponding elements are equal.
+	 *  @return Native predicate register containing an all-one true lane or an all-zero false lane.
 	 */
-	SIMDLIB_FORCE_INLINE constexpr static mask_t VECTORCALL cmp_eq(const vector_t lhs, const vector_t rhs) noexcept
+	constexpr static vector_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) compare_equal(const vector_t lhs, const vector_t rhs) noexcept
 	{
 		if (std::is_constant_evaluated())
-		{
-			const auto lhsValues = to_array(lhs);
-			const auto rhsValues = to_array(rhs);
-			mask_t result = 0;
-			constexpr mask_t laneMask = static_cast<mask_t>((mask_t{1} << sizeof(element_t)) - 1);
-			for (std::size_t index = 0; index < element_count; ++index)
-				if (lhsValues[index] == rhsValues[index])
-					result |= laneMask << (index * sizeof(element_t));
-			return result;
-		}
+			return compare_equal_constexpr(lhs, rhs);
 		else
-		{
-			return impl::movemask(impl::cmpeq(lhs, rhs));
-		}
+			return impl::cmpeq(lhs, rhs);
 	}
 
-	/** @brief Computes a byte-granular equality comparison mask for two registers of this SIMD shape.
+	/** @brief Compares corresponding lanes for greater-than ordering without reducing the result.
 	 *  @param lhs Left-hand input register.
 	 *  @param rhs Right-hand input register.
-	 *  @return Mask with bits set where the underlying compare produced all-one bytes.
+	 *  @return Native predicate register containing an all-one true lane or an all-zero false lane.
 	 */
-	SIMDLIB_FORCE_INLINE constexpr static mask_t VECTORCALL cmp_eq_mask(const vector_t lhs, const vector_t rhs) noexcept
+	constexpr static vector_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) compare_greater(const vector_t lhs, const vector_t rhs) noexcept
 	{
 		if (std::is_constant_evaluated())
-		{
-			const auto lhsValues = to_array(lhs);
-			const auto rhsValues = to_array(rhs);
-			mask_t result = 0;
-			constexpr mask_t laneMask = static_cast<mask_t>((mask_t{1} << sizeof(element_t)) - 1);
-			for (std::size_t index = 0; index < element_count; ++index)
-				if (lhsValues[index] == rhsValues[index])
-					result |= laneMask << (index * sizeof(element_t));
-			return result;
-		}
+			return compare_greater_constexpr(lhs, rhs);
 		else
-		{
-			return impl::movemask(impl::cmpeq(lhs, rhs));
-		}
+			return impl::cmpgt(lhs, rhs);
 	}
 
-	/** @brief Computes a greater-than comparison mask for two registers.
+	/** @brief Compares corresponding lanes for greater-than-or-equal ordering without reducing the result.
 	 *  @param lhs Left-hand input register.
 	 *  @param rhs Right-hand input register.
-	 *  @return Mask with bits set where lhs elements are greater than rhs elements.
+	 *  @return Native predicate register containing an all-one true lane or an all-zero false lane.
 	 */
-	SIMDLIB_FORCE_INLINE constexpr static mask_t VECTORCALL cmp_gt(const vector_t lhs, const vector_t rhs) noexcept
+	constexpr static vector_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) compare_greater_equal(const vector_t lhs, const vector_t rhs) noexcept
 	{
 		if (std::is_constant_evaluated())
-		{
-			const auto lhsValues = to_array(lhs);
-			const auto rhsValues = to_array(rhs);
-			mask_t result = 0;
-			constexpr mask_t laneMask = static_cast<mask_t>((mask_t{1} << sizeof(element_t)) - 1);
-			for (std::size_t index = 0; index < element_count; ++index)
-				if (lhsValues[index] > rhsValues[index])
-					result |= laneMask << (index * sizeof(element_t));
-			return result;
-		}
+			return compare_greater_equal_constexpr(lhs, rhs);
 		else
-		{
-			return impl::movemask(impl::cmpgt(lhs, rhs));
-		}
+			return bitwise_or(compare_equal(lhs, rhs), compare_greater(lhs, rhs));
 	}
 
-	/** @brief Computes a greater-than-or-equal comparison mask for two registers.
+	/** @brief Compares corresponding lanes for less-than ordering without reducing the result.
 	 *  @param lhs Left-hand input register.
 	 *  @param rhs Right-hand input register.
-	 *  @return Mask with bits set where lhs elements are greater than or equal to rhs elements.
+	 *  @return Native predicate register containing an all-one true lane or an all-zero false lane.
 	 */
-	SIMDLIB_FORCE_INLINE constexpr static mask_t VECTORCALL cmp_ge(const vector_t lhs, const vector_t rhs) noexcept
-	{
-		return cmp_eq(lhs, rhs) | cmp_gt(lhs, rhs);
-	}
-
-	/** @brief Computes a less-than comparison mask for two registers.
-	 *  @param lhs Left-hand input register.
-	 *  @param rhs Right-hand input register.
-	 *  @return Mask with bits set where lhs elements are less than rhs elements.
-	 */
-	SIMDLIB_FORCE_INLINE constexpr static mask_t VECTORCALL cmp_lt(const vector_t lhs, const vector_t rhs) noexcept
+	constexpr static vector_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) compare_less(const vector_t lhs, const vector_t rhs) noexcept
 	{
 		if (std::is_constant_evaluated())
-		{
-			const auto lhsValues = to_array(lhs);
-			const auto rhsValues = to_array(rhs);
-			mask_t result = 0;
-			constexpr mask_t laneMask = static_cast<mask_t>((mask_t{1} << sizeof(element_t)) - 1);
-			for (std::size_t index = 0; index < element_count; ++index)
-				if (lhsValues[index] < rhsValues[index])
-					result |= laneMask << (index * sizeof(element_t));
-			return result;
-		}
+			return compare_less_constexpr(lhs, rhs);
 		else
-		{
-			return impl::movemask(impl::cmpgt(rhs, lhs));
-		}
+			return impl::cmpgt(rhs, lhs);
 	}
 
-	/** @brief Computes a less-than-or-equal comparison mask for two registers.
+	/** @brief Compares corresponding lanes for less-than-or-equal ordering without reducing the result.
 	 *  @param lhs Left-hand input register.
 	 *  @param rhs Right-hand input register.
-	 *  @return Mask with bits set where lhs elements are less than or equal to rhs elements.
+	 *  @return Native predicate register containing an all-one true lane or an all-zero false lane.
 	 */
-	SIMDLIB_FORCE_INLINE constexpr static mask_t VECTORCALL cmp_le(const vector_t lhs, const vector_t rhs) noexcept
+	constexpr static vector_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) compare_less_equal(const vector_t lhs, const vector_t rhs) noexcept
 	{
-		return cmp_eq(lhs, rhs) | cmp_lt(lhs, rhs);
+		if (std::is_constant_evaluated())
+			return compare_less_equal_constexpr(lhs, rhs);
+		else
+			return bitwise_or(compare_equal(lhs, rhs), compare_less(lhs, rhs));
+	}
+
+#pragma endregion
+
+#pragma region Byte Comparison Masks
+
+	/** @brief Reduces an equality comparison to a byte-granular scalar mask.
+	 *  @param lhs Left-hand input register.
+	 *  @param rhs Right-hand input register.
+	 *  @return Mask with one set bit for every all-one byte produced by the comparison.
+	 */
+	constexpr static mask_t SIMD_FLAGS(In, RegisterOnly, ForceInline, Flatten) cmp_eq_mask(const vector_t lhs, const vector_t rhs) noexcept
+	{
+		return movemask(compare_equal(lhs, rhs));
+	}
+
+	/** @brief Reduces a greater-than comparison to a byte-granular scalar mask.
+	 *  @param lhs Left-hand input register.
+	 *  @param rhs Right-hand input register.
+	 *  @return Mask with one set bit for every all-one byte produced by the comparison.
+	 */
+	constexpr static mask_t SIMD_FLAGS(In, RegisterOnly, ForceInline, Flatten) cmp_gt_mask(const vector_t lhs, const vector_t rhs) noexcept
+	{
+		return movemask(compare_greater(lhs, rhs));
+	}
+
+	/** @brief Reduces a greater-than-or-equal comparison to a byte-granular scalar mask.
+	 *  @param lhs Left-hand input register.
+	 *  @param rhs Right-hand input register.
+	 *  @return Mask with one set bit for every all-one byte produced by the comparison.
+	 */
+	constexpr static mask_t SIMD_FLAGS(In, RegisterOnly, ForceInline, Flatten) cmp_ge_mask(const vector_t lhs, const vector_t rhs) noexcept
+	{
+		return movemask(compare_greater_equal(lhs, rhs));
+	}
+
+	/** @brief Reduces a less-than comparison to a byte-granular scalar mask.
+	 *  @param lhs Left-hand input register.
+	 *  @param rhs Right-hand input register.
+	 *  @return Mask with one set bit for every all-one byte produced by the comparison.
+	 */
+	constexpr static mask_t SIMD_FLAGS(In, RegisterOnly, ForceInline, Flatten) cmp_lt_mask(const vector_t lhs, const vector_t rhs) noexcept
+	{
+		return movemask(compare_less(lhs, rhs));
+	}
+
+	/** @brief Reduces a less-than-or-equal comparison to a byte-granular scalar mask.
+	 *  @param lhs Left-hand input register.
+	 *  @param rhs Right-hand input register.
+	 *  @return Mask with one set bit for every all-one byte produced by the comparison.
+	 */
+	constexpr static mask_t SIMD_FLAGS(In, RegisterOnly, ForceInline, Flatten) cmp_le_mask(const vector_t lhs, const vector_t rhs) noexcept
+	{
+		return movemask(compare_less_equal(lhs, rhs));
+	}
+
+#pragma endregion
+
+#pragma region Slim Comparison Masks
+
+	/** @brief Reduces an equality comparison to one scalar bit per logical lane.
+	 *  @param lhs Left-hand input register.
+	 *  @param rhs Right-hand input register.
+	 *  @return Mask with one set bit for every true predicate lane.
+	 */
+	constexpr static mask_t SIMD_FLAGS(In, RegisterOnly, ForceInline, Flatten) cmp_eq_slim(const vector_t lhs, const vector_t rhs) noexcept
+	{
+		return movemask_slim(compare_equal(lhs, rhs));
+	}
+
+	/** @brief Reduces a greater-than comparison to one scalar bit per logical lane.
+	 *  @param lhs Left-hand input register.
+	 *  @param rhs Right-hand input register.
+	 *  @return Mask with one set bit for every true predicate lane.
+	 */
+	constexpr static mask_t SIMD_FLAGS(In, RegisterOnly, ForceInline, Flatten) cmp_gt_slim(const vector_t lhs, const vector_t rhs) noexcept
+	{
+		return movemask_slim(compare_greater(lhs, rhs));
+	}
+
+	/** @brief Reduces a greater-than-or-equal comparison to one scalar bit per logical lane.
+	 *  @param lhs Left-hand input register.
+	 *  @param rhs Right-hand input register.
+	 *  @return Mask with one set bit for every true predicate lane.
+	 */
+	constexpr static mask_t SIMD_FLAGS(In, RegisterOnly, ForceInline, Flatten) cmp_ge_slim(const vector_t lhs, const vector_t rhs) noexcept
+	{
+		return movemask_slim(compare_greater_equal(lhs, rhs));
+	}
+
+	/** @brief Reduces a less-than comparison to one scalar bit per logical lane.
+	 *  @param lhs Left-hand input register.
+	 *  @param rhs Right-hand input register.
+	 *  @return Mask with one set bit for every true predicate lane.
+	 */
+	constexpr static mask_t SIMD_FLAGS(In, RegisterOnly, ForceInline, Flatten) cmp_lt_slim(const vector_t lhs, const vector_t rhs) noexcept
+	{
+		return movemask_slim(compare_less(lhs, rhs));
+	}
+
+	/** @brief Reduces a less-than-or-equal comparison to one scalar bit per logical lane.
+	 *  @param lhs Left-hand input register.
+	 *  @param rhs Right-hand input register.
+	 *  @return Mask with one set bit for every true predicate lane.
+	 */
+	constexpr static mask_t SIMD_FLAGS(In, RegisterOnly, ForceInline, Flatten) cmp_le_slim(const vector_t lhs, const vector_t rhs) noexcept
+	{
+		return movemask_slim(compare_less_equal(lhs, rhs));
+	}
+
+#pragma endregion
+
+#pragma region Deprecated Comparison Masks
+
+	/** @brief Legacy byte-granular equality mask spelling.
+	 *  @deprecated Use cmp_eq_mask() instead.
+	 */
+	[[deprecated("Use cmp_eq_mask() instead.")]]
+	constexpr static mask_t SIMD_FLAGS(In, RegisterOnly, ForceInline, Flatten) cmp_eq(const vector_t lhs, const vector_t rhs) noexcept
+	{
+		return cmp_eq_mask(lhs, rhs);
+	}
+
+	/** @brief Legacy byte-granular greater-than mask spelling.
+	 *  @deprecated Use cmp_gt_mask() instead.
+	 */
+	[[deprecated("Use cmp_gt_mask() instead.")]]
+	constexpr static mask_t SIMD_FLAGS(In, RegisterOnly, ForceInline, Flatten) cmp_gt(const vector_t lhs, const vector_t rhs) noexcept
+	{
+		return cmp_gt_mask(lhs, rhs);
+	}
+
+	/** @brief Legacy byte-granular greater-than-or-equal mask spelling.
+	 *  @deprecated Use cmp_ge_mask() instead.
+	 */
+	[[deprecated("Use cmp_ge_mask() instead.")]]
+	constexpr static mask_t SIMD_FLAGS(In, RegisterOnly, ForceInline, Flatten) cmp_ge(const vector_t lhs, const vector_t rhs) noexcept
+	{
+		return cmp_ge_mask(lhs, rhs);
+	}
+
+	/** @brief Legacy byte-granular less-than mask spelling.
+	 *  @deprecated Use cmp_lt_mask() instead.
+	 */
+	[[deprecated("Use cmp_lt_mask() instead.")]]
+	constexpr static mask_t SIMD_FLAGS(In, RegisterOnly, ForceInline, Flatten) cmp_lt(const vector_t lhs, const vector_t rhs) noexcept
+	{
+		return cmp_lt_mask(lhs, rhs);
+	}
+
+	/** @brief Legacy byte-granular less-than-or-equal mask spelling.
+	 *  @deprecated Use cmp_le_mask() instead.
+	 */
+	[[deprecated("Use cmp_le_mask() instead.")]]
+	constexpr static mask_t SIMD_FLAGS(In, RegisterOnly, ForceInline, Flatten) cmp_le(const vector_t lhs, const vector_t rhs) noexcept
+	{
+		return cmp_le_mask(lhs, rhs);
 	}
 
 #pragma endregion
@@ -918,8 +948,8 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param rhs Auxiliary source register when required by the implementation.
 	 *  @return Expanded register value.
 	 */
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL expand(const vector_t lhs, const vector_t rhs) noexcept
-		requires requires(vector_t left, vector_t right) { impl::expand(left, right); }
+	static auto SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) expand(const vector_t lhs, const vector_t rhs) noexcept
+		requires IImpl::Expand<impl>
 	{
 		return impl::expand(lhs, rhs);
 	}
@@ -929,8 +959,8 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param rhs Right-hand source register.
 	 *  @return Compressed register value.
 	 */
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL compress(const vector_t lhs, const vector_t rhs) noexcept
-		requires requires(vector_t left, vector_t right) { impl::compress(left, right); }
+	static auto SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) compress(const vector_t lhs, const vector_t rhs) noexcept
+		requires IImpl::Compress<impl>
 	{
 		return impl::compress(lhs, rhs);
 	}
@@ -941,9 +971,10 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @return Extracted value as defined by the specialization.
 	 */
 	template <int index>
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL extract(const vector_t lhs) noexcept
-		requires requires(vector_t value) { impl::template extract<index>(value); }
+	static auto SIMD_FLAGS(In, RegisterOnly, ForceInline, Flatten) extract(const vector_t lhs) noexcept
+		requires IImpl::IndexedExtract<impl, index>
 	{
+		static_assert(index >= 0 && static_cast<std::size_t>(index) < element_count, "Api::extract index out of range.");
 		return impl::template extract<index>(lhs);
 	}
 
@@ -951,34 +982,60 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param lhs Source register.
 	 *  @param rhs Extract selector.
 	 *  @return Extracted value as defined by the specialization.
+	 *  @note `_slow` marks runtime emulation of an immediate lane selector.
 	 */
 	template <class selector_t>
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL extract(const vector_t lhs, selector_t rhs) noexcept
-		requires requires(vector_t left, selector_t selector) { impl::extract(left, selector); }
+	constexpr static auto SIMD_FLAGS(InOut, ForceInline, Flatten) extract_slow(const vector_t lhs, selector_t rhs) noexcept
+		requires IImpl::ExtractSlow<impl, selector_t>
 	{
-		return impl::extract(lhs, rhs);
+		if (std::is_constant_evaluated())
+			return extract_constexpr(lhs, static_cast<int>(rhs));
+		return impl::extract_slow(lhs, rhs);
 	}
 
 	/** @brief Returns the low 128-bit half of a 256-bit register when the specialization supports it.
 	 *  @param lhs Source register.
 	 *  @return Register containing the low 128-bit half in the corresponding 128-bit SIMD family.
 	 */
-	SIMDLIB_FORCE_INLINE static typename SimdLib::Detail::SimdMappings<128, element_t>::vector_t VECTORCALL lower_half(const vector_t lhs) noexcept
-		requires(register_width == 256 && requires(vector_t value) { impl::lower_half(value); })
+	constexpr static typename SimdLib::Detail::SimdMappings<128, element_t>::vector_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten)
+		lower_half(const vector_t lhs) noexcept
+		requires(register_width == 256 && IImpl::LowerHalf<impl>)
 	{
+		if (std::is_constant_evaluated())
+			return lower_half_constexpr(lhs);
 		return impl::lower_half(lhs);
 	}
 
-	/** @brief Inserts a lane or subvalue into a register.
-	 *  @tparam Args Argument pack matching the implementation-specific insert signature.
-	 *  @param args Arguments forwarded to the specialization insert operation.
-	 *  @return Register containing the inserted value.
+	/** @brief Inserts a compile-time-selected scalar lane into a register.
+	 *  @tparam index Compile-time logical lane index.
+	 *  @param lhs Register whose unselected lanes are preserved.
+	 *  @param rhs Scalar replacement value.
+	 *  @return Register with lane `index` replaced.
 	 */
-	template <class... Args>
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL insert(Args &&...args) noexcept
-		requires requires(Args &&...values) { impl::insert(std::forward<Args>(values)...); }
+	template <std::size_t index>
+	constexpr static vector_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) insert(const vector_t lhs, const element_t rhs) noexcept
+		requires(index < element_count)
 	{
-		return impl::insert(std::forward<Args>(args)...);
+		if (std::is_constant_evaluated())
+			return impl::template insert_constexpr<static_cast<int>(index)>(lhs, rhs);
+		else
+			return impl::template insert<static_cast<int>(index)>(lhs, rhs);
+	}
+
+	/**
+	 * @brief Replaces one runtime-selected scalar lane in a register.
+	 * @param lhs Register whose unselected lanes are preserved.
+	 * @param rhs Scalar replacement value.
+	 * @param index Runtime-selected logical lane index.
+	 * @return Register with the selected lane replaced.
+	 * @note `_slow` marks runtime emulation of an immediate lane selector.
+	 */
+	constexpr static vector_t SIMD_FLAGS(InOut, ForceInline, Flatten) insert_slow(const vector_t lhs, const element_t rhs, const int index) noexcept
+		requires IImpl::InsertSlow<impl, vector_t, element_t, int>
+	{
+		if (std::is_constant_evaluated())
+			return insert_constexpr(lhs, rhs, index);
+		return impl::insert_slow(lhs, rhs, index);
 	}
 
 	/** @brief Unpacks the low lanes of two registers.
@@ -986,9 +1043,11 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param rhs Right-hand input register.
 	 *  @return Register containing the unpacked low-lane interleave.
 	 */
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL unpack_lo(const vector_t lhs, const vector_t rhs) noexcept
-		requires requires(vector_t left, vector_t right) { impl::unpack_lo(left, right); }
+	constexpr static vector_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) unpack_lo(const vector_t lhs, const vector_t rhs) noexcept
+		requires IImpl::UnpackLow<impl>
 	{
+		if (std::is_constant_evaluated())
+			return unpack_constexpr<false>(lhs, rhs);
 		return impl::unpack_lo(lhs, rhs);
 	}
 
@@ -997,21 +1056,26 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param rhs Right-hand input register.
 	 *  @return Register containing the unpacked high-lane interleave.
 	 */
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL unpack_hi(const vector_t lhs, const vector_t rhs) noexcept
-		requires requires(vector_t left, vector_t right) { impl::unpack_hi(left, right); }
+	constexpr static vector_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) unpack_hi(const vector_t lhs, const vector_t rhs) noexcept
+		requires IImpl::UnpackHigh<impl>
 	{
+		if (std::is_constant_evaluated())
+			return unpack_constexpr<true>(lhs, rhs);
 		return impl::unpack_hi(lhs, rhs);
 	}
 
-	/** @brief Shuffles register contents according to the implementation-specific control form.
-	 *  @tparam Args Argument pack matching the specialization shuffle signature.
-	 *  @param args Arguments forwarded to the specialization shuffle operation.
-	 *  @return Register containing the shuffled result.
+	/** @brief Rearranges logical lanes with one compile-time selector per result lane.
+	 *  @tparam indices Exact selector sequence in logical result-lane order.
+	 *  @param lhs Source register.
+	 *  @return Register containing the selected lanes.
+	 *  @note Every selector may name any logical lane in the complete source register.
 	 */
 	template <std::size_t... indices>
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL shuffle(const int_vector_t lhs) noexcept
-		requires requires(int_vector_t value) { impl::template shuffle<indices...>(value); }
+	constexpr static vector_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shuffle(const vector_t lhs) noexcept
+		requires(Api::template logical_shuffle_indices_valid<indices...>() && IImpl::IndexedShuffle<impl, indices...>)
 	{
+		if (std::is_constant_evaluated())
+			return shuffle_constexpr<indices...>(lhs);
 		return impl::template shuffle<indices...>(lhs);
 	}
 
@@ -1021,48 +1085,126 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @return Register containing the shuffled result.
 	 */
 	template <class... Args>
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL shuffle(Args &&...args) noexcept
-		requires requires(Args &&...values) { impl::shuffle(std::forward<Args>(values)...); }
+	static auto SIMD_FLAGS(Out, RegisterOnly, ForceInline, Flatten) shuffle(Args &&...args) noexcept
+		requires IImpl::Shuffle<impl, Args...>
 	{
 		return impl::shuffle(std::forward<Args>(args)...);
 	}
 
-	/** @brief Shuffles the low half of a register where the specialization supports it.
-	 *  @tparam Args Argument pack matching the specialization shuffle-low signature.
-	 *  @param args Arguments forwarded to the specialization shuffle-low operation.
-	 *  @return Register containing the shuffled low-half result.
+	/**
+	 * @brief Emulates an immediate-controlled shuffle from a runtime scalar control.
+	 * @tparam Args Argument pack matching the implementation slow-path shuffle signature.
+	 * @param args Arguments forwarded to the specialization slow-path shuffle operation.
+	 * @return Register containing the shuffled result.
+	 * @note `_slow` identifies a deliberate runtime substitute for an immediate-controlled operation and may require dispatch, branching, or a longer
+	 * synthesized instruction sequence.
 	 */
 	template <class... Args>
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL shuffle_lo(Args &&...args) noexcept
-		requires requires(Args &&...values) { impl::shuffle_lo(std::forward<Args>(values)...); }
+	static auto SIMD_FLAGS(Out, ForceInline, Flatten) shuffle_slow(Args &&...args) noexcept
+		requires IImpl::ShuffleSlow<impl, Args...>
 	{
-		return impl::shuffle_lo(std::forward<Args>(args)...);
+		return impl::shuffle_slow(std::forward<Args>(args)...);
+	}
+	/** @brief Shuffles the low four 16-bit lanes in each 128-bit group using an immediate control.
+	 *  @tparam imm8 Immediate control in the inclusive range `0..255`; every two-bit field selects one lane.
+	 *  @param lhs Source register.
+	 *  @return Register with each low four-lane group shuffled and all high four-lane groups preserved.
+	 */
+	template <int imm8>
+	constexpr static vector_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shuffle_lo(const vector_t lhs) noexcept
+		requires(using_int && element_width == 16 && imm8 >= 0 && imm8 <= 255 && IImpl::IndexedShuffleLow<impl, imm8>)
+	{
+		if (std::is_constant_evaluated())
+			return shuffle_half_constexpr<imm8, false>(lhs);
+		return impl::template shuffle_lo<imm8>(lhs);
+	}
+
+	/** @brief Shuffles the low half of a register where the specialization supports it.
+	 *  @tparam Args Argument pack matching the specialization
+	 * shuffle-low signature.
+	 *  @param args Arguments forwarded to the specialization shuffle-low operation.
+	 *  @return Register containing the shuffled low-half result.
+	 *  @note `_slow` marks runtime emulation of an immediate control byte and may require a longer synthesized sequence.
+	 */
+	template <class... Args>
+	static auto SIMD_FLAGS(Out, RegisterOnly, ForceInline, Flatten) shuffle_lo_slow(Args &&...args) noexcept
+		requires IImpl::ShuffleLowSlow<impl, Args...>
+	{
+		return impl::shuffle_lo_slow(std::forward<Args>(args)...);
+	}
+
+	/** @brief Shuffles the high four 16-bit lanes in each 128-bit group using an immediate control.
+	 *  @tparam imm8 Immediate control in the inclusive range `0..255`; every two-bit field selects one lane.
+	 *  @param lhs Source register.
+	 *  @return Register with each high four-lane group shuffled and all low four-lane groups preserved.
+	 */
+	template <int imm8>
+	constexpr static vector_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shuffle_hi(const vector_t lhs) noexcept
+		requires(using_int && element_width == 16 && imm8 >= 0 && imm8 <= 255 && IImpl::IndexedShuffleHigh<impl, imm8>)
+	{
+		if (std::is_constant_evaluated())
+			return shuffle_half_constexpr<imm8, true>(lhs);
+		return impl::template shuffle_hi<imm8>(lhs);
 	}
 
 	/** @brief Shuffles the high half of a register where the specialization supports it.
-	 *  @tparam Args Argument pack matching the specialization shuffle-high signature.
+	 *  @tparam Args Argument pack matching the specialization
+	 * shuffle-high signature.
 	 *  @param args Arguments forwarded to the specialization shuffle-high operation.
 	 *  @return Register containing the shuffled high-half result.
+	 *  @note `_slow` marks runtime emulation of an immediate control byte and may require a longer synthesized sequence.
 	 */
 	template <class... Args>
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL shuffle_hi(Args &&...args) noexcept
-		requires requires(Args &&...values) { impl::shuffle_hi(std::forward<Args>(values)...); }
+	static auto SIMD_FLAGS(Out, RegisterOnly, ForceInline, Flatten) shuffle_hi_slow(Args &&...args) noexcept
+		requires IImpl::ShuffleHighSlow<impl, Args...>
 	{
-		return impl::shuffle_hi(std::forward<Args>(args)...);
+		return impl::shuffle_hi_slow(std::forward<Args>(args)...);
+	}
+
+	/** @brief Selects corresponding lanes from two registers using an immediate bit mask.
+	 *  @tparam imm8 Immediate control in the inclusive range `0..255`;
+	 * set bits select `rhs`.
+	 *  @param lhs Register selected by cleared applicable control bits.
+	 *  @param rhs Register selected by set applicable
+	 * control bits.
+	 *  @return Register containing the intrinsic-defined immediate blend.
+	 *  @note Bits unused by the selected intrinsic have no effect.
+	 * A 256-bit 16-bit blend repeats the eight mask bits in each 128-bit group.
+	 */
+	template <int imm8>
+	constexpr static vector_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) blend(const vector_t lhs, const vector_t rhs) noexcept
+		requires(imm8 >= 0 && imm8 <= 255 && IImpl::IndexedBlend<impl, imm8>)
+	{
+		return impl::template blend<imm8>(lhs, rhs);
 	}
 
 	/** @brief Blends two registers according to the implementation-specific control form.
-	 *  @tparam Args Argument pack matching the specialization blend signature.
+	 *  @tparam Args Argument pack matching the specialization blend
+	 * signature.
 	 *  @param args Arguments forwarded to the specialization blend operation.
 	 *  @return Register containing the blended result.
 	 */
 	template <class... Args>
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL blend(Args &&...args) noexcept
-		requires requires(Args &&...values) { impl::blend(std::forward<Args>(values)...); }
+	static auto SIMD_FLAGS(Out, RegisterOnly, ForceInline, Flatten) blend(Args &&...args) noexcept
+		requires IImpl::Blend<impl, Args...>
 	{
 		return impl::blend(std::forward<Args>(args)...);
 	}
 
+	/**
+	 * @brief Emulates an immediate-controlled blend from a runtime scalar control.
+	 * @tparam Args Argument pack matching the implementation slow-path blend signature.
+	 * @param args Arguments forwarded to the specialization slow-path blend operation.
+	 * @return Register containing the blended result.
+	 * @note `_slow` identifies a deliberate runtime substitute for an immediate-controlled operation and may require dispatch, branching, or a longer
+	 * synthesized instruction sequence.
+	 */
+	template <class... Args>
+	static auto SIMD_FLAGS(Out, ForceInline, Flatten) blend_slow(Args &&...args) noexcept
+		requires IImpl::BlendSlow<impl, Args...>
+	{
+		return impl::blend_slow(std::forward<Args>(args)...);
+	}
 #pragma endregion
 
 #pragma region Shifting Operations
@@ -1072,20 +1214,12 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param shift Shift count applied to each lane.
 	 *  @return Register containing per-lane left-shifted values.
 	 */
-	SIMDLIB_FORCE_INLINE constexpr static int_vector_t VECTORCALL shift_left(const int_vector_t lhs, int shift) noexcept
+	constexpr static int_vector_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shift_left(const int_vector_t lhs, int shift) noexcept
 		requires(using_int)
 	{
+		SIMDLIB_PRECONDITION(shift >= 0, "Per-lane left shifts require a nonnegative count");
 		if (std::is_constant_evaluated())
-		{
-			if (shift >= static_cast<int>(element_width))
-				return impl::setzero();
-			std::array<element_t, element_count> results{};
-			for (std::size_t index = 0; index < element_count; ++index)
-			{
-				results[index] = static_cast<element_t>(impl::get_element(lhs, static_cast<int>(index)) << shift);
-			}
-			return impl::construct(results);
-		}
+			return shift_left_constexpr(lhs, shift);
 
 		return impl::shift_left(lhs, shift);
 	}
@@ -1095,20 +1229,12 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param shift Shift count applied to each lane.
 	 *  @return Register containing per-lane right-shifted values.
 	 */
-	SIMDLIB_FORCE_INLINE constexpr static int_vector_t VECTORCALL shift_right(const int_vector_t lhs, int shift) noexcept
+	constexpr static int_vector_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shift_right(const int_vector_t lhs, int shift) noexcept
 		requires(using_int)
 	{
+		SIMDLIB_PRECONDITION(shift >= 0, "Per-lane logical right shifts require a nonnegative count");
 		if (std::is_constant_evaluated())
-		{
-			if (shift >= static_cast<int>(element_width))
-				return impl::setzero();
-			std::array<element_t, element_count> results{};
-			for (std::size_t index = 0; index < element_count; ++index)
-			{
-				results[index] = static_cast<element_t>(static_cast<std::make_unsigned_t<element_t>>(impl::get_element(lhs, static_cast<int>(index))) >> shift);
-			}
-			return impl::construct(results);
-		}
+			return shift_right_constexpr(lhs, shift);
 
 		return impl::shift_right(lhs, shift);
 	}
@@ -1118,20 +1244,12 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param shift Shift count applied to each lane.
 	 *  @return Register containing per-lane arithmetic right-shifted values.
 	 */
-	SIMDLIB_FORCE_INLINE constexpr static int_vector_t VECTORCALL shift_right_arithmetic(const int_vector_t lhs, int shift) noexcept
+	constexpr static int_vector_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shift_right_arithmetic(const int_vector_t lhs, int shift) noexcept
 		requires(using_int)
 	{
+		SIMDLIB_PRECONDITION(shift >= 0, "Per-lane arithmetic right shifts require a nonnegative count");
 		if (std::is_constant_evaluated())
-		{
-			if (shift >= static_cast<int>(element_width))
-				shift = static_cast<int>(element_width) - 1;
-			std::array<element_t, element_count> results{};
-			for (std::size_t index = 0; index < element_count; ++index)
-			{
-				results[index] = static_cast<element_t>(impl::get_element(lhs, static_cast<int>(index)) >> shift);
-			}
-			return impl::construct(results);
-		}
+			return shift_right_arithmetic_constexpr(lhs, shift);
 
 		return impl::shift_right_arithmetic(lhs, shift);
 	}
@@ -1140,112 +1258,159 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 * @brief Shifts every byte in a 128-bit register toward higher byte indices.
 	 *
 	 * A zero or negative count returns the input unchanged. A count greater than
-	 * or equal to the register byte width returns zero. [eg: byte_shift_left(
+	 * or equal to the register byte width returns zero. [eg: shift_bytes_left_slow(
 	 * {0x01, 0x02, ...}, 1) => {0x00, 0x01, 0x02, ...}]
 	 *
 	 * @param lhs The source register.
 	 * @param shift The runtime byte count.
 	 * @return The byte-shifted register.
+	 * @note `_slow` marks runtime emulation of an immediate byte count.
 	 */
-	SIMDLIB_FORCE_INLINE constexpr static int_vector_t VECTORCALL byte_shift_left(const int_vector_t lhs, const int shift) noexcept
+	constexpr static int_vector_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shift_bytes_left_slow(const int_vector_t lhs, const int shift) noexcept
 		requires(using_int && register_width == 128)
 	{
 		if (std::is_constant_evaluated())
-		{
-			if (shift <= 0)
-				return lhs;
-			if (shift >= static_cast<int>(byte_count))
-				return impl::setzero();
-			const auto sourceBytes = std::bit_cast<std::array<std::uint8_t, byte_count>>(to_array(lhs));
-			std::array<std::uint8_t, byte_count> resultBytes{};
-			for (std::size_t index = static_cast<std::size_t>(shift); index < byte_count; ++index)
-				resultBytes[index] = sourceBytes[index - static_cast<std::size_t>(shift)];
-			return construct(std::bit_cast<std::array<element_t, element_count>>(resultBytes));
-		}
-		return impl::byte_shift_left(lhs, shift);
+			return shift_bytes_left_constexpr(lhs, shift);
+		return impl::shift_bytes_left_slow(lhs, shift);
+	}
+
+	/**
+	 * @brief Shifts every byte in a complete integral register toward higher byte indices.
+	 *
+	 * The count is encoded as an immediate. Zero returns the input unchanged; counts
+	 * at least as large as the register byte width return zero.
+	 *
+	 * @tparam count Nonnegative compile-time byte count.
+	 * @param lhs The source register.
+	 * @return The byte-shifted register with zero-filled low bytes.
+	 */
+	template <int count>
+	constexpr static int_vector_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shift_bytes_left(const int_vector_t lhs) noexcept
+		requires(using_int && IImpl::ShiftBytesLeft<impl, count>)
+	{
+		static_assert(count >= 0, "Complete-register byte shifts require a nonnegative count.");
+		if (std::is_constant_evaluated())
+			return shift_bytes_left_constexpr(lhs, count);
+		return impl::template shift_bytes_left<count>(lhs);
 	}
 
 	/**
 	 * @brief Shifts every byte in a 128-bit register toward lower byte indices.
 	 *
 	 * A zero or negative count returns the input unchanged. A count greater than
-	 * or equal to the register byte width returns zero. [eg: byte_shift_right(
+	 * or equal to the register byte width returns zero. [eg: shift_bytes_right_slow(
 	 * {0x01, 0x02, ...}, 1) => {0x02, ..., 0x00}]
 	 *
 	 * @param lhs The source register.
 	 * @param shift The runtime byte count.
 	 * @return The byte-shifted register.
+	 * @note `_slow` marks runtime emulation of an immediate byte count.
 	 */
-	SIMDLIB_FORCE_INLINE constexpr static int_vector_t VECTORCALL byte_shift_right(const int_vector_t lhs, const int shift) noexcept
+	constexpr static int_vector_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shift_bytes_right_slow(const int_vector_t lhs, const int shift) noexcept
 		requires(using_int && register_width == 128)
 	{
 		if (std::is_constant_evaluated())
-		{
-			if (shift <= 0)
-				return lhs;
-			if (shift >= static_cast<int>(byte_count))
-				return impl::setzero();
-			const auto sourceBytes = std::bit_cast<std::array<std::uint8_t, byte_count>>(to_array(lhs));
-			std::array<std::uint8_t, byte_count> resultBytes{};
-			for (std::size_t index = 0; index + static_cast<std::size_t>(shift) < byte_count; ++index)
-				resultBytes[index] = sourceBytes[index + static_cast<std::size_t>(shift)];
-			return construct(std::bit_cast<std::array<element_t, element_count>>(resultBytes));
-		}
-		return impl::byte_shift_right(lhs, shift);
+			return shift_bytes_right_constexpr(lhs, shift);
+		return impl::shift_bytes_right_slow(lhs, shift);
+	}
+
+	/**
+	 * @brief Shifts every byte in a complete integral register toward lower byte indices.
+	 *
+	 * The count is encoded as an immediate. Zero returns the input unchanged; counts
+	 * at least as large as the register byte width return zero.
+	 *
+	 * @tparam count Nonnegative compile-time byte count.
+	 * @param lhs The source register.
+	 * @return The byte-shifted register with zero-filled high bytes.
+	 */
+	template <int count>
+	constexpr static int_vector_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shift_bytes_right(const int_vector_t lhs) noexcept
+		requires(using_int && IImpl::ShiftBytesRight<impl, count>)
+	{
+		static_assert(count >= 0, "Complete-register byte shifts require a nonnegative count.");
+		if (std::is_constant_evaluated())
+			return shift_bytes_right_constexpr(lhs, count);
+		return impl::template shift_bytes_right<count>(lhs);
 	}
 
 	/** @brief Shifts the complete 128-bit register left, carrying bits across lane boundaries.
 	 * Unlike `shift_left`, this treats the register as one
 	 * unsigned 128-bit bit string.
 	 * A zero or negative runtime count returns the input; counts of 128 or more return zero.
+	 * @note `_slow` marks the synthesized runtime-count substitute for immediate complete-register shifts.
 	 */
-	SIMDLIB_FORCE_INLINE constexpr static int_vector_t VECTORCALL bit_shift_left(const int_vector_t lhs, const int shift) noexcept
+	constexpr static int_vector_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shift_bits_left_slow(const int_vector_t lhs, const int shift) noexcept
 		requires(using_int && register_width == 128)
 	{
-		return impl::bit_shift_left(lhs, shift);
+		if (std::is_constant_evaluated())
+			return shift_bits_left_constexpr(lhs, shift);
+		return impl::shift_bits_left_slow(lhs, shift);
 	}
 
 	/** @brief Compile-time complete-register left shift. Counts of 128 or more return zero. */
 	template <int shift>
-	SIMDLIB_FORCE_INLINE constexpr static int_vector_t VECTORCALL bit_shift_left(const int_vector_t lhs) noexcept
+	constexpr static int_vector_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shift_bits_left(const int_vector_t lhs) noexcept
 		requires(using_int && register_width == 128)
 	{
 		static_assert(shift >= 0, "Whole-register shifts require a non-negative count.");
-		return impl::template bit_shift_left<shift>(lhs);
+		if (std::is_constant_evaluated())
+			return shift_bits_left_constexpr(lhs, shift);
+		return impl::template shift_bits_left<shift>(lhs);
 	}
 
 	/** @brief Shifts the complete 128-bit register right, carrying bits across lane boundaries.
 	 * Unlike `shift_right`, this treats the register as one
 	 * unsigned 128-bit bit string.
 	 * A zero or negative runtime count returns the input; counts of 128 or more return zero.
+	 * @note `_slow` marks the synthesized runtime-count substitute for immediate complete-register shifts.
 	 */
-	SIMDLIB_FORCE_INLINE constexpr static int_vector_t VECTORCALL bit_shift_right(const int_vector_t lhs, const int shift) noexcept
+	constexpr static int_vector_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shift_bits_right_slow(const int_vector_t lhs, const int shift) noexcept
 		requires(using_int && register_width == 128)
 	{
-		return impl::bit_shift_right(lhs, shift);
+		if (std::is_constant_evaluated())
+			return shift_bits_right_constexpr(lhs, shift);
+		return impl::shift_bits_right_slow(lhs, shift);
 	}
 
 	/** @brief Compile-time complete-register right shift. Counts of 128 or more return zero. */
 	template <int shift>
-	SIMDLIB_FORCE_INLINE constexpr static int_vector_t VECTORCALL bit_shift_right(const int_vector_t lhs) noexcept
+	constexpr static int_vector_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shift_bits_right(const int_vector_t lhs) noexcept
 		requires(using_int && register_width == 128)
 	{
 		static_assert(shift >= 0, "Whole-register shifts require a non-negative count.");
-		return impl::template bit_shift_right<shift>(lhs);
+		if (std::is_constant_evaluated())
+			return shift_bits_right_constexpr(lhs, shift);
+		return impl::template shift_bits_right<shift>(lhs);
 	}
 
 #pragma endregion
 
 #pragma region Conversion Operations
 
+	/** @brief Reinterprets every bit of a complete register as another supported lane type.
+	 *  @tparam target_t Destination lane interpretation at the same register width.
+	 *  @param vector Source register whose complete bit pattern is preserved.
+	 *  @return Destination native register containing exactly the source bits.
+	 */
+	template <class target_t>
+	constexpr static mapped_vector_t<target_t> SIMD_FLAGS(In, RegisterOnly, ForceInline, Flatten) bit_cast(const vector_t vector) noexcept
+		requires ApiAvailable<register_width, target_t>
+	{
+		if (std::is_constant_evaluated())
+			return bit_cast_constexpr<target_t>(vector);
+		return std::bit_cast<mapped_vector_t<target_t>>(vector);
+	}
+
 	/** @brief Converts 32-bit integer lanes into floating-point lanes.
 	 *  @param vector Input integer register.
 	 *  @return Floating-point register containing the converted lane values.
 	 */
-	SIMDLIB_FORCE_INLINE static float_vector_t VECTORCALL convert_to_float(int_vector_t vector) noexcept
-		requires(element_width == 32)
+	constexpr static float_vector_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) convert_to_float(int_vector_t vector) noexcept
+		requires(element_width == 32 && using_int)
 	{
-		static_assert(element_width == 32, "Only 32 bit integers can be converted to floats");
+		if (std::is_constant_evaluated())
+			return convert_to_float_constexpr(vector);
 		if constexpr (register_width == 128)
 		{
 			if constexpr (using_unsigned)
@@ -1266,10 +1431,11 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param vector Input floating-point register.
 	 *  @return Integer register containing the converted lane values.
 	 */
-	SIMDLIB_FORCE_INLINE static int_vector_t VECTORCALL convert_to_int(float_vector_t vector) noexcept
-		requires(element_width == 32)
+	constexpr static int_vector_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) convert_to_int(float_vector_t vector) noexcept
+		requires(element_width == 32 && std::same_as<element_t, float>)
 	{
-		static_assert(element_width == 32, "Only 32 bit floats can be converted to integers");
+		if (std::is_constant_evaluated())
+			return convert_to_int_constexpr(vector);
 		if constexpr (register_width == 128)
 		{
 			return _mm_cvtps_epi32(vector);
@@ -1284,13 +1450,30 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param vector Input register.
 	 *  @return Register converted to the complementary 32-bit scalar representation.
 	 */
-	SIMDLIB_FORCE_INLINE static auto VECTORCALL convert(vector_t vector) noexcept
+	constexpr static auto SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) convert(vector_t vector) noexcept
 		requires(element_width == 32)
 	{
 		if constexpr (std::is_floating_point_v<element_t>)
 			return convert_to_int(vector);
 		else
 			return convert_to_float(vector);
+	}
+
+	/** @brief Numerically converts every source lane into one complete destination register.
+	 *  @tparam target_t Explicit numeric destination lane type.
+	 *  @param vector Source register.
+	 *  @return Complete destination native register containing the converted lane values.
+	 *  @note The initial conversion surface supports signed or unsigned 32-bit integers to `float`, and `float` to signed 32-bit integers.
+	 */
+	template <class target_t>
+	constexpr static mapped_vector_t<target_t> SIMD_FLAGS(In, RegisterOnly, ForceInline, Flatten) convert(const vector_t vector) noexcept
+		requires((std::same_as<target_t, float> && (std::same_as<element_t, std::int32_t> || std::same_as<element_t, std::uint32_t>)) ||
+				 (std::same_as<target_t, std::int32_t> && std::same_as<element_t, float>))
+	{
+		if constexpr (std::same_as<target_t, float>)
+			return convert_to_float(vector);
+		else
+			return convert_to_int(vector);
 	}
 
 #pragma endregion
@@ -1300,17 +1483,17 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	/** @brief Applies a SIMD transform whose fixed-width lane results are packed contiguously into integer storage.
 	 *  @tparam result_bit_width Number of logical result bits produced per source element.
 	 *  @tparam count Number of source elements.
-	 *  @tparam Func Callable that accepts `vector_t` and returns an unsigned integer containing packed lane results, with lane zero in the least-significant bits.
+	 *  @tparam Func Callable that accepts `vector_t` and returns an unsigned integer containing packed lane results, with lane zero in the least-significant
+	 * bits.
 	 *  @param read Source elements to transform.
 	 *  @param write Destination storage for the packed result bit stream.
 	 *  @param func SIMD transformation that returns one packed result for each loaded register.
 	 *  @return None.
 	 */
 	template <std::size_t result_bit_width, std::size_t count, std::invocable<vector_t> Func>
-	SIMDLIB_FORCE_INLINE constexpr static void transform_pack(
-		std::span<const element_t, count> read,
-		std::span<packed_element_t<result_bit_width>, packed_element_count<result_bit_width, count>> write,
-		Func &&func) noexcept
+	constexpr static void SIMD_FLAGS(Neither, ForceInline, Flatten)
+		transform_pack(std::span<const element_t, count> read,
+					   std::span<packed_element_t<result_bit_width>, packed_element_count<result_bit_width, count>> write, Func &&func) noexcept
 		requires(result_bit_width > 0 && result_bit_width <= 64)
 	{
 		using result_t = std::remove_cvref_t<std::invoke_result_t<Func, vector_t>>;
@@ -1318,16 +1501,13 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 		// uintptr_t is the standard unsigned type that most closely represents the target's native integer register width.
 		// Accumulating into it lets us write whole machine words instead of updating individual destination bytes.
 		using native_word_t = std::uintptr_t;
-		static_assert(std::unsigned_integral<result_t> && !std::same_as<result_t, bool>,
-			"Packed SIMD transforms must return an unsigned integer");
-		static_assert(element_count * result_bit_width <= 64,
-			"A packed SIMD register result cannot exceed 64 bits");
+		static_assert(std::unsigned_integral<result_t> && !std::same_as<result_t, bool>, "Packed SIMD transforms must return an unsigned integer");
+		static_assert(element_count * result_bit_width <= 64, "A packed SIMD register result cannot exceed 64 bits");
 		static_assert(element_count * result_bit_width <= std::numeric_limits<result_t>::digits,
-			"The packed transform result type must contain every result bit for one SIMD register");
+					  "The packed transform result type must contain every result bit for one SIMD register");
 		// Callback results place the first SIMD lane in the least-significant bits. Copying the accumulator directly to
 		// sequential storage preserves that lane order only when the least-significant byte is stored first.
-		static_assert(std::endian::native == std::endian::little,
-			"Packed SIMD transforms require little-endian integer storage");
+		static_assert(std::endian::native == std::endian::little, "Packed SIMD transforms require little-endian integer storage");
 
 		constexpr std::size_t native_word_width = std::numeric_limits<native_word_t>::digits;
 		constexpr std::size_t total_result_bit_count = count * result_bit_width;
@@ -1353,9 +1533,8 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 			{
 				const std::size_t available_bit_count = native_word_width - pending_bit_count;
 				const std::size_t consumed_bit_count = std::min(result_bit_count, available_bit_count);
-				const std::uint64_t consumed_mask = consumed_bit_count == 64
-					? std::numeric_limits<std::uint64_t>::max()
-					: (std::uint64_t{1} << consumed_bit_count) - 1;
+				const std::uint64_t consumed_mask =
+					consumed_bit_count == 64 ? std::numeric_limits<std::uint64_t>::max() : (std::uint64_t{1} << consumed_bit_count) - 1;
 
 				pending |= static_cast<native_word_t>((remaining & consumed_mask) << pending_bit_count);
 				remaining = consumed_bit_count == 64 ? 0 : remaining >> consumed_bit_count;
@@ -1363,12 +1542,15 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 				result_bit_count -= consumed_bit_count;
 
 				// memcpy permits a native-width store without imposing alignment or aliasing requirements on write_t.
-				if (pending_bit_count == native_word_width)
+				if constexpr (flushed_native_word_count != 0)
 				{
-					std::memcpy(write_bytes.data() + write_byte_offset, &pending, sizeof(pending));
-					write_byte_offset += sizeof(pending);
-					pending = 0;
-					pending_bit_count = 0;
+					if (pending_bit_count == native_word_width)
+					{
+						std::memcpy(write_bytes.data() + write_byte_offset, &pending, sizeof(pending));
+						write_byte_offset += sizeof(pending);
+						pending = 0;
+						pending_bit_count = 0;
+					}
 				}
 			}
 		};
@@ -1407,7 +1589,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param func Unary SIMD transform to apply.
 	 *  @return None.
 	 */
-	template <std::invocable<vector_t> Func> static inline void transform(std::span<element_t> data, Func &&func) noexcept
+	template <std::invocable<vector_t> Func> static void SIMD_FLAGS(Neither, Flatten) transform(std::span<element_t> data, Func &&func) noexcept
 	{
 		const auto Length = data.size();
 		for (std::size_t i = 0; i < Length / element_count; ++i)
@@ -1437,7 +1619,8 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @param func Unary SIMD transform to apply.
 	 *  @return None.
 	 */
-	template <std::invocable<vector_t> Func> static inline void transform(std::span<const element_t> lhs, std::span<element_t> write, Func &&func) noexcept
+	template <std::invocable<vector_t> Func>
+	static void SIMD_FLAGS(Neither, Flatten) transform(std::span<const element_t> lhs, std::span<element_t> write, Func &&func) noexcept
 	{
 		static_assert(std::is_invocable_r_v<vector_t, Func, vector_t>, "Function must return a value of vector_t");
 		const auto Length = lhs.size();
@@ -1469,7 +1652,8 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @return None.
 	 */
 	template <std::invocable<vector_t, vector_t> Func>
-	static inline void transform(std::span<const element_t> lhs, std::span<const element_t> rhs, std::span<element_t> write, Func &&func) noexcept
+	static void SIMD_FLAGS(Neither, Flatten)
+		transform(std::span<const element_t> lhs, std::span<const element_t> rhs, std::span<element_t> write, Func &&func) noexcept
 	{
 		static_assert(std::is_invocable_r_v<vector_t, Func, vector_t, vector_t>, "Function must return an vector_t");
 		const auto Length = lhs.size();
@@ -1500,11 +1684,550 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 
 #pragma region Internal
   protected:
+	/** @brief Validates a logical lane-shuffle selector sequence at overload resolution.
+	 *  @tparam indices Logical source-lane indices for every output lane.
+	 *  @return `true` when the selector count is exact and every selector names a lane in the complete source register.
+	 */
+	template <std::size_t... indices> [[nodiscard]] consteval static bool logical_shuffle_indices_valid() noexcept
+	{
+		return sizeof...(indices) == element_count && ((indices < element_count) && ...);
+	}
+
+	/** @brief Extracts the low 128-bit lanes during constant evaluation. */
+	[[nodiscard]] constexpr static typename SimdLib::Detail::SimdMappings<128, element_t>::vector_t lower_half_constexpr(const vector_t value) noexcept
+	{
+		using target_api = Api<128, element_t>;
+		const auto source = to_array(value);
+		std::array<element_t, target_api::element_count> result{};
+		for (std::size_t lane = 0; lane < result.size(); ++lane)
+			result[lane] = source[lane];
+		return target_api::construct(result);
+	}
+
+	/** @brief Interleaves low or high lane halves within each 128-bit group during constant evaluation.
+	 *  @tparam high Selects the high source half when
+	 * `true`, otherwise the low source half.
+	 */
+	template <bool high> [[nodiscard]] constexpr static vector_t unpack_constexpr(const vector_t lhs, const vector_t rhs) noexcept
+	{
+		const auto left = to_array(lhs);
+		const auto right = to_array(rhs);
+		std::array<element_t, element_count> result{};
+		constexpr std::size_t lanes_per_group = 128 / element_width;
+		constexpr std::size_t lanes_per_half = lanes_per_group / 2;
+		for (std::size_t group = 0; group < element_count; group += lanes_per_group)
+		{
+			constexpr std::size_t source_half_offset = high ? lanes_per_half : 0;
+			for (std::size_t lane = 0; lane < lanes_per_half; ++lane)
+			{
+				result[group + lane * 2] = left[group + source_half_offset + lane];
+				result[group + lane * 2 + 1] = right[group + source_half_offset + lane];
+			}
+		}
+		return construct(result);
+	}
+
+	/** @brief Applies a validated logical lane shuffle during constant evaluation. */
+	template <std::size_t... indices> [[nodiscard]] constexpr static vector_t shuffle_constexpr(const vector_t value) noexcept
+	{
+		const auto source = to_array(value);
+		constexpr std::array<std::size_t, element_count> selectors{indices...};
+		std::array<element_t, element_count> result{};
+		for (std::size_t lane = 0; lane < element_count; ++lane)
+			result[lane] = source[selectors[lane]];
+		return construct(result);
+	}
+
+	/** @brief Applies an immediate 16-bit half shuffle during constant evaluation.
+	 *  @tparam imm8 Immediate selector fields.
+	 *  @tparam high Selects
+	 * the high four-lane half in each 128-bit group.
+	 */
+	template <int imm8, bool high> [[nodiscard]] constexpr static vector_t shuffle_half_constexpr(const vector_t value) noexcept
+	{
+		const auto source = to_array(value);
+		auto result = source;
+		constexpr std::size_t lanes_per_group = 8;
+		constexpr std::size_t half_offset = high ? 4 : 0;
+		for (std::size_t group = 0; group < element_count; group += lanes_per_group)
+		{
+			for (std::size_t lane = 0; lane < 4; ++lane)
+			{
+				const std::size_t selected = static_cast<unsigned int>(imm8) >> (lane * 2) & 0x3u;
+				result[group + half_offset + lane] = source[group + half_offset + selected];
+			}
+		}
+		return construct(result);
+	}
+
+	/** @brief Reinterprets a complete register bit pattern during constant evaluation. */
+	template <class target_t> [[nodiscard]] constexpr static mapped_vector_t<target_t> bit_cast_constexpr(const vector_t value) noexcept
+	{
+		using target_api = Api<register_width, target_t>;
+		const auto target_lanes = std::bit_cast<std::array<target_t, target_api::element_count>>(to_array(value));
+		return target_api::construct(target_lanes);
+	}
+
+	/** @brief Widens only the source prefix required to fill one target register during constant evaluation. */
+	template <class target_simd> [[nodiscard]] constexpr static typename target_simd::vector_t widen_constexpr(const vector_t value) noexcept
+	{
+		using target_element_t = typename target_simd::element_type;
+		const auto source = to_array(value);
+		std::array<target_element_t, target_simd::element_count> result{};
+		for (std::size_t lane = 0; lane < result.size(); ++lane)
+			result[lane] = static_cast<target_element_t>(source[lane]);
+		return target_simd::construct(result);
+	}
+
+	/** @brief Converts signed or unsigned 32-bit integer lanes to float during constant evaluation. */
+	[[nodiscard]] constexpr static float_vector_t convert_to_float_constexpr(const int_vector_t value) noexcept
+	{
+		using target_api = Api<register_width, float>;
+		const auto source = to_array(value);
+		std::array<float, target_api::element_count> result{};
+		for (std::size_t lane = 0; lane < result.size(); ++lane)
+			result[lane] = static_cast<float>(source[lane]);
+		return target_api::construct(result);
+	}
+
+	/** @brief Converts one float with default-MXCSR round-to-nearest-even semantics. */
+	[[nodiscard]] constexpr static std::int32_t convert_float_lane_to_int(const float value) noexcept
+	{
+		constexpr float minimum = -2147483648.0F;
+		constexpr float upper_exclusive = 2147483648.0F;
+		if (!(value >= minimum && value < upper_exclusive))
+			return std::numeric_limits<std::int32_t>::min();
+
+		std::int32_t rounded = static_cast<std::int32_t>(value);
+		const float fraction = value - static_cast<float>(rounded);
+		if (fraction > 0.5F || (fraction == 0.5F && rounded % 2 != 0))
+			++rounded;
+		else if (fraction < -0.5F || (fraction == -0.5F && rounded % 2 != 0))
+			--rounded;
+		return rounded;
+	}
+
+	/** @brief Converts float lanes to signed 32-bit integers during constant evaluation. */
+	[[nodiscard]] constexpr static int_vector_t convert_to_int_constexpr(const float_vector_t value) noexcept
+	{
+		using source_api = Api<register_width, float>;
+		using target_api = Api<register_width, std::int32_t>;
+		const auto source = source_api::to_array(value);
+		std::array<std::int32_t, target_api::element_count> result{};
+		for (std::size_t lane = 0; lane < result.size(); ++lane)
+			result[lane] = convert_float_lane_to_int(source[lane]);
+		return target_api::construct(result);
+	}
+
+	/** @brief Applies bitwise AND during constant evaluation.
+	 *  @param lhs Left-hand input register represented in constant evaluation.
+	 *  @param rhs Right-hand input register represented in constant evaluation.
+	 *  @return Register containing the bitwise intersection.
+	 */
+	constexpr static vector_t bitwise_and_constexpr(const vector_t lhs, const vector_t rhs) noexcept
+	{
+		const auto left = to_array(lhs);
+		const auto right = to_array(rhs);
+		std::array<element_t, element_count> result{};
+		using unsigned_element_t = select_unsigned_integer_t<sizeof(element_t) * 8>;
+		for (std::size_t lane = 0; lane < element_count; ++lane)
+		{
+			const auto left_bits = std::bit_cast<unsigned_element_t>(left[lane]);
+			const auto right_bits = std::bit_cast<unsigned_element_t>(right[lane]);
+			result[lane] = std::bit_cast<element_t>(static_cast<unsigned_element_t>(left_bits & right_bits));
+		}
+		return construct(result);
+	}
+
+	/** @brief Applies bitwise OR during constant evaluation.
+	 *  @param lhs Left-hand input register represented in constant evaluation.
+	 *  @param rhs Right-hand input register represented in constant evaluation.
+	 *  @return Register containing the bitwise union.
+	 */
+	constexpr static vector_t bitwise_or_constexpr(const vector_t lhs, const vector_t rhs) noexcept
+	{
+		const auto left = to_array(lhs);
+		const auto right = to_array(rhs);
+		std::array<element_t, element_count> result{};
+		using unsigned_element_t = select_unsigned_integer_t<sizeof(element_t) * 8>;
+		for (std::size_t lane = 0; lane < element_count; ++lane)
+		{
+			const auto left_bits = std::bit_cast<unsigned_element_t>(left[lane]);
+			const auto right_bits = std::bit_cast<unsigned_element_t>(right[lane]);
+			result[lane] = std::bit_cast<element_t>(static_cast<unsigned_element_t>(left_bits | right_bits));
+		}
+		return construct(result);
+	}
+
+	/** @brief Applies bitwise XOR during constant evaluation.
+	 *  @param lhs Left-hand input register represented in constant evaluation.
+	 *  @param rhs Right-hand input register represented in constant evaluation.
+	 *  @return Register containing the bitwise exclusive union.
+	 */
+	constexpr static vector_t bitwise_xor_constexpr(const vector_t lhs, const vector_t rhs) noexcept
+	{
+		const auto left = to_array(lhs);
+		const auto right = to_array(rhs);
+		std::array<element_t, element_count> result{};
+		using unsigned_element_t = select_unsigned_integer_t<sizeof(element_t) * 8>;
+		for (std::size_t lane = 0; lane < element_count; ++lane)
+		{
+			const auto left_bits = std::bit_cast<unsigned_element_t>(left[lane]);
+			const auto right_bits = std::bit_cast<unsigned_element_t>(right[lane]);
+			result[lane] = std::bit_cast<element_t>(static_cast<unsigned_element_t>(left_bits ^ right_bits));
+		}
+		return construct(result);
+	}
+
+	/** @brief Applies bitwise AND-NOT during constant evaluation.
+	 *  @param lhs Left-hand input register inverted before intersection.
+	 *  @param rhs Right-hand input register represented in constant evaluation.
+	 *  @return Register containing the intersection of inverted lhs and rhs.
+	 */
+	constexpr static vector_t bitwise_andnot_constexpr(const vector_t lhs, const vector_t rhs) noexcept
+	{
+		const auto left = to_array(lhs);
+		const auto right = to_array(rhs);
+		std::array<element_t, element_count> result{};
+		using unsigned_element_t = select_unsigned_integer_t<sizeof(element_t) * 8>;
+		for (std::size_t lane = 0; lane < element_count; ++lane)
+		{
+			const auto left_bits = std::bit_cast<unsigned_element_t>(left[lane]);
+			const auto right_bits = std::bit_cast<unsigned_element_t>(right[lane]);
+			result[lane] = std::bit_cast<element_t>(static_cast<unsigned_element_t>(~left_bits & right_bits));
+		}
+		return construct(result);
+	}
+
+	/** @brief Applies bitwise inversion during constant evaluation.
+	 *  @param value Input register represented in constant evaluation.
+	 *  @return Register containing the bitwise inverse.
+	 */
+	constexpr static vector_t bitwise_not_constexpr(const vector_t value) noexcept
+	{
+		const auto lanes = to_array(value);
+		std::array<element_t, element_count> result{};
+		using unsigned_element_t = select_unsigned_integer_t<sizeof(element_t) * 8>;
+		for (std::size_t lane = 0; lane < element_count; ++lane)
+		{
+			const auto bits = std::bit_cast<unsigned_element_t>(lanes[lane]);
+			result[lane] = std::bit_cast<element_t>(static_cast<unsigned_element_t>(~bits));
+		}
+		return construct(result);
+	}
+
+	/** @brief Selects lanes using a canonical predicate during constant evaluation.
+	 *  @param condition Canonical predicate register containing all-zero or all-one lanes.
+	 *  @param when_true Register selected where the corresponding predicate lane is true.
+	 *  @param when_false Register selected where the corresponding predicate lane is false.
+	 *  @return Register containing the selected lanes.
+	 */
+	constexpr static vector_t select_constexpr(const vector_t condition, const vector_t when_true, const vector_t when_false) noexcept
+	{
+		return bitwise_or(bitwise_and(condition, when_true), bitwise_andnot(condition, when_false));
+	}
+
+	/** @brief Converts a register to lane storage during constant evaluation.
+	 *  @param vector Register represented in constant evaluation.
+	 *  @return Array containing the register elements in lane order.
+	 */
+	constexpr static std::array<element_t, element_count> to_array_constexpr(const vector_t vector) noexcept
+	{
+		std::array<element_t, element_count> result{};
+		for (std::size_t index = 0; index < element_count; ++index)
+			result[index] = extract_constexpr(vector, static_cast<int>(index));
+		return result;
+	}
+
+	/**
+	 * @brief Extracts one lane through the portable constant-evaluation representation.
+	 * @param lhs Source register represented during constant evaluation.
+	 * @param index Selected lane index.
+	 * @return Selected scalar lane.
+	 */
+	constexpr static element_t extract_constexpr(const vector_t lhs, const int index) noexcept
+	{
+		return Detail::register_get_constexpr<element_t>(lhs, static_cast<std::size_t>(index));
+	}
+
+	/**
+	 * @brief Replaces one lane through the portable constant-evaluation representation.
+	 * @param lhs Source register represented during constant evaluation.
+	 * @param rhs Replacement scalar lane.
+	 * @param index Selected lane index.
+	 * @return Register with the selected lane replaced.
+	 */
+	constexpr static vector_t insert_constexpr(const vector_t lhs, const element_t rhs, const int index) noexcept
+	{
+		return Detail::register_insert_constexpr<element_t>(lhs, rhs, static_cast<std::size_t>(index));
+	}
+
+	/** @brief Computes the byte-granular movemask during constant evaluation.
+	 *  @param lhs Input register represented in constant evaluation.
+	 *  @return Byte-granular movemask for the register contents.
+	 */
+	constexpr static mask_t movemask_constexpr(const vector_t lhs) noexcept
+	{
+		const auto lanes = to_array(lhs);
+		mask_t result = 0;
+		for (std::size_t laneIndex = 0; laneIndex < element_count; ++laneIndex)
+		{
+			const auto laneBytes = std::bit_cast<std::array<std::uint8_t, sizeof(element_t)>>(lanes[laneIndex]);
+			for (std::size_t byteIndex = 0; byteIndex < sizeof(element_t); ++byteIndex)
+			{
+				const std::size_t maskIndex = laneIndex * sizeof(element_t) + byteIndex;
+				result |= static_cast<mask_t>((laneBytes[byteIndex] >> 7) & 1u) << maskIndex;
+			}
+		}
+		return result;
+	}
+
+	/** @brief Finds the first minimum lane during constant evaluation.
+	 *  @param lhs Input register represented in constant evaluation.
+	 *  @return Zero-based index of the first minimum element.
+	 */
+	constexpr static std::size_t min_position_constexpr(const vector_t lhs) noexcept
+	{
+		const auto values = to_array(lhs);
+		return static_cast<std::size_t>(std::min_element(values.begin(), values.end()) - values.begin());
+	}
+
+	/** @brief Finds the first maximum lane during constant evaluation.
+	 *  @param lhs Input register represented in constant evaluation.
+	 *  @return Zero-based index of the first maximum element.
+	 */
+	constexpr static std::size_t max_position_constexpr(const vector_t lhs) noexcept
+	{
+		const auto values = to_array(lhs);
+		return static_cast<std::size_t>(std::max_element(values.begin(), values.end()) - values.begin());
+	}
+
+	/** @brief Computes the element-granular movemask during constant evaluation.
+	 *  @param lhs Input register represented in constant evaluation.
+	 *  @return Element-granular movemask for the register contents.
+	 */
+	constexpr static mask_t movemask_slim_constexpr(const vector_t lhs) noexcept
+	{
+		const auto lanes = to_array(lhs);
+		mask_t result = 0;
+		for (std::size_t laneIndex = 0; laneIndex < element_count; ++laneIndex)
+		{
+			const auto laneBytes = std::bit_cast<std::array<std::uint8_t, sizeof(element_t)>>(lanes[laneIndex]);
+			result |= static_cast<mask_t>((laneBytes.back() >> 7) & 1u) << laneIndex;
+		}
+		return result;
+	}
+
+	/** @brief Returns the canonical all-one predicate value for one lane. */
+	[[nodiscard]] constexpr static element_t comparison_true_lane() noexcept
+	{
+		using unsigned_element_t = select_unsigned_integer_t<sizeof(element_t) * 8>;
+		return std::bit_cast<element_t>(std::numeric_limits<unsigned_element_t>::max());
+	}
+
+	/** @brief Compares lanes for equality during constant evaluation. */
+	[[nodiscard]] constexpr static vector_t compare_equal_constexpr(const vector_t lhs, const vector_t rhs) noexcept
+	{
+		const auto left = to_array(lhs);
+		const auto right = to_array(rhs);
+		std::array<element_t, element_count> result{};
+		for (std::size_t index = 0; index < element_count; ++index)
+			result[index] = left[index] == right[index] ? comparison_true_lane() : element_t{};
+		return construct(result);
+	}
+
+	/** @brief Compares lanes for greater-than ordering during constant evaluation. */
+	[[nodiscard]] constexpr static vector_t compare_greater_constexpr(const vector_t lhs, const vector_t rhs) noexcept
+	{
+		const auto left = to_array(lhs);
+		const auto right = to_array(rhs);
+		std::array<element_t, element_count> result{};
+		for (std::size_t index = 0; index < element_count; ++index)
+			result[index] = left[index] > right[index] ? comparison_true_lane() : element_t{};
+		return construct(result);
+	}
+
+	/** @brief Compares lanes for greater-than-or-equal ordering during constant evaluation. */
+	[[nodiscard]] constexpr static vector_t compare_greater_equal_constexpr(const vector_t lhs, const vector_t rhs) noexcept
+	{
+		const auto left = to_array(lhs);
+		const auto right = to_array(rhs);
+		std::array<element_t, element_count> result{};
+		for (std::size_t index = 0; index < element_count; ++index)
+			result[index] = left[index] >= right[index] ? comparison_true_lane() : element_t{};
+		return construct(result);
+	}
+
+	/** @brief Compares lanes for less-than ordering during constant evaluation. */
+	[[nodiscard]] constexpr static vector_t compare_less_constexpr(const vector_t lhs, const vector_t rhs) noexcept
+	{
+		const auto left = to_array(lhs);
+		const auto right = to_array(rhs);
+		std::array<element_t, element_count> result{};
+		for (std::size_t index = 0; index < element_count; ++index)
+			result[index] = left[index] < right[index] ? comparison_true_lane() : element_t{};
+		return construct(result);
+	}
+
+	/** @brief Compares lanes for less-than-or-equal ordering during constant evaluation. */
+	[[nodiscard]] constexpr static vector_t compare_less_equal_constexpr(const vector_t lhs, const vector_t rhs) noexcept
+	{
+		const auto left = to_array(lhs);
+		const auto right = to_array(rhs);
+		std::array<element_t, element_count> result{};
+		for (std::size_t index = 0; index < element_count; ++index)
+			result[index] = left[index] <= right[index] ? comparison_true_lane() : element_t{};
+		return construct(result);
+	}
+
+	/** @brief Left-shifts integer lanes during constant evaluation.
+	 *  @param lhs Input integer register represented in constant evaluation.
+	 *  @param shift Shift count applied to each lane.
+	 *  @return Register containing shifted lanes.
+	 */
+	constexpr static int_vector_t shift_left_constexpr(const int_vector_t lhs, const int shift) noexcept
+	{
+		if (shift >= static_cast<int>(element_width))
+			return impl::setzero();
+		std::array<element_t, element_count> results{};
+		for (std::size_t index = 0; index < element_count; ++index)
+			results[index] = static_cast<element_t>(extract_constexpr(lhs, static_cast<int>(index)) << shift);
+		return impl::construct(results);
+	}
+
+	/** @brief Logically right-shifts integer lanes during constant evaluation.
+	 *  @param lhs Input integer register represented in constant evaluation.
+	 *  @param shift Shift count applied to each lane.
+	 *  @return Register containing shifted lanes.
+	 */
+	constexpr static int_vector_t shift_right_constexpr(const int_vector_t lhs, const int shift) noexcept
+	{
+		if (shift >= static_cast<int>(element_width))
+			return impl::setzero();
+		std::array<element_t, element_count> results{};
+		for (std::size_t index = 0; index < element_count; ++index)
+		{
+			results[index] = static_cast<element_t>(static_cast<std::make_unsigned_t<element_t>>(extract_constexpr(lhs, static_cast<int>(index))) >> shift);
+		}
+		return impl::construct(results);
+	}
+
+	/** @brief Arithmetically right-shifts integer lanes during constant evaluation.
+	 *  @param lhs Input integer register represented in constant evaluation.
+	 *  @param shift Shift count applied to each lane.
+	 *  @return Register containing shifted lanes.
+	 */
+	constexpr static int_vector_t shift_right_arithmetic_constexpr(const int_vector_t lhs, int shift) noexcept
+	{
+		if (shift >= static_cast<int>(element_width))
+			shift = static_cast<int>(element_width) - 1;
+		std::array<element_t, element_count> results{};
+		for (std::size_t index = 0; index < element_count; ++index)
+			results[index] = static_cast<element_t>(extract_constexpr(lhs, static_cast<int>(index)) >> shift);
+		return impl::construct(results);
+	}
+
+	/** @brief Shifts a complete register toward higher byte indices during constant evaluation.
+	 *  @param lhs Input integer register represented in constant evaluation.
+	 *  @param shift Runtime-compatible byte count.
+	 *  @return Byte-shifted register.
+	 */
+	constexpr static int_vector_t shift_bytes_left_constexpr(const int_vector_t lhs, const int shift) noexcept
+	{
+		if (shift <= 0)
+			return lhs;
+		if (shift >= static_cast<int>(byte_count))
+			return impl::setzero();
+		const auto sourceBytes = std::bit_cast<std::array<std::uint8_t, byte_count>>(to_array(lhs));
+		std::array<std::uint8_t, byte_count> resultBytes{};
+		for (std::size_t index = static_cast<std::size_t>(shift); index < byte_count; ++index)
+			resultBytes[index] = sourceBytes[index - static_cast<std::size_t>(shift)];
+		return construct(std::bit_cast<std::array<element_t, element_count>>(resultBytes));
+	}
+
+	/** @brief Shifts a complete register toward lower byte indices during constant evaluation.
+	 *  @param lhs Input integer register represented in constant evaluation.
+	 *  @param shift Runtime-compatible byte count.
+	 *  @return Byte-shifted register.
+	 */
+	constexpr static int_vector_t shift_bytes_right_constexpr(const int_vector_t lhs, const int shift) noexcept
+	{
+		if (shift <= 0)
+			return lhs;
+		if (shift >= static_cast<int>(byte_count))
+			return impl::setzero();
+		const auto sourceBytes = std::bit_cast<std::array<std::uint8_t, byte_count>>(to_array(lhs));
+		std::array<std::uint8_t, byte_count> resultBytes{};
+		for (std::size_t index = 0; index + static_cast<std::size_t>(shift) < byte_count; ++index)
+			resultBytes[index] = sourceBytes[index + static_cast<std::size_t>(shift)];
+		return construct(std::bit_cast<std::array<element_t, element_count>>(resultBytes));
+	}
+
+	/**
+	 * @brief Shifts a complete 128-bit register left during constant evaluation.
+	 * @param lhs Input integer register represented in constant evaluation.
+	 * @param shift Runtime-compatible bit count.
+	 * @return Shifted register with zero-filled low bits.
+	 */
+	constexpr static int_vector_t shift_bits_left_constexpr(const int_vector_t lhs, const int shift) noexcept
+	{
+		if (shift <= 0)
+			return lhs;
+		if (shift >= 128)
+			return impl::setzero();
+
+		const auto source = std::bit_cast<std::array<std::uint64_t, 2>>(to_array(lhs));
+		std::array<std::uint64_t, 2> result{};
+		if (shift < 64)
+		{
+			result = {source[0] << shift, (source[1] << shift) | (source[0] >> (64 - shift))};
+		}
+		else if (shift == 64)
+		{
+			result = {0, source[0]};
+		}
+		else
+		{
+			result = {0, source[0] << (shift - 64)};
+		}
+		return construct(std::bit_cast<std::array<element_t, element_count>>(result));
+	}
+
+	/**
+	 * @brief Shifts a complete 128-bit register right during constant evaluation.
+	 * @param lhs Input integer register represented in constant evaluation.
+	 * @param shift Runtime-compatible bit count.
+	 * @return Shifted register with zero-filled high bits.
+	 */
+	constexpr static int_vector_t shift_bits_right_constexpr(const int_vector_t lhs, const int shift) noexcept
+	{
+		if (shift <= 0)
+			return lhs;
+		if (shift >= 128)
+			return impl::setzero();
+
+		const auto source = std::bit_cast<std::array<std::uint64_t, 2>>(to_array(lhs));
+		std::array<std::uint64_t, 2> result{};
+		if (shift < 64)
+		{
+			result = {(source[0] >> shift) | (source[1] << (64 - shift)), source[1] >> shift};
+		}
+		else if (shift == 64)
+		{
+			result = {source[1], 0};
+		}
+		else
+		{
+			result = {source[1] >> (shift - 64), 0};
+		}
+		return construct(std::bit_cast<std::array<element_t, element_count>>(result));
+	}
+
 	/** @brief Re-encodes integer lanes so a minimum-position backend yields the first maximum index.
 	 *  @param lhs Input integer register.
 	 *  @return Transformed register whose first minimum corresponds to the original first maximum.
 	 */
-	SIMDLIB_FORCE_INLINE static vector_t VECTORCALL TransformForMaxPosition(const vector_t lhs) noexcept
+	static vector_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) TransformForMaxPosition(const vector_t lhs) noexcept
 	{
 		if constexpr (using_unsigned)
 		{
@@ -1558,6 +2281,6 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
  */
 template <class element_t>
 	requires ApiAvailable<128, element_t>
-using NativeApi = Api<is_api_available_v<256, element_t> ? 256 : 128, element_t>;
+using NativeApi = Api<(is_api_available_v<256, element_t> ? 256 : 128), element_t>;
 
 } // namespace SimdLib

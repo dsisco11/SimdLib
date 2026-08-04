@@ -21,12 +21,12 @@ std::uint32_t first_translation_unit_resample() noexcept
 	SimdLib::SimdResample::ExpandBitsToBytesBy8(any, expanded);
 	return any[0] + all[0] + parity[0] + expanded[1];
 }
-}
+} // namespace
 
 int main()
 {
-	return SimdLib::version_major + SimdLib::version_minor + SimdLib::version_patch == second_translation_unit_version()
-	        && first_translation_unit_resample() == second_translation_unit_resample()
-	    ? 0
-	    : 1;
+	return SimdLib::version_major + SimdLib::version_minor + SimdLib::version_patch == second_translation_unit_version() &&
+				   first_translation_unit_resample() == second_translation_unit_resample()
+			   ? 0
+			   : 1;
 }

@@ -30,8 +30,11 @@ the rename preserves the complete member API rather than selecting a subset.
 | Automatically sized SIMD facade | `SimdLib::NativeApi<element_t>` |
 | Register-width SIMD facade | `SimdLib::Api<register_width, element_t>` |
 | Availability query and constraint | `SimdLib::is_api_available_v` and `SimdLib::ApiAvailable` |
+| Automatically sized complete-register value | `SimdLib::NativeRegister<element_t>` |
+| Explicit-width complete-register value | `SimdLib::Register<element_t, register_width>` |
+| Complete-register predicate value | `SimdLib::RegisterMask<element_t, register_width>` |
 | Fixed logical SIMD value | `SimdLib::SimdVector<element_t, element_count>` |
-| Fixed-width vector aliases | Root `SimdLib::*x*` and `SimdLib::Vector*` aliases |
+| Fixed-width complete-register aliases | C++23 root `SimdLib::*x*` and `SimdLib::Vector*` aliases |
 | Bit manipulation | `SimdLib::Bmi` |
 | Unsigned wide integer | `SimdLib::uint128_t` |
 | Byte-mask resampling | `SimdLib::SimdResample` |
@@ -43,11 +46,16 @@ in `SimdLib::SimdApi` adds length without distinguishing another public API.
 The short name also reads clearly in aliases such as
 `using u32x4_api = SimdLib::Api<128, std::uint32_t>`.
 
-`NativeApi<element_t>` is the preferred entry point when consumers do not
-require a fixed register width. It selects the 256-bit facade when the compile
-target enables it and otherwise selects the 128-bit facade. Explicit
-`Api<register_width, element_t>` remains the supported form for width-specific
-algorithms and ABI contracts.
+For C++23 complete-register expressions, `NativeRegister<element_t>` is the
+preferred entry point when consumers do not require a fixed register width.
+Explicit `Register<element_t, register_width>` is required when storage layout
+or an ABI contract must remain stable across target configurations.
+
+`NativeApi<element_t>` remains the preferred backend facade for C++20,
+collection helpers, compatibility code, and specialized low-level operations.
+It selects the 256-bit facade when the compile target enables it and otherwise
+selects the 128-bit facade. Explicit `Api<register_width, element_t>` remains
+the supported form for width-specific backend algorithms.
 
 `SimdResample` remains unchanged. It names a cohesive, existing operation
 family and changing it would add churn without improving the requested type

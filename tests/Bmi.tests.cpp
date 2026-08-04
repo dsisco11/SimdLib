@@ -326,8 +326,7 @@ void mix_digest(std::uint64_t &digest, const std::uint64_t value)
 	digest *= 1099511628211ULL;
 }
 
-template <std::signed_integral signed_t>
-void require_signed_bit_pattern_contract(const signed_t source, const signed_t rhs)
+template <std::signed_integral signed_t> void require_signed_bit_pattern_contract(const signed_t source, const signed_t rhs)
 {
 	using unsigned_t = std::make_unsigned_t<signed_t>;
 	const unsigned_t source_bits = std::bit_cast<unsigned_t>(source);
@@ -360,10 +359,9 @@ void require_signed_bit_pattern_contract(const signed_t source, const signed_t r
 
 TEST_CASE("BMI signed helpers preserve two's-complement bit patterns", "[simdlib][bmi][signed][regression]")
 {
-	require_signed_bit_pattern_contract<std::int32_t>(std::bit_cast<std::int32_t>(0xF234'5678u),
-													 std::bit_cast<std::int32_t>(0x8ACE'1357u));
+	require_signed_bit_pattern_contract<std::int32_t>(std::bit_cast<std::int32_t>(0xF234'5678u), std::bit_cast<std::int32_t>(0x8ACE'1357u));
 	require_signed_bit_pattern_contract<std::int64_t>(std::bit_cast<std::int64_t>(0xF234'5678'9ABC'DEF0ull),
-													 std::bit_cast<std::int64_t>(0x8ACE'1357'2468'BDF1ull));
+													  std::bit_cast<std::int64_t>(0x8ACE'1357'2468'BDF1ull));
 }
 
 TEST_CASE("BMI absolute value handles signed boundaries without arithmetic overflow", "[simdlib][bmi][signed][abs]")

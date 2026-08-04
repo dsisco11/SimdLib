@@ -12,9 +12,6 @@
 
 #include <SimdLib/Api.h>
 
-template <class Element>
-concept HasNativeApi = requires { typename SimdLib::NativeApi<Element>; };
-
 static_assert(!SimdLib::is_api_available_v<128, int>);
 static_assert(!SimdLib::is_api_available_v<256, float>);
-static_assert(!HasNativeApi<float>);
+static_assert(!SimdLib::NativeApiAvailable<float>);

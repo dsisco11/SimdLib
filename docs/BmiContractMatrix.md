@@ -1,6 +1,6 @@
 # BMI public contract matrix
 
-Phase 1 classifies every symbol in `SimdLib::Bmi` that is outside its nested
+This matrix classifies every symbol in `SimdLib::Bmi` that is outside its nested
 `Detail` namespace. All tests use the public `Bmi` entry points; `Detail`
 contains implementation alternatives and is not a supported test seam.
 
@@ -24,15 +24,3 @@ Signed `int32_t`/`int64_t` object-representation checks protect the signed
 contracts. The portable, BMI1-only, BMI2-only, and combined profiles must
 produce the same deterministic digest; their CTest equivalence tests are the
 configuration proof.
-
-## Phase 1 validation record
-
-On 2026-07-18, the `clang-coverage` build ran 125 CTest entries successfully.
-The BMI subset ran 47 entries: eleven public-contract tests in each of the
-portable, BMI1-only, BMI2-only, and combined configurations, followed by the
-three enabled-versus-portable deterministic-digest equivalence tests. All 47
-passed. The exhaustive 8-bit contracts exposed and fixed narrow-integer
-promotion defects in the AND-NOT and unset/trailing-mask helper families. The
-deterministic seeds remain `0xC001D00D12345678`,
-`0x9E3779B97F4A7C15`, `0xD1B54A32D192ED03`, and
-`0xA0761D6478BD642F`.

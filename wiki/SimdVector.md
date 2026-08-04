@@ -611,7 +611,7 @@ template <int imm8> auto multi_sum_absolute_byte_differences(vector_t rhs) const
 Example:
 
 ```cpp
-using U8x16 = SimdLib::uint8x16;
+using U8x16 = SimdLib::SimdVector<std::uint8_t, 16>;
 U8x16{9}.multi_sum_absolute_byte_differences<0>(U8x16{
     4}); // => every selected 16-bit result lane is 20
 ```
@@ -667,7 +667,7 @@ auto multiply_add_unsigned_signed_bytes(vector_t rhs) const
 Example:
 
 ```cpp
-using U8x16 = SimdLib::uint8x16;
+using U8x16 = SimdLib::SimdVector<std::uint8_t, 16>;
 U8x16{2}.multiply_add_unsigned_signed_bytes(
     U8x16{3}); // => every signed 16-bit result lane is 12
 ```
@@ -1467,7 +1467,7 @@ auto sum_absolute_byte_differences(vector_t rhs) const
 Example:
 
 ```cpp
-using U8x16 = SimdLib::uint8x16;
+using U8x16 = SimdLib::SimdVector<std::uint8_t, 16>;
 U8x16{9}.sum_absolute_byte_differences(U8x16{4}); // => both 64-bit result lanes are 40
 ```
 
@@ -1563,4 +1563,4 @@ Vector3{1.0F, 2.0F, 3.0F}.z(); // => 3.0F
 <a id="related-types-and-constants"></a>
 ## Related types and constants
 
-The header provides `VectorInt8`, `VectorUInt8`, `VectorInt16`, `VectorUInt16`, `VectorInt32`, `VectorUInt32`, `VectorInt64`, and `VectorUInt64`, plus register-sized aliases such as `uint8x16`, `uint32x8`, `int16x8`, and `int64x4`. Use `SimdVector<T, N>` directly for position-like dimensions such as two, three, or four.
+`<SimdLib/Aliases.h>` provides C++23 complete-register aliases such as `uint8x16`, `uint32x8`, `int16x8`, and `int64x4` when their register width is available. Use `SimdVector<T, N>` directly for logical vector dimensions such as two, three, or four.

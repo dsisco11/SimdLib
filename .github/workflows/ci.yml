@@ -3,167 +3,122 @@ name: SimdLib CI
 on:
   push:
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  windows:
-    name: MSVC ${{ matrix.arch }} ${{ matrix.config }}
+  native-msvc:
+    name: MSVC x64 validation
     runs-on: windows-2022
-    strategy:
-      fail-fast: false
-      matrix:
-        arch: [x64, Win32]
-        config: [Debug, Release]
     steps:
       - uses: actions/checkout@v4
-      - name: Configure
-        shell: pwsh
-        run: |
-          cmake -S . -B build -G 'Visual Studio 17 2022' -A '${{ matrix.arch }}' -T v143 `
-            -DSIMDLIB_BUILD_TESTS=ON `
-            -DSIMDLIB_BUILD_TESTS_OPTIONAL=OFF `
-            -DSIMDLIB_BUILD_EXAMPLES=ON `
-            -DSIMDLIB_STRICT_WARNINGS=ON
-      - name: Build
-        run: cmake --build build --config ${{ matrix.config }} --parallel
-      - name: Test
-        run: ctest --test-dir build -C ${{ matrix.config }} --output-on-failure
-
-  clang-cl:
-    name: clang-cl ${{ matrix.arch }} ${{ matrix.config }}
-    runs-on: windows-2022
-    strategy:
-      fail-fast: false
-      matrix:
-        arch: [x64, x86]
-        config: [Debug, Release]
-    steps:
-      - uses: actions/checkout@v4
-      - uses: ilammy/msvc-dev-cmd@v1
+      - name: Build every MSVC validation cell
+        run: tools/Build.ps1 -Scope Native -Compiler Msvc
+      - name: Test the exact MSVC build receipt
+        run: tools/Run-Tests.ps1 -Scope Native -Compiler Msvc
+      - name: Build MSVC benchmark artifacts explicitly
+        run: tools/Build-Benchmarks.ps1 -Scope Native -Compiler Msvc
+      - name: Upload MSVC evidence
+        if: always()
+        uses: actions/upload-artifact@v4
         with:
-          arch: ${{ matrix.arch }}
-      - name: Configure standalone clang-cl
-        run: >-
-          cmake -S . -B build -G Ninja
-          -DCMAKE_BUILD_TYPE=${{ matrix.config }}
-          -DCMAKE_CXX_COMPILER=clang-cl
-          -DSIMDLIB_BUILD_TESTS=ON
-          -DSIMDLIB_BUILD_TESTS_OPTIONAL=OFF
-          -DSIMDLIB_BUILD_EXAMPLES=ON
-          -DSIMDLIB_STRICT_WARNINGS=ON
-      - name: Build
-        run: cmake --build build --parallel
-      - name: Test
-        run: ctest --test-dir build --output-on-failure
+          name: msvc-evidence
+          path: |
+            out/pipeline/windows-msvc/**/provenance
+            out/pipeline/windows-msvc/**/reports
+            out/pipeline/windows-msvc/**/validation-build.manifest
+            out/pipeline/windows-msvc/**/benchmark-build.manifest
+            out/pipeline/windows-msvc/**/build/register-codegen/**/*.json
+            out/pipeline/windows-msvc/**/build/register-codegen/**/*.txt
+            out/pipeline/windows-msvc/**/build/method-flags-codegen/**/*.json
+            out/pipeline/windows-msvc/**/build/method-flags-codegen/**/*.txt
+            out/pipeline/logs
+            out/pipeline/provenance
+          if-no-files-found: error
 
-  linux:
-    name: ${{ matrix.compiler }} ${{ matrix.arch }} ${{ matrix.config }}
-    runs-on: ubuntu-24.04
-    strategy:
-      fail-fast: false
-      matrix:
-        compiler: [gcc, clang]
-        arch: [x64, x86]
-        config: [Debug, Release]
+  native-clangcl:
+    name: clang-cl and Clang coverage x64 validation
+    runs-on: windows-2022
     steps:
       - uses: actions/checkout@v4
-      - name: Install x86 multilib support
-        if: matrix.arch == 'x86'
-        run: sudo apt-get update && sudo apt-get install -y g++-multilib
-      - name: Select compiler and architecture
+      - name: Build every Clang validation cell
+        run: tools/Build.ps1 -Scope Native -Compiler ClangCl,ClangCoverage
+      - name: Test the exact Clang build receipt
+        run: tools/Run-Tests.ps1 -Scope Native -Compiler ClangCl,ClangCoverage
+      - name: Build clang-cl benchmark artifacts explicitly
+        run: tools/Build-Benchmarks.ps1 -Scope Native -Compiler ClangCl
+      - name: Upload Clang evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: clang-evidence
+          path: |
+            out/pipeline/windows-clangcl/**/provenance
+            out/pipeline/windows-clangcl/**/reports
+            out/pipeline/windows-clangcl/**/validation-build.manifest
+            out/pipeline/windows-clangcl/**/benchmark-build.manifest
+            out/pipeline/windows-clangcl/**/build/register-codegen/**/*.json
+            out/pipeline/windows-clangcl/**/build/register-codegen/**/*.txt
+            out/pipeline/windows-clangcl/**/build/method-flags-codegen/**/*.json
+            out/pipeline/windows-clangcl/**/build/method-flags-codegen/**/*.txt
+            out/pipeline/windows-clang-coverage/**/provenance
+            out/pipeline/windows-clang-coverage/**/reports
+            out/pipeline/windows-clang-coverage/**/validation-build.manifest
+            out/pipeline/windows-clang-coverage/**/build/method-flags-codegen/**/*.json
+            out/pipeline/windows-clang-coverage/**/build/method-flags-codegen/**/*.txt
+            out/pipeline/logs
+            out/pipeline/provenance
+          if-no-files-found: error
+
+  container-compilers:
+    name: GCC 13, GCC 14, and Clang 22 containers
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install required Docker Compose
         shell: bash
-        run: |
-          if [[ '${{ matrix.compiler }}' == 'clang' ]]; then
-            echo 'CXX=clang++' >> "$GITHUB_ENV"
-          else
-            echo 'CXX=g++' >> "$GITHUB_ENV"
-          fi
-          if [[ '${{ matrix.arch }}' == 'x86' ]]; then
-            echo 'ARCH_FLAGS=-m32' >> "$GITHUB_ENV"
-          else
-            echo 'ARCH_FLAGS=' >> "$GITHUB_ENV"
-          fi
-      - name: Configure
-        run: >-
-          cmake -S . -B build -G Ninja
-          -DCMAKE_BUILD_TYPE=${{ matrix.config }}
-          -DCMAKE_CXX_FLAGS="${ARCH_FLAGS}"
-          -DCMAKE_EXE_LINKER_FLAGS="${ARCH_FLAGS}"
-          -DSIMDLIB_BUILD_TESTS=ON
-          -DSIMDLIB_BUILD_TESTS_OPTIONAL=OFF
-          -DSIMDLIB_BUILD_EXAMPLES=ON
-          -DSIMDLIB_STRICT_WARNINGS=ON
-      - name: Build
-        run: cmake --build build --parallel
-      - name: Test
-        run: ctest --test-dir build --output-on-failure
-
-  feature-matrix:
-    name: AVX2 FMA BMI1 BMI2 enabled and disabled
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@v4
-      - name: Configure strict Release matrix
-        run: >-
-          cmake -S . -B build -G Ninja
-          -DCMAKE_BUILD_TYPE=Release
-          -DSIMDLIB_BUILD_TESTS=ON
-          -DSIMDLIB_BUILD_TESTS_OPTIONAL=ON
-          -DSIMDLIB_BUILD_EXAMPLES=ON
-          -DSIMDLIB_STRICT_WARNINGS=ON
-      - name: Build
-        run: cmake --build build --parallel
-      - name: Run feature profiles
-        run: ctest --test-dir build --output-on-failure -L 'AVX2|FMA|BMI|SCALAR'
-
-  sanitizer:
-    name: Clang ASan and UBSan
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@v4
-      - name: Configure
         env:
-          CXX: clang++
-        run: >-
-          cmake -S . -B build -G Ninja
-          -DCMAKE_BUILD_TYPE=Debug
-          -DCMAKE_CXX_FLAGS='-fsanitize=address,undefined -fno-omit-frame-pointer'
-          -DCMAKE_EXE_LINKER_FLAGS='-fsanitize=address,undefined'
-          -DSIMDLIB_BUILD_TESTS=ON
-          -DSIMDLIB_BUILD_TESTS_OPTIONAL=OFF
-          -DSIMDLIB_BUILD_EXAMPLES=ON
-          -DSIMDLIB_STRICT_WARNINGS=ON
-      - name: Build
-        run: cmake --build build --parallel
-      - name: Test
-        run: ctest --test-dir build --output-on-failure
-
-  contract-gates:
-    name: constexpr, header hygiene, ODR, and consumer
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@v4
-      - name: Configure header and constexpr probes
-        run: >-
-          cmake -S . -B build/contracts -G Ninja
-          -DCMAKE_BUILD_TYPE=Release
-          -DSIMDLIB_BUILD_TESTS=OFF
-          -DSIMDLIB_BUILD_CONFIGURATION_TESTS=ON
-          -DSIMDLIB_BUILD_HEADER_TESTS=ON
-          -DSIMDLIB_BUILD_SMOKE_TESTS=ON
-          -DSIMDLIB_STRICT_WARNINGS=ON
-      - name: Build compile-time contracts
-        run: cmake --build build/contracts --parallel
-      - name: Run multi-translation-unit ODR smoke test
-        run: ctest --test-dir build/contracts --output-on-failure -R SimdLib.HeaderOnlySmoke
-      - name: Configure add_subdirectory consumer
-        run: >-
-          cmake -S tests/consumer -B build/consumer -G Ninja
-          -DCMAKE_BUILD_TYPE=Release
-          -DSIMDLIB_SOURCE_DIR=${{ github.workspace }}
-      - name: Build and test header-only consumer
+          DOCKER_COMPOSE_VERSION: v2.39.0
         run: |
-          cmake --build build/consumer --parallel
-          ctest --test-dir build/consumer --output-on-failure
+          plugin_dir="${HOME}/.docker/cli-plugins"
+          asset_name="docker-compose-linux-x86_64"
+          release_url="https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}"
+          mkdir -p "${plugin_dir}"
+          curl --fail --location --silent --show-error \
+            "${release_url}/${asset_name}" \
+            --output "${plugin_dir}/docker-compose"
+          expected_sha256="$(curl --fail --location --silent --show-error \
+            "${release_url}/${asset_name}.sha256" | awk '{print $1}')"
+          actual_sha256="$(sha256sum "${plugin_dir}/docker-compose" | awk '{print $1}')"
+          test -n "${expected_sha256}"
+          test "${actual_sha256}" = "${expected_sha256}"
+          chmod +x "${plugin_dir}/docker-compose"
+          docker compose version
+      - name: Build every Linux validation cell
+        shell: pwsh
+        run: tools/Build.ps1 -Scope Containers
+      - name: Test the exact Linux build receipt
+        shell: pwsh
+        run: tools/Run-Tests.ps1 -Scope Containers
+      - name: Build Linux benchmark artifacts explicitly
+        shell: pwsh
+        run: tools/Build-Benchmarks.ps1 -Scope Containers
+      - name: Upload container evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-container-evidence
+          path: |
+            out/pipeline/linux-*/**/provenance
+            out/pipeline/linux-*/**/reports
+            out/pipeline/linux-*/**/validation-build.manifest
+            out/pipeline/linux-*/**/benchmark-build.manifest
+            out/pipeline/linux-*/**/build/register-codegen/**/*.json
+            out/pipeline/linux-*/**/build/register-codegen/**/*.txt
+            out/pipeline/linux-*/**/build/method-flags-codegen/**/*.json
+            out/pipeline/linux-*/**/build/method-flags-codegen/**/*.txt
+            out/pipeline/logs
+            out/pipeline/provenance
+          if-no-files-found: error

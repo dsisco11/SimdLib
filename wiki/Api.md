@@ -12,16 +12,16 @@
 - [`add_saturated`](#add-saturated)
 - [`add_subtract`](#add-subtract)
 - [`avg`](#avg)
-- [`bit_shift_left`](#bit-shift-left)
-- [`bit_shift_right`](#bit-shift-right)
+- [`shift_bits_left` and `shift_bits_left_slow`](#shift-bits-left)
+- [`shift_bits_right` and `shift_bits_right_slow`](#shift-bits-right)
 - [`bitwise_and`](#bitwise-and)
 - [`bitwise_andnot`](#bitwise-andnot)
 - [`bitwise_not`](#bitwise-not)
 - [`bitwise_or`](#bitwise-or)
 - [`bitwise_xor`](#bitwise-xor)
 - [`blend`](#blend)
-- [`byte_shift_left`](#byte-shift-left)
-- [`byte_shift_right`](#byte-shift-right)
+- [`shift_bytes_left` and `shift_bytes_left_slow`](#shift-bytes-left)
+- [`shift_bytes_right` and `shift_bytes_right_slow`](#shift-bytes-right)
 - [`cmp_eq`](#cmp-eq)
 - [`cmp_eq_mask`](#cmp-eq-mask)
 - [`cmp_ge`](#cmp-ge)
@@ -36,10 +36,10 @@
 - [`divide`](#divide)
 - [`dot_product`](#dot-product)
 - [`expand`](#expand)
-- [`extract`](#extract)
+- [`extract` and `extract_slow`](#extract)
 - [`hadd_saturated`](#hadd-saturated)
 - [`hsubtract_saturated`](#hsubtract-saturated)
-- [`insert`](#insert)
+- [`insert` and `insert_slow`](#insert)
 - [`load`](#load)
 - [`load_aligned`](#load-aligned)
 - [`load_partial`](#load-partial)
@@ -70,9 +70,10 @@
 - [`shift_left`](#shift-left)
 - [`shift_right`](#shift-right)
 - [`shift_right_arithmetic`](#shift-right-arithmetic)
-- [`shuffle`](#shuffle)
-- [`shuffle_hi`](#shuffle-hi)
-- [`shuffle_lo`](#shuffle-lo)
+- [`shuffle` and `shuffle_slow`](#shuffle)
+- [`shuffle_32` and `shuffle_32_slow`](#shuffle-32)
+- [`shuffle_hi` and `shuffle_hi_slow`](#shuffle-hi)
+- [`shuffle_lo` and `shuffle_lo_slow`](#shuffle-lo)
 - [`sqrt`](#sqrt)
 - [`store`](#store)
 - [`store_aligned`](#store-aligned)
@@ -215,42 +216,46 @@ using U8 = SimdLib::Api<128, std::uint8_t>;
 U8::avg(U8::set1(2U), U8::set1(6U)); // => every lane is 4U
 ```
 
-<a id="bit-shift-left"></a>
-## `bit_shift_left`
+<a id="shift-bits-left"></a>
+## `shift_bits_left` and `shift_bits_left_slow`
 
-Shifts the complete 128-bit register left, carrying bits across lane boundaries. Unlike `shift_left`, this treats the register as one unsigned 128-bit bit string. A zero or negative runtime count returns the input; counts of 128 or more return zero.
-
-Signatures:
-
-```cpp
-static int_vector_t bit_shift_left(int_vector_t lhs, int shift)
-template <int shift> static int_vector_t bit_shift_left(int_vector_t lhs)
-```
-
-Example:
-
-```cpp
-using U32x4 = SimdLib::Api<128, std::uint32_t>;
-U32x4::bit_shift_left(U32x4::construct({3U, 3U, 3U, 3U}), 1); // => {6U, 6U, 6U, 6U}
-```
-
-<a id="bit-shift-right"></a>
-## `bit_shift_right`
-
-Shifts the complete 128-bit register right, carrying bits across lane boundaries. Unlike `shift_right`, this treats the register as one unsigned 128-bit bit string. A zero or negative runtime count returns the input; counts of 128 or more return zero.
+Shifts the complete 128-bit register left as one unsigned bit string, carrying across element boundaries. The unsuffixed template form encodes a compile-time count. The `_slow` form accepts a runtime count; nonpositive counts return the input and counts of 128 or more return zero.
 
 Signatures:
 
 ```cpp
-static int_vector_t bit_shift_right(int_vector_t lhs, int shift)
-template <int shift> static int_vector_t bit_shift_right(int_vector_t lhs)
+template <int shift> static int_vector_t shift_bits_left(int_vector_t lhs)
+static int_vector_t shift_bits_left_slow(int_vector_t lhs, int shift)
 ```
 
-Example:
+Examples:
 
 ```cpp
 using U32x4 = SimdLib::Api<128, std::uint32_t>;
-U32x4::bit_shift_right(U32x4::construct({8U, 8U, 8U, 8U}), 1); // => {4U, 4U, 4U, 4U}
+const auto value = U32x4::construct({3U, 3U, 3U, 3U});
+U32x4::shift_bits_left<1>(value);       // => {6U, 6U, 6U, 6U}
+U32x4::shift_bits_left_slow(value, 1); // same semantics with a runtime count
+```
+
+<a id="shift-bits-right"></a>
+## `shift_bits_right` and `shift_bits_right_slow`
+
+Shifts the complete 128-bit register right as one unsigned bit string, carrying across element boundaries. The unsuffixed template form encodes a compile-time count. The `_slow` form accepts a runtime count; nonpositive counts return the input and counts of 128 or more return zero.
+
+Signatures:
+
+```cpp
+template <int shift> static int_vector_t shift_bits_right(int_vector_t lhs)
+static int_vector_t shift_bits_right_slow(int_vector_t lhs, int shift)
+```
+
+Examples:
+
+```cpp
+using U32x4 = SimdLib::Api<128, std::uint32_t>;
+const auto value = U32x4::construct({8U, 8U, 8U, 8U});
+U32x4::shift_bits_right<1>(value);       // => {4U, 4U, 4U, 4U}
+U32x4::shift_bits_right_slow(value, 1); // same semantics with a runtime count
 ```
 
 <a id="bitwise-and"></a>
@@ -352,62 +357,68 @@ U32::bitwise_xor(
 ```
 
 <a id="blend"></a>
-## `blend`
+## `blend` and `blend_slow`
 
-Blends two registers according to the implementation-specific control form.
+Selects corresponding lanes from two registers. `blend<imm8>` uses a compile-time immediate. An unsuffixed register-mask overload remains available where the instruction set provides a native runtime mask. `blend_slow` emulates immediate-mask semantics for a runtime scalar control.
 
 Signatures:
 
 ```cpp
+template <int imm8> static vector_t blend(vector_t lhs, vector_t rhs)
 template <class... Args> static auto blend(Args &&...args)
+template <class... Args> static auto blend_slow(Args &&...args)
 ```
 
-Example:
+Examples:
 
 ```cpp
 using I32x4 = SimdLib::Api<128, std::int32_t>;
-I32x4::blend(
-    I32x4::construct({10, 20, 30, 40}),
-    I32x4::construct({1, 2, 3, 4}),
-    0b0101); // => {1, 20, 3, 40}
+const auto lhs = I32x4::construct({10, 20, 30, 40});
+const auto rhs = I32x4::construct({1, 2, 3, 4});
+I32x4::blend<0b0101>(lhs, rhs);       // => {1, 20, 3, 40}
+I32x4::blend_slow(lhs, rhs, 0b0101); // same semantics with a runtime control
 ```
 
-<a id="byte-shift-left"></a>
-## `byte_shift_left`
+<a id="shift-bytes-left"></a>
+## `shift_bytes_left` and `shift_bytes_left_slow`
 
-Shifts every byte in a 128-bit register toward higher byte indices.
+Shifts a complete integral register toward higher byte indices. The immediate template treats the value as one contiguous byte sequence, crossing element, 64-bit, and—at 256 bits—128-bit-half boundaries. `shift_bytes_left<count>` accepts a nonnegative compile-time count at 128 or 256 bits. Zero is identity; counts at least 16 for 128 bits or 32 for 256 bits produce zero. The `_slow` form accepts a runtime count but is intentionally available only for 128-bit registers.
 
 Signatures:
 
 ```cpp
-static int_vector_t byte_shift_left(int_vector_t lhs, int shift)
+template <int count> static int_vector_t shift_bytes_left(int_vector_t lhs)
+static int_vector_t shift_bytes_left_slow(int_vector_t lhs, int count) // 128-bit only
 ```
 
-Example:
+Examples:
 
 ```cpp
+using U8x32 = SimdLib::Api<256, std::uint8_t>;
 using U8x16 = SimdLib::Api<128, std::uint8_t>;
-U8x16::byte_shift_left(U8x16::set1(7U), 1); // => {0U, 7U, 7U, ..., 7U}
+U8x32::shift_bytes_left<17>(U8x32::set1(7U));      // crosses the 128-bit boundary
+U8x16::shift_bytes_left_slow(U8x16::set1(7U), 1); // => {0U, 7U, 7U, ..., 7U}
 ```
+<a id="shift-bytes-right"></a>
+## `shift_bytes_right` and `shift_bytes_right_slow`
 
-<a id="byte-shift-right"></a>
-## `byte_shift_right`
-
-Shifts every byte in a 128-bit register toward lower byte indices.
+Shifts a complete integral register toward lower byte indices. The immediate template uses the same contiguous-register semantics as `shift_bytes_left`, including crossing the 128-bit boundary at 256 bits. `shift_bytes_right<count>` accepts a nonnegative compile-time count at 128 or 256 bits. Zero is identity; counts at least 16 for 128 bits or 32 for 256 bits produce zero. The `_slow` form accepts a runtime count but is intentionally available only for 128-bit registers.
 
 Signatures:
 
 ```cpp
-static int_vector_t byte_shift_right(int_vector_t lhs, int shift)
+template <int count> static int_vector_t shift_bytes_right(int_vector_t lhs)
+static int_vector_t shift_bytes_right_slow(int_vector_t lhs, int count) // 128-bit only
 ```
 
-Example:
+Examples:
 
 ```cpp
+using U8x32 = SimdLib::Api<256, std::uint8_t>;
 using U8x16 = SimdLib::Api<128, std::uint8_t>;
-U8x16::byte_shift_right(U8x16::set1(7U), 1); // => {7U, 7U, ..., 7U, 0U}
+U8x32::shift_bytes_right<17>(U8x32::set1(7U));      // crosses the 128-bit boundary
+U8x16::shift_bytes_right_slow(U8x16::set1(7U), 1); // => {7U, 7U, ..., 7U, 0U}
 ```
-
 <a id="cmp-eq"></a>
 ## `cmp_eq`
 
@@ -677,22 +688,24 @@ using I8x16 = SimdLib::Api<128, std::int8_t>;
 ```
 
 <a id="extract"></a>
-## `extract`
+## `extract` and `extract_slow`
 
-Extracts a lane or subvalue from a register.
+Extracts one logical lane. The unsuffixed template form uses a compile-time lane index. `extract_slow` accepts a runtime-selected lane index.
 
 Signatures:
 
 ```cpp
 template <int index> static auto extract(vector_t lhs)
-template <class selector_t> static auto extract(vector_t lhs, selector_t rhs)
+template <class selector_t> static auto extract_slow(vector_t lhs, selector_t rhs)
 ```
 
-Example:
+Examples:
 
 ```cpp
 using I32x4 = SimdLib::Api<128, std::int32_t>;
-I32x4::extract<0>(I32x4::construct({7, 8, 9, 10})); // => 7
+const auto value = I32x4::construct({7, 8, 9, 10});
+I32x4::extract<0>(value);    // => 7
+I32x4::extract_slow(value, 2); // => 9 with a runtime lane index
 ```
 
 <a id="hadd-saturated"></a>
@@ -737,21 +750,24 @@ I16::hsubtract_saturated(
 ```
 
 <a id="insert"></a>
-## `insert`
+## `insert` and `insert_slow`
 
-Inserts a lane or subvalue into a register.
+Replaces one logical lane. The unsuffixed template form uses a compile-time lane index. `insert_slow` accepts a runtime-selected lane index.
 
 Signatures:
 
 ```cpp
-template <class... Args> static auto insert(Args &&...args)
+template <std::size_t index> static vector_t insert(vector_t lhs, element_t rhs)
+static vector_t insert_slow(vector_t lhs, element_t rhs, int index)
 ```
 
-Example:
+Examples:
 
 ```cpp
 using I32x4 = SimdLib::Api<128, std::int32_t>;
-I32x4::insert(I32x4::construct({0, 0, 0, 0}), 9, 0); // => {9, 0, 0, 0}
+const auto zero = I32x4::setzero();
+I32x4::insert<0>(zero, 9);       // => {9, 0, 0, 0}
+I32x4::insert_slow(zero, 9, 2); // => {0, 0, 9, 0} with a runtime lane index
 ```
 
 <a id="load"></a>
@@ -918,7 +934,7 @@ Example:
 
 ```cpp
 using U16x8 = SimdLib::Api<128, std::uint16_t>;
-const auto values = U16x8::insert(U16x8::set1(4), 9, 3);
+const auto values = U16x8::insert<3>(U16x8::set1(4), 9);
 U16x8::max_position(values); // => 3
 ```
 
@@ -956,7 +972,7 @@ Example:
 
 ```cpp
 using U16x8 = SimdLib::Api<128, std::uint16_t>;
-const auto values = U16x8::insert(U16x8::set1(4), 1, 3);
+const auto values = U16x8::insert<3>(U16x8::set1(4), 1);
 U16x8::min_position(values); // => 3
 ```
 
@@ -1312,62 +1328,105 @@ I32::shift_right_arithmetic(I32::construct({-8, -8, -8, -8}), 1); // => every la
 ```
 
 <a id="shuffle"></a>
-## `shuffle`
+## `shuffle` and `shuffle_slow`
 
-Shuffles register contents according to the implementation-specific control form.
+The compile-time logical overload constructs each output lane from the source lane named by the selector at the same output position. It requires exactly one selector per lane, permits repeated selectors, and rejects selectors outside the complete source register. At 256 bits, any selector may cross the 128-bit boundary. Floating-point lanes are moved by object representation, preserving NaN payloads and signed zero.
+
+An unsuffixed register-selector overload remains available for byte shuffles backed by a native runtime selector register. `shuffle_slow` provides immediate-mask floating shuffle semantics for a runtime scalar control.
 
 Signatures:
 
 ```cpp
-template <std::size_t... indices> static auto shuffle(int_vector_t lhs)
+template <std::size_t... indices> static vector_t shuffle(vector_t lhs)
 template <class... Args> static auto shuffle(Args &&...args)
+template <class... Args> static auto shuffle_slow(Args &&...args)
 ```
 
-Example:
+Examples:
 
 ```cpp
+using U16x8 = SimdLib::Api<128, std::uint16_t>;
+const auto words = U16x8::construct({0, 1, 2, 3, 4, 5, 6, 7});
+U16x8::shuffle<7, 6, 5, 4, 3, 2, 1, 0>(words); // => {7, 6, 5, 4, 3, 2, 1, 0}
+
+using I32x8 = SimdLib::Api<256, std::int32_t>;
+const auto integers = I32x8::construct({0, 1, 2, 3, 4, 5, 6, 7});
+I32x8::shuffle<4, 5, 6, 7, 0, 1, 2, 3>(integers); // => exchanges the 128-bit halves
+
+using F64x4 = SimdLib::Api<256, double>;
+const auto doubles = F64x4::construct({1.0, 2.0, 3.0, 4.0});
+F64x4::shuffle<3, 3, 0, 0>(doubles); // => {4.0, 4.0, 1.0, 1.0}
+
 using U8x16 = SimdLib::Api<128, std::uint8_t>;
 U8x16::shuffle(
     U8x16::set1(7U),
-    U8x16::set1(0x80U)); // => every lane is cleared to 0U by the mask''s high bit
+    U8x16::set1(0x80U)); // native selector-register shuffle: high bits clear output bytes
+
+using F32x4 = SimdLib::Api<128, float>;
+F32x4::shuffle_slow(F32x4::set1(1.0F), F32x4::set1(2.0F), 0b1110'0100);
+```
+
+<a id="shuffle-32"></a>
+## `shuffle_32` and `shuffle_32_slow`
+
+Shuffles 32-bit lanes within each 128-bit group. The unsuffixed template uses an immediate control byte; `_slow` accepts a runtime scalar control.
+
+Signatures:
+
+```cpp
+template <int imm8> static int_vector_t shuffle_32(int_vector_t lhs)
+static int_vector_t shuffle_32_slow(int_vector_t lhs, std::uint32_t imm8)
+```
+
+Example:
+
+```cpp
+using U32x4 = SimdLib::Api<128, std::uint32_t>;
+const auto values = U32x4::construct({0U, 1U, 2U, 3U});
+U32x4::shuffle_32<0b00'01'10'11>(values);       // => {3U, 2U, 1U, 0U}
+U32x4::shuffle_32_slow(values, 0b00'01'10'11); // same semantics with a runtime control
 ```
 
 <a id="shuffle-hi"></a>
-## `shuffle_hi`
+## `shuffle_hi` and `shuffle_hi_slow`
 
-Shuffles the high half of a register where the specialization supports it.
+Shuffles the high four 16-bit lanes in each 128-bit group. The unsuffixed template uses an immediate control byte; `_slow` accepts a runtime scalar control.
 
 Signatures:
 
 ```cpp
-template <class... Args> static auto shuffle_hi(Args &&...args)
+template <int imm8> static auto shuffle_hi(vector_t lhs)
+template <class... Args> static auto shuffle_hi_slow(Args &&...args)
 ```
 
 Example:
 
 ```cpp
 using I16x8 = SimdLib::Api<128, std::int16_t>;
-const auto high = I16x8::byte_shift_left(I16x8::setr_partial(1, 2, 3, 4), 8);
-I16x8::shuffle_hi(high, 0b0001'1011); // => {0, 0, 0, 0, 4, 3, 2, 1}
+const auto high = I16x8::shift_bytes_left_slow(I16x8::setr_partial(1, 2, 3, 4), 8);
+I16x8::shuffle_hi<0b0001'1011>(high);       // => {0, 0, 0, 0, 4, 3, 2, 1}
+I16x8::shuffle_hi_slow(high, 0b0001'1011); // same semantics with a runtime control
 ```
 
 <a id="shuffle-lo"></a>
-## `shuffle_lo`
+## `shuffle_lo` and `shuffle_lo_slow`
 
-Shuffles the low half of a register where the specialization supports it.
+Shuffles the low four 16-bit lanes in each 128-bit group. The unsuffixed template uses an immediate control byte; `_slow` accepts a runtime scalar control.
 
 Signatures:
 
 ```cpp
-template <class... Args> static auto shuffle_lo(Args &&...args)
+template <int imm8> static auto shuffle_lo(vector_t lhs)
+template <class... Args> static auto shuffle_lo_slow(Args &&...args)
 ```
 
 Example:
 
 ```cpp
 using I16x8 = SimdLib::Api<128, std::int16_t>;
-I16x8::shuffle_lo(
-    I16x8::setr_partial(1, 2, 3, 4), 0b0001'1011); // => {4, 3, 2, 1, 0, 0, 0, 0}
+const auto value = I16x8::setr_partial(1, 2, 3, 4);
+I16x8::shuffle_lo<0b0001'1011>(value);       // => {4, 3, 2, 1, 0, 0, 0, 0}
+I16x8::shuffle_lo_slow(value, 0b0001'1011); // same semantics with a runtime control
 ```
 
 <a id="sqrt"></a>

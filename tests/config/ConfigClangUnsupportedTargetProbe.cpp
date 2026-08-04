@@ -7,7 +7,7 @@
 static_assert(!SimdLib::Config::target_x86);
 static_assert(!SimdLib::Config::vectorcall_enabled);
 
-int VECTORCALL ConfigClangUnsupportedTargetProbe() noexcept
+int SIMD_FLAGS(Neither) ConfigClangUnsupportedTargetProbe() noexcept
 {
 	return 0;
 }

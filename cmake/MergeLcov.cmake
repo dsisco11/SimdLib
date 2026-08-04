@@ -1,3 +1,5 @@
+cmake_minimum_required(VERSION 3.31)
+
 foreach(required_variable IN ITEMS TRACE_FILES OUTPUT_FILE)
     if(NOT DEFINED ${required_variable})
         message(FATAL_ERROR "${required_variable} is required")

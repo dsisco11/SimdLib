@@ -1,0 +1,63 @@
+name: simdlib-container
+
+x-simdlib-service: &simdlib-service
+  init: true
+  working_dir: /workspace/source
+  read_only: true
+  user: "${SIMDLIB_HOST_UID:-1000}:${SIMDLIB_HOST_GID:-1000}"
+  volumes:
+    - ./:/workspace/source:ro
+    - ./out/pipeline:/workspace/out:rw
+  tmpfs:
+    - /tmp:exec,mode=1777
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+  environment:
+    BUILDKITE: "${BUILDKITE:-}"
+    CI: "${CI:-}"
+    CIRCLECI: "${CIRCLECI:-}"
+    CMAKE_BUILD_PARALLEL_LEVEL: "${SIMDLIB_PARALLEL_LEVEL:-2}"
+    CTEST_PARALLEL_LEVEL: "${SIMDLIB_PARALLEL_LEVEL:-2}"
+    GITHUB_ACTIONS: "${GITHUB_ACTIONS:-}"
+    GITLAB_CI: "${GITLAB_CI:-}"
+    HOME: /tmp
+    JENKINS_URL: "${JENKINS_URL:-}"
+    SIMDLIB_BUILD_REVISION: "${SIMDLIB_BUILD_REVISION:-unknown}"
+    TEAMCITY_VERSION: "${TEAMCITY_VERSION:-}"
+    TF_BUILD: "${TF_BUILD:-}"
+  command:
+    - --operation
+    - build-validation
+    - --preset
+    - "${SIMDLIB_CONTAINER_PRESET:-container-release-contracts}"
+    - --build-profile
+    - "${SIMDLIB_CONTAINER_BUILD_PROFILE:-Release}"
+    - --sanitizer
+    - "${SIMDLIB_CONTAINER_SANITIZER:-none}"
+
+services:
+  gcc13:
+    <<: *simdlib-service
+    image: simdlib/gcc13:local
+    build:
+      context: .
+      dockerfile: containers/Dockerfile.gcc13
+    profiles: [compilers]
+
+  gcc14:
+    <<: *simdlib-service
+    image: simdlib/gcc14:local
+    build:
+      context: .
+      dockerfile: containers/Dockerfile.gcc14
+    profiles: [compilers]
+
+  clang22:
+    <<: *simdlib-service
+    image: simdlib/clang22:local
+    build:
+      context: .
+      dockerfile: containers/Dockerfile.clang22
+    profiles: [compilers]

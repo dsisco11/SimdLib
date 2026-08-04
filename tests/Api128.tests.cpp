@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <array>
 #include <cstdint>
+#include <limits>
 
 using namespace SimdLib::Tests;
 
@@ -17,34 +18,44 @@ TEST_CASE("128-bit constexpr contracts match volatile runtime dispatch", "[simdl
 }
 TEST_CASE("128-bit Api specialization matrix", "[simdlib][sse42][availability]")
 {
-    require_supported_addition_matrix<128>();
+	require_supported_addition_matrix<128>();
+}
+
+TEST_CASE("128-bit runtime extraction covers every lane and element type", "[simdlib][sse42][extract][runtime]")
+{
+	require_runtime_extraction_matrix_128();
+}
+
+TEST_CASE("128-bit runtime insertion covers every lane and element type", "[simdlib][sse42][insert][runtime]")
+{
+	require_runtime_insertion_matrix_128();
 }
 
 TEST_CASE("128-bit aligned and unaligned transfer matrix", "[simdlib][sse42][transfer]")
 {
-    require_supported_transfer_matrix<128>();
+	require_supported_transfer_matrix<128>();
 }
 
 TEST_CASE("128-bit partial loads accept unaligned prefixes and zero inactive lanes", "[simdlib][sse42][transfer][partial]")
 {
-    require_supported_partial_transfer_matrix<128>();
+	require_supported_partial_transfer_matrix<128>();
 }
 
 TEST_CASE("128-bit movemask contracts are byte and element granular", "[simdlib][sse42][movemask]")
 {
-    require_supported_movemask_matrix<128>();
+	require_supported_movemask_matrix<128>();
 }
 
 TEST_CASE("128-bit transform_pack preserves packed lane order and exact tails", "[simdlib][sse42][transform-pack]")
 {
 	require_transform_pack_full_native_word_contract<128>();
-    require_transform_pack_mask_contract<128, std::uint8_t, 24>();
-    require_transform_pack_mask_contract<128, std::uint8_t, 80>();
-    require_transform_pack_mask_contract<128, std::uint64_t, 8>();
-    require_transform_pack_width_contract<128, std::uint32_t, 7, 3>();
-    require_transform_pack_width_contract<128, std::uint32_t, 19, 9>();
-    require_transform_pack_width_contract<128, std::uint64_t, 5, 32>();
-    require_transform_pack_type_matrix<128>();
+	require_transform_pack_mask_contract<128, std::uint8_t, 24>();
+	require_transform_pack_mask_contract<128, std::uint8_t, 80>();
+	require_transform_pack_mask_contract<128, std::uint64_t, 8>();
+	require_transform_pack_width_contract<128, std::uint32_t, 7, 3>();
+	require_transform_pack_width_contract<128, std::uint32_t, 19, 9>();
+	require_transform_pack_width_contract<128, std::uint64_t, 5, 32>();
+	require_transform_pack_type_matrix<128>();
 }
 
 TEST_CASE("128-bit public transform overloads preserve exact spans", "[simdlib][sse42][transform]")
@@ -54,43 +65,66 @@ TEST_CASE("128-bit public transform overloads preserve exact spans", "[simdlib][
 
 TEST_CASE("128-bit partial construction and float dot product use public Api entry points", "[simdlib][sse42][partial][dot]")
 {
-    using integers = SimdLib::Api<128, std::uint32_t>;
-    const std::array<std::uint32_t, 2> prefix{3, 5};
-    REQUIRE(integers::to_array(integers::setr_partial(3U, 5U)) == std::array<std::uint32_t, 4>{3, 5, 0, 0});
-    REQUIRE(integers::to_array(integers::template load_partial<2>(prefix)) == std::array<std::uint32_t, 4>{3, 5, 0, 0});
+	using integers = SimdLib::Api<128, std::uint32_t>;
+	const std::array<std::uint32_t, 2> prefix{3, 5};
+	REQUIRE(integers::to_array(integers::setr_partial(3U, 5U)) == std::array<std::uint32_t, 4>{3, 5, 0, 0});
+	REQUIRE(integers::to_array(integers::template load_partial<2>(prefix)) == std::array<std::uint32_t, 4>{3, 5, 0, 0});
 
-    using floats = SimdLib::Api<128, float>;
-    const auto dot = floats::template dot_product<0xFF>(floats::set1(1.0F), floats::set1(2.0F));
-    REQUIRE(floats::to_array(dot) == std::array<float, 4>{8.0F, 8.0F, 8.0F, 8.0F});
-    const auto partialDot = floats::template dot_product<0x11>(floats::set1(1.0F), floats::set1(2.0F));
-    REQUIRE(floats::to_array(partialDot) == std::array<float, 4>{2.0F, 0.0F, 0.0F, 0.0F});
+	using floats = SimdLib::Api<128, float>;
+	const auto dot = floats::template dot_product<0xFF>(floats::set1(1.0F), floats::set1(2.0F));
+	REQUIRE(floats::to_array(dot) == std::array<float, 4>{8.0F, 8.0F, 8.0F, 8.0F});
+	const auto partialDot = floats::template dot_product<0x11>(floats::set1(1.0F), floats::set1(2.0F));
+	REQUIRE(floats::to_array(partialDot) == std::array<float, 4>{2.0F, 0.0F, 0.0F, 0.0F});
 }
+
+TEST_CASE("128-bit signed and unsigned 64-bit setr preserves forward lane order and exact bit patterns", "[simdlib][sse42][setr][int64][uint64]")
+{
+	using signed_words = SimdLib::Api<128, std::int64_t>;
+	volatile std::int64_t signed_low_source = std::numeric_limits<std::int64_t>::lowest();
+	volatile std::int64_t signed_high_source = std::numeric_limits<std::int64_t>::max();
+	const std::int64_t signed_low = signed_low_source;
+	const std::int64_t signed_high = signed_high_source;
+	REQUIRE(signed_words::to_array(signed_words::setr(signed_low, signed_high)) == std::array<std::int64_t, 2>{signed_low, signed_high});
+
+	using unsigned_words = SimdLib::Api<128, std::uint64_t>;
+	volatile std::uint64_t unsigned_low_source = 0x8000'0000'0000'0001ULL;
+	volatile std::uint64_t unsigned_high_source = 0xFEDC'BA98'7654'3210ULL;
+	const std::uint64_t unsigned_low = unsigned_low_source;
+	const std::uint64_t unsigned_high = unsigned_high_source;
+	REQUIRE(unsigned_words::to_array(unsigned_words::setr(unsigned_low, unsigned_high)) == std::array<std::uint64_t, 2>{unsigned_low, unsigned_high});
+}
+
 TEST_CASE("128-bit arithmetic and int8 division match scalar results", "[simdlib][sse42][arithmetic]")
 {
-    using integers = SimdLib::Api<128, std::int32_t>;
-    const auto lhs = integers::setr(4, 8, 12, 16);
-    const auto rhs = integers::setr(1, 2, 3, 4);
-    REQUIRE(integers::to_array(integers::subtract(lhs, rhs)) == std::array<std::int32_t, 4>{3, 6, 9, 12});
-    REQUIRE(integers::to_array(integers::multiply(lhs, rhs)) == std::array<std::int32_t, 4>{4, 16, 36, 64});
+	using integers = SimdLib::Api<128, std::int32_t>;
+	const auto lhs = integers::setr(4, 8, 12, 16);
+	const auto rhs = integers::setr(1, 2, 3, 4);
+	REQUIRE(integers::to_array(integers::subtract(lhs, rhs)) == std::array<std::int32_t, 4>{3, 6, 9, 12});
+	REQUIRE(integers::to_array(integers::multiply(lhs, rhs)) == std::array<std::int32_t, 4>{4, 16, 36, 64});
 
-    using bytes = SimdLib::Api<128, std::int8_t>;
-    const auto quotients = bytes::divide(bytes::set1(24), bytes::set1(6));
-    REQUIRE(bytes::to_array(quotients) == std::array<std::int8_t, 16>{4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4});
+	using bytes = SimdLib::Api<128, std::int8_t>;
+	const auto quotients = bytes::divide(bytes::set1(24), bytes::set1(6));
+	REQUIRE(bytes::to_array(quotients) == std::array<std::int8_t, 16>{4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4});
+}
+
+TEST_CASE("128-bit integer remainder matches scalar semantics for every lane and width", "[simdlib][sse42][integer][remainder]")
+{
+	require_integer_remainder_matrix<128>();
 }
 
 TEST_CASE("128-bit comparisons and saturation match scalar semantics", "[simdlib][sse42][comparison][saturation]")
 {
 	require_supported_comparison_matrix<128>();
 
-    using words = SimdLib::Api<128, std::int32_t>;
-    const auto lhs = words::setr(1, 2, 3, 4);
-    const auto rhs = words::setr(1, 0, 3, 9);
-    REQUIRE(words::cmp_eq_mask(lhs, rhs) == 0x00000F0Fu);
+	using words = SimdLib::Api<128, std::int32_t>;
+	const auto lhs = words::setr(1, 2, 3, 4);
+	const auto rhs = words::setr(1, 0, 3, 9);
+	REQUIRE(words::cmp_eq_mask(lhs, rhs) == 0x00000F0Fu);
 
-    using bytes = SimdLib::Api<128, std::uint8_t>;
-    REQUIRE(bytes::to_array(bytes::add_saturated(bytes::set1(250), bytes::set1(10))) ==
-            std::array<std::uint8_t, 16>{255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255});
-    REQUIRE(bytes::to_array(bytes::subtract_saturated(bytes::set1(5), bytes::set1(10))) == std::array<std::uint8_t, 16>{});
+	using bytes = SimdLib::Api<128, std::uint8_t>;
+	REQUIRE(bytes::to_array(bytes::add_saturated(bytes::set1(250), bytes::set1(10))) ==
+			std::array<std::uint8_t, 16>{255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255});
+	REQUIRE(bytes::to_array(bytes::subtract_saturated(bytes::set1(5), bytes::set1(10))) == std::array<std::uint8_t, 16>{});
 }
 
 TEST_CASE("128-bit integer extrema and position matrix uses public Api entry points", "[simdlib][sse42][extrema][position]")
@@ -124,12 +158,10 @@ TEST_CASE("128-bit signed integer and float conversion gates preserve lane value
 	using integers = SimdLib::Api<128, std::int32_t>;
 	using floats = SimdLib::Api<128, float>;
 	const auto integer_values = integers::setr(-7, 0, 42, 1'000'000);
-	REQUIRE(floats::to_array(integers::convert_to_float(integer_values)) ==
-			std::array<float, 4>{-7.0f, 0.0f, 42.0f, 1'000'000.0f});
+	REQUIRE(floats::to_array(integers::convert_to_float(integer_values)) == std::array<float, 4>{-7.0f, 0.0f, 42.0f, 1'000'000.0f});
 
 	const auto float_values = floats::setr(-7.0f, 0.0f, 42.0f, 1'000'000.0f);
-	REQUIRE(integers::to_array(floats::convert_to_int(float_values)) ==
-			std::array<std::int32_t, 4>{-7, 0, 42, 1'000'000});
+	REQUIRE(integers::to_array(floats::convert_to_int(float_values)) == std::array<std::int32_t, 4>{-7, 0, 42, 1'000'000});
 }
 
 TEST_CASE("128-bit public 64-bit arithmetic contract", "[simdlib][sse42][int64][arithmetic]")
@@ -139,55 +171,68 @@ TEST_CASE("128-bit public 64-bit arithmetic contract", "[simdlib][sse42][int64][
 
 TEST_CASE("128-bit widening and horizontal arithmetic match scalar references", "[simdlib][sse42][widen][horizontal]")
 {
-    using source = SimdLib::Api<128, std::int8_t>;
-    using target = SimdLib::Api<128, std::int16_t>;
-    const auto widened = source::template widen<target>(source::setr(-4, -3, -2, -1, 0, 1, 2, 3, 90, 91, 92, 93, 94, 95, 96, 97));
-    REQUIRE(target::to_array(widened) == std::array<std::int16_t, 8>{-4, -3, -2, -1, 0, 1, 2, 3});
+	using source = SimdLib::Api<128, std::int8_t>;
+	using target = SimdLib::Api<128, std::int16_t>;
+	const auto widened = source::template widen<target>(source::setr(-4, -3, -2, -1, 0, 1, 2, 3, 90, 91, 92, 93, 94, 95, 96, 97));
+	REQUIRE(target::to_array(widened) == std::array<std::int16_t, 8>{-4, -3, -2, -1, 0, 1, 2, 3});
 
-    using lanes = SimdLib::Api<128, std::int32_t>;
-    const auto horizontal = lanes::add_horizontal(lanes::setr(1, 2, 3, 4), lanes::setr(5, 6, 7, 8));
-    REQUIRE(lanes::to_array(horizontal) == std::array<std::int32_t, 4>{3, 7, 11, 15});
+	using lanes = SimdLib::Api<128, std::int32_t>;
+	const auto horizontal = lanes::add_horizontal(lanes::setr(1, 2, 3, 4), lanes::setr(5, 6, 7, 8));
+	REQUIRE(lanes::to_array(horizontal) == std::array<std::int32_t, 4>{3, 7, 11, 15});
 }
 
 TEST_CASE("128-bit lane and whole-register shifts are distinct", "[simdlib][sse42][shift]")
 {
-    using simd = SimdLib::Api<128, std::uint64_t>;
-    const auto input = simd::setr(0x0123456789ABCDEFULL, 0xFEDCBA9876543210ULL);
-    REQUIRE(simd::to_array(simd::shift_left(input, 4)) ==
-            std::array<std::uint64_t, 2>{0x123456789ABCDEF0ULL, 0xEDCBA98765432100ULL});
+	using simd = SimdLib::Api<128, std::uint64_t>;
+	const auto input = simd::setr(0x0123456789ABCDEFULL, 0xFEDCBA9876543210ULL);
+	REQUIRE(simd::to_array(simd::shift_left(input, 4)) == std::array<std::uint64_t, 2>{0x123456789ABCDEF0ULL, 0xEDCBA98765432100ULL});
 
-    const std::array<int, 9> counts{0, 1, 63, 64, 65, 127, 128, 129, 255};
-    const auto source = simd::to_array(input);
-    for (const int count : counts)
-    {
-        std::array<std::uint64_t, 2> left{};
-        std::array<std::uint64_t, 2> right{};
-        if (count == 0)
-        {
-            left = source;
-            right = source;
-        }
-        else if (count < 64)
-        {
-            left = {source[0] << count, (source[1] << count) | (source[0] >> (64 - count))};
-            right = {(source[0] >> count) | (source[1] << (64 - count)), source[1] >> count};
-        }
-        else if (count == 64)
-        {
-            left = {0, source[0]};
-            right = {source[1], 0};
-        }
-        else if (count < 128)
-        {
-            left = {0, source[0] << (count - 64)};
-            right = {source[1] >> (count - 64), 0};
-        }
-        REQUIRE(simd::to_array(simd::bit_shift_left(input, count)) == left);
-        REQUIRE(simd::to_array(simd::bit_shift_right(input, count)) == right);
-    }
+	constexpr std::array<int, 12> counts{std::numeric_limits<int>::lowest(), -1, 0, 1, 63, 64, 65, 127, 128, 129, 255, std::numeric_limits<int>::max()};
+	const auto source = simd::to_array(input);
+	for (const int count : counts)
+	{
+		std::array<std::uint64_t, 2> left{};
+		std::array<std::uint64_t, 2> right{};
+		if (count <= 0)
+		{
+			left = source;
+			right = source;
+		}
+		else if (count < 64)
+		{
+			left = {source[0] << count, (source[1] << count) | (source[0] >> (64 - count))};
+			right = {(source[0] >> count) | (source[1] << (64 - count)), source[1] >> count};
+		}
+		else if (count == 64)
+		{
+			left = {0, source[0]};
+			right = {source[1], 0};
+		}
+		else if (count < 128)
+		{
+			left = {0, source[0] << (count - 64)};
+			right = {source[1] >> (count - 64), 0};
+		}
+		REQUIRE(simd::to_array(simd::shift_bits_left_slow(input, count)) == left);
+		REQUIRE(simd::to_array(simd::shift_bits_right_slow(input, count)) == right);
+	}
 
-    REQUIRE(simd::to_array(simd::template bit_shift_left<64>(input)) == std::array<std::uint64_t, 2>{0, source[0]});
-    REQUIRE(simd::to_array(simd::template bit_shift_right<128>(input)) == std::array<std::uint64_t, 2>{});
+	REQUIRE(simd::to_array(simd::template shift_bits_left<0>(input)) == source);
+	REQUIRE(simd::to_array(simd::template shift_bits_left<1>(input)) == std::array<std::uint64_t, 2>{source[0] << 1, (source[1] << 1) | (source[0] >> 63)});
+	REQUIRE(simd::to_array(simd::template shift_bits_left<63>(input)) == std::array<std::uint64_t, 2>{source[0] << 63, (source[1] << 63) | (source[0] >> 1)});
+	REQUIRE(simd::to_array(simd::template shift_bits_left<64>(input)) == std::array<std::uint64_t, 2>{0, source[0]});
+	REQUIRE(simd::to_array(simd::template shift_bits_left<65>(input)) == std::array<std::uint64_t, 2>{0, source[0] << 1});
+	REQUIRE(simd::to_array(simd::template shift_bits_left<127>(input)) == std::array<std::uint64_t, 2>{0, source[0] << 63});
+	REQUIRE(simd::to_array(simd::template shift_bits_left<128>(input)) == std::array<std::uint64_t, 2>{});
+	REQUIRE(simd::to_array(simd::template shift_bits_left<129>(input)) == std::array<std::uint64_t, 2>{});
+	REQUIRE(simd::to_array(simd::template shift_bits_right<0>(input)) == source);
+	REQUIRE(simd::to_array(simd::template shift_bits_right<1>(input)) == std::array<std::uint64_t, 2>{(source[0] >> 1) | (source[1] << 63), source[1] >> 1});
+	REQUIRE(simd::to_array(simd::template shift_bits_right<63>(input)) == std::array<std::uint64_t, 2>{(source[0] >> 63) | (source[1] << 1), source[1] >> 63});
+	REQUIRE(simd::to_array(simd::template shift_bits_right<64>(input)) == std::array<std::uint64_t, 2>{source[1], 0});
+	REQUIRE(simd::to_array(simd::template shift_bits_right<65>(input)) == std::array<std::uint64_t, 2>{source[1] >> 1, 0});
+	REQUIRE(simd::to_array(simd::template shift_bits_right<127>(input)) == std::array<std::uint64_t, 2>{source[1] >> 63, 0});
+	REQUIRE(simd::to_array(simd::template shift_bits_right<128>(input)) == std::array<std::uint64_t, 2>{});
+	REQUIRE(simd::to_array(simd::template shift_bits_right<129>(input)) == std::array<std::uint64_t, 2>{});
 }
 
 TEST_CASE("128-bit public byte operations cover lane shifts and byte-shift boundaries", "[simdlib][sse42][byte][shift]")
@@ -197,18 +242,26 @@ TEST_CASE("128-bit public byte operations cover lane shifts and byte-shift bound
 	for (std::size_t index = 0; index < source.size(); ++index)
 		source[index] = static_cast<std::uint8_t>(index + 1);
 	const auto input = bytes::construct(source);
-	REQUIRE(bytes::to_array(bytes::set1(0x81)) == std::array<std::uint8_t, 16>{0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81});
-	REQUIRE(bytes::to_array(bytes::multiply(bytes::set1(0x81), bytes::set1(2))) == std::array<std::uint8_t, 16>{2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2});
+	REQUIRE(bytes::to_array(bytes::set1(0x81)) ==
+			std::array<std::uint8_t, 16>{0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81, 0x81});
+	REQUIRE(bytes::to_array(bytes::multiply(bytes::set1(0x81), bytes::set1(2))) ==
+			std::array<std::uint8_t, 16>{2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2});
 	REQUIRE(bytes::to_array(bytes::shift_left(bytes::set1(0x81), 1))[0] == 0x02);
 	REQUIRE(bytes::to_array(bytes::shift_right(bytes::set1(0x81), 1))[0] == 0x40);
 	using signed_bytes = SimdLib::Api<128, std::int8_t>;
 	REQUIRE(signed_bytes::to_array(signed_bytes::shift_right_arithmetic(signed_bytes::set1(-126), 1))[0] == -63);
 
-	for (const int count : std::array<int, 6>{-1, 0, 1, 15, 16, 17})
+	constexpr std::array<int, 22> counts{std::numeric_limits<int>::lowest(), -17, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17,
+										 std::numeric_limits<int>::max()};
+	for (const int count : counts)
 	{
 		std::array<std::uint8_t, bytes::element_count> left{};
 		std::array<std::uint8_t, bytes::element_count> right{};
-		if (count <= 0) { left = source; right = source; }
+		if (count <= 0)
+		{
+			left = source;
+			right = source;
+		}
 		else if (count < static_cast<int>(bytes::byte_count))
 		{
 			for (std::size_t index = static_cast<std::size_t>(count); index < source.size(); ++index)
@@ -216,23 +269,23 @@ TEST_CASE("128-bit public byte operations cover lane shifts and byte-shift bound
 			for (std::size_t index = 0; index + static_cast<std::size_t>(count) < source.size(); ++index)
 				right[index] = source[index + static_cast<std::size_t>(count)];
 		}
-		REQUIRE(bytes::to_array(bytes::byte_shift_left(input, count)) == left);
-		REQUIRE(bytes::to_array(bytes::byte_shift_right(input, count)) == right);
+		REQUIRE(bytes::to_array(bytes::shift_bytes_left_slow(input, count)) == left);
+		REQUIRE(bytes::to_array(bytes::shift_bytes_right_slow(input, count)) == right);
 	}
 }
 
 TEST_CASE("128-bit shuffle, blend, and position helpers match scalar references", "[simdlib][sse42][shuffle][blend][position]")
 {
-    using words = SimdLib::Api<128, std::int32_t>;
-    const auto lhs = words::setr(10, 20, 30, 40);
-    const auto rhs = words::setr(1, 2, 3, 4);
-    REQUIRE(words::to_array(words::shuffle_32(lhs, 0b00'01'10'11)) == std::array<std::int32_t, 4>{40, 30, 20, 10});
-    REQUIRE(words::to_array(words::blend(lhs, rhs, 0b0101)) == std::array<std::int32_t, 4>{1, 20, 3, 40});
+	using words = SimdLib::Api<128, std::int32_t>;
+	const auto lhs = words::setr(10, 20, 30, 40);
+	const auto rhs = words::setr(1, 2, 3, 4);
+	REQUIRE(words::to_array(words::shuffle_32_slow(lhs, 0b00'01'10'11)) == std::array<std::int32_t, 4>{40, 30, 20, 10});
+	REQUIRE(words::to_array(words::blend_slow(lhs, rhs, 0b0101)) == std::array<std::int32_t, 4>{1, 20, 3, 40});
 
-    using positions = SimdLib::Api<128, std::uint16_t>;
-    const auto values = positions::setr(8, 4, 7, 1, 9, 2, 6, 3);
-    REQUIRE(positions::min_position(values) == 3);
-    REQUIRE(positions::max_position(values) == 4);
+	using positions = SimdLib::Api<128, std::uint16_t>;
+	const auto values = positions::setr(8, 4, 7, 1, 9, 2, 6, 3);
+	REQUIRE(positions::min_position(values) == 3);
+	REQUIRE(positions::max_position(values) == 4);
 }
 
 TEST_CASE("128-bit Api documentation examples produce their documented results", "[simdlib][sse42][documentation]")
@@ -254,22 +307,22 @@ TEST_CASE("128-bit Api documentation examples produce their documented results",
 									std::array<std::uint8_t, 16>{255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255});
 	require_documented_register<ApiT>(ApiT::add_subtract(ApiT::set1(10.0F), ApiT::setr(1.0F, 2.0F, 3.0F, 4.0F)), std::array{9.0F, 12.0F, 7.0F, 14.0F});
 	require_documented_register<U8>(U8::avg(U8::set1(2), U8::set1(6)), std::array<std::uint8_t, 16>{4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4});
-	require_documented_register<U32>(U32::bit_shift_left(U32::set1(3), 1), std::array{6U, 6U, 6U, 6U});
-	require_documented_register<U32>(U32::bit_shift_right(U32::set1(8), 1), std::array{4U, 4U, 4U, 4U});
+	require_documented_register<U32>(U32::shift_bits_left_slow(U32::set1(3), 1), std::array{6U, 6U, 6U, 6U});
+	require_documented_register<U32>(U32::shift_bits_right_slow(U32::set1(8), 1), std::array{4U, 4U, 4U, 4U});
 	require_documented_register<U32>(U32::bitwise_and(U32::set1(12), U32::set1(10)), std::array{8U, 8U, 8U, 8U});
 	require_documented_register<U32>(U32::bitwise_andnot(U32::set1(12), U32::set1(10)), std::array{2U, 2U, 2U, 2U});
 	require_documented_register<U32>(U32::bitwise_not(U32::setzero()), std::array{0xFFFFFFFFU, 0xFFFFFFFFU, 0xFFFFFFFFU, 0xFFFFFFFFU});
 	require_documented_register<U32>(U32::bitwise_or(U32::set1(12), U32::set1(10)), std::array{14U, 14U, 14U, 14U});
 	require_documented_register<U32>(U32::bitwise_xor(U32::set1(12), U32::set1(10)), std::array{6U, 6U, 6U, 6U});
-	require_documented_register<I32>(I32::blend(I32::setr(10, 20, 30, 40), I32::setr(1, 2, 3, 4), 0b0101), std::array{1, 20, 3, 40});
-	require_documented_register<U8>(U8::byte_shift_left(U8::set1(7), 1), std::array<std::uint8_t, 16>{0, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7});
-	require_documented_register<U8>(U8::byte_shift_right(U8::set1(7), 1), std::array<std::uint8_t, 16>{7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 0});
-	REQUIRE(ApiT::cmp_eq(ApiT::set1(2.0F), ApiT::set1(2.0F)) == 0xFFFFU);
+	require_documented_register<I32>(I32::blend_slow(I32::setr(10, 20, 30, 40), I32::setr(1, 2, 3, 4), 0b0101), std::array{1, 20, 3, 40});
+	require_documented_register<U8>(U8::shift_bytes_left_slow(U8::set1(7), 1), std::array<std::uint8_t, 16>{0, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7});
+	require_documented_register<U8>(U8::shift_bytes_right_slow(U8::set1(7), 1), std::array<std::uint8_t, 16>{7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 0});
 	REQUIRE(ApiT::cmp_eq_mask(ApiT::set1(2.0F), ApiT::set1(2.0F)) == 0xFFFFU);
-	REQUIRE(ApiT::cmp_ge(ApiT::set1(2.0F), ApiT::set1(2.0F)) == 0xFFFFU);
-	REQUIRE(ApiT::cmp_gt(ApiT::set1(3.0F), ApiT::set1(2.0F)) == 0xFFFFU);
-	REQUIRE(ApiT::cmp_le(ApiT::set1(2.0F), ApiT::set1(2.0F)) == 0xFFFFU);
-	REQUIRE(ApiT::cmp_lt(ApiT::set1(2.0F), ApiT::set1(3.0F)) == 0xFFFFU);
+	REQUIRE(ApiT::cmp_eq_mask(ApiT::set1(2.0F), ApiT::set1(2.0F)) == 0xFFFFU);
+	REQUIRE(ApiT::cmp_ge_mask(ApiT::set1(2.0F), ApiT::set1(2.0F)) == 0xFFFFU);
+	REQUIRE(ApiT::cmp_gt_mask(ApiT::set1(3.0F), ApiT::set1(2.0F)) == 0xFFFFU);
+	REQUIRE(ApiT::cmp_le_mask(ApiT::set1(2.0F), ApiT::set1(2.0F)) == 0xFFFFU);
+	REQUIRE(ApiT::cmp_lt_mask(ApiT::set1(2.0F), ApiT::set1(3.0F)) == 0xFFFFU);
 	require_documented_register<I8>(I16::compress(I16::set1(300), I16::set1(-300)),
 									std::array<std::int8_t, 16>{127, 127, 127, 127, 127, 127, 127, 127, -128, -128, -128, -128, -128, -128, -128, -128});
 	require_documented_register<ApiT>(ApiT::construct({1.0F, 2.0F, 0.0F, 0.0F}), std::array{1.0F, 2.0F, 0.0F, 0.0F});
@@ -284,7 +337,7 @@ TEST_CASE("128-bit Api documentation examples produce their documented results",
 									 std::array<std::int16_t, 8>{32767, 32767, 32767, 32767, 20000, 20000, 20000, 20000});
 	require_documented_register<I16>(I16::hsubtract_saturated(I16::setr_partial(30000, -10000, -30000, 10000), I16::setr_partial(20000, -20000, 10000, -10000)),
 									 std::array<std::int16_t, 8>{32767, -32768, 0, 0, 32767, 20000, 0, 0});
-	require_documented_register<I32>(I32::insert(I32::setzero(), 9, 0), std::array{9, 0, 0, 0});
+	require_documented_register<I32>(I32::insert_slow(I32::setzero(), 9, 0), std::array{9, 0, 0, 0});
 	alignas(ApiT::byte_count) const std::array<float, ApiT::element_count> input{1.0F, 2.0F};
 	require_documented_register<ApiT>(ApiT::load(input), std::array{1.0F, 2.0F, 0.0F, 0.0F});
 	require_documented_register<ApiT>(ApiT::load_aligned(input), std::array{1.0F, 2.0F, 0.0F, 0.0F});
@@ -293,9 +346,9 @@ TEST_CASE("128-bit Api documentation examples produce their documented results",
 	require_documented_register<ApiT>(ApiT::load_unsafe(input), std::array{1.0F, 2.0F, 0.0F, 0.0F});
 	require_documented_register<ApiT>(ApiT::magnitude(ApiT::setr_partial(3.0F, 4.0F)), std::array{5.0F, 5.0F, 5.0F, 5.0F});
 	require_documented_register<ApiT>(ApiT::max(ApiT::setr(2.0F, 8.0F, 4.0F, 9.0F), ApiT::setr(5.0F, 3.0F, 7.0F, 1.0F)), std::array{5.0F, 8.0F, 7.0F, 9.0F});
-	REQUIRE(U16::max_position(U16::insert(U16::set1(4), 9, 3)) == 3);
+	REQUIRE(U16::max_position(U16::insert_slow(U16::set1(4), 9, 3)) == 3);
 	require_documented_register<ApiT>(ApiT::min(ApiT::setr(2.0F, 8.0F, 4.0F, 9.0F), ApiT::setr(5.0F, 3.0F, 7.0F, 1.0F)), std::array{2.0F, 3.0F, 4.0F, 1.0F});
-	REQUIRE(U16::min_position(U16::insert(U16::set1(4), 1, 3)) == 3);
+	REQUIRE(U16::min_position(U16::insert_slow(U16::set1(4), 1, 3)) == 3);
 	require_documented_register<U32>(U32::modulus(U32::set1(7), U32::set1(3)), std::array{1U, 1U, 1U, 1U});
 	REQUIRE(ApiT::movemask(ApiT::set1(-0.0F)) == 0x8888U);
 	REQUIRE(ApiT::movemask_slim(ApiT::set1(-0.0F)) == 0xFU);
@@ -322,9 +375,9 @@ TEST_CASE("128-bit Api documentation examples produce their documented results",
 	require_documented_register<I32>(I32::shift_right(I32::set1(8), 1), std::array{4, 4, 4, 4});
 	require_documented_register<I32>(I32::shift_right_arithmetic(I32::set1(-8), 1), std::array{-4, -4, -4, -4});
 	require_documented_register<U8>(U8::shuffle(U8::set1(7), U8::set1(0x80)), std::array<std::uint8_t, 16>{});
-	const auto high = I16::byte_shift_left(I16::setr_partial(1, 2, 3, 4), 8);
-	require_documented_register<I16>(I16::shuffle_hi(high, 0b0001'1011), std::array<std::int16_t, 8>{0, 0, 0, 0, 4, 3, 2, 1});
-	require_documented_register<I16>(I16::shuffle_lo(I16::setr_partial(1, 2, 3, 4), 0b0001'1011), std::array<std::int16_t, 8>{4, 3, 2, 1, 0, 0, 0, 0});
+	const auto high = I16::shift_bytes_left_slow(I16::setr_partial(1, 2, 3, 4), 8);
+	require_documented_register<I16>(I16::shuffle_hi_slow(high, 0b0001'1011), std::array<std::int16_t, 8>{0, 0, 0, 0, 4, 3, 2, 1});
+	require_documented_register<I16>(I16::shuffle_lo_slow(I16::setr_partial(1, 2, 3, 4), 0b0001'1011), std::array<std::int16_t, 8>{4, 3, 2, 1, 0, 0, 0, 0});
 	require_documented_register<ApiT>(ApiT::sqrt(ApiT::setr_partial(4.0F, 9.0F)), std::array{2.0F, 3.0F, 0.0F, 0.0F});
 	alignas(ApiT::byte_count) std::array<float, ApiT::element_count> stored{};
 	ApiT::store(ApiT::setr_partial(1.0F, 2.0F), stored);
@@ -344,7 +397,7 @@ TEST_CASE("128-bit Api documentation examples produce their documented results",
 	ApiT::transform(std::array{1.0F, 2.0F, 3.0F}, transformed, [](auto lanes) { return ApiT::add(lanes, ApiT::set1(10.0F)); });
 	REQUIRE(transformed == std::array{11.0F, 12.0F, 13.0F});
 	std::array<std::uint8_t, 1> packed{};
-	ApiT::transform_pack<1>(std::span<const float, 4>{std::array{1.0F, -2.0F, 3.0F, -4.0F}}, packed,
+	ApiT::transform_pack<1>(std::span<const float, 4>{std::array{1.0F, -2.0F, 3.0F, -4.0F}}, std::span<std::uint8_t, 1>{packed},
 							[](auto lanes) { return ApiT::movemask_slim(lanes); });
 	REQUIRE(packed[0] == 0b0000'1010);
 	require_documented_register<ApiT>(ApiT::unpack_hi(ApiT::setr(1.0F, 2.0F, 3.0F, 4.0F), ApiT::setr(5.0F, 6.0F, 7.0F, 8.0F)),

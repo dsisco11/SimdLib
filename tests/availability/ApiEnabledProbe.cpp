@@ -3,11 +3,10 @@
 #include <array>
 #include <cstdint>
 
-template <std::size_t Width, class Element>
-consteval bool specialization_available()
+template <std::size_t Width, class Element> consteval bool specialization_available()
 {
-    using simd = SimdLib::Api<Width, Element>;
-    return sizeof(typename simd::vector_t) == Width / 8 && simd::element_count == Width / (sizeof(Element) * 8);
+	using simd = SimdLib::Api<Width, Element>;
+	return sizeof(typename simd::vector_t) == Width / 8 && simd::element_count == Width / (sizeof(Element) * 8);
 }
 
 /**
@@ -15,11 +14,10 @@ consteval bool specialization_available()
  * @tparam Element SIMD lane element type.
  * @return `true` when `NativeApi<Element>` uses 256-bit registers.
  */
-template <class Element>
-consteval bool native_api_selects_widest_register()
+template <class Element> consteval bool native_api_selects_widest_register()
 {
-    using simd = SimdLib::NativeApi<Element>;
-    return simd::register_width == 256;
+	using simd = SimdLib::NativeApi<Element>;
+	return simd::register_width == 256;
 }
 
 static_assert(specialization_available<128, std::int8_t>());
@@ -61,19 +59,15 @@ static_assert(!SimdLib::is_api_available_v<128, long double>);
 
 static_assert(SimdLib::Api<128, std::int32_t>::element_width == 32);
 static_assert(SimdLib::Api<128, float>::element_width == 32);
-static_assert(requires(SimdLib::Api<128, std::int32_t>::int_vector_t value) {
-	SimdLib::Api<128, std::int32_t>::convert_to_float(value);
-});
-static_assert(requires(SimdLib::Api<128, float>::float_vector_t value) {
-	SimdLib::Api<128, float>::convert_to_int(value);
-});
+static_assert(requires(SimdLib::Api<128, std::int32_t>::int_vector_t value) { SimdLib::Api<128, std::int32_t>::convert_to_float(value); });
+static_assert(requires(SimdLib::Api<128, float>::float_vector_t value) { SimdLib::Api<128, float>::convert_to_int(value); });
 
 consteval bool constexpr_paths_match()
 {
-    using simd = SimdLib::Api<128, std::uint64_t>;
-    constexpr auto input = simd::setr(1, 2);
-    constexpr auto shifted = simd::template bit_shift_left<64>(input);
-    return simd::to_array(shifted) == std::array<std::uint64_t, 2>{0, 1};
+	using simd = SimdLib::Api<128, std::uint64_t>;
+	constexpr auto input = simd::setr(1, 2);
+	constexpr auto shifted = simd::template shift_bits_left<64>(input);
+	return simd::to_array(shifted) == std::array<std::uint64_t, 2>{0, 1};
 }
 
 static_assert(constexpr_paths_match());

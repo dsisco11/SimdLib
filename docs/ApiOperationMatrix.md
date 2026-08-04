@@ -1,27 +1,38 @@
 # Api Operation and Type Matrix
 
-This matrix records the public `SimdLib::Api` contract. Unless a cell says
-otherwise, **tested** means a runtime public-API test exists at both 128 and
-256 bits. **Unavailable** means the operation is intentionally constrained away
-for that lane family. **Compile-time-only** identifies a contract proved only by
-a compile-time probe. **Clarification needed** identifies a supported-looking
-cell that cannot be classified until its intended behavior is decided.
+This matrix records the public `SimdLib::Api` contract. A checkmark (**✓**) means
+a runtime public-API test exists at both 128 and 256 bits unless the cell names a
+specific width. An X (**✗**) means the operation is intentionally constrained
+away for that lane family. A shared marker identifies types that use the same
+generic overload as the separately tested cell rather than a type-specific
+implementation.
+
+`Api` remains the controlling backend-availability record and the supported
+C++20 surface. In a supported C++23 translation unit, the preferred spelling
+for an operation on exactly one complete register is `Register<T, Bits>` or
+`NativeRegister<T>`. Register availability intentionally follows the
+corresponding `Api` cell rather than inventing a second implementation policy.
 
 | Public operation family | `i8` | `u8` | `i16` | `u16` | `i32` | `u32` | `i64` | `u64` | `float` | `double` |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Construction, transfer, `set1`, and lane extraction/replacement | tested | tested | tested | tested | tested | tested | tested | tested | tested | tested |
-| Addition, subtraction, multiplication, and bitwise operations | tested | tested | tested | tested | tested | tested | tested | tested | tested | tested |
-| Logical lane shifts | tested | tested | tested | tested | tested | tested | tested | tested | unavailable | unavailable |
-| Arithmetic lane shifts | tested | unavailable | tested | unavailable | tested | unavailable | tested | unavailable | unavailable | unavailable |
-| Integer divide, remainder, absolute value, minimum, and maximum | tested | tested | tested | tested | tested | tested | tested | tested | unavailable | unavailable |
-| Integer comparisons and `min_position`/`max_position` | tested | tested | tested | tested | tested | tested | tested | tested | unavailable | unavailable |
-| Integer conversion | unavailable | unavailable | unavailable | unavailable | tested | tested | unavailable | unavailable | unavailable | unavailable |
-| Floating absolute value, comparison helpers, and element extraction | unavailable | unavailable | unavailable | unavailable | unavailable | unavailable | unavailable | unavailable | tested | tested |
-| Floating `set1` and bitwise operations | unavailable | unavailable | unavailable | unavailable | unavailable | unavailable | unavailable | unavailable | tested | tested |
-| `uint64_t::multiply_add_adjacent` | unavailable | unavailable | unavailable | unavailable | unavailable | unavailable | unavailable | tested | unavailable | unavailable |
-| Whole-register byte shifts | 128 tested; 256 unavailable | 128 tested; 256 unavailable | 128 tested; 256 unavailable | 128 tested; 256 unavailable | 128 tested; 256 unavailable | 128 tested; 256 unavailable | 128 tested; 256 unavailable | 128 tested; 256 unavailable | unavailable | unavailable |
-| `transform_pack` | tested | tested | tested | tested | tested | tested | tested | tested | unavailable | unavailable |
-| Span transforms (in-place unary, separate-output unary, and binary) | same generic overload | same generic overload | same generic overload | same generic overload | same generic overload | tested | same generic overload | same generic overload | same generic overload | same generic overload |
+| Construction, transfer, `set1`, and lane extraction/replacement | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Addition, subtraction, multiplication, and bitwise operations | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Logical lane shifts | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✗ | ✗ |
+| Arithmetic lane shifts | ✓ | ✗ | ✓ | ✗ | ✓ | ✗ | ✓ | ✗ | ✗ | ✗ |
+| Integer divide, remainder, absolute value, minimum, and maximum | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✗ | ✗ |
+| Integer comparisons and `min_position`/`max_position` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✗ | ✗ |
+| Integer conversion | ✗ | ✗ | ✗ | ✗ | ✓ | ✓ | ✗ | ✗ | ✗ | ✗ |
+| Floating absolute value, comparison helpers, and element extraction | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✓ | ✓ |
+| Floating `set1` and bitwise operations | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✓ | ✓ |
+| Compile-time logical `shuffle<indices...>` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `uint64_t::multiply_add_adjacent` | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✓ | ✗ | ✗ |
+| Whole-register byte shifts | 128 ✓ / 256 ✓ | 128 ✓ / 256 ✓ | 128 ✓ / 256 ✓ | 128 ✓ / 256 ✓ | 128 ✓ / 256 ✓ | 128 ✓ / 256 ✓ | 128 ✓ / 256 ✓ | 128 ✓ / 256 ✓ | ✗ | ✗ |
+| `transform_pack` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✗ | ✗ |
+| Span transforms (in-place unary, separate-output unary, and binary) | shared¹ | shared¹ | shared¹ | shared¹ | shared¹ | ✓ | shared¹ | shared¹ | shared¹ | shared¹ |
+
+¹ The span-transform entry point is one generic overload. Its runtime gate uses
+`u32`; the other element columns do not represent separate implementations or
+separately tested overloads.
 
 ## Backend-routing audit
 
@@ -32,10 +43,19 @@ through public `Api`, `SimdVector`, `SimdAlgo`, `SimdResample`, `Bmi`,
 or `uint128_t` entry points. No direct `Detail` test is retained as a
 supported test seam.
 
-## Runtime evidence
+## Register migration boundary
 
-The matrix is exercised by `tests/Api128.tests.cpp`,
-`tests/Api256.tests.cpp`, and the public contract helpers in
-`tests/TestSupport.h`. The focused MSVC Release and Clang coverage runs each
-contain 21 SSE4.2 tests and 19 AVX2 tests; all 40 pass in both configurations.
-The complete MSVC Release suite passes all 187 tests.
+| Operation category | Preferred supported surface |
+| --- | --- |
+| Complete-register construction, exact-width transfer, arithmetic, bitwise operations, shifts, comparisons, masks, selection, reductions, rearrangements, and constrained conversions | `Register<T, Bits>` or `NativeRegister<T>` in C++23 |
+| Target-selected backend access in C++20 | `NativeApi<T>` |
+| Explicit-width backend access, specialized low-level operations, and compatibility call sites | `Api<Bits, T>` |
+| Span transforms, packed transforms, collection tails, and partial-register staging | `Api`, `SimdAlgo`, or the owning higher-level algorithm |
+| Partial lane lists, partial or dynamic-extent transfers, native-order construction, generic implementation-specific shuffles, and runtime extraction | Intentionally absent from `Register`; retain the existing owning abstraction where available |
+
+The complete one-register mapping is audited by
+`tests/RegisterOperationMatrix.tests.cpp`. Behavioral correctness remains
+independently checked against scalar references so agreement between
+`Register` and `Api` cannot hide a shared defect. Per-run results and exact
+compiler counts belong in generated build reports and CI artifacts, not in this
+enduring availability matrix.

@@ -23,7 +23,7 @@ namespace
  */
 template <class Vector, class Element, std::size_t Count>
 	requires requires { typename Vector::simd; }
-void require_lanes(const Vector& value, const std::array<Element, Count>& expected)
+void require_lanes(const Vector &value, const std::array<Element, Count> &expected)
 {
 	const auto actual = value.toArray();
 	for (std::size_t index = 0; index < Count; ++index)
@@ -42,11 +42,11 @@ void require_lanes(const Vector& value, const std::array<Element, Count>& expect
  */
 template <class Register, class Element, std::size_t Count>
 	requires(!requires { typename Register::simd; })
-void require_lanes(const Register value, const std::array<Element, Count>& expected)
+void require_lanes(const Register value, const std::array<Element, Count> &expected)
 {
 	require_lanes(SimdLib::SimdVector<Element, static_cast<int>(Count)>{value}, expected);
 }
-}
+} // namespace
 
 namespace
 {
@@ -58,20 +58,17 @@ namespace
  *  @param expected Expected scalar dot product.
  */
 template <class Element, std::size_t Count>
-void require_dot_product(const std::array<Element, Count>& lhs, const std::array<Element, Count>& rhs, const Element expected)
+void require_dot_product(const std::array<Element, Count> &lhs, const std::array<Element, Count> &rhs, const Element expected)
 {
 	using Vector = SimdLib::SimdVector<Element, static_cast<int>(Count)>;
 	const Vector lhs_vector(lhs);
 	const Vector rhs_vector(rhs);
 	REQUIRE(lhs_vector.dot_product(rhs_vector.getRegister()) == expected);
 }
-}
+} // namespace
 
-TEST_CASE("SimdVector exposes the complete aliases and storage facade", "[simdlib][vector]")
+TEST_CASE("SimdVector exposes the complete storage facade", "[simdlib][vector]")
 {
-	static_assert(std::same_as<SimdLib::uint8x16, SimdLib::SimdVector<std::uint8_t, 16>>);
-	static_assert(std::same_as<SimdLib::uint64x4, SimdLib::SimdVector<std::uint64_t, 4>>);
-	static_assert(std::same_as<SimdLib::int32x8, SimdLib::SimdVector<std::int32_t, 8>>);
 
 	SimdLib::SimdVector<std::int32_t, 3> value(4, -7, 11);
 	require_lanes(value, std::array<std::int32_t, 3>{4, -7, 11});
@@ -160,8 +157,7 @@ TEST_CASE("SimdVector bitwise saturation widening and hash match logical lanes",
 	require_lanes(wide, std::array<std::int32_t, 3>{-4, 7, 300});
 
 	const auto sameHash = std::hash<SimdLib::SimdVector<std::int32_t, 3>>{}(wide);
-	const auto otherHash = std::hash<SimdLib::SimdVector<std::int32_t, 3>>{}(
-	    SimdLib::SimdVector<std::int32_t, 3>(-4, 7, 301));
+	const auto otherHash = std::hash<SimdLib::SimdVector<std::int32_t, 3>>{}(SimdLib::SimdVector<std::int32_t, 3>(-4, 7, 301));
 	REQUIRE(sameHash != otherHash);
 }
 
@@ -185,23 +181,29 @@ TEST_CASE("SimdVector integer area covers full partial odd and cross-lane extent
 	REQUIRE(SimdLib::SimdVector<std::int32_t, 2>(std::numeric_limits<std::int32_t>::max(), 2).area() == -2);
 }
 
-TEST_CASE("SimdVector integer magnitude preserves per-128-bit-lane results", "[simdlib][vector][partial][magnitude]")
+TEST_CASE("SimdVector integer magnitude preserves sparse per-128-bit-group results", "[simdlib][vector][partial][magnitude]")
 {
 	using Signed = SimdLib::SimdVector<std::int16_t, 9>;
-	const Signed signed_value(3, 4, 0, 0, 0, 0, 0, 0, 6);
-	const auto signed_magnitude = Signed::simd::to_array(signed_value.magnitude());
-	for (std::size_t index = 0; index < 8; ++index)
-		REQUIRE(signed_magnitude[index] == 5);
-	for (std::size_t index = 8; index < signed_magnitude.size(); ++index)
-		REQUIRE(signed_magnitude[index] == 6);
+	const Signed signedValue(3, 4, 0, 0, 0, 0, 0, 0, 6);
+	const auto signedMagnitude = Signed::simd::to_array(signedValue.magnitude());
+	const auto signedChecked = Signed::simd::to_array(signedValue.magnitude_checked());
+	REQUIRE(signedMagnitude[0] == 5);
+	REQUIRE(signedMagnitude[8] == 6);
+	REQUIRE(signedChecked[0] == 5);
+	REQUIRE(signedChecked[1] == 0);
+	REQUIRE(signedChecked[8] == 6);
+	REQUIRE(signedChecked[9] == 0);
 
 	using Unsigned = SimdLib::SimdVector<std::uint8_t, 17>;
-	const Unsigned unsigned_value(6, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9);
-	const auto unsigned_magnitude = Unsigned::simd::to_array(unsigned_value.magnitude());
-	for (std::size_t index = 0; index < 16; ++index)
-		REQUIRE(unsigned_magnitude[index] == 10);
-	for (std::size_t index = 16; index < unsigned_magnitude.size(); ++index)
-		REQUIRE(unsigned_magnitude[index] == 9);
+	const Unsigned unsignedValue(6, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9);
+	const auto unsignedMagnitude = Unsigned::simd::to_array(unsignedValue.magnitude());
+	const auto unsignedChecked = Unsigned::simd::to_array(unsignedValue.magnitude_checked());
+	REQUIRE(unsignedMagnitude[0] == 10);
+	REQUIRE(unsignedMagnitude[16] == 9);
+	REQUIRE(unsignedChecked[0] == 10);
+	REQUIRE(unsignedChecked[1] == 0);
+	REQUIRE(unsignedChecked[16] == 9);
+	REQUIRE(unsignedChecked[17] == 0);
 }
 TEST_CASE("SimdVector partial positions ignore inactive zero-filled lanes", "[simdlib][vector][partial][position]")
 {
@@ -219,14 +221,12 @@ TEST_CASE("SimdVector hashes respect floating equality for signed zero", "[simdl
 	const SimdLib::SimdVector<float, 3> positive_zero(0.0f, 2.0f, 0.0f);
 	const SimdLib::SimdVector<float, 3> negative_zero(-0.0f, 2.0f, -0.0f);
 	REQUIRE(positive_zero == negative_zero.getRegister());
-	REQUIRE(std::hash<SimdLib::SimdVector<float, 3>>{}(positive_zero) ==
-			std::hash<SimdLib::SimdVector<float, 3>>{}(negative_zero));
+	REQUIRE(std::hash<SimdLib::SimdVector<float, 3>>{}(positive_zero) == std::hash<SimdLib::SimdVector<float, 3>>{}(negative_zero));
 
 	const SimdLib::SimdVector<double, 1> positive_double_zero(0.0);
 	const SimdLib::SimdVector<double, 1> negative_double_zero(-0.0);
 	REQUIRE(positive_double_zero == negative_double_zero.getRegister());
-	REQUIRE(std::hash<SimdLib::SimdVector<double, 1>>{}(positive_double_zero) ==
-			std::hash<SimdLib::SimdVector<double, 1>>{}(negative_double_zero));
+	REQUIRE(std::hash<SimdLib::SimdVector<double, 1>>{}(positive_double_zero) == std::hash<SimdLib::SimdVector<double, 1>>{}(negative_double_zero));
 }
 
 TEST_CASE("SimdVector floating hashes cover nonzero infinities and NaNs", "[simdlib][vector][hash][float]")
@@ -250,11 +250,9 @@ TEST_CASE("SimdVector floating hashes cover nonzero infinities and NaNs", "[simd
 	REQUIRE(double_hash(double_value) == double_hash(double_copy));
 	REQUIRE(double_hash(double_value) != double_hash(double_distinct));
 
-	const FloatVector float_infinities(
-		std::numeric_limits<float>::infinity(), -std::numeric_limits<float>::infinity(), 1.0f, 2.0f, 3.0f);
+	const FloatVector float_infinities(std::numeric_limits<float>::infinity(), -std::numeric_limits<float>::infinity(), 1.0f, 2.0f, 3.0f);
 	REQUIRE(float_hash(float_infinities) == float_hash(FloatVector(float_infinities)));
-	const DoubleVector double_infinities(
-		std::numeric_limits<double>::infinity(), -std::numeric_limits<double>::infinity(), 1.0);
+	const DoubleVector double_infinities(std::numeric_limits<double>::infinity(), -std::numeric_limits<double>::infinity(), 1.0);
 	REQUIRE(double_hash(double_infinities) == double_hash(DoubleVector(double_infinities)));
 
 	const float alternate_float_nan = std::bit_cast<float>(std::uint32_t{0x7FC00001u});
@@ -386,7 +384,7 @@ TEST_CASE("SimdVector documentation examples produce their documented results", 
 	REQUIRE(I16x4::simd::to_array(I16x4{30000, -10000, -30000, 10000}.subtract_horizontal_saturated(I16x4{1, 2, 3, 4})) ==
 			std::array<std::int16_t, 8>{32767, -32768, 0, 0, -1, -1, 0, 0});
 	REQUIRE(SimdLib::Api<128, std::int32_t>::to_array(I16x4{1, 2, 3, 4}.multiply_add_adjacent(I16x4{5, 6, 7, 8})) == std::array{17, 53, 0, 0});
-	using U8x16 = SimdLib::uint8x16;
+	using U8x16 = SimdLib::SimdVector<std::uint8_t, 16>;
 	REQUIRE(SimdLib::Api<128, std::int16_t>::to_array(U8x16{2}.multiply_add_unsigned_signed_bytes(U8x16{3})) ==
 			std::array<std::int16_t, 8>{12, 12, 12, 12, 12, 12, 12, 12});
 	REQUIRE(SimdLib::Api<128, std::uint64_t>::to_array(U8x16{9}.sum_absolute_byte_differences(U8x16{4})) == std::array<std::uint64_t, 2>{40, 40});

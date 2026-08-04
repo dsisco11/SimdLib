@@ -64,7 +64,7 @@ SimdLib Test Coverage Expansion:
     ☒ Add a 128/256-bit `min_position` and `max_position` matrix for every supported integer lane type.
     ☒ Cover first/last extrema, duplicate extrema, signed minima/maxima, unsigned high-bit values, and first-position tie semantics.
     ☒ Add public coverage for `uint64_t::multiply_add_adjacent` and verify its exact lane ordering and overflow contract.
-    ☒ Add missing public tests for floating `set1`, floating bitwise operations, and 128/256-bit `get_element`/`set_element` behavior.
+    ☒ Add missing public tests for floating `set1`, floating bitwise operations, and 128/256-bit runtime-selected `extract`/`insert` behavior.
     ☒ Add exact 64-bit-result and native-word-boundary-crossing cases for `transform_pack`, including a final partial output word and canary-protected destination storage.
     ☒ Avoid direct `Detail/Extensions.h` or `Detail/Implementations.h` tests when a public call can provide the same proof.
     ☒ End Phase 2 only when every supported public specialization is represented in the operation/type matrix and the previously uncovered backend families are reached through that matrix or explicitly justified.
@@ -83,13 +83,13 @@ SimdLib Test Coverage Expansion:
     ☒ Compile the dedicated UInt128 constexpr sources under optimized carry, portable carry, and scalar-only configurations.
     ☒ Compile the dedicated `Api`/vector constexpr sources under the supported SSE/AVX and disabled-feature profiles.
     ☒ Ensure compile-time test failures are visible through CTest/CMake target output with the source file and assertion expression that failed.
-    ☒ Add a mechanical audit that rejects new test-example `static_assert` blocks in public headers unless the assertion is allowlisted with an invariant/constraint justification.
+    ☒ Classify retained production-header `static_assert` declarations as constraints, diagnostics, or invariants after migrating test examples; the temporary textual allowlist was retired after this extraction.
     ☒ Measure clean compile time for minimal translation units including `Bmi.h`, `UInt128.h`, and `SimdLib.h` before and after extraction using the same compiler, flags, and repeated-run method.
     ☒ Record preprocessing size and compiler front-end timing where supported, and verify the extraction does not increase consumer compile time or introduce additional emitted code.
     ☒ Verify the move does not change public declarations, constraints, diagnostics for invalid instantiations, ABI/layout, or runtime behavior.
     ☒ Create constexpr contract helpers that can be reused by compile-only probes and runtime parity tests without relying on runtime coverage counters for constant evaluation.
-    ☒ Expand `Api` `static_assert`/`consteval` coverage for `setzero`, `setr`, `construct`, `set1`, `to_array`, `get_element`, and `set_element` at 128 and 256 bits.
-    ☒ Expand constexpr comparison coverage for `cmp_eq`, `cmp_eq_mask`, `cmp_gt`, `cmp_ge`, `cmp_lt`, `cmp_le`, and the internal comparison operation choices reached by them.
+    ☒ Expand `Api` `static_assert`/`consteval` coverage for `setzero`, `setr`, `construct`, `set1`, `to_array`, runtime-selected `extract`, and runtime-selected `insert` at 128 and 256 bits.
+    ☒ Expand constexpr comparison coverage for native `compare_*`, byte-granular `cmp_*_mask`, lane-granular `cmp_*_slim`, and the internal comparison operation choices reached by them.
     ☒ Expand constexpr `movemask` and `movemask_slim` beyond the current representative types to signed, unsigned, float, and double lane families at both widths.
     ☒ Add constexpr `min_position`, `max_position`, lane-shift, and whole-register-shift boundary checks.
     ☒ Add runtime parity checks constructed from volatile inputs so optimized runtime paths cannot be satisfied solely by compile-time folding.
@@ -169,7 +169,7 @@ SimdLib Test Coverage Expansion:
     ☒ Reconcile the old statement that no unresolved high-risk coverage gap remains with the evidence produced by this todo.
     ☒ Record every excluded red gutter as constexpr-only, compiler-specific, unreachable, non-code, or intentionally unsupported; do not leave unexplained exclusions.
     ☒ Verify a source audit finds no unjustified direct `SimdLib::Detail` usage or backend implementation routing in tests or shared test support.
-    ☒ Verify a source audit finds no unallowlisted test-example `static_assert` blocks in public headers and that all dedicated constexpr targets participate in the documented compiler/configuration matrix.
+    ☒ Verify that public-header probes and dedicated constexpr targets compile the retained constraints and migrated test examples in the documented compiler/configuration matrix.
     ☒ Compare the final consumer-header compile-time measurements with the Phase 3 baseline and record the result in `docs/TestCoverage.md`.
     ☒ Verify the VS Code Test Coverage view imports the final `coverage.info` and agrees with the documented per-header totals.
     ☒ Verify `git diff --check` passes and no generated profiles, LCOV reports, binaries, logs, or temporary analysis files are tracked.
@@ -191,7 +191,7 @@ SimdLib Test Coverage Expansion:
     ☒ Phase 0 corrected coverage pipeline, clean warning output, object/profile provenance, and corrected baseline totals recorded.
     ☒ Phase 1 BMI contract decisions, helper matrix, deterministic inputs, and portable/intrinsic equivalence results recorded.
     ☒ Phase 2 public `Api` operation/type matrix and backend-family reachability results recorded: no direct `Detail` test routes remain; focused MSVC Release and Clang coverage runs pass 33/33 tests, and the complete MSVC Release suite passes 137/137 tests.
-    ☒ Phase 3 migrated-header assertion inventory, retained-invariant justifications, dedicated constexpr-target matrix, consumer compile-time measurements, and separate MSVC/Clang/compiler-path evidence recorded in `docs/StaticAssertionInventory.md` and `docs/ConstexprCompilerEvidence.md`; strict MSVC Release passes 144/144, Clang passes 147/147, and the external consumer passes 1/1.
+    ☒ Phase 3 migrated test-example assertions into dedicated constexpr targets, retained production constraints and diagnostics in their owning headers, and recorded durable constexpr target/profile ownership in `docs/TestCoverage.md`; the completed execution also measured consumer compile time and validated the separate MSVC/Clang compiler paths, with strict MSVC Release passing 144/144, Clang passing 147/147, and the external consumer passing 1/1.
     ☒ Phase 4 `SimdAlgo` full-register/tail outcome matrix recorded in `docs/TestCoverage.md`: focused MSVC and Clang runs pass 7/7 tests with 614 assertions, the strict MSVC suite passes 147/147, and the Clang suite passes 150/150.
     ☒ Phase 5 accepted/rejected formatter grammar matrix recorded in `docs/TestCoverage.md`: focused MSVC and Clang runs pass 8/8 tests, the formatter suite passes 267 assertions, the strict MSVC suite passes 148/148, and the Clang suite passes 151/151.
     ☒ Phase 6 `uint128_t` boundary and compatibility matrix recorded in `docs/TestCoverage.md`: focused MSVC passes 35/35, focused Clang passes 38/38, each Clang profile passes 131 assertions across six boundary cases, the strict MSVC suite passes 154/154, and the Clang suite passes 157/157.

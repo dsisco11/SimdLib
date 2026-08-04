@@ -9,9 +9,17 @@
     "cmake.ctest.allowParallelJobs": true,
     "cmake.ctest.testSuiteDelimiter": "\\.",
     "cmake.ctest.testSuiteDelimiterMaxOccurrence": 0,
-    "cmake.preRunCoverageTarget": "SimdLibCoverageReset",
-    "cmake.postRunCoverageTarget": "SimdLibCoverageReport",
-    "cmake.coverageInfoFiles": [
-        "${workspaceFolder}/build-coverage/coverage.info"
-    ]
+    "C_Cpp.formatting": "clangFormat",
+    "C_Cpp.clang_format_style": "file",
+    "C_Cpp.clang_format_fallbackStyle": "none",
+    "[c]": {
+        "editor.defaultFormatter": "ms-vscode.cpptools",
+        "editor.formatOnSave": true,
+        "editor.formatOnSaveMode": "modificationsIfAvailable"
+    },
+    "[cpp]": {
+        "editor.defaultFormatter": "ms-vscode.cpptools",
+        "editor.formatOnSave": true,
+        "editor.formatOnSaveMode": "modificationsIfAvailable"
+    }
 }

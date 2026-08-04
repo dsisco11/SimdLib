@@ -1,0 +1,87 @@
+# syntax=docker/dockerfile:1.7@sha256:a57df69d0ea827fb7266491f2813635de6f17269be881f696fbfdf2d83dda33e
+
+ARG ALPINE_IMAGE=alpine:3.20.8@sha256:765942a4039992336de8dd5db680586e1a206607dd06170ff0a37267a9e01958
+
+FROM ${ALPINE_IMAGE} AS tools
+
+ARG CMAKE_VERSION=4.4.0
+ARG CMAKE_SHA256=65757f442fdd242e27f1728fc26dc0cba4164f7a0791a5c788631c00080369bc
+ARG CATCH2_COMMIT=2b60af89e23d28eefc081bc930831ee9d45ea58b
+
+RUN apk add --no-cache \
+        ca-certificates \
+        cmake=3.29.3-r0 \
+        g++=13.2.1_git20240309-r1 \
+        gcc=13.2.1_git20240309-r1 \
+        git=2.45.4-r0 \
+        linux-headers=6.6-r0 \
+        make=4.4.1-r2 \
+        ninja-is-really-ninja=1.12.1-r0 \
+        openssl-dev=3.3.7-r0 \
+    && wget -q "https://cmake.org/files/v4.4/cmake-${CMAKE_VERSION}.tar.gz" -O /tmp/cmake.tar.gz \
+    && echo "${CMAKE_SHA256}  /tmp/cmake.tar.gz" | sha256sum -c - \
+    && mkdir /tmp/cmake-source \
+    && tar -xzf /tmp/cmake.tar.gz -C /tmp/cmake-source --strip-components=1 \
+    && cmake -S /tmp/cmake-source -B /tmp/cmake-build -G Ninja \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_INSTALL_PREFIX=/opt/cmake \
+        -DBUILD_TESTING=OFF \
+    && cmake --build /tmp/cmake-build --parallel \
+    && cmake --install /tmp/cmake-build \
+    && strip /opt/cmake/bin/cmake /opt/cmake/bin/ctest \
+    && rm -f /opt/cmake/bin/cpack \
+    && rm -rf /opt/cmake/doc /opt/cmake/man /opt/cmake/share/aclocal \
+        /opt/cmake/share/bash-completion /opt/cmake/share/emacs \
+        /opt/cmake/share/vim /opt/cmake/share/cmake-4.4/Help \
+        /tmp/cmake.tar.gz /tmp/cmake-source /tmp/cmake-build
+
+RUN git init /opt/catch2 \
+    && git -C /opt/catch2 remote add origin https://github.com/catchorg/Catch2.git \
+    && git -C /opt/catch2 fetch --depth 1 origin "${CATCH2_COMMIT}" \
+    && git -C /opt/catch2 checkout --detach FETCH_HEAD \
+    && test "$(git -C /opt/catch2 rev-parse HEAD)" = "${CATCH2_COMMIT}" \
+    && rm -rf /opt/catch2/.github /opt/catch2/docs /opt/catch2/examples \
+        /opt/catch2/tests /opt/catch2/fuzzing /opt/catch2/benchmark \
+        /opt/catch2/.git
+
+FROM ${ALPINE_IMAGE}
+
+LABEL org.opencontainers.image.title="SimdLib GCC 13.2 validation" \
+      org.opencontainers.image.description="Pinned Alpine/musl GCC 13.2 environment for SimdLib" \
+      org.opencontainers.image.source="https://github.com/dsisco11/SimdLib" \
+      org.opencontainers.image.version="gcc-13.2.1-cmake-4.4.0" \
+      org.simdlib.base.digest="sha256:765942a4039992336de8dd5db680586e1a206607dd06170ff0a37267a9e01958" \
+      org.simdlib.cmake.sha256="65757f442fdd242e27f1728fc26dc0cba4164f7a0791a5c788631c00080369bc" \
+      org.simdlib.catch2.commit="2b60af89e23d28eefc081bc930831ee9d45ea58b"
+
+RUN apk add --no-cache \
+        ca-certificates \
+        g++=13.2.1_git20240309-r1 \
+        gcc=13.2.1_git20240309-r1 \
+        musl-dev=1.2.5-r3 \
+        ninja-is-really-ninja=1.12.1-r0 \
+        openssl=3.3.7-r0 \
+        strace=6.9-r0 \
+    && addgroup -g 1000 simdlib \
+    && adduser -D -u 1000 -G simdlib simdlib \
+    && mkdir -p /workspace/out \
+    && chown -R simdlib:simdlib /workspace
+
+COPY --from=tools /opt/cmake /opt/cmake
+COPY --from=tools /opt/catch2 /opt/catch2
+COPY --chmod=755 containers/container-entrypoint.sh /usr/local/bin/simdlib-container
+
+ENV PATH="/opt/cmake/bin:${PATH}" \
+    CC=gcc \
+    CXX=g++ \
+    SIMDLIB_COMPILER_ID=gcc13 \
+    SIMDLIB_CATCH2_SOURCE=/opt/catch2 \
+    SIMDLIB_BASE_IMAGE="alpine:3.20.8@sha256:765942a4039992336de8dd5db680586e1a206607dd06170ff0a37267a9e01958" \
+    LANG=C.UTF-8 \
+    LC_ALL=C.UTF-8 \
+    TZ=UTC
+
+USER simdlib
+WORKDIR /workspace/source
+ENTRYPOINT ["/usr/local/bin/simdlib-container"]
+CMD ["--operation", "build-validation", "--preset", "gcc13-core-release-exhaustive"]

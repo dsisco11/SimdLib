@@ -9,7 +9,7 @@ inline bool every_condition_passed = true;
  *  @param condition Condition evaluated by the public operation.
  *  @param message Operation description supplied to the precondition hook.
  */
-inline void RecordPrecondition(const bool condition, const char* message) noexcept
+inline void RecordPrecondition(const bool condition, const char *message) noexcept
 {
 	++invocation_count;
 	every_condition_passed = every_condition_passed && condition;
@@ -22,7 +22,7 @@ inline void Reset() noexcept
 	invocation_count = 0;
 	every_condition_passed = true;
 }
-}
+} // namespace SimdVectorCheckProbe
 
 #define SIMDLIB_PRECONDITION(condition, message) ::SimdVectorCheckProbe::RecordPrecondition((condition), (message))
 

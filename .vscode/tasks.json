@@ -1,0 +1,121 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Build",
+            "type": "process",
+            "command": "pwsh",
+            "args": [
+                "-NoProfile",
+                "-File",
+                "${workspaceFolder}/tools/Build.ps1",
+                "-Scope",
+                "All"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": "$msCompile",
+            "presentation": {
+                "clear": true,
+                "reveal": "always",
+                "panel": "dedicated"
+            },
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "detail": "Builds the complete native and container validation matrix without benchmark artifacts."
+        },
+        {
+            "label": "Run-Tests",
+            "type": "process",
+            "command": "pwsh",
+            "args": [
+                "-NoProfile",
+                "-File",
+                "${workspaceFolder}/tools/Run-Tests.ps1",
+                "-Scope",
+                "All"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": [],
+            "presentation": {
+                "clear": true,
+                "reveal": "always",
+                "panel": "dedicated"
+            },
+            "group": "test",
+            "detail": "Builds the complete matrix once, then runs every assigned test-only cell."
+        },
+        {
+            "label": "Build-Benchmarks",
+            "type": "process",
+            "command": "pwsh",
+            "args": [
+                "-NoProfile",
+                "-File",
+                "${workspaceFolder}/tools/Build-Benchmarks.ps1",
+                "-Scope",
+                "All"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": "$msCompile",
+            "presentation": {
+                "clear": true,
+                "reveal": "always",
+                "panel": "dedicated"
+            },
+            "group": "build",
+            "detail": "Builds only benchmark artifacts in completed exhaustive Release trees."
+        },
+        {
+            "label": "Run-Benchmarks",
+            "type": "process",
+            "command": "pwsh",
+            "args": [
+                "-NoProfile",
+                "-File",
+                "${workspaceFolder}/tools/Run-Benchmarks.ps1",
+                "-Scope",
+                "All"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": [],
+            "presentation": {
+                "clear": true,
+                "reveal": "always",
+                "panel": "dedicated"
+            },
+            "group": "test",
+            "detail": "Runs supplemental benchmarks from completed Release fingerprint manifests without building."
+        },
+        {
+            "label": "Format: All C/C++ Files",
+            "type": "process",
+            "command": "pwsh",
+            "args": [
+                "-NoProfile",
+                "-Command",
+                "& clang-format -i --style=file --fallback-style=none @(& git ls-files -- '*.c' '*.cc' '*.cpp' '*.cxx' '*.h' '*.hh' '*.hpp' '*.hxx' '*.inl' '*.ipp' '*.cu' '*.cuh')"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": [],
+            "presentation": {
+                "clear": true,
+                "reveal": "always",
+                "panel": "dedicated"
+            },
+            "group": "build",
+            "detail": "Formats every tracked C and C++ source file with the repository .clang-format file."
+        }
+    ]
+}

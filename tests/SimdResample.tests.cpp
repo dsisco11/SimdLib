@@ -52,13 +52,13 @@ void expand_reference(const std::span<const std::uint8_t> src, const std::span<s
 			dst[group * 8 + lane] = (src[group] & (1u << lane)) != 0 ? 0xFF : 0;
 }
 
-void fill_random(const std::span<std::uint8_t> data, std::mt19937& random)
+void fill_random(const std::span<std::uint8_t> data, std::mt19937 &random)
 {
 	std::uniform_int_distribution<int> distribution(0, 255);
-	for (auto& value : data)
+	for (auto &value : data)
 		value = static_cast<std::uint8_t>(distribution(random));
 }
-}
+} // namespace
 
 TEST_CASE("SimdResample preserves reduce bit ordering", "[simdlib][resample][ordering]")
 {

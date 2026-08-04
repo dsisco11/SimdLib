@@ -2,6 +2,9 @@
 #ifndef SIMDLIB_EXPECT_CARRY_PATH
 #define SIMDLIB_EXPECT_CARRY_PATH -1
 #endif
+#ifndef SIMDLIB_TEST_CONSTEXPR_ASSERTIONS
+#define SIMDLIB_TEST_CONSTEXPR_ASSERTIONS 0
+#endif
 
 #if SIMDLIB_EXPECT_CARRY_PATH == 1
 #if !SIMDLIB_USE_COMPILER_CARRY_INTRINSICS || !SIMDLIB_COMPILER_MSVC || !defined(_M_X64)
@@ -36,7 +39,7 @@ struct words128 final
 	std::uint64_t low = 0;
 	std::uint64_t high = 0;
 
-	friend constexpr bool operator==(const words128&, const words128&) noexcept = default;
+	friend constexpr bool operator==(const words128 &, const words128 &) noexcept = default;
 };
 
 /** @brief Describes one heterogeneous signed-integral comparison contract. */
@@ -82,10 +85,7 @@ struct bit_ceil_case final
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #endif
-[[nodiscard]] uint128_t deprecated_extract(
-	const uint128_t value,
-	const std::uint8_t length,
-	const std::uint8_t start) noexcept
+[[nodiscard]] uint128_t deprecated_extract(const uint128_t value, const std::uint8_t length, const std::uint8_t start) noexcept
 {
 	return value.extract(length, start);
 }
@@ -175,79 +175,125 @@ constexpr bool constexpr_contract() noexcept
 	const uint128_t lhs{0xFEDC'BA98'7654'3210ULL, 0x0123'4567'89AB'CDEFULL};
 	const uint128_t rhs{0x1111'2222'3333'4444ULL, 0x5555'6666'7777'8888ULL};
 
-	if (words(lhs + rhs) != add_words(words(lhs), words(rhs))) return false;
-	if (words(lhs - rhs) != subtract_words(words(lhs), words(rhs))) return false;
+	if (words(lhs + rhs) != add_words(words(lhs), words(rhs)))
+		return false;
+	if (words(lhs - rhs) != subtract_words(words(lhs), words(rhs)))
+		return false;
 	uint128_t compound = lhs;
 	compound += rhs;
-	if (compound != lhs + rhs) return false;
+	if (compound != lhs + rhs)
+		return false;
 	compound -= rhs;
-	if (compound != lhs) return false;
-	if ((lhs & rhs) != uint128_t{lhs.low() & rhs.low(), lhs.high() & rhs.high()}) return false;
-	if ((lhs | rhs) != uint128_t{lhs.low() | rhs.low(), lhs.high() | rhs.high()}) return false;
-	if ((lhs ^ rhs) != uint128_t{lhs.low() ^ rhs.low(), lhs.high() ^ rhs.high()}) return false;
-	if ((~lhs) != uint128_t{~lhs.low(), ~lhs.high()}) return false;
+	if (compound != lhs)
+		return false;
+	if ((lhs & rhs) != uint128_t{lhs.low() & rhs.low(), lhs.high() & rhs.high()})
+		return false;
+	if ((lhs | rhs) != uint128_t{lhs.low() | rhs.low(), lhs.high() | rhs.high()})
+		return false;
+	if ((lhs ^ rhs) != uint128_t{lhs.low() ^ rhs.low(), lhs.high() ^ rhs.high()})
+		return false;
+	if ((~lhs) != uint128_t{~lhs.low(), ~lhs.high()})
+		return false;
 	compound = lhs;
 	compound &= rhs;
 	compound |= uint128_t{0x10, 0x20};
 	compound ^= uint128_t{0x01, 0x02};
-	if (compound != (((lhs & rhs) | uint128_t{0x10, 0x20}) ^ uint128_t{0x01, 0x02})) return false;
+	if (compound != (((lhs & rhs) | uint128_t{0x10, 0x20}) ^ uint128_t{0x01, 0x02}))
+		return false;
 
 	constexpr std::array<unsigned, 10> shifts{0, 1, 63, 64, 65, 127, 128, 129, 255, 256};
 	for (const unsigned shift : shifts)
 	{
-		if (words(lhs << shift) != shift_left_words(words(lhs), shift)) return false;
-		if (words(lhs >> shift) != shift_right_words(words(lhs), shift)) return false;
+		if (words(lhs << shift) != shift_left_words(words(lhs), shift))
+			return false;
+		if (words(lhs >> shift) != shift_right_words(words(lhs), shift))
+			return false;
 		compound = lhs;
 		compound <<= shift;
-		if (compound != lhs << shift) return false;
+		if (compound != lhs << shift)
+			return false;
 		compound = lhs;
 		compound >>= shift;
-		if (compound != lhs >> shift) return false;
+		if (compound != lhs >> shift)
+			return false;
 	}
-	if ((lhs << -4) != lhs || (lhs >> -4) != lhs) return false;
+	if ((lhs << -4) != lhs || (lhs >> -4) != lhs)
+		return false;
 
 	compound = uint128_t{std::numeric_limits<std::uint64_t>::max(), 7};
 	const uint128_t beforeIncrement = compound++;
-	if (beforeIncrement != uint128_t{std::numeric_limits<std::uint64_t>::max(), 7} || compound != uint128_t{0, 8}) return false;
+	if (beforeIncrement != uint128_t{std::numeric_limits<std::uint64_t>::max(), 7} || compound != uint128_t{0, 8})
+		return false;
 	const uint128_t beforeDecrement = compound--;
-	if (beforeDecrement != uint128_t{0, 8} || compound != uint128_t{std::numeric_limits<std::uint64_t>::max(), 7}) return false;
-	if (++compound != uint128_t{0, 8}) return false;
-	if (--compound != uint128_t{std::numeric_limits<std::uint64_t>::max(), 7}) return false;
-	if (-uint128_t{1} != std::numeric_limits<uint128_t>::max()) return false;
-	if (lhs.abs_diff(rhs) != (lhs > rhs ? lhs - rhs : rhs - lhs)) return false;
+	if (beforeDecrement != uint128_t{0, 8} || compound != uint128_t{std::numeric_limits<std::uint64_t>::max(), 7})
+		return false;
+	if (++compound != uint128_t{0, 8})
+		return false;
+	if (--compound != uint128_t{std::numeric_limits<std::uint64_t>::max(), 7})
+		return false;
+	if (-uint128_t{1} != std::numeric_limits<uint128_t>::max())
+		return false;
+	if (lhs.abs_diff(rhs) != (lhs > rhs ? lhs - rhs : rhs - lhs))
+		return false;
 
-	if (!(lhs < rhs) || !(uint128_t{7} == 7u) || !(uint128_t{7} > -1)) return false;
-	if (static_cast<std::uint32_t>(lhs) != 0x7654'3210U) return false;
-	if (!static_cast<bool>(lhs) || static_cast<bool>(uint128_t{})) return false;
-	if (lhs.getBlock(0) != lhs.low() || lhs.getBlock(1) != lhs.high()) return false;
+	if (!(lhs < rhs) || !(uint128_t{7} == 7u) || !(uint128_t{7} > -1))
+		return false;
+	if (static_cast<std::uint32_t>(lhs) != 0x7654'3210U)
+		return false;
+	if (!static_cast<bool>(lhs) || static_cast<bool>(uint128_t{}))
+		return false;
+	if (lhs.getBlock(0) != lhs.low() || lhs.getBlock(1) != lhs.high())
+		return false;
 
-	if (popcount(lhs) != std::popcount(lhs.low()) + std::popcount(lhs.high())) return false;
-	if (countr_zero(uint128_t{}) != 128 || countl_zero(uint128_t{}) != 128) return false;
-	if (countr_one(std::numeric_limits<uint128_t>::max()) != 128) return false;
-	if (countl_one(std::numeric_limits<uint128_t>::max()) != 128) return false;
-	if (bit_width(uint128_t{0, 1}) != 65) return false;
-	if (bit_floor(uint128_t{0, 3}) != uint128_t{0, 2}) return false;
-	if (bit_ceil(uint128_t{0, 3}) != uint128_t{0, 4}) return false;
-	if (!has_single_bit(uint128_t{0, 8}) || has_single_bit(uint128_t{3})) return false;
+	if (popcount(lhs) != std::popcount(lhs.low()) + std::popcount(lhs.high()))
+		return false;
+	if (countr_zero(uint128_t{}) != 128 || countl_zero(uint128_t{}) != 128)
+		return false;
+	if (countr_one(std::numeric_limits<uint128_t>::max()) != 128)
+		return false;
+	if (countl_one(std::numeric_limits<uint128_t>::max()) != 128)
+		return false;
+	if (bit_width(uint128_t{0, 1}) != 65)
+		return false;
+	if (bit_floor(uint128_t{0, 3}) != uint128_t{0, 2})
+		return false;
+	if (bit_ceil(uint128_t{0, 3}) != uint128_t{0, 4})
+		return false;
+	if (!has_single_bit(uint128_t{0, 8}) || has_single_bit(uint128_t{3}))
+		return false;
 
-	if (uint128_t::create_mask(0) != uint128_t{}) return false;
-	if (uint128_t::create_mask(64) != uint128_t{~std::uint64_t{0}, 0}) return false;
-	if (uint128_t::create_mask(128) != std::numeric_limits<uint128_t>::max()) return false;
-	if (uint128_t::create_mask<5>(62) != (uint128_t::create_mask(5) << 62)) return false;
-	if (Bmi::blsi(lhs) != (lhs & -lhs)) return false;
-	if (Bmi::blsr(lhs) != (lhs & (lhs - uint128_t{1}))) return false;
-	if (Bmi::blsmsk(lhs) != (lhs ^ (lhs - uint128_t{1}))) return false;
-	if (Bmi::bzhi(lhs, 65) != (lhs & uint128_t::create_mask(65))) return false;
-	if (Bmi::andn(lhs, rhs) != (~lhs & rhs)) return false;
-	if (Bmi::bextr(lhs, 17, 61) != ((lhs >> 61) & uint128_t::create_mask(17))) return false;
+	if (uint128_t::create_mask(0) != uint128_t{})
+		return false;
+	if (uint128_t::create_mask(64) != uint128_t{~std::uint64_t{0}, 0})
+		return false;
+	if (uint128_t::create_mask(128) != std::numeric_limits<uint128_t>::max())
+		return false;
+	if (uint128_t::create_mask<5>(62) != (uint128_t::create_mask(5) << 62))
+		return false;
+	if (Bmi::blsi(lhs) != (lhs & -lhs))
+		return false;
+	if (Bmi::blsr(lhs) != (lhs & (lhs - uint128_t{1})))
+		return false;
+	if (Bmi::blsmsk(lhs) != (lhs ^ (lhs - uint128_t{1})))
+		return false;
+	if (Bmi::bzhi(lhs, 65) != (lhs & uint128_t::create_mask(65)))
+		return false;
+	if (Bmi::andn(lhs, rhs) != (~lhs & rhs))
+		return false;
+	if (Bmi::bextr(lhs, 17, 61) != ((lhs >> 61) & uint128_t::create_mask(17)))
+		return false;
 
-	if (42_u128 != uint128_t{42}) return false;
-	if (std::hash<uint128_t>{}(lhs) != static_cast<std::size_t>(lhs.low() ^ lhs.high())) return false;
+	if (42_u128 != uint128_t{42})
+		return false;
+	if (std::hash<uint128_t>{}(lhs) != static_cast<std::size_t>(lhs.low() ^ lhs.high()))
+		return false;
 	static_assert(std::numeric_limits<uint128_t>::digits == 128 && std::numeric_limits<uint128_t>::is_modulo);
 	return true;
 }
 
+#if SIMDLIB_TEST_CONSTEXPR_ASSERTIONS
 static_assert(constexpr_contract());
+#endif
 static_assert(sizeof(uint128_t) == 16);
 static_assert(alignof(uint128_t) == 16);
 static_assert(std::is_standard_layout_v<uint128_t>);
@@ -261,7 +307,7 @@ struct operation_snapshot final
 	std::uint64_t narrowed = 0;
 	std::size_t hash = 0;
 
-	friend constexpr bool operator==(const operation_snapshot&, const operation_snapshot&) noexcept = default;
+	friend constexpr bool operator==(const operation_snapshot &, const operation_snapshot &) noexcept = default;
 };
 
 [[nodiscard]] constexpr operation_snapshot snapshot(uint128_t lhs, const uint128_t rhs) noexcept
@@ -330,8 +376,8 @@ struct operation_snapshot final
 		},
 		{
 			lhs == rhs,
-			lhs < rhs,
-			lhs > rhs,
+			lhs<rhs, lhs>
+				rhs,
 			static_cast<bool>(lhs),
 			has_single_bit(lhs),
 			std::numeric_limits<uint128_t>::is_modulo,
@@ -346,7 +392,7 @@ constexpr uint128_t snapshot_rhs{0x1111'2222'3333'4444ULL, 0x5555'6666'7777'8888
 constexpr operation_snapshot constant_snapshot = snapshot(snapshot_lhs, snapshot_rhs);
 static_assert(constant_snapshot == snapshot(snapshot_lhs, snapshot_rhs));
 
-void mix_digest(std::uint64_t& digest, const uint128_t value) noexcept
+void mix_digest(std::uint64_t &digest, const uint128_t value) noexcept
 {
 	digest ^= value.low();
 	digest *= 1099511628211ULL;
@@ -383,14 +429,7 @@ TEST_CASE("uint128 selected carry and borrow implementation executes with volati
 TEST_CASE("uint128 carry and borrow propagation matches the two-word oracle", "[simdlib][uint128][carry]")
 {
 	constexpr std::array<std::uint64_t, 8> values{
-		0,
-		1,
-		2,
-		0x7FFF'FFFF'FFFF'FFFFULL,
-		0x8000'0000'0000'0000ULL,
-		0xFFFF'FFFF'FFFF'FFFEULL,
-		0xFFFF'FFFF'FFFF'FFFFULL,
-		0xA5A5'5A5A'1234'FEDCULL};
+		0, 1, 2, 0x7FFF'FFFF'FFFF'FFFFULL, 0x8000'0000'0000'0000ULL, 0xFFFF'FFFF'FFFF'FFFEULL, 0xFFFF'FFFF'FFFF'FFFFULL, 0xA5A5'5A5A'1234'FEDCULL};
 	for (const auto lhs : values)
 	{
 		for (const auto rhs : values)
@@ -434,7 +473,7 @@ TEST_CASE("uint128 integral construction and heterogeneous comparisons are expli
 		heterogeneous_comparison_case{uint128_t{43}, 42, false, std::strong_ordering::greater},
 		heterogeneous_comparison_case{uint128_t{0, 1}, std::numeric_limits<std::int64_t>::max(), false, std::strong_ordering::greater},
 	};
-	for (const auto& test : cases)
+	for (const auto &test : cases)
 	{
 		volatile std::uint64_t low = test.lhs.low();
 		volatile std::uint64_t high = test.lhs.high();
@@ -461,14 +500,10 @@ TEST_CASE("uint128 deprecated extraction remains compatible with Bmi bextr at bo
 	volatile std::uint64_t sourceHigh = 0xFEDC'BA98'7654'3210ULL;
 	const uint128_t source{sourceLow, sourceHigh};
 	const std::array cases{
-		extraction_case{0, 0, {}},
-		extraction_case{1, 127, uint128_t{1}},
-		extraction_case{1, 128, {}},
-		extraction_case{8, 200, {}},
-		extraction_case{12, 60, uint128_t{0x100}},
-		extraction_case{16, 120, uint128_t{0xFE}},
+		extraction_case{0, 0, {}},	 extraction_case{1, 127, uint128_t{1}},		extraction_case{1, 128, {}},
+		extraction_case{8, 200, {}}, extraction_case{12, 60, uint128_t{0x100}}, extraction_case{16, 120, uint128_t{0xFE}},
 	};
-	for (const auto& test : cases)
+	for (const auto &test : cases)
 	{
 		volatile std::uint8_t length = test.length;
 		volatile std::uint8_t start = test.start;
@@ -548,8 +583,7 @@ TEST_CASE("uint128 public integer surface remains constexpr-equivalent at runtim
 	volatile std::uint64_t lhsHigh = snapshot_lhs.high();
 	volatile std::uint64_t rhsLow = snapshot_rhs.low();
 	volatile std::uint64_t rhsHigh = snapshot_rhs.high();
-	const operation_snapshot runtimeSnapshot = snapshot(
-		uint128_t{lhsLow, lhsHigh}, uint128_t{rhsLow, rhsHigh});
+	const operation_snapshot runtimeSnapshot = snapshot(uint128_t{lhsLow, lhsHigh}, uint128_t{rhsLow, rhsHigh});
 	CHECK(runtimeSnapshot == constant_snapshot);
 	CHECK(std::numeric_limits<uint128_t>::min() == uint128_t{});
 	CHECK(std::numeric_limits<uint128_t>::lowest() == uint128_t{});
@@ -577,7 +611,7 @@ TEST_CASE("uint128 bit ceil covers identity rounding and overflow boundaries", "
 		bit_ceil_case{uint128_t{1, std::uint64_t{1} << 63}, uint128_t{}},
 		bit_ceil_case{std::numeric_limits<uint128_t>::max(), uint128_t{}},
 	};
-	for (const auto& test : cases)
+	for (const auto &test : cases)
 	{
 		volatile std::uint64_t low = test.value.low();
 		volatile std::uint64_t high = test.value.high();

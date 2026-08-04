@@ -1,0 +1,29 @@
+name: Container reproducibility
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 9 * * 1'
+
+permissions:
+  contents: read
+
+jobs:
+  container-reproducibility:
+    name: Rebuild pinned images without cache
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Rebuild pinned environments without compiling the project
+        shell: pwsh
+        run: tools/Run-ContainerMatrix.ps1 -Action InspectEnvironment -NoImageCache
+      - name: Record image identities and sizes
+        shell: pwsh
+        run: docker image inspect simdlib/gcc13:local simdlib/gcc14:local simdlib/clang22:local | Out-File -Encoding utf8 out/pipeline/image-inspect.json
+      - name: Upload reproducibility evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: container-reproducibility-evidence
+          path: out/pipeline
+          if-no-files-found: error
