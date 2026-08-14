@@ -1,4 +1,4 @@
-#include <SimdLib/PartialRegister.h>
+#include <SimdLib/Api.h>
 
 #include <array>
 #include <cstddef>
@@ -51,18 +51,18 @@ extern "C" [[nodiscard]] typename SimdLib::Api<SIMDLIB_PARTIAL_MASK_CODEGEN_WIDT
 /** @brief Raw Api mirror for closed three-lane partial-register addition. */
 extern "C" [[nodiscard]] typename SimdLib::Api<SIMDLIB_PARTIAL_MASK_CODEGEN_WIDTH, std::uint32_t>::vector_t
 	SIMDLIB_METHOD_FLAGS_SAFE_BUFFERS simdlib_partial_register_codegen_add(
-	SimdLib::PartialRegister<std::uint32_t, SIMDLIB_PARTIAL_MASK_CODEGEN_WIDTH, partial_codegen_active_lane_count> lhs,
-	SimdLib::PartialRegister<std::uint32_t, SIMDLIB_PARTIAL_MASK_CODEGEN_WIDTH, partial_codegen_active_lane_count> rhs) noexcept
+	typename SimdLib::Api<SIMDLIB_PARTIAL_MASK_CODEGEN_WIDTH, std::uint32_t>::vector_t lhs,
+	typename SimdLib::Api<SIMDLIB_PARTIAL_MASK_CODEGEN_WIDTH, std::uint32_t>::vector_t rhs) noexcept
 {
 	using api_t = SimdLib::Api<SIMDLIB_PARTIAL_MASK_CODEGEN_WIDTH, std::uint32_t>;
-	return api_t::add(lhs.native, rhs.native);
+	return api_t::add(lhs, rhs);
 }
 
 /** @brief Raw Api mirror for neutralized three-lane partial-register division. */
 extern "C" [[nodiscard]] typename SimdLib::Api<SIMDLIB_PARTIAL_MASK_CODEGEN_WIDTH, std::int32_t>::vector_t
 	SIMDLIB_METHOD_FLAGS_SAFE_BUFFERS simdlib_partial_register_codegen_divide(
-	SimdLib::PartialRegister<std::int32_t, SIMDLIB_PARTIAL_MASK_CODEGEN_WIDTH, partial_codegen_active_lane_count> lhs,
-	SimdLib::PartialRegister<std::int32_t, SIMDLIB_PARTIAL_MASK_CODEGEN_WIDTH, partial_codegen_active_lane_count> rhs) noexcept
+	typename SimdLib::Api<SIMDLIB_PARTIAL_MASK_CODEGEN_WIDTH, std::int32_t>::vector_t lhs,
+	typename SimdLib::Api<SIMDLIB_PARTIAL_MASK_CODEGEN_WIDTH, std::int32_t>::vector_t rhs) noexcept
 {
 	using api_t = SimdLib::Api<SIMDLIB_PARTIAL_MASK_CODEGEN_WIDTH, std::int32_t>;
 	constexpr auto inactive_identity = []() constexpr {
@@ -77,6 +77,6 @@ extern "C" [[nodiscard]] typename SimdLib::Api<SIMDLIB_PARTIAL_MASK_CODEGEN_WIDT
 			lanes[lane] = -1;
 		return lanes;
 	}();
-	const auto divisors = api_t::bitwise_or(rhs.native, api_t::construct(inactive_identity));
-	return api_t::bitwise_and(api_t::divide(lhs.native, divisors), api_t::construct(active_filter));
+	const auto divisors = api_t::bitwise_or(rhs, api_t::construct(inactive_identity));
+	return api_t::bitwise_and(api_t::divide(lhs, divisors), api_t::construct(active_filter));
 }

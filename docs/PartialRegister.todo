@@ -227,16 +227,16 @@ PartialRegister Implementation Plan:
     ☒ Ensure installed-package consumers receive the new headers and target requirements without depending on source-tree-only paths.
 
   Phase 9 - Qualify ABI, Generated Code, and Performance:
-    ☐ Create PartialRegister generated-code fixtures paired with direct `Api` raw mirrors that perform the same required masking, neutral-operand preparation, and normalization.
-    ☐ Do not compare invariant-preserving PartialRegister code against a raw baseline that omits required inactive-lane work.
-    ☐ Cover construction, transfer, unary and binary arithmetic, division/modulus, comparisons and mask use, reductions, shifts, rearrangements, conversions, and representative composed expressions.
-    ☐ Add non-inlined ABI mirrors for value parameters, value returns, reassignment, mask results, scalar results, type-changing results, opaque calls, and register-pressure cases.
-    ☐ Prove that each PartialRegister specialization occupies and passes exactly one native register wherever the corresponding Register ABI contract permits it.
-    ☐ Require wrapper-versus-raw generated code to match after existing normalization except for documented compiler-specific sequences that are necessary to preserve the partial invariant.
-    ☐ Record every accepted exception with compiler, version, ISA profile, exact symbol, instruction difference, reason, and retention test.
-    ☐ Add permanent symbol ownership and generated-code audit records equivalent to the Register qualification inventory.
-    ☐ Add supplemental benchmarks for representative active counts and operations where invariant maintenance may add instructions; keep benchmark results separate from correctness and generated-code gates.
-    ☐ Run strict Release generated-code gates before using benchmark results to make performance claims.
+    ☒ Create PartialRegister generated-code fixtures paired with direct `Api` raw mirrors that perform the same required masking, neutral-operand preparation, and normalization.
+    ☒ Do not compare invariant-preserving PartialRegister code against a raw baseline that omits required inactive-lane work.
+    ☒ Cover construction, transfer, unary and binary arithmetic, division/modulus, comparisons and mask use, reductions, shifts, rearrangements, conversions, and representative composed expressions.
+    ☒ Add non-inlined ABI mirrors for value parameters, value returns, reassignment, mask results, scalar results, type-changing results, opaque calls, and register-pressure cases.
+    ☒ Prove that each PartialRegister specialization occupies and passes exactly one native register wherever the corresponding Register ABI contract permits it.
+    ☒ Require wrapper-versus-raw generated code to match after existing normalization except for documented compiler-specific sequences that are necessary to preserve the partial invariant.
+    ☒ Record every accepted exception with compiler, version, ISA profile, exact symbol, instruction difference, reason, and retention test.
+    ☒ Add permanent symbol ownership and generated-code audit records equivalent to the Register qualification inventory.
+    ☒ Add supplemental benchmarks for representative active counts and operations where invariant maintenance may add instructions; keep benchmark results separate from correctness and generated-code gates.
+    ☒ Run strict Release generated-code gates before using benchmark results to make performance claims.
 
   Phase 10 - Documentation, Full Validation, and Cleanup:
     ☐ Add a PartialRegister design and qualification document that records the approved contract, operation ledger, result-type rules, invariant-preservation strategies, compiler matrix, and accepted generated-code exceptions.
