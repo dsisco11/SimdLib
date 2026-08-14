@@ -22,8 +22,11 @@ supports natural expression chaining and keeps `Detail` types out of ordinary
 call sites.
 
 The existing `Api` remains the C++20 interface and a supported compatibility and
-backend-facing surface alongside `Register`. Span-wide
-algorithms and partial-register handling remain outside `Register`.
+backend-facing surface alongside `Register`. Span-wide algorithms remain
+outside `Register`. Fixed compile-time partial native values are owned by the
+independent sibling `PartialRegister`; its contract and qualification are
+documented in `PartialRegisterOperationLedger.md` and
+`PartialRegisterQualification.md`.
 
 ## Decision status
 
@@ -103,14 +106,17 @@ output.store(destination);
 | Surface | Responsibility | Partial data |
 | --- | --- | --- |
 | `Register<T, Bits>` | One complete hardware register | Rejected |
+| `PartialRegister<T, Bits, Active>` | One hardware register with a compile-time contiguous active prefix | Inactive suffix is always all-bits-zero |
 | `SimdVector<T, N>` | One fixed logical value | Inactive lanes are managed by the type |
 | `SimdAlgo` and future `Tensor` operations | Collections and batches | Tail policy belongs to the algorithm |
 | `Api<Bits, T>` | Compatibility facade and implementation routing | Existing behavior remains supported |
 
 `Register` deliberately has no equivalent to `Api::load_partial`,
-`Api::set_partial`, or `Api::setr_partial`. A caller with fewer than
-`lane_count` elements must use a higher-level abstraction or explicitly stage
-a complete register with a fill policy chosen by that caller.
+`Api::set_partial`, or `Api::setr_partial`. A caller with a compile-time logical
+prefix can use `PartialRegister`; a collection with a runtime tail continues to
+use its owning algorithm's tail policy. Explicitly staging a complete register
+remains available when a caller needs a custom fill policy rather than the
+PartialRegister all-bits-zero suffix contract.
 
 ### Replacement boundary
 
@@ -124,7 +130,8 @@ not mean that every static member currently located on `Api` becomes a
 `Api` retains these supported responsibilities:
 
 - Span-wide `transform` and `transform_pack` collection algorithms.
-- Partial-register staging used internally to implement collection tails.
+- Dynamic partial-register staging used internally to implement collection
+  tails. Public fixed-prefix values are represented by `PartialRegister`.
 - `load_unsafe`, whose dynamic-extent precondition is unsuitable for the
   restrictive `Register` interface.
 - Native-order construction and implementation-specific overloads retained for

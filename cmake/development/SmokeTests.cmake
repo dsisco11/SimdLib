@@ -63,7 +63,7 @@ if(SIMDLIB_BUILD_SMOKE_TESTS)
 		simdlib_add_partial_register_odr_test(PartialRegisterOdrSse42 128 SSE42)
 		simdlib_add_partial_register_odr_test(PartialRegisterOdrAvx2 256 AVX2)
 
-		add_test(NAME InstalledPackagePartialRegisterConsumer
+		add_custom_target(InstalledPackagePartialRegisterConsumerArtifacts
 			COMMAND ${CMAKE_COMMAND}
 				-DSIMDLIB_BUILD_DIR=${CMAKE_CURRENT_BINARY_DIR}
 				-DSIMDLIB_SOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}
@@ -77,8 +77,17 @@ if(SIMDLIB_BUILD_SMOKE_TESTS)
 				-DSIMDLIB_GENERATOR_TOOLSET=${CMAKE_GENERATOR_TOOLSET}
 				-DSIMDLIB_MAKE_PROGRAM=${CMAKE_MAKE_PROGRAM}
 				-DSIMDLIB_CXX_COMPILER=${CMAKE_CXX_COMPILER}
+				"-DSIMDLIB_CXX_FLAGS=${CMAKE_CXX_FLAGS}"
+				"-DSIMDLIB_EXE_LINKER_FLAGS=${CMAKE_EXE_LINKER_FLAGS}"
+				-DSIMDLIB_CXX_SCAN_FOR_MODULES=${CMAKE_CXX_SCAN_FOR_MODULES}
 				-DSIMDLIB_CONFIG=$<CONFIG>
-				-P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/RunInstalledPartialRegisterConsumer.cmake)
+				-P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/RunInstalledPartialRegisterConsumer.cmake
+			VERBATIM)
+		simdlib_register_development_target(InstalledPackagePartialRegisterConsumerArtifacts SMOKE_VALIDATION)
+		add_test(NAME InstalledPackagePartialRegisterConsumer
+			COMMAND ${CMAKE_CTEST_COMMAND}
+				--test-dir ${CMAKE_CURRENT_BINARY_DIR}/installed-partial-register-consumer/$<CONFIG>
+				-C $<CONFIG> --output-on-failure)
 		set_tests_properties(InstalledPackagePartialRegisterConsumer PROPERTIES
 			LABELS "PARTIAL_REGISTER;CONSUMER;INSTALL;SSE42;AVX2"
 			RUN_SERIAL TRUE)

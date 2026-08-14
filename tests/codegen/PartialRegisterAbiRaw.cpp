@@ -17,10 +17,9 @@ using native_type = typename api_type::vector_t;
 using integer_native_type = typename integer_api_type::vector_t;
 
 /** @brief Native-vector value parameter/return mirror for one specialization cell. */
-template <class element_t, std::size_t active_count>
-class simdlib_partial_abi_matrix_cell final
+template <class element_t, std::size_t active_count> class simdlib_partial_abi_matrix_cell final
 {
-public:
+  public:
 	using value_type = typename SimdLib::Api<SIMDLIB_PARTIAL_ABI_WIDTH, element_t>::vector_t;
 
 	/** @brief Passes the native vector unchanged across a value boundary. */
@@ -32,32 +31,64 @@ public:
 
 #define SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, count) template class simdlib_partial_abi_matrix_cell<type, count>
 #if SIMDLIB_PARTIAL_ABI_WIDTH == 128
-#define SIMDLIB_PARTIAL_ABI_COUNTS_8(type) \
-	SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 1); SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 2); SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 3); \
-	SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 4); SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 5); SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 6); \
-	SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 7); SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 8); SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 9); \
-	SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 10); SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 11); SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 12); \
-	SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 13); SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 14); SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 15)
-#define SIMDLIB_PARTIAL_ABI_COUNTS_16(type) \
-	SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 1); SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 2); SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 3); \
-	SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 4); SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 5); SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 6); \
+#define SIMDLIB_PARTIAL_ABI_COUNTS_8(type)                                                                                                                     \
+	SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 1);                                                                                                                  \
+	SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 2);                                                                                                                  \
+	SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 3);                                                                                                                  \
+	SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 4);                                                                                                                  \
+	SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 5);                                                                                                                  \
+	SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 6);                                                                                                                  \
+	SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 7);                                                                                                                  \
+	SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 8);                                                                                                                  \
+	SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 9);                                                                                                                  \
+	SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 10);                                                                                                                 \
+	SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 11);                                                                                                                 \
+	SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 12);                                                                                                                 \
+	SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 13);                                                                                                                 \
+	SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 14);                                                                                                                 \
+	SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 15)
+#define SIMDLIB_PARTIAL_ABI_COUNTS_16(type)                                                                                                                    \
+	SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 1);                                                                                                                  \
+	SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 2);                                                                                                                  \
+	SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 3);                                                                                                                  \
+	SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 4);                                                                                                                  \
+	SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 5);                                                                                                                  \
+	SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 6);                                                                                                                  \
 	SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 7)
-#define SIMDLIB_PARTIAL_ABI_COUNTS_32(type) \
-	SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 1); SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 2); SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 3)
+#define SIMDLIB_PARTIAL_ABI_COUNTS_32(type)                                                                                                                    \
+	SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 1);                                                                                                                  \
+	SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 2);                                                                                                                  \
+	SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 3)
 #define SIMDLIB_PARTIAL_ABI_COUNTS_64(type) SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 1)
 #else
-#define SIMDLIB_PARTIAL_ABI_COUNTS_8(type) \
-	SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 17); SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 18); SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 19); \
-	SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 20); SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 21); SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 22); \
-	SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 23); SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 24); SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 25); \
-	SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 26); SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 27); SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 28); \
-	SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 29); SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 30); SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 31)
-#define SIMDLIB_PARTIAL_ABI_COUNTS_16(type) \
-	SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 9); SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 10); SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 11); \
-	SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 12); SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 13); SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 14); \
+#define SIMDLIB_PARTIAL_ABI_COUNTS_8(type)                                                                                                                     \
+	SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 17);                                                                                                                 \
+	SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 18);                                                                                                                 \
+	SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 19);                                                                                                                 \
+	SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 20);                                                                                                                 \
+	SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 21);                                                                                                                 \
+	SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 22);                                                                                                                 \
+	SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 23);                                                                                                                 \
+	SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 24);                                                                                                                 \
+	SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 25);                                                                                                                 \
+	SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 26);                                                                                                                 \
+	SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 27);                                                                                                                 \
+	SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 28);                                                                                                                 \
+	SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 29);                                                                                                                 \
+	SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 30);                                                                                                                 \
+	SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 31)
+#define SIMDLIB_PARTIAL_ABI_COUNTS_16(type)                                                                                                                    \
+	SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 9);                                                                                                                  \
+	SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 10);                                                                                                                 \
+	SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 11);                                                                                                                 \
+	SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 12);                                                                                                                 \
+	SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 13);                                                                                                                 \
+	SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 14);                                                                                                                 \
 	SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 15)
-#define SIMDLIB_PARTIAL_ABI_COUNTS_32(type) \
-	SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 5); SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 6); SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 7)
+#define SIMDLIB_PARTIAL_ABI_COUNTS_32(type)                                                                                                                    \
+	SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 5);                                                                                                                  \
+	SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 6);                                                                                                                  \
+	SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 7)
 #define SIMDLIB_PARTIAL_ABI_COUNTS_64(type) SIMDLIB_PARTIAL_ABI_INSTANTIATE(type, 3)
 #endif
 
@@ -82,7 +113,8 @@ SIMDLIB_PARTIAL_ABI_COUNTS_64(double);
 [[nodiscard]] constexpr native_type normalize_partial(native_type value) noexcept
 {
 	constexpr std::size_t active_lanes = SIMDLIB_PARTIAL_ABI_WIDTH == 256 ? 5 : 3;
-	constexpr auto filter = [] {
+	constexpr auto filter = []
+	{
 		std::array<float, api_type::element_count> lanes{};
 		constexpr auto true_bits = std::array<std::byte, sizeof(float)>{std::byte{0xff}, std::byte{0xff}, std::byte{0xff}, std::byte{0xff}};
 		for (std::size_t lane = 0; lane < active_lanes; ++lane)
@@ -136,8 +168,7 @@ SIMDLIB_PARTIAL_ABI_NOINLINE native_type SIMD_FLAGS(InOut) simdlib_partial_abi_o
 }
 
 /** @brief Raw native mirror for register-pressure handling. */
-SIMDLIB_PARTIAL_ABI_NOINLINE native_type SIMD_FLAGS(InOut) simdlib_partial_abi_pressure(
-	native_type a, native_type b, native_type c, native_type d) noexcept
+SIMDLIB_PARTIAL_ABI_NOINLINE native_type SIMD_FLAGS(InOut) simdlib_partial_abi_pressure(native_type a, native_type b, native_type c, native_type d) noexcept
 {
 	return api_type::multiply(api_type::add(a, b), normalize_partial(api_type::subtract(c, d)));
 }

@@ -157,8 +157,8 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 			else
 			{
 				using byte_api = Api<register_width, std::uint8_t>;
-				const auto bytes = byte_api::template load_partial<byte_count_half>(std::span<const std::uint8_t>{
-					reinterpret_cast<const std::uint8_t *>(data.data()), byte_count_half});
+				const auto bytes = byte_api::template load_partial<byte_count_half>(
+					std::span<const std::uint8_t>{reinterpret_cast<const std::uint8_t *>(data.data()), byte_count_half});
 				return byte_api::template bit_cast<element_t>(bytes);
 			}
 		}
@@ -182,7 +182,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 		if (!std::is_constant_evaluated())
 		{
 			SIMDLIB_PRECONDITION(reinterpret_cast<std::uintptr_t>(data.data()) % byte_count == 0,
-				"Aligned partial SIMD load requires register-width alignment");
+								 "Aligned partial SIMD load requires register-width alignment");
 		}
 		if constexpr (active_count == element_count)
 			return impl::load(data.data());
@@ -195,8 +195,8 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 			else
 			{
 				using byte_api = Api<register_width, std::uint8_t>;
-				const auto bytes = byte_api::template load_partial_aligned<byte_count_half>(std::span<const std::uint8_t>{
-					reinterpret_cast<const std::uint8_t *>(data.data()), byte_count_half});
+				const auto bytes = byte_api::template load_partial_aligned<byte_count_half>(
+					std::span<const std::uint8_t>{reinterpret_cast<const std::uint8_t *>(data.data()), byte_count_half});
 				return byte_api::template bit_cast<element_t>(bytes);
 			}
 		}
@@ -215,8 +215,8 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	{
 		SIMDLIB_PRECONDITION(data.size() >= active_byte_count, "Data span must contain at least the requested active byte count");
 		using byte_api = Api<register_width, std::uint8_t>;
-		const auto bytes = byte_api::template load_partial<active_byte_count>(
-			std::span<const std::uint8_t>{reinterpret_cast<const std::uint8_t *>(data.data()), data.size()});
+		const auto bytes =
+			byte_api::template load_partial<active_byte_count>(std::span<const std::uint8_t>{reinterpret_cast<const std::uint8_t *>(data.data()), data.size()});
 		return byte_api::template bit_cast<element_t>(bytes);
 	}
 
@@ -293,8 +293,8 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 			{
 				using byte_api = Api<register_width, std::uint8_t>;
 				const auto bytes = Api::template bit_cast<std::uint8_t>(vector);
-				byte_api::template store_partial<byte_count_half>(bytes, std::span<std::uint8_t>{
-					reinterpret_cast<std::uint8_t *>(data.data()), byte_count_half});
+				byte_api::template store_partial<byte_count_half>(bytes,
+																  std::span<std::uint8_t>{reinterpret_cast<std::uint8_t *>(data.data()), byte_count_half});
 			}
 			else
 			{
@@ -317,7 +317,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 		if (!std::is_constant_evaluated())
 		{
 			SIMDLIB_PRECONDITION(reinterpret_cast<std::uintptr_t>(data.data()) % byte_count == 0,
-				"Aligned partial SIMD store requires register-width alignment");
+								 "Aligned partial SIMD store requires register-width alignment");
 		}
 		if constexpr (active_count == element_count)
 			impl::store(vector, data.data());
@@ -329,8 +329,8 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 		{
 			using byte_api = Api<register_width, std::uint8_t>;
 			const auto bytes = Api::template bit_cast<std::uint8_t>(vector);
-			byte_api::template store_partial_aligned<byte_count_half>(bytes, std::span<std::uint8_t>{
-				reinterpret_cast<std::uint8_t *>(data.data()), byte_count_half});
+			byte_api::template store_partial_aligned<byte_count_half>(bytes,
+																	  std::span<std::uint8_t>{reinterpret_cast<std::uint8_t *>(data.data()), byte_count_half});
 		}
 		else
 			store_partial<active_count>(vector, data);
@@ -348,8 +348,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 		SIMDLIB_PRECONDITION(data.size() >= active_byte_count, "Data span must contain at least the requested active byte count");
 		using byte_api = Api<register_width, std::uint8_t>;
 		const auto bytes = Api::template bit_cast<std::uint8_t>(vector);
-		byte_api::template store_partial<active_byte_count>(
-			bytes, std::span<std::uint8_t>{reinterpret_cast<std::uint8_t *>(data.data()), data.size()});
+		byte_api::template store_partial<active_byte_count>(bytes, std::span<std::uint8_t>{reinterpret_cast<std::uint8_t *>(data.data()), data.size()});
 	}
 
 	/** @brief Stores a SIMD register into a raw byte span.
@@ -391,8 +390,7 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	 *  @return Array containing exactly the requested leading lanes.
 	 */
 	template <std::size_t active_count>
-	[[nodiscard]] constexpr static std::array<element_t, active_count> SIMD_FLAGS(In, ForceInline, Flatten)
-		to_array_partial(const vector_t vector) noexcept
+	[[nodiscard]] constexpr static std::array<element_t, active_count> SIMD_FLAGS(In, ForceInline, Flatten) to_array_partial(const vector_t vector) noexcept
 		requires(active_count <= element_count)
 	{
 		if (std::is_constant_evaluated())
@@ -460,7 +458,6 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	}
 
   public:
-
 	/** @brief Constructs a register from lane values in native argument order.
 	 *  @tparam Args Argument pack matching the register lane count.
 	 *  @param args Lane values in native intrinsic order.

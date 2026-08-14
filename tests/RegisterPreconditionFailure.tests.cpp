@@ -32,8 +32,8 @@ inline constexpr int register_precondition_failure_exit_code = 74;
 			fail_register_precondition(message);                                                                                                               \
 	} while (false)
 
-#include <SimdLib/Register.h>
 #include <SimdLib/PartialRegister.h>
+#include <SimdLib/Register.h>
 
 #undef SIMDLIB_PRECONDITION
 

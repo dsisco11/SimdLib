@@ -133,8 +133,7 @@ template <std::size_t Width, class Element> [[nodiscard]] consteval bool constru
 	if (simd::to_array(partial) != partialExpected || simd::to_array(alignedPartial) != partialExpected ||
 		simd::template to_array_partial<simd::element_count - 1>(partial) !=
 			[]<std::size_t... indices>(const auto &source, std::index_sequence<indices...>) constexpr noexcept
-			{ return std::array<Element, sizeof...(indices)>{source[indices]...}; }(
-				values, std::make_index_sequence<simd::element_count - 1>{}))
+			{ return std::array<Element, sizeof...(indices)>{source[indices]...}; }(values, std::make_index_sequence<simd::element_count - 1>{}))
 		return false;
 	std::array<Element, simd::element_count> partialStored{};
 	partialStored.fill(static_cast<Element>(99));

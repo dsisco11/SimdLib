@@ -50,27 +50,22 @@ concept SetReversePartial = Type<api_t> && requires(lane_types &&...lanes) { api
 
 /** @brief Reports whether an API exposes scalar broadcast into an exact active-prefix lane count. */
 template <class api_t, std::size_t lane_count>
-concept BroadcastPartial = Type<api_t> && requires(typename api_t::element_type value) {
-	api_t::template broadcast_partial<lane_count>(value);
-};
+concept BroadcastPartial = Type<api_t> && requires(typename api_t::element_type value) { api_t::template broadcast_partial<lane_count>(value); };
 
 /** @brief Reports whether an API exposes exact-prefix element loading. */
 template <class api_t, std::size_t active_count>
-concept LoadPartial = Type<api_t> && requires(std::span<const typename api_t::element_type, active_count> source) {
-	api_t::template load_partial<active_count>(source);
-};
+concept LoadPartial =
+	Type<api_t> && requires(std::span<const typename api_t::element_type, active_count> source) { api_t::template load_partial<active_count>(source); };
 
 /** @brief Reports whether an API exposes aligned exact-prefix element loading. */
 template <class api_t, std::size_t active_count>
-concept LoadPartialAligned = Type<api_t> && requires(std::span<const typename api_t::element_type, active_count> source) {
-	api_t::template load_partial_aligned<active_count>(source);
-};
+concept LoadPartialAligned =
+	Type<api_t> && requires(std::span<const typename api_t::element_type, active_count> source) { api_t::template load_partial_aligned<active_count>(source); };
 
 /** @brief Reports whether an API exposes exact-prefix byte loading. */
 template <class api_t, std::size_t active_byte_count>
-concept LoadBytesPartial = Type<api_t> && requires(std::span<const std::byte, active_byte_count> source) {
-	api_t::template load_bytes_partial<active_byte_count>(source);
-};
+concept LoadBytesPartial =
+	Type<api_t> && requires(std::span<const std::byte, active_byte_count> source) { api_t::template load_bytes_partial<active_byte_count>(source); };
 
 /** @brief Reports whether an API exposes exact-prefix element storage. */
 template <class api_t, std::size_t active_count>
@@ -80,10 +75,9 @@ concept StorePartial = Type<api_t> && requires(typename api_t::vector_t value, s
 
 /** @brief Reports whether an API exposes aligned exact-prefix element storage. */
 template <class api_t, std::size_t active_count>
-concept StorePartialAligned =
-	Type<api_t> && requires(typename api_t::vector_t value, std::span<typename api_t::element_type, active_count> destination) {
-		api_t::template store_partial_aligned<active_count>(value, destination);
-	};
+concept StorePartialAligned = Type<api_t> && requires(typename api_t::vector_t value, std::span<typename api_t::element_type, active_count> destination) {
+	api_t::template store_partial_aligned<active_count>(value, destination);
+};
 
 /** @brief Reports whether an API exposes exact-prefix byte storage. */
 template <class api_t, std::size_t active_byte_count>
@@ -103,9 +97,8 @@ concept Extract = Type<api_t> && requires(typename api_t::vector_t value) { api_
 
 /** @brief Reports whether an API exposes compile-time-selected lane insertion. */
 template <class api_t, std::size_t index>
-concept Insert = Type<api_t> && requires(typename api_t::vector_t value, typename api_t::element_type replacement) {
-	api_t::template insert<index>(value, replacement);
-};
+concept Insert =
+	Type<api_t> && requires(typename api_t::vector_t value, typename api_t::element_type replacement) { api_t::template insert<index>(value, replacement); };
 
 /** @brief Identifies a valid widening destination API shape. */
 template <class api_t>
@@ -254,9 +247,7 @@ concept BitwiseNot = Type<api_t> && requires(typename api_t::vector_t value) { a
 
 /** @brief Reports whether an API exposes complemented-left bitwise intersection. */
 template <class api_t>
-concept BitwiseAndNot = Type<api_t> && requires(typename api_t::vector_t lhs, typename api_t::vector_t rhs) {
-	api_t::bitwise_andnot(lhs, rhs);
-};
+concept BitwiseAndNot = Type<api_t> && requires(typename api_t::vector_t lhs, typename api_t::vector_t rhs) { api_t::bitwise_andnot(lhs, rhs); };
 
 /** @brief Reports whether an API exposes its native-granularity sign-bit mask. */
 template <class api_t>
@@ -274,33 +265,23 @@ concept MovemaskSlim = Type<api_t> && requires(typename api_t::vector_t value) {
 
 /** @brief Reports whether an API exposes ordered per-lane equality comparison. */
 template <class api_t>
-concept CompareEqual = Type<api_t> && requires(typename api_t::vector_t lhs, typename api_t::vector_t rhs) {
-	api_t::compare_equal(lhs, rhs);
-};
+concept CompareEqual = Type<api_t> && requires(typename api_t::vector_t lhs, typename api_t::vector_t rhs) { api_t::compare_equal(lhs, rhs); };
 
 /** @brief Reports whether an API exposes ordered per-lane greater-than comparison. */
 template <class api_t>
-concept CompareGreater = Type<api_t> && requires(typename api_t::vector_t lhs, typename api_t::vector_t rhs) {
-	api_t::compare_greater(lhs, rhs);
-};
+concept CompareGreater = Type<api_t> && requires(typename api_t::vector_t lhs, typename api_t::vector_t rhs) { api_t::compare_greater(lhs, rhs); };
 
 /** @brief Reports whether an API exposes ordered per-lane greater-than-or-equal comparison. */
 template <class api_t>
-concept CompareGreaterEqual = Type<api_t> && requires(typename api_t::vector_t lhs, typename api_t::vector_t rhs) {
-	api_t::compare_greater_equal(lhs, rhs);
-};
+concept CompareGreaterEqual = Type<api_t> && requires(typename api_t::vector_t lhs, typename api_t::vector_t rhs) { api_t::compare_greater_equal(lhs, rhs); };
 
 /** @brief Reports whether an API exposes ordered per-lane less-than comparison. */
 template <class api_t>
-concept CompareLess = Type<api_t> && requires(typename api_t::vector_t lhs, typename api_t::vector_t rhs) {
-	api_t::compare_less(lhs, rhs);
-};
+concept CompareLess = Type<api_t> && requires(typename api_t::vector_t lhs, typename api_t::vector_t rhs) { api_t::compare_less(lhs, rhs); };
 
 /** @brief Reports whether an API exposes ordered per-lane less-than-or-equal comparison. */
 template <class api_t>
-concept CompareLessEqual = Type<api_t> && requires(typename api_t::vector_t lhs, typename api_t::vector_t rhs) {
-	api_t::compare_less_equal(lhs, rhs);
-};
+concept CompareLessEqual = Type<api_t> && requires(typename api_t::vector_t lhs, typename api_t::vector_t rhs) { api_t::compare_less_equal(lhs, rhs); };
 
 /** @brief Reports whether an API exposes per-lane left shift. */
 template <class api_t>

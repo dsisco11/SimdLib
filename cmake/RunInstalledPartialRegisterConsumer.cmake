@@ -19,6 +19,9 @@ set(configure_command
 	-B "${SIMDLIB_CONSUMER_BINARY_DIR}"
 	-G "${SIMDLIB_GENERATOR}"
 	"-DCMAKE_CXX_COMPILER=${SIMDLIB_CXX_COMPILER}"
+	"-DCMAKE_CXX_FLAGS=${SIMDLIB_CXX_FLAGS}"
+	"-DCMAKE_EXE_LINKER_FLAGS=${SIMDLIB_EXE_LINKER_FLAGS}"
+	"-DCMAKE_CXX_SCAN_FOR_MODULES=${SIMDLIB_CXX_SCAN_FOR_MODULES}"
 	"-DCMAKE_PREFIX_PATH=${SIMDLIB_INSTALL_PREFIX}"
 	"-DSIMDLIB_FORBIDDEN_INCLUDE_DIR=${SIMDLIB_SOURCE_DIR}/include")
 if(DEFINED SIMDLIB_GENERATOR_PLATFORM AND NOT SIMDLIB_GENERATOR_PLATFORM STREQUAL "")
@@ -41,14 +44,4 @@ execute_process(
 	RESULT_VARIABLE build_result)
 if(NOT build_result EQUAL 0)
 	message(FATAL_ERROR "Building the installed SimdLib consumer failed: ${build_result}")
-endif()
-
-execute_process(
-	COMMAND "${SIMDLIB_CMAKE_COMMAND}" -E env
-		"CTEST_OUTPUT_ON_FAILURE=1"
-		"${SIMDLIB_CTEST_COMMAND}" --test-dir "${SIMDLIB_CONSUMER_BINARY_DIR}"
-		-C "${SIMDLIB_CONFIG}" --output-on-failure
-	RESULT_VARIABLE test_result)
-if(NOT test_result EQUAL 0)
-	message(FATAL_ERROR "Running the installed SimdLib consumer failed: ${test_result}")
 endif()

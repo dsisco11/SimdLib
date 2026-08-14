@@ -239,19 +239,19 @@ PartialRegister Implementation Plan:
     ☒ Run strict Release generated-code gates before using benchmark results to make performance claims.
 
   Phase 10 - Documentation, Full Validation, and Cleanup:
-    ☐ Add a PartialRegister design and qualification document that records the approved contract, operation ledger, result-type rules, invariant-preservation strategies, compiler matrix, and accepted generated-code exceptions.
-    ☐ Update the public namespace and technical-reference documentation with the distinction among Register, PartialRegister, SimdVector, and collection-level tail handling.
-    ☐ Document representative construction, arithmetic, comparison, rearrangement, conversion, and store workflows using only public APIs.
-    ☐ Update the Register proposal and operation matrix only where they must route readers to the new sibling type; do not weaken the complete-register contract.
-    ☐ Run formatting and static analysis over every added or modified production and test source.
-    ☐ Run focused PartialRegister runtime, constexpr, compile-failure, header, ODR, consumer, ABI, and generated-code tests for every supported native compiler and ISA cell.
-    ☐ Run the complete native MSVC and clang-cl build/test matrix.
-    ☐ Run the complete pinned GCC and Clang container build/test matrix, including sanitizer coverage.
-    ☐ Build and run supplemental benchmarks after all strict correctness and generated-code gates pass.
-    ☐ Verify the installed-package consumer boundary and inspect the installed header set.
-    ☐ Audit every copied Register declaration against the operation ledger and verify no complete-register wording, lane extent, mask assumption, result type, or unsafe construction path remains unintentionally.
-    ☐ Search for stale temporary names, unregistered tests, unowned generated-code symbols, and references that incorrectly describe PartialRegister as a Register subclass.
-    ☐ Run repository validation tooling and `git diff --check`.
-    ☐ Preserve unrelated worktree and index state; do not stash or commit changes as part of checklist execution.
-    ☐ Record exact compiler versions, commands, test counts, generated-code results, benchmark artifact paths, sanitizer results, package evidence, and any justified remaining limitations in the qualification document.
-    ☐ Complete this checklist only when every supported operation has an approved ledger entry, direct active-lane behavior evidence, direct inactive-lane invariant evidence, and all required validation cells are green.
+    ☒ Add a PartialRegister design and qualification document that records the approved contract, operation ledger, result-type rules, invariant-preservation strategies, compiler matrix, and accepted generated-code exceptions.
+    ☒ Update the public namespace and technical-reference documentation with the distinction among Register, PartialRegister, SimdVector, and collection-level tail handling.
+    ☒ Document representative construction, arithmetic, comparison, rearrangement, conversion, and store workflows using only public APIs.
+    ☒ Update the Register proposal and operation matrix only where they must route readers to the new sibling type; do not weaken the complete-register contract.
+    ☒ Run formatting and static analysis over every added or modified production and test source.
+    ☒ Run focused PartialRegister runtime, constexpr, compile-failure, header, ODR, consumer, ABI, and generated-code tests for every supported native compiler and ISA cell.
+    ☒ Run the complete native MSVC and clang-cl build/test matrix.
+    ☒ Run the complete pinned GCC and Clang container build/test matrix, including sanitizer coverage.
+    ☒ Build and run supplemental benchmarks after all strict correctness and generated-code gates pass.
+    ☒ Verify the installed-package consumer boundary and inspect the installed header set.
+    ☒ Audit every copied Register declaration against the operation ledger and verify no complete-register wording, lane extent, mask assumption, result type, or unsafe construction path remains unintentionally.
+    ☒ Search for stale temporary names, unregistered tests, unowned generated-code symbols, and references that incorrectly describe PartialRegister as a Register subclass.
+    ☒ Run repository validation tooling and `git diff --check`.
+    ☒ Preserve unrelated worktree and index state; do not stash or commit changes as part of checklist execution.
+    ☒ Record exact compiler versions, commands, test counts, generated-code results, benchmark artifact paths, sanitizer results, package evidence, and any justified remaining limitations in the qualification document.
+    ☒ Complete this checklist only when every supported operation has an approved ledger entry, direct active-lane behavior evidence, direct inactive-lane invariant evidence, and all required validation cells are green.

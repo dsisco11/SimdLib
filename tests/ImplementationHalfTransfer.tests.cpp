@@ -55,8 +55,7 @@ template <class element_t> [[nodiscard]] bool has_aligned_half_transfer_contract
 	destination.fill(canary);
 	mapping_t::store_half_aligned(loaded, destination.data());
 	return std::equal(source.begin(), source.begin() + half_count, destination.begin()) &&
-		   std::all_of(destination.begin() + half_count, destination.end(),
-			   [](element_t value) noexcept { return value == static_cast<element_t>(91); });
+		   std::all_of(destination.begin() + half_count, destination.end(), [](element_t value) noexcept { return value == static_cast<element_t>(91); });
 }
 
 using signed_byte_mapping = SimdLib::Detail::SimdMappings<SIMDLIB_IMPLEMENTATION_HALF_TRANSFER_TEST_WIDTH, std::int8_t>;

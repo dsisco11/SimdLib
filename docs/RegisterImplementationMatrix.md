@@ -77,7 +77,7 @@ These portability rules do not change a public declaration.
 
 | Excluded surface | Classification | Reason |
 | --- | --- | --- |
-| Partial load/store or lane construction | Higher-level responsibility | Register has no inactive lanes or fill policy |
+| Partial load/store or lane construction | Sibling-type responsibility | Register has no inactive lanes or fill policy; fixed compile-time prefixes use `PartialRegister`, while dynamic tails remain collection-owned |
 | Dynamic-extent `load_unsafe` | `Api` compatibility-only | Its precondition is unsuitable for the restrictive value type |
 | Native-order `set` | `Api` compatibility-only | Public lane order is logical low-to-high |
 | Implicit scalar broadcast | Excluded | Broadcast cost and intent remain explicit |
@@ -113,7 +113,7 @@ the operation or intentionally leaves it in a compatibility or collection layer.
 | `load` | `Register::load(fixed_span)` | Implemented |
 | `load_aligned` | `Register::load_aligned(fixed_span)` | Implemented |
 | `load_unaligned` | Canonicalized to `Register::load(fixed_span)` | Implemented |
-| `load_partial` | No Register operation | Compatibility |
+| `load_partial` | No Register operation; fixed-prefix consumers use `PartialRegister::load` | Compatibility and sibling routing |
 | `load_unsafe` | No Register operation | Compatibility |
 | Element `store` | `value.store(fixed_span)` | Implemented |
 | `store_aligned` | `value.store_aligned(fixed_span)` | Implemented |
@@ -126,7 +126,7 @@ the operation or intentionally leaves it in a compatibility or collection layer.
 | `setzero` | Default construction and `Register::zero()` | Implemented |
 | `set1` | `Register::broadcast(value)` | Implemented |
 | `setr` | `Register::from_lanes(...)` | Implemented |
-| `set`, `set_partial`, `setr_partial` | No Register operation | Compatibility |
+| `set`, `set_partial`, `setr_partial` | No Register operation; fixed-prefix consumers use `PartialRegister::from_lanes` or `from_array` | Compatibility and sibling routing |
 | `add` | `lhs + rhs` | Implemented |
 | `subtract` | `lhs - rhs` | Implemented |
 | `multiply` | `lhs * rhs` | Implemented |
@@ -289,9 +289,9 @@ compile-time audit; no prose-only availability list can drift independently.
 | C++20 core | GCC 13.2 | Linux x64; Debug and Release | Existing full public matrix remains supported; Register unavailable |
 | C++20 core sanitizer | Clang 22.1.8 | Linux x64 Debug, `-O1`, ASan/UBSan, frame pointers | No sanitizer diagnostics |
 | Register | MSVC 19.44 | Windows x64, `/std:c++latest`; supported ISA profiles | SSE4.2 diagnostics and strict AVX2 gates; memory-writing fixtures retain `/GS` and the exact documented exception |
-| Register | clang-cl 20.1.8 | Windows x64, C++23; supported ISA profiles | SSE4.2 diagnostics and strict AVX2 correctness, ABI, and generated-code gates |
-| Register | Clang 22.1.8 | Linux x64, C++23; supported ISA profiles | SSE4.2 diagnostics and strict AVX2 correctness, ABI, and generated-code gates |
-| Register | GCC 14 or newer | Linux x64, C++23; supported ISA profiles | SSE4.2 diagnostics and strict AVX2 correctness, ABI, and generated-code gates |
+| Register and PartialRegister | clang-cl 22 or newer | Windows x64, C++23; supported ISA profiles | Strict SSE4.2 and AVX2 correctness, ABI, and generated-code gates |
+| Register and PartialRegister | Clang 22 or newer | Linux x64, C++23; supported ISA profiles | Strict SSE4.2 and AVX2 correctness, ABI, and generated-code gates |
+| Register and PartialRegister | GCC 14 or newer | Linux x64, C++23; supported ISA profiles | Strict SSE4.2 and AVX2 correctness, ABI, and generated-code gates |
 
 Linux x64 GCC 13.2 remains the required unavailable-interface probe; it is not
 a Register compiler. A Register compiler floor is lowered or expanded only after

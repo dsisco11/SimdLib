@@ -1,0 +1,282 @@
+# PartialRegister design and qualification
+
+## Scope
+
+This document is the durable design and qualification record for
+`PartialRegister<element_t, register_width, active_lane_count>` and
+`PartialRegisterMask`. The declaration-level contract is maintained in
+[PartialRegisterOperationLedger.md](PartialRegisterOperationLedger.md). The
+generated-code ownership inventory and accepted differences are maintained in
+[PartialRegisterCodegenAudit.md](PartialRegisterCodegenAudit.md) and
+[PartialRegisterCodegenSymbolAudit.csv](PartialRegisterCodegenSymbolAudit.csv).
+
+Individual compiler runs remain generated artifacts under `out/pipeline`; the
+execution record below identifies the exact artifacts used for the current
+qualification without treating generated files as source-controlled truth.
+
+## Approved contract
+
+`PartialRegister` is an independent, final, standard-layout aggregate. It does
+not derive from `Register`. Each specialization stores exactly one
+`Api<register_width, element_t>::vector_t`, with no base class, allocation,
+runtime lane count, proxy, or second register. The compile-time active lanes
+form one contiguous low-lane prefix. Every inactive lane has the all-bits-zero
+representation, including positive zero for floating-point elements.
+
+A specialization is available when the corresponding Register cell exists,
+the active count is nonzero and strictly less than the native lane count, and a
+256-bit active payload crosses the 128-bit-group boundary. The last restriction
+avoids representing a wholly low-half value with an unnecessarily 256-bit
+partial type. `Register` remains the preferred spelling when every native lane
+is active.
+
+Public element and byte transfers use the logical active extent. Native imports
+through `from_native()` and `from_register()` sanitize the inactive suffix;
+`to_native()` and `to_register()` expose a known-clean value. Direct aggregate
+initialization retains the documented precondition that the supplied native
+value is already clean, and checked observation boundaries validate it.
+
+## Result and invariant rules
+
+Every operation is classified in the operation ledger. The implementation uses
+five strategies:
+
+| Strategy | Rule |
+| --- | --- |
+| Clean | Construct directly from an `Api` result proven to map zero inactive inputs to zero inactive outputs. |
+| Project | Clear the inactive suffix after an operation that can populate it. |
+| Neutralize | Replace inactive inputs with safe neutral values before the `Api` call, then project the result. |
+| Logical | Observe or move only the active prefix and never expose inactive lanes. |
+| Re-map | Return the documented partial or complete target type for a changed lane geometry. |
+
+Lane-preserving operations return the same specialization unless the ledger
+documents another result. Comparisons return `PartialRegisterMask`; mask
+reductions inspect active lanes only. Bit casts preserve active bits, numeric
+conversions preserve meaningful source lanes, and widening consumes the
+documented low source prefix. A derived result uses `Register` when it fills the
+destination register or when the hardware result layout is sparse rather than a
+contiguous prefix. In particular, 256-bit 64-bit adjacent multiply-add results
+retain their sparse physical lanes in a complete `Register`.
+
+Division and modulus neutralize inactive divisors so padding cannot trigger a
+precondition failure. Logical byte and bit shifts operate over the active
+payload. Rearrangements constrain selectors to the active logical domain and
+project any suffix that could be populated. Scalar reductions, equality, and
+position operations ignore inactive lanes.
+
+## Public usage
+
+Construction, arithmetic, comparison, selection, rearrangement, conversion,
+and logical-extent storage can be composed without naming `Api`, `native`, or
+`Detail`:
+
+```cpp
+#include <SimdLib/PartialRegister.h>
+
+#include <array>
+#include <cstdint>
+
+using Tail = SimdLib::PartialRegister<std::uint32_t, 128, 3>;
+
+const auto source = Tail::from_array(std::array<std::uint32_t, 3>{10, 20, 30});
+const auto sum = source + Tail::broadcast(5);
+const auto selected = sum.compare_less(Tail::broadcast(30))
+                          .select(sum, Tail::zero());
+const auto reordered = selected.shuffle<2, 0, 1>();
+const auto floats = reordered.convert<float>();
+const auto bits = floats.bit_cast<std::uint32_t>();
+
+std::array<std::uint32_t, 3> destination{};
+bits.store(destination);
+```
+
+Widening has its own result geometry:
+
+```cpp
+using Source = SimdLib::PartialRegister<std::uint16_t, 128, 7>;
+const auto widened = Source::from_lanes(1, 2, 3, 4, 5, 6, 7)
+                         .widen_low<std::uint32_t, 128>();
+```
+
+The technical reference distinguishes this fixed active-prefix value from a
+complete `Register`, a fixed logical `SimdVector`, and collection-owned dynamic
+tail handling.
+
+## Supported matrix
+
+| Dimension | Qualified cells |
+| --- | --- |
+| Architecture | x86-64 |
+| Width and ISA | 128-bit under SSE4.2; 256-bit additionally under AVX2 |
+| Elements | Signed and unsigned 8-, 16-, 32-, and 64-bit integers; `float`; `double` |
+| Windows | MSVC 19.44 and clang-cl 22, C++23 register interface |
+| Linux | GCC 14.2 and Clang 22.1 on pinned Alpine/musl images |
+| Core-only compatibility | GCC 13.2 compiles the C++20 umbrella with the register interface unavailable |
+| Sanitizers | Clang 22 Debug with ASan and UBSan |
+| Optimized code generation | Release wrapper/raw enforcement for every supported register compiler and both ISA profiles |
+
+The exact observed patch versions and executable identities belong to the
+execution record. Compiler floors are changed only after the complete
+correctness, package, ABI, and generated-code matrix passes.
+
+## Evidence ownership
+
+| Contract area | Direct active-lane evidence | Direct inactive-lane evidence | Additional owner |
+| --- | --- | --- | --- |
+| Construction, transfers, observations | PartialRegister runtime matrix, canaries, compile-failure extents | Bitwise suffix checks for every supported geometry | Header, ODR, and installed consumer probes |
+| Arithmetic and reductions | Independent scalar-oracle arithmetic and specialized suites | Suffix checks and neutral-divisor checks | Checks-enabled precondition executable |
+| Bitwise, shifts, and comparisons | Runtime and constexpr operation matrices | NOT, shifts, predicates, and selection explicitly verify zero/false suffixes | PartialRegisterMask generated-code record |
+| Rearrangement and conversion | Exhaustive selectors and source/target matrices | Result suffix checked for every supported result geometry | General generated-code record |
+| Object model and ABI | Layout matrix and 64 paired boundary symbols per ISA profile | Imports sanitize and checked boundaries validate | ABI wrapper/raw record |
+| Performance-sensitive expressions | Behavioral suites remain authoritative | Raw mirrors perform identical required invariant work | Per-symbol codegen CSV, records, and instruction-difference sidecars |
+
+Compile-time surface matrices compare the complete applicable Register surface
+with the partial sibling and then apply the ledger's partial-only extent and
+result constraints. The generated-code CSV assigns each emitted symbol to one
+fixture, raw mirror, comparison record, validator, and documented rationale.
+
+## Generated-code exception policy
+
+Every optimized comparison runs in `ENFORCE` mode. Exact parity is preferred.
+A compiler-specific difference is accepted only when the complete normalized
+wrapper and raw profiles match pinned SHA-256 values. Each accepted record owns
+the compiler identity and version, ISA profile, symbol mapping,
+`instruction-differences.txt`, reason identifier, and validation test. A changed
+instruction, symbol set, or profile hash fails the build rather than silently
+refreshing the exception.
+
+The current reason identifiers and their exact affected symbols are recorded in
+the codegen audit. MSVC accepts pinned equivalent vector-move, mask
+materialization, register-allocation, invariant-normalization, and `/GS` cookie
+sequences. Clang-family exceptions are limited to pinned commutative operand
+selection and scalar division scheduling. No blanket record-only optimized cell
+is part of the qualification.
+
+## Validation procedure
+
+The final tree is validated in this order:
+
+1. Run repository tooling validation and the public-consumer boundary check.
+2. Run formatting and static analysis over every changed C++ production, test,
+   code-generation, example, and benchmark source.
+3. Build and test the complete native MSVC, clang-cl, and coverage selection.
+4. Build and test the pinned GCC 13, GCC 14, Clang 22, and Clang 22 ASan/UBSan
+   container selection.
+5. Inspect the installed header set and downstream PartialRegister consumer.
+6. Build and run supplemental benchmarks only after every correctness and
+   strict generated-code gate is green.
+7. Run final tooling validation, ownership/stale-reference audits, and
+   `git diff --check`.
+
+The canonical commands are repository wrappers documented in
+[BuildPipeline.md](BuildPipeline.md) and [ContainerValidation.md](ContainerValidation.md).
+Test operations consume source-bound build receipts and reject stale artifacts;
+benchmark operations similarly require completed validation and benchmark-build
+manifests.
+
+## Qualification execution record
+
+The qualified source digest is
+`f95d3d754dd4eb4b1455beed169a88861e2ae9f852bb34946abcfefafe46f7a1`.
+The repository wrappers were invoked with PowerShell array binding:
+
+```powershell
+& './tools/Build.ps1' -Scope Native -Compiler @('Msvc', 'ClangCl', 'ClangCoverage')
+& './tools/Run-Tests.ps1' -Scope Native -Compiler @('Msvc', 'ClangCl', 'ClangCoverage')
+& './tools/Build.ps1' -Scope Containers -Compiler @('Gcc13', 'Gcc14', 'Clang22')
+& './tools/Run-Tests.ps1' -Scope Containers -Compiler @('Gcc13', 'Gcc14', 'Clang22')
+```
+
+Both builds and both test operations exited successfully. Native build receipt
+`out/pipeline/provenance/build-b843ea241ca9693b.json` binds the qualified cell
+roots and manifests. Their `provenance/fingerprint.json`,
+`provenance/validation-build.manifest`, and `reports/main-test.xml` files record
+MSVC 19.44 (toolset 14.51.36252.0), clang-cl 22.1.8, and these results: MSVC
+Release 347/347 plus 2/2 consumer tests, MSVC Debug 278/278, clang-cl Release
+350/350 plus 2/2 consumer tests, and Clang coverage 320/320. Coverage mapped 318
+profiles to 25 executables with none excluded; its artifacts are
+`windows-clang-coverage/debug-coverage-e7e9b8a32e45e5fb/build/coverage.info`
+and `coverage-provenance.tsv` beneath `out/pipeline`.
+
+Container build receipt `out/pipeline/provenance/build-a127b3f977182090.json`
+binds the four qualified roots and manifests. Their
+`provenance/environment.txt`, `provenance/validation-build.manifest`, and
+`reports/main-test.xml` files record GCC 13.2.1, GCC 14.2.0, and Clang 22.1.3
+in the pinned Alpine images, with CMake 4.4.0. GCC 13 Release passed 232/232
+plus 1/1 consumer test; GCC 14 Release and Clang 22 Release each passed 350/350
+plus 2/2 consumers. Clang 22 Debug passed 320/320 under ASan and UBSan with no
+sanitizer or runtime-error diagnostic.
+
+Every GCC 14 and Clang 22 PartialRegister record is `exact-parity`, has no
+exception, and runs in `ENFORCE` mode. Clang-cl has six exact records and four
+hash-pinned compiler exceptions. MSVC has ten hash-pinned compiler exceptions.
+All twenty Windows records and all twenty Linux records passed their owning
+validators; exact symbols and deltas remain in the sidecars described above.
+
+The installed-package build owns installation, downstream configuration, and
+downstream compilation; CTest only executes the two prebuilt consumers. The
+MSVC installed prefix contains 26 `SimdLib` public files and three CMake package
+files. It includes `PartialRegister.h`, `PartialRegisterFwd.h`,
+`PartialRegisterMask.h`, `IPartialRegisterMask.h`, `Aliases.h`, and the umbrella
+header. Installed-header ODR, installed-package PartialRegister consumption,
+and external consumers passed on the final tree.
+
+Clang-format 22.1.8 accepted all 73 changed C++ files. Clang-tidy parsed all 35
+changed translation units represented in the analysis compilation database;
+the remaining entries are intentional compile-failure fixtures or separately
+built consumers. Its warnings were reviewed: intrinsic portability,
+`#pragma once`, and Catch registration dominate; the remaining findings were
+intentional low-level semantics or harmless test-helper suggestions, with no
+confirmed defect. Both public documentation snippets compiled as C++23 with
+clang-cl `/W4 /WX` using only the public include directory. Evidence is under
+`out/qualification/partial-register-static-analysis`.
+
+The current tooling receipt is
+`out/pipeline/provenance/pipeline-validation-1822737a5dbb61cd.json`; it covers
+the 22-cell matrix, eight operations, and 46 public-consumer sources. The
+repository's digest cache reused that receipt when the validation, public
+consumer, matrix, and pipeline-regression commands all passed again after the
+benchmark executions. The post-benchmark `git diff --check` was also clean.
+Ownership,
+registration, stale-name, declaration/ledger, generated-symbol, and installed
+header audits found no unresolved discrepancy. Supplemental benchmark commands
+and artifacts are recorded below after the already-green correctness matrix.
+
+### Supplemental benchmark receipt
+
+After all validation cells passed, these commands both exited successfully:
+
+```powershell
+& './tools/Build-Benchmarks.ps1' -Scope All
+& './tools/Run-Benchmarks.ps1' -Scope All
+```
+
+Complete `benchmark-build.manifest` files and
+`reports/benchmark-execution.txt` artifacts exist in the MSVC, clang-cl,
+GCC 13, GCC 14, and Clang 22 Release roots. GCC 13 is intentionally core-only
+and has no PartialRegister cases. The other four artifacts contain seven
+PartialRegister measurements with 25 samples each. Means in nanoseconds are:
+
+| Compiler | 128 add | Raw 128 add | 256 add | Raw 256 add | 256 divide | Compare/select | Shuffle |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| MSVC 19.44 | 0.435451 | 1.18814 | 1.62896 | 0.914979 | 9.70701 | 2.24395 | 0.425957 |
+| clang-cl 22.1.8 | 0.462351 | 0.275849 | 0.354168 | 0.348874 | 6.57357 | 0.431666 | 0.316893 |
+| GCC 14.2 | 0.290716 | 0.295982 | 0.344326 | 0.366258 | 9.61257 | 0.487729 | 0.236518 |
+| Clang 22.1.3 | 0.322882 | 0.345057 | 0.307846 | 0.415625 | 6.03566 | 0.623137 | 0.245278 |
+
+These single-host Catch2 microbenchmarks are supplemental. Sub-nanosecond rows,
+high-variance observations, and estimated zero-duration batches prevent stable
+absolute-latency or speedup claims. They are not performance thresholds and do
+not override the correctness or generated-code evidence.
+
+## Supported limitations
+
+- The public register-value interface requires the supported C++23 explicit-object
+  implementation; the core library remains C++20.
+- Only x86-64 SSE4.2 128-bit and AVX2 256-bit cells are qualified. AVX-512,
+  512-bit values, other architectures, and 32-bit targets are unsupported.
+- A 256-bit partial specialization must have active data in both 128-bit groups.
+- Dynamic collection tails remain owned by collection algorithms; the active
+  count of a `PartialRegister` is compile-time state.
+- Benchmarks are supplemental measurements with no pass/fail speed threshold and
+  never override correctness, sanitizer, ABI, or generated-code results.

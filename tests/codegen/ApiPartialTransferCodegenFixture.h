@@ -58,8 +58,7 @@ extern "C" [[nodiscard]] vector_t simdlib_api_partial_codegen_load_aligned(const
 extern "C" [[nodiscard]] vector_t simdlib_api_partial_codegen_load_aligned_full(const std::uint32_t *source) noexcept
 {
 #if SIMDLIB_CODEGEN_USE_API
-	return api_t::template load_partial_aligned<api_t::element_count>(
-		std::span<const std::uint32_t>{source, api_t::element_count});
+	return api_t::template load_partial_aligned<api_t::element_count>(std::span<const std::uint32_t>{source, api_t::element_count});
 #elif SIMDLIB_API_PARTIAL_CODEGEN_WIDTH == 128
 	return _mm_load_si128(reinterpret_cast<const __m128i *>(source));
 #else
@@ -107,8 +106,7 @@ extern "C" void simdlib_api_partial_codegen_store_aligned(vector_t value, std::u
 extern "C" void simdlib_api_partial_codegen_store_aligned_full(vector_t value, std::uint32_t *destination) noexcept
 {
 #if SIMDLIB_CODEGEN_USE_API
-	api_t::template store_partial_aligned<api_t::element_count>(
-		value, std::span<std::uint32_t>{destination, api_t::element_count});
+	api_t::template store_partial_aligned<api_t::element_count>(value, std::span<std::uint32_t>{destination, api_t::element_count});
 #elif SIMDLIB_API_PARTIAL_CODEGEN_WIDTH == 128
 	_mm_store_si128(reinterpret_cast<__m128i *>(destination), value);
 #else

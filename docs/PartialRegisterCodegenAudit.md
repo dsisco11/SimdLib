@@ -47,6 +47,11 @@ order in `multiply_add`. The value profile retains the same `add` distinction
 and the SSE `divide` scheduling distinction. General and ABI profiles require
 exact Clang parity.
 
+GCC raw mirrors preserve the wrapper's logical operand roles even when an
+operation is commutative. This avoids fixture-induced return moves or scheduling
+changes: GCC 14 requires exact parity for both arithmetic profiles rather than
+retaining differences caused only by reversed raw-fixture arguments.
+
 MSVC retains only the exact hashed profiles identified by these exception IDs:
 
 | Exception | Exact instruction categories |

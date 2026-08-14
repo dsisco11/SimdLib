@@ -20,7 +20,8 @@ using native_u16 = typename api_u16::vector_t;
 #endif
 
 /** @brief Compile-time active-lane filter shared by every raw normalization. */
-alignas(SIMDLIB_PARTIAL_GENERAL_CODEGEN_WIDTH / 8) constexpr auto active_lane_filter = [] {
+alignas(SIMDLIB_PARTIAL_GENERAL_CODEGEN_WIDTH / 8) constexpr auto active_lane_filter = []
+{
 	std::array<std::uint32_t, api_u32::element_count> result{};
 	for (std::size_t lane = 0; lane < active_lanes; ++lane)
 		result[lane] = ~std::uint32_t{};

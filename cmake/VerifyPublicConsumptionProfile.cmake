@@ -21,6 +21,7 @@ set(expected_smoke_targets
 set(expected_consumer_targets CoreConsumerSmoke)
 if(REGISTER_SUPPORTED)
     list(APPEND expected_smoke_targets
+		InstalledPackagePartialRegisterConsumerArtifacts
 		PartialRegisterOdrAvx2
 		PartialRegisterOdrSse42
         RegisterExamples

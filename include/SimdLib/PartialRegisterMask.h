@@ -109,21 +109,24 @@ class PartialRegisterMask final
 	}
 
 	/** @brief Computes the intersection of two partial predicates. */
-	[[nodiscard]] constexpr PartialRegisterMask SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) operator&(this PartialRegisterMask lhs, PartialRegisterMask rhs) noexcept
+	[[nodiscard]] constexpr PartialRegisterMask SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) operator&(this PartialRegisterMask lhs,
+																												PartialRegisterMask rhs) noexcept
 		requires IApi::BitwiseAnd<api_type>
 	{
 		return PartialRegisterMask{api_type::bitwise_and(lhs.to_native(), rhs.to_native())};
 	}
 
 	/** @brief Computes the union of two partial predicates. */
-	[[nodiscard]] constexpr PartialRegisterMask SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) operator|(this PartialRegisterMask lhs, PartialRegisterMask rhs) noexcept
+	[[nodiscard]] constexpr PartialRegisterMask SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) operator|(this PartialRegisterMask lhs,
+																												PartialRegisterMask rhs) noexcept
 		requires IApi::BitwiseOr<api_type>
 	{
 		return PartialRegisterMask{api_type::bitwise_or(lhs.to_native(), rhs.to_native())};
 	}
 
 	/** @brief Computes the exclusive union of two partial predicates. */
-	[[nodiscard]] constexpr PartialRegisterMask SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) operator^(this PartialRegisterMask lhs, PartialRegisterMask rhs) noexcept
+	[[nodiscard]] constexpr PartialRegisterMask SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) operator^(this PartialRegisterMask lhs,
+																												PartialRegisterMask rhs) noexcept
 		requires IApi::BitwiseXor<api_type>
 	{
 		return PartialRegisterMask{api_type::bitwise_xor(lhs.to_native(), rhs.to_native())};
@@ -141,7 +144,8 @@ class PartialRegisterMask final
 	constexpr static inline bits_type active_bits = (bits_type{1} << lane_count) - 1;
 
 	/** @brief Compile-time all-bits-one active prefix and all-bits-zero inactive suffix. */
-	constexpr static inline std::array<element_type, native_lane_count> active_lane_filter = []() constexpr {
+	constexpr static inline std::array<element_type, native_lane_count> active_lane_filter = []() constexpr
+	{
 		std::array<element_type, native_lane_count> result{};
 		std::array<std::byte, sizeof(element_type)> one_bytes{};
 		for (auto &byte : one_bytes)
@@ -209,7 +213,7 @@ class PartialRegisterMask final
 		if (validate_inactive)
 			for (std::size_t byte = lane_count * sizeof(element_type); byte < byte_count; ++byte)
 				SIMDLIB_PRECONDITION((zero_bits & (typename byte_api_type::mask_t{1} << byte)) != 0,
-					"PartialRegisterMask inactive lanes must have an all-bits-zero representation");
+									 "PartialRegisterMask inactive lanes must have an all-bits-zero representation");
 	}
 };
 

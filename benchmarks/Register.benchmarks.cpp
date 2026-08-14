@@ -1,5 +1,5 @@
-#include <SimdLib/Register.h>
 #include <SimdLib/PartialRegister.h>
+#include <SimdLib/Register.h>
 
 #include <catch2/benchmark/catch_benchmark.hpp>
 #include <catch2/catch_test_macros.hpp>
@@ -78,13 +78,34 @@ TEST_CASE("PartialRegister invariant-maintenance benchmarks", "[simdlib][benchma
 	const auto integer_lhs = integer_partial256::load(std::span<const std::uint32_t, integer_partial256::lane_count>{integer_lhs_lanes});
 	const auto integer_rhs = integer_partial256::load(std::span<const std::uint32_t, integer_partial256::lane_count>{integer_rhs_lanes});
 
-	BENCHMARK("PartialRegister 128-bit three-lane add") { return (lhs128 + rhs128).native; };
-	BENCHMARK("Raw Api 128-bit canonical three-lane add") { return partial128::api_type::add(lhs128.native, rhs128.native); };
-	BENCHMARK("PartialRegister 256-bit five-lane add") { return (lhs256 + rhs256).native; };
-	BENCHMARK("Raw Api 256-bit canonical five-lane add") { return partial256::api_type::add(lhs256.native, rhs256.native); };
-	BENCHMARK("PartialRegister 256-bit five-lane division") { return (integer_lhs / integer_rhs).native; };
-	BENCHMARK("PartialRegister 256-bit five-lane compare and select") { return lhs256.compare_greater(rhs256).select(lhs256, rhs256).native; };
-	BENCHMARK("PartialRegister 256-bit five-lane shuffle") { return lhs256.template shuffle<4, 3, 2, 1, 0>().native; };
+	BENCHMARK("PartialRegister 128-bit three-lane add")
+	{
+		return (lhs128 + rhs128).native;
+	};
+	BENCHMARK("Raw Api 128-bit canonical three-lane add")
+	{
+		return partial128::api_type::add(lhs128.native, rhs128.native);
+	};
+	BENCHMARK("PartialRegister 256-bit five-lane add")
+	{
+		return (lhs256 + rhs256).native;
+	};
+	BENCHMARK("Raw Api 256-bit canonical five-lane add")
+	{
+		return partial256::api_type::add(lhs256.native, rhs256.native);
+	};
+	BENCHMARK("PartialRegister 256-bit five-lane division")
+	{
+		return (integer_lhs / integer_rhs).native;
+	};
+	BENCHMARK("PartialRegister 256-bit five-lane compare and select")
+	{
+		return lhs256.compare_greater(rhs256).select(lhs256, rhs256).native;
+	};
+	BENCHMARK("PartialRegister 256-bit five-lane shuffle")
+	{
+		return lhs256.template shuffle<4, 3, 2, 1, 0>().native;
+	};
 }
 
 TEST_CASE("Register runtime-derived wrapper and raw benchmarks", "[simdlib][benchmark][register]")

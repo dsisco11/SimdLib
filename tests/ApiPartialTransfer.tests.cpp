@@ -40,8 +40,7 @@ template <class api_t, std::size_t active_count> [[nodiscard]] bool has_element_
 
 	std::array<element_t, api_t::element_count + 2> unaligned_source{};
 	std::copy(source.begin(), source.end(), unaligned_source.begin() + 1);
-	const auto loaded = api_t::template load_partial<active_count>(
-		std::span<const element_t>{unaligned_source.data() + 1, active_count});
+	const auto loaded = api_t::template load_partial<active_count>(std::span<const element_t>{unaligned_source.data() + 1, active_count});
 	const auto loaded_lanes = api_t::to_array(loaded);
 	for (std::size_t index = 0; index < active_count; ++index)
 		if (loaded_lanes[index] != source[index])
@@ -52,8 +51,8 @@ template <class api_t, std::size_t active_count> [[nodiscard]] bool has_element_
 
 	alignas(api_t::byte_count) std::array<element_t, api_t::element_count * 2> aligned_source{};
 	std::copy(source.begin(), source.end(), aligned_source.begin() + api_t::element_count);
-	const auto aligned_loaded = api_t::template load_partial_aligned<active_count>(
-		std::span<const element_t>{aligned_source.data() + api_t::element_count, active_count});
+	const auto aligned_loaded =
+		api_t::template load_partial_aligned<active_count>(std::span<const element_t>{aligned_source.data() + api_t::element_count, active_count});
 	if (api_t::to_array(aligned_loaded) != loaded_lanes)
 		return false;
 
@@ -65,16 +64,14 @@ template <class api_t, std::size_t active_count> [[nodiscard]] bool has_element_
 	std::array<element_t, active_count + 2> destination{};
 	destination.fill(canary);
 	api_t::template store_partial<active_count>(loaded, std::span<element_t>{destination.data() + 1, active_count});
-	if (destination.front() != canary || destination.back() != canary ||
-		!std::equal(source.begin(), source.begin() + active_count, destination.begin() + 1))
+	if (destination.front() != canary || destination.back() != canary || !std::equal(source.begin(), source.begin() + active_count, destination.begin() + 1))
 		return false;
 
 	alignas(api_t::byte_count) std::array<element_t, api_t::element_count * 2 + 1> aligned_destination{};
 	aligned_destination.fill(canary);
-	api_t::template store_partial_aligned<active_count>(
-		loaded, std::span<element_t>{aligned_destination.data() + api_t::element_count, active_count});
+	api_t::template store_partial_aligned<active_count>(loaded, std::span<element_t>{aligned_destination.data() + api_t::element_count, active_count});
 	return std::all_of(aligned_destination.begin(), aligned_destination.begin() + api_t::element_count,
-			[](element_t value) noexcept { return value == lane_value<element_t>(api_t::element_count + 19); }) &&
+					   [](element_t value) noexcept { return value == lane_value<element_t>(api_t::element_count + 19); }) &&
 		   aligned_destination.back() == canary &&
 		   std::equal(source.begin(), source.begin() + active_count, aligned_destination.begin() + api_t::element_count);
 }
@@ -102,8 +99,7 @@ template <class api_t, std::size_t active_byte_count> [[nodiscard]] bool has_byt
 		source[index] = static_cast<std::byte>(index + 1);
 	std::array<std::byte, api_t::byte_count + 2> unaligned_source{};
 	std::copy(source.begin(), source.end(), unaligned_source.begin() + 1);
-	const auto loaded = api_t::template load_bytes_partial<active_byte_count>(
-		std::span<const std::byte>{unaligned_source.data() + 1, active_byte_count});
+	const auto loaded = api_t::template load_bytes_partial<active_byte_count>(std::span<const std::byte>{unaligned_source.data() + 1, active_byte_count});
 	std::array<std::byte, api_t::byte_count> loaded_bytes{};
 	api_t::store(loaded, std::span<std::byte, api_t::byte_count>{loaded_bytes});
 	for (std::size_t index = 0; index < active_byte_count; ++index)
@@ -116,8 +112,7 @@ template <class api_t, std::size_t active_byte_count> [[nodiscard]] bool has_byt
 	constexpr std::byte canary{0xa5};
 	std::array<std::byte, active_byte_count + 2> destination{};
 	destination.fill(canary);
-	api_t::template store_bytes_partial<active_byte_count>(
-		loaded, std::span<std::byte>{destination.data() + 1, active_byte_count});
+	api_t::template store_bytes_partial<active_byte_count>(loaded, std::span<std::byte>{destination.data() + 1, active_byte_count});
 	return destination.front() == canary && destination.back() == canary &&
 		   std::equal(source.begin(), source.begin() + active_byte_count, destination.begin() + 1);
 }
