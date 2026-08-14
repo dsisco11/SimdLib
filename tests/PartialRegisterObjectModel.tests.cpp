@@ -141,13 +141,15 @@ template <class element_t, std::size_t bits> void require_mask_contract_extremes
 }
 
 /** @brief Verifies every non-complete predicate extent for one element and native width. */
-template <class element_t, std::size_t bits, std::size_t... active_lane_counts>
-void require_mask_contracts(std::index_sequence<active_lane_counts...>)
+template <class element_t, std::size_t bits, std::size_t... active_lane_counts> void require_mask_contracts(std::index_sequence<active_lane_counts...>)
 {
-	([]<std::size_t active_lane_count>() {
-		if constexpr (SimdLib::PartialRegisterAvailable<element_t, bits, active_lane_count>)
-			require_mask_contract<element_t, bits, active_lane_count>();
-	}.template operator()<active_lane_counts + 1>(), ...);
+	(
+		[]<std::size_t active_lane_count>()
+		{
+			if constexpr (SimdLib::PartialRegisterAvailable<element_t, bits, active_lane_count>)
+				require_mask_contract<element_t, bits, active_lane_count>();
+		}.template operator()<active_lane_counts + 1>(),
+		...);
 }
 
 /** @brief Verifies all supported predicate extents for one element and native width. */

@@ -15,4 +15,6 @@ static_assert(SimdLib::IRegister::Type<UmbrellaRegister>);
 static_assert(std::same_as<SimdLib::uint32x4, UmbrellaRegister>);
 static_assert(SimdLib::IRegister::Type<UmbrellaNativeRegister>);
 static_assert(SimdLib::IRegisterMask::Type<UmbrellaRegisterMask>);
+static_assert(SimdLib::IRegister::CoreSurface<UmbrellaPartialRegister>);
+static_assert(SimdLib::IPartialRegisterMask::Type<typename UmbrellaPartialRegister::mask_type>);
 static_assert(UmbrellaPartialRegister::inactive_lane_count == 1);

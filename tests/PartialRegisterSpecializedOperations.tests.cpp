@@ -72,9 +72,9 @@ template <class element_t, std::size_t bits, std::size_t active_lane_count> void
 			const auto rhs_low = low < active_lane_count ? rhs[low] : element_t{};
 			const auto lhs_high = low + 1 < active_lane_count ? lhs[low + 1] : element_t{};
 			const auto rhs_high = low + 1 < active_lane_count ? rhs[low + 1] : element_t{};
-			expected[group * result_group_lanes + pair] = static_cast<result_element_t>(
-				static_cast<result_element_t>(lhs_low) * static_cast<result_element_t>(rhs_low) +
-				static_cast<result_element_t>(lhs_high) * static_cast<result_element_t>(rhs_high));
+			expected[group * result_group_lanes + pair] =
+				static_cast<result_element_t>(static_cast<result_element_t>(lhs_low) * static_cast<result_element_t>(rhs_low) +
+											  static_cast<result_element_t>(lhs_high) * static_cast<result_element_t>(rhs_high));
 		}
 	}
 	CAPTURE(sizeof(element_t), std::is_signed_v<element_t>, bits, active_lane_count);
@@ -82,8 +82,7 @@ template <class element_t, std::size_t bits, std::size_t active_lane_count> void
 }
 
 /** @brief Verifies byte multiply-add, SAD, and multi-SAD against independent byte-level oracles. */
-template <class element_t, std::size_t bits, std::size_t active_lane_count, int multi_sad_control>
-void require_byte_specialized_oracles()
+template <class element_t, std::size_t bits, std::size_t active_lane_count, int multi_sad_control> void require_byte_specialized_oracles()
 {
 	using source_t = SimdLib::PartialRegister<element_t, bits, active_lane_count>;
 	using source_api_t = typename source_t::api_type;
@@ -108,9 +107,7 @@ void require_byte_specialized_oracles()
 			const std::size_t low = pair * 2;
 			expected[pair] = static_cast<std::int16_t>(
 				static_cast<unsigned>(lhs_bytes[low]) * static_cast<std::int8_t>(rhs_bytes[low]) +
-				(low + 1 < active_byte_count
-						? static_cast<unsigned>(lhs_bytes[low + 1]) * static_cast<std::int8_t>(rhs_bytes[low + 1])
-						: 0));
+				(low + 1 < active_byte_count ? static_cast<unsigned>(lhs_bytes[low + 1]) * static_cast<std::int8_t>(rhs_bytes[low + 1]) : 0));
 		}
 		REQUIRE(actual == expected);
 	}
@@ -121,8 +118,8 @@ void require_byte_specialized_oracles()
 		std::array<std::uint64_t, bits / 64> expected{};
 		for (std::size_t group = 0; group < (active_byte_count + 7) / 8; ++group)
 			for (std::size_t offset = 0; offset < 8 && group * 8 + offset < active_byte_count; ++offset)
-				expected[group] += static_cast<std::uint64_t>(std::abs(
-					static_cast<int>(lhs_bytes[group * 8 + offset]) - static_cast<int>(rhs_bytes[group * 8 + offset])));
+				expected[group] +=
+					static_cast<std::uint64_t>(std::abs(static_cast<int>(lhs_bytes[group * 8 + offset]) - static_cast<int>(rhs_bytes[group * 8 + offset])));
 		REQUIRE(actual == expected);
 	}
 
@@ -138,8 +135,8 @@ void require_byte_specialized_oracles()
 			const std::size_t rhs_base = group_base + (control & 3U) * 4;
 			for (std::size_t output = 0; output < 8; ++output)
 				for (std::size_t offset = 0; offset < 4; ++offset)
-					expected[group * 8 + output] += static_cast<std::uint16_t>(std::abs(
-						static_cast<int>(lhs_bytes[lhs_base + output + offset]) - static_cast<int>(rhs_bytes[rhs_base + offset])));
+					expected[group * 8 + output] += static_cast<std::uint16_t>(
+						std::abs(static_cast<int>(lhs_bytes[lhs_base + output + offset]) - static_cast<int>(rhs_bytes[rhs_base + offset])));
 		}
 		REQUIRE(actual == expected);
 	}
@@ -168,8 +165,7 @@ template <class element_t, std::size_t bits, std::size_t active_lane_count> void
 		{
 			const std::size_t group_base = group * group_lane_count;
 			if (group_base < active_lane_count)
-				REQUIRE(physical[group_base] ==
-					(group_base + 1 < active_lane_count ? static_cast<element_t>(5) : static_cast<element_t>(3)));
+				REQUIRE(physical[group_base] == (group_base + 1 < active_lane_count ? static_cast<element_t>(5) : static_cast<element_t>(3)));
 		}
 		require_zero_suffix(magnitude);
 	}
@@ -301,9 +297,9 @@ template <class element_t, std::size_t bits> void require_floating_specialized_m
 	{
 		const std::size_t group_base = (lane / group_lane_count) * group_lane_count;
 		const std::size_t local = lane % group_lane_count;
-		const auto expected = local == 0
-			? (group_base + 1 < active_lane_count ? static_cast<element_t>(0.6) : static_cast<element_t>(1))
-			: local == 1 ? static_cast<element_t>(0.8) : element_t{};
+		const auto expected = local == 0   ? (group_base + 1 < active_lane_count ? static_cast<element_t>(0.6) : static_cast<element_t>(1))
+							  : local == 1 ? static_cast<element_t>(0.8)
+										   : element_t{};
 		REQUIRE(normalized.to_array()[lane] == Catch::Approx(expected));
 	}
 	require_zero_suffix(normalized);
@@ -316,7 +312,7 @@ template <class element_t, std::size_t bits> void require_floating_specialized_m
 
 TEST_CASE("PartialRegister adjacent and byte-specialized operations match scalar oracles", "[simdlib][partial-register][specialized][oracle]")
 {
-	#define SIMDLIB_REQUIRE_INTEGRAL_SPECIALIZED(type, width) require_integral_specialized_matrix_cell<type, width>()
+#define SIMDLIB_REQUIRE_INTEGRAL_SPECIALIZED(type, width) require_integral_specialized_matrix_cell<type, width>()
 	SIMDLIB_REQUIRE_INTEGRAL_SPECIALIZED(std::int8_t, 128);
 	SIMDLIB_REQUIRE_INTEGRAL_SPECIALIZED(std::uint8_t, 128);
 	SIMDLIB_REQUIRE_INTEGRAL_SPECIALIZED(std::int16_t, 128);
@@ -335,7 +331,7 @@ TEST_CASE("PartialRegister adjacent and byte-specialized operations match scalar
 	SIMDLIB_REQUIRE_INTEGRAL_SPECIALIZED(std::int64_t, 256);
 	SIMDLIB_REQUIRE_INTEGRAL_SPECIALIZED(std::uint64_t, 256);
 #endif
-	#undef SIMDLIB_REQUIRE_INTEGRAL_SPECIALIZED
+#undef SIMDLIB_REQUIRE_INTEGRAL_SPECIALIZED
 }
 
 TEST_CASE("PartialRegister floating specialized operations match grouped scalar oracles", "[simdlib][partial-register][specialized][floating]")

@@ -7,5 +7,4 @@
 
 using register_type = SimdLib::PartialRegister<std::int32_t, 128, 1>;
 
-static_assert(SimdLib::IRegister::WidenLow<register_type, std::int64_t, 256>,
-	"SIMDLIB_PARTIAL_REGISTER_REJECTS_INACTIVE_UPPER_HALF_WIDEN_RESULT");
+static_assert(SimdLib::IRegister::WidenLow<register_type, std::int64_t, 256>, "SIMDLIB_PARTIAL_REGISTER_REJECTS_INACTIVE_UPPER_HALF_WIDEN_RESULT");

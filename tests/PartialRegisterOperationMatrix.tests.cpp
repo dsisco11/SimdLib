@@ -32,20 +32,18 @@ concept has_partial_checked_magnitude_alias = requires { typename SimdLib::parti
 
 /** @brief Selects the independently expected complete result when a useful partial target cannot be formed. */
 template <class element_t, std::size_t bits, std::size_t result_lane_count,
-	bool complete = result_lane_count == SimdLib::Api<bits, element_t>::element_count ||
-		(bits == 256 && result_lane_count * sizeof(element_t) * 8 <= 128)>
+		  bool complete =
+			  result_lane_count == SimdLib::Api<bits, element_t>::element_count || (bits == 256 && result_lane_count * sizeof(element_t) * 8 <= 128)>
 struct expected_partial_result;
 
 /** @brief Provides the expected complete-register result spelling. */
-template <class element_t, std::size_t bits, std::size_t result_lane_count>
-struct expected_partial_result<element_t, bits, result_lane_count, true>
+template <class element_t, std::size_t bits, std::size_t result_lane_count> struct expected_partial_result<element_t, bits, result_lane_count, true>
 {
 	using type = SimdLib::Register<element_t, bits>;
 };
 
 /** @brief Provides the expected useful partial-register result spelling. */
-template <class element_t, std::size_t bits, std::size_t result_lane_count>
-struct expected_partial_result<element_t, bits, result_lane_count, false>
+template <class element_t, std::size_t bits, std::size_t result_lane_count> struct expected_partial_result<element_t, bits, result_lane_count, false>
 {
 	using type = SimdLib::PartialRegister<element_t, bits, result_lane_count>;
 };
@@ -55,8 +53,7 @@ template <class element_t, std::size_t bits, std::size_t result_lane_count>
 using expected_partial_result_t = typename expected_partial_result<element_t, bits, result_lane_count>::type;
 
 /** @brief Audits arithmetic and specialized-operation availability for one valid geometry. */
-template <class element_t, std::size_t bits, std::size_t active_lane_count>
-[[nodiscard]] consteval bool has_complete_arithmetic_surface() noexcept
+template <class element_t, std::size_t bits, std::size_t active_lane_count> [[nodiscard]] consteval bool has_complete_arithmetic_surface() noexcept
 {
 	using value_t = SimdLib::PartialRegister<element_t, bits, active_lane_count>;
 	using api_t = typename value_t::api_type;
@@ -114,8 +111,7 @@ template <class element_t> [[nodiscard]] consteval bool has_upper_group_geometry
 }
 
 /** @brief Audits exact specialized-result aliases for one valid integral source geometry. */
-template <class element_t, std::size_t bits, std::size_t active_lane_count>
-[[nodiscard]] consteval bool has_exact_specialized_results() noexcept
+template <class element_t, std::size_t bits, std::size_t active_lane_count> [[nodiscard]] consteval bool has_exact_specialized_results() noexcept
 {
 	using value_t = SimdLib::PartialRegister<element_t, bits, active_lane_count>;
 	using api_t = typename value_t::api_type;
@@ -155,24 +151,26 @@ template <class element_t, std::size_t bits, std::size_t active_lane_count>
 template <class element_t, std::size_t bits, std::size_t... indices>
 [[nodiscard]] consteval bool has_all_exact_specialized_results(std::index_sequence<indices...>) noexcept
 {
-	return ([]<std::size_t active_lane_count>() consteval {
-		if constexpr (SimdLib::PartialRegisterAvailable<element_t, bits, active_lane_count>)
-			return has_exact_specialized_results<element_t, bits, active_lane_count>();
-		else
-			return true;
-	}.template operator()<indices + 1>() && ...);
+	return (
+		[]<std::size_t active_lane_count>() consteval
+		{
+			if constexpr (SimdLib::PartialRegisterAvailable<element_t, bits, active_lane_count>)
+				return has_exact_specialized_results<element_t, bits, active_lane_count>();
+			else
+				return true;
+		}.template operator()<indices + 1>() &&
+		...);
 }
 
 /** @brief Audits every valid specialized-result geometry for all integral element types at one width. */
 template <std::size_t bits> [[nodiscard]] consteval bool has_exact_specialized_result_matrix() noexcept
 {
-	#define SIMDLIB_PARTIAL_EXACT_RESULTS(element_type) \
-		has_all_exact_specialized_results<element_type, bits>(std::make_index_sequence<SimdLib::Api<bits, element_type>::element_count - 1>{})
-	return SIMDLIB_PARTIAL_EXACT_RESULTS(std::int8_t) && SIMDLIB_PARTIAL_EXACT_RESULTS(std::uint8_t) &&
-		SIMDLIB_PARTIAL_EXACT_RESULTS(std::int16_t) && SIMDLIB_PARTIAL_EXACT_RESULTS(std::uint16_t) &&
-		SIMDLIB_PARTIAL_EXACT_RESULTS(std::int32_t) && SIMDLIB_PARTIAL_EXACT_RESULTS(std::uint32_t) &&
-		SIMDLIB_PARTIAL_EXACT_RESULTS(std::int64_t) && SIMDLIB_PARTIAL_EXACT_RESULTS(std::uint64_t);
-	#undef SIMDLIB_PARTIAL_EXACT_RESULTS
+#define SIMDLIB_PARTIAL_EXACT_RESULTS(element_type)                                                                                                            \
+	has_all_exact_specialized_results<element_type, bits>(std::make_index_sequence<SimdLib::Api<bits, element_type>::element_count - 1>{})
+	return SIMDLIB_PARTIAL_EXACT_RESULTS(std::int8_t) && SIMDLIB_PARTIAL_EXACT_RESULTS(std::uint8_t) && SIMDLIB_PARTIAL_EXACT_RESULTS(std::int16_t) &&
+		   SIMDLIB_PARTIAL_EXACT_RESULTS(std::uint16_t) && SIMDLIB_PARTIAL_EXACT_RESULTS(std::int32_t) && SIMDLIB_PARTIAL_EXACT_RESULTS(std::uint32_t) &&
+		   SIMDLIB_PARTIAL_EXACT_RESULTS(std::int64_t) && SIMDLIB_PARTIAL_EXACT_RESULTS(std::uint64_t);
+#undef SIMDLIB_PARTIAL_EXACT_RESULTS
 }
 
 #define SIMDLIB_PARTIAL_VALIDATE_SURFACE(element_type, width, count) static_assert(has_complete_arithmetic_surface<element_type, width, count>())

@@ -32,15 +32,13 @@ template <class element_t> [[nodiscard]] constexpr bool has_zero_bits(element_t 
 }
 
 /** @brief Constructs one partial value through its exact lane-list factory. */
-template <class value_t, std::size_t... indices>
-[[nodiscard]] constexpr value_t from_test_lanes(std::index_sequence<indices...>) noexcept
+template <class value_t, std::size_t... indices> [[nodiscard]] constexpr value_t from_test_lanes(std::index_sequence<indices...>) noexcept
 {
 	return value_t::from_lanes(test_lane_value<typename value_t::element_type>(indices)...);
 }
 
 /** @brief Reports whether every active lane matches and the inactive suffix is bitwise zero. */
-template <class value_t>
-[[nodiscard]] bool has_value_contract(value_t value, const std::array<typename value_t::element_type, value_t::lane_count> &expected)
+template <class value_t> [[nodiscard]] bool has_value_contract(value_t value, const std::array<typename value_t::element_type, value_t::lane_count> &expected)
 {
 	using api_t = typename value_t::api_type;
 	const auto logical = value.to_array();
@@ -57,8 +55,7 @@ template <class value_t>
 }
 
 /** @brief Reports whether compile-time-selected active lane observation and replacement preserve the contract. */
-template <class value_t, std::size_t... indices>
-[[nodiscard]] bool has_lane_access(value_t value, std::index_sequence<indices...>)
+template <class value_t, std::size_t... indices> [[nodiscard]] bool has_lane_access(value_t value, std::index_sequence<indices...>)
 {
 	using element_t = typename value_t::element_type;
 	if (!((value.template lane<indices>() == test_lane_value<element_t>(indices)) && ...))
@@ -75,10 +72,14 @@ template <class value_t, std::size_t... indices>
 }
 
 /** @brief Reports whether construction, exact-extent transfer, observation, and lane access satisfy one partial geometry. */
-template <class element_t, std::size_t bits, std::size_t active_lane_count>
-[[nodiscard]] bool has_construction_transfer_contract()
+template <class element_t, std::size_t bits, std::size_t active_lane_count> [[nodiscard]] bool has_construction_transfer_contract()
 {
 	using value_t = SimdLib::PartialRegister<element_t, bits, active_lane_count>;
+	using complete_t = SimdLib::Register<element_t, bits>;
+	static_assert(SimdLib::IRegister::CoreSurface<value_t>);
+	static_assert([]<std::size_t... indices>(std::index_sequence<indices...>)
+				  { return SimdLib::IRegister::FromLanes<value_t, decltype((static_cast<void>(indices), element_t{}))...>; }(
+					  std::make_index_sequence<value_t::lane_count>{}));
 	std::array<element_t, value_t::lane_count> source{};
 	for (std::size_t lane = 0; lane < source.size(); ++lane)
 		source[lane] = test_lane_value<element_t>(lane);
@@ -88,12 +89,25 @@ template <class element_t, std::size_t bits, std::size_t active_lane_count>
 		return false;
 	std::array<element_t, value_t::lane_count> broadcasts{};
 	broadcasts.fill(test_lane_value<element_t>(0));
-	if (!has_value_contract(value_t::broadcast(test_lane_value<element_t>(0)), broadcasts) ||
-		!has_value_contract(value_t::from_array(source), source))
+	if (!has_value_contract(value_t::broadcast(test_lane_value<element_t>(0)), broadcasts) || !has_value_contract(value_t::from_array(source), source))
 		return false;
 	const auto listed = from_test_lanes<value_t>(std::make_index_sequence<value_t::lane_count>{});
 	if (!has_value_contract(listed, source) || !has_lane_access(listed, std::make_index_sequence<value_t::lane_count>{}))
 		return false;
+
+	std::array<element_t, value_t::native_lane_count> complete_source{};
+	for (std::size_t lane = 0; lane < complete_source.size(); ++lane)
+		complete_source[lane] = test_lane_value<element_t>(lane);
+	const auto imported_complete = value_t::from_register(complete_t{value_t::api_type::construct(complete_source)});
+	if (!has_value_contract(imported_complete, source))
+		return false;
+	const auto exported_complete = value_t::api_type::to_array(imported_complete.to_register().native);
+	for (std::size_t lane = 0; lane < value_t::lane_count; ++lane)
+		if (exported_complete[lane] != source[lane])
+			return false;
+	for (std::size_t lane = value_t::lane_count; lane < value_t::native_lane_count; ++lane)
+		if (!has_zero_bits(exported_complete[lane]))
+			return false;
 
 	std::array<element_t, value_t::lane_count + 2> unaligned_source{};
 	std::copy(source.begin(), source.end(), unaligned_source.begin() + 1);
@@ -104,15 +118,16 @@ template <class element_t, std::size_t bits, std::size_t active_lane_count>
 	std::copy(source.begin(), source.end(), aligned_source.begin() + value_t::native_lane_count);
 	aligned_source[value_t::native_lane_count - 1] = static_cast<element_t>(89);
 	aligned_source.back() = static_cast<element_t>(91);
-	if (!has_value_contract(value_t::load_aligned(
-			std::span<const element_t, value_t::lane_count>{aligned_source.data() + value_t::native_lane_count, value_t::lane_count}), source))
+	if (!has_value_contract(
+			value_t::load_aligned(std::span<const element_t, value_t::lane_count>{aligned_source.data() + value_t::native_lane_count, value_t::lane_count}),
+			source))
 		return false;
 
 	const auto source_bytes = std::bit_cast<std::array<std::byte, value_t::active_byte_count>>(source);
 	std::array<std::byte, value_t::active_byte_count + 2> byte_source{};
 	std::copy(source_bytes.begin(), source_bytes.end(), byte_source.begin() + 1);
-	if (!has_value_contract(
-			value_t::load_bytes(std::span<const std::byte, value_t::active_byte_count>{byte_source.data() + 1, value_t::active_byte_count}), source))
+	if (!has_value_contract(value_t::load_bytes(std::span<const std::byte, value_t::active_byte_count>{byte_source.data() + 1, value_t::active_byte_count}),
+							source))
 		return false;
 
 	const auto element_canary = static_cast<element_t>(97);
@@ -125,12 +140,10 @@ template <class element_t, std::size_t bits, std::size_t active_lane_count>
 
 	alignas(value_t::byte_count) std::array<element_t, value_t::native_lane_count + value_t::lane_count + 1> aligned_destination{};
 	aligned_destination.fill(element_canary);
-	listed.store_aligned(
-		std::span<element_t, value_t::lane_count>{aligned_destination.data() + value_t::native_lane_count, value_t::lane_count});
+	listed.store_aligned(std::span<element_t, value_t::lane_count>{aligned_destination.data() + value_t::native_lane_count, value_t::lane_count});
 	if (!std::all_of(aligned_destination.begin(), aligned_destination.begin() + value_t::native_lane_count,
-			[](element_t lane) noexcept { return lane == static_cast<element_t>(97); }) ||
-		aligned_destination.back() != element_canary ||
-		!std::equal(source.begin(), source.end(), aligned_destination.begin() + value_t::native_lane_count))
+					 [](element_t lane) noexcept { return lane == static_cast<element_t>(97); }) ||
+		aligned_destination.back() != element_canary || !std::equal(source.begin(), source.end(), aligned_destination.begin() + value_t::native_lane_count))
 		return false;
 
 	constexpr std::byte byte_canary{0xa5};
@@ -146,25 +159,27 @@ template <class element_t, std::size_t bits, std::size_t active_lane_count>
 template <class element_t, std::size_t bits, std::size_t... active_lane_counts>
 [[nodiscard]] bool has_all_active_counts(std::index_sequence<active_lane_counts...>)
 {
-	return ([]<std::size_t active_lane_count>() {
-		if constexpr (SimdLib::PartialRegisterAvailable<element_t, bits, active_lane_count>)
-			return has_construction_transfer_contract<element_t, bits, active_lane_count>();
-		else
-			return true;
-	}.template operator()<active_lane_counts + 1>() && ...);
+	return (
+		[]<std::size_t active_lane_count>()
+		{
+			if constexpr (SimdLib::PartialRegisterAvailable<element_t, bits, active_lane_count>)
+				return has_construction_transfer_contract<element_t, bits, active_lane_count>();
+			else
+				return true;
+		}.template operator()<active_lane_counts + 1>() &&
+		...);
 }
 
 /** @brief Reports whether the full supported element-type matrix passes for one native width. */
 template <std::size_t bits> [[nodiscard]] bool has_construction_transfer_matrix()
 {
-	#define SIMDLIB_HAS_PARTIAL_ELEMENT(element_type) \
-		has_all_active_counts<element_type, bits>(std::make_index_sequence<SimdLib::Api<bits, element_type>::element_count - 1>{})
-	return SIMDLIB_HAS_PARTIAL_ELEMENT(std::int8_t) && SIMDLIB_HAS_PARTIAL_ELEMENT(std::uint8_t) &&
-		   SIMDLIB_HAS_PARTIAL_ELEMENT(std::int16_t) && SIMDLIB_HAS_PARTIAL_ELEMENT(std::uint16_t) &&
-		   SIMDLIB_HAS_PARTIAL_ELEMENT(std::int32_t) && SIMDLIB_HAS_PARTIAL_ELEMENT(std::uint32_t) &&
-		   SIMDLIB_HAS_PARTIAL_ELEMENT(std::int64_t) && SIMDLIB_HAS_PARTIAL_ELEMENT(std::uint64_t) &&
-		   SIMDLIB_HAS_PARTIAL_ELEMENT(float) && SIMDLIB_HAS_PARTIAL_ELEMENT(double);
-	#undef SIMDLIB_HAS_PARTIAL_ELEMENT
+#define SIMDLIB_HAS_PARTIAL_ELEMENT(element_type)                                                                                                              \
+	has_all_active_counts<element_type, bits>(std::make_index_sequence<SimdLib::Api<bits, element_type>::element_count - 1>{})
+	return SIMDLIB_HAS_PARTIAL_ELEMENT(std::int8_t) && SIMDLIB_HAS_PARTIAL_ELEMENT(std::uint8_t) && SIMDLIB_HAS_PARTIAL_ELEMENT(std::int16_t) &&
+		   SIMDLIB_HAS_PARTIAL_ELEMENT(std::uint16_t) && SIMDLIB_HAS_PARTIAL_ELEMENT(std::int32_t) && SIMDLIB_HAS_PARTIAL_ELEMENT(std::uint32_t) &&
+		   SIMDLIB_HAS_PARTIAL_ELEMENT(std::int64_t) && SIMDLIB_HAS_PARTIAL_ELEMENT(std::uint64_t) && SIMDLIB_HAS_PARTIAL_ELEMENT(float) &&
+		   SIMDLIB_HAS_PARTIAL_ELEMENT(double);
+#undef SIMDLIB_HAS_PARTIAL_ELEMENT
 }
 
 } // namespace

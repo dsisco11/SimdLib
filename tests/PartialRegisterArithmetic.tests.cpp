@@ -37,8 +37,8 @@ template <class element_t, std::size_t bits, std::size_t active_count> consteval
 	constexpr bool has_magnitude_checked = requires(value_t value) { value.magnitude_checked(); };
 	static_assert(has_magnitude_checked == SimdLib::IApi::MagnitudeChecked<api_t>);
 	if constexpr (SimdLib::IApi::MagnitudeChecked<api_t>)
-		static_assert(std::same_as<decltype(std::declval<value_t>().magnitude_checked()),
-			SimdLib::partial_magnitude_checked_result_t<element_t, bits, active_count>>);
+		static_assert(
+			std::same_as<decltype(std::declval<value_t>().magnitude_checked()), SimdLib::partial_magnitude_checked_result_t<element_t, bits, active_count>>);
 	static_assert(SimdLib::IRegister::Normalize<value_t> == SimdLib::IApi::Normalize<api_t>);
 	static_assert(SimdLib::IRegister::HorizontalAdd<value_t> == SimdLib::IApi::HorizontalAdd<api_t>);
 	static_assert(SimdLib::IRegister::HorizontalSubtract<value_t> == SimdLib::IApi::HorizontalSubtract<api_t>);
@@ -90,7 +90,8 @@ template <class element_t> [[nodiscard]] bool has_zero_bits(element_t value) noe
 /** @brief Verifies that every physical lane beyond the logical prefix is bitwise zero. */
 template <class value_t> void require_zero_suffix(value_t value)
 {
-	const auto native = [&]() {
+	const auto native = [&]()
+	{
 		if constexpr (requires { value.to_native(); })
 			return value.to_native();
 		else
@@ -163,7 +164,8 @@ template <class element_t, std::size_t bits, std::size_t active_count> void requ
 	{
 		const auto minimum = lhs.min(rhs);
 		const auto maximum = lhs.max(rhs);
-		const auto absolute_source = [&]() {
+		const auto absolute_source = [&]()
+		{
 			if constexpr (std::is_signed_v<element_t> || std::is_floating_point_v<element_t>)
 				return -lhs;
 			else
@@ -432,13 +434,16 @@ void require_specialized_adapters()
 }
 
 /** @brief Reports whether a value type exposes addition assignment. */
-template <class value_t> concept has_add_assign = requires(value_t value) { value += value; };
+template <class value_t>
+concept has_add_assign = requires(value_t value) { value += value; };
 
 /** @brief Reports whether a value type exposes subtraction assignment. */
-template <class value_t> concept has_subtract_assign = requires(value_t value) { value -= value; };
+template <class value_t>
+concept has_subtract_assign = requires(value_t value) { value -= value; };
 
 /** @brief Reports whether a value type exposes a dot-product control that writes inactive lanes. */
-template <class value_t> concept has_inactive_dot_output = requires(value_t value) { value.template dot_product<0x7f>(value); };
+template <class value_t>
+concept has_inactive_dot_output = requires(value_t value) { value.template dot_product<0x7f>(value); };
 
 static_assert(!has_add_assign<SimdLib::PartialRegister<std::int32_t, 128, 3>>);
 static_assert(!has_subtract_assign<SimdLib::PartialRegister<std::int32_t, 128, 3>>);

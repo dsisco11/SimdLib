@@ -1,0 +1,54 @@
+if(NOT DEFINED SIMDLIB_BUILD_DIR OR NOT DEFINED SIMDLIB_SOURCE_DIR OR
+		NOT DEFINED SIMDLIB_CONSUMER_SOURCE_DIR OR NOT DEFINED SIMDLIB_CONSUMER_BINARY_DIR OR
+		NOT DEFINED SIMDLIB_INSTALL_PREFIX OR NOT DEFINED SIMDLIB_CMAKE_COMMAND OR
+		NOT DEFINED SIMDLIB_GENERATOR OR NOT DEFINED SIMDLIB_CXX_COMPILER)
+	message(FATAL_ERROR "Installed PartialRegister consumer runner is missing a required input")
+endif()
+
+execute_process(
+	COMMAND "${SIMDLIB_CMAKE_COMMAND}" --install "${SIMDLIB_BUILD_DIR}"
+		--prefix "${SIMDLIB_INSTALL_PREFIX}" --config "${SIMDLIB_CONFIG}"
+	RESULT_VARIABLE install_result)
+if(NOT install_result EQUAL 0)
+	message(FATAL_ERROR "Installing SimdLib for the downstream consumer failed: ${install_result}")
+endif()
+
+set(configure_command
+	"${SIMDLIB_CMAKE_COMMAND}"
+	-S "${SIMDLIB_CONSUMER_SOURCE_DIR}"
+	-B "${SIMDLIB_CONSUMER_BINARY_DIR}"
+	-G "${SIMDLIB_GENERATOR}"
+	"-DCMAKE_CXX_COMPILER=${SIMDLIB_CXX_COMPILER}"
+	"-DCMAKE_PREFIX_PATH=${SIMDLIB_INSTALL_PREFIX}"
+	"-DSIMDLIB_FORBIDDEN_INCLUDE_DIR=${SIMDLIB_SOURCE_DIR}/include")
+if(DEFINED SIMDLIB_GENERATOR_PLATFORM AND NOT SIMDLIB_GENERATOR_PLATFORM STREQUAL "")
+	list(APPEND configure_command -A "${SIMDLIB_GENERATOR_PLATFORM}")
+endif()
+if(DEFINED SIMDLIB_GENERATOR_TOOLSET AND NOT SIMDLIB_GENERATOR_TOOLSET STREQUAL "")
+	list(APPEND configure_command -T "${SIMDLIB_GENERATOR_TOOLSET}")
+endif()
+if(DEFINED SIMDLIB_MAKE_PROGRAM AND NOT SIMDLIB_MAKE_PROGRAM STREQUAL "")
+	list(APPEND configure_command "-DCMAKE_MAKE_PROGRAM=${SIMDLIB_MAKE_PROGRAM}")
+endif()
+execute_process(COMMAND ${configure_command} RESULT_VARIABLE configure_result)
+if(NOT configure_result EQUAL 0)
+	message(FATAL_ERROR "Configuring the installed SimdLib consumer failed: ${configure_result}")
+endif()
+
+execute_process(
+	COMMAND "${SIMDLIB_CMAKE_COMMAND}" --build "${SIMDLIB_CONSUMER_BINARY_DIR}"
+		--config "${SIMDLIB_CONFIG}"
+	RESULT_VARIABLE build_result)
+if(NOT build_result EQUAL 0)
+	message(FATAL_ERROR "Building the installed SimdLib consumer failed: ${build_result}")
+endif()
+
+execute_process(
+	COMMAND "${SIMDLIB_CMAKE_COMMAND}" -E env
+		"CTEST_OUTPUT_ON_FAILURE=1"
+		"${SIMDLIB_CTEST_COMMAND}" --test-dir "${SIMDLIB_CONSUMER_BINARY_DIR}"
+		-C "${SIMDLIB_CONFIG}" --output-on-failure
+	RESULT_VARIABLE test_result)
+if(NOT test_result EQUAL 0)
+	message(FATAL_ERROR "Running the installed SimdLib consumer failed: ${test_result}")
+endif()

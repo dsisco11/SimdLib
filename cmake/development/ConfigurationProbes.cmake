@@ -220,6 +220,11 @@ if(SIMDLIB_BUILD_CONFIGURATION_PROBES)
 		simdlib_add_language_probe(PartialRegisterEnabledProbe
 			tests/availability/PartialRegisterEnabledProbe.cpp 23 SimdLib::Register)
 		simdlib_enable_register_sse42(PartialRegisterEnabledProbe)
+		simdlib_add_language_probe(PartialRegisterAvx2EnabledProbe
+			tests/availability/PartialRegisterEnabledProbe.cpp 23 SimdLib::Register)
+		target_compile_definitions(PartialRegisterAvx2EnabledProbe PRIVATE
+			SIMDLIB_PARTIAL_REGISTER_AVAILABILITY_BITS=256)
+		simdlib_enable_register_avx2(PartialRegisterAvx2EnabledProbe)
 		simdlib_expect_language_probe_failure(PartialRegisterMaskInvalidActiveCountFailure
 			tests/compile_fail/register/PartialRegisterMaskInvalidActiveCount.cpp 23
 			constraints)

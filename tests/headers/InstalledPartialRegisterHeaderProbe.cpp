@@ -14,3 +14,4 @@ SimdLib::PartialRegister<unsigned, 128, 3> SIMD_FLAGS(InOut, RegisterOnly, Force
 }
 
 static_assert(sizeof(SimdLib::PartialRegister<unsigned, 128, 3>) == 16);
+static_assert(SimdLib::IRegister::CoreSurface<SimdLib::PartialRegister<unsigned, 128, 3>>);

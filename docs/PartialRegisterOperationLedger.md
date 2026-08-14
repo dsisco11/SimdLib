@@ -93,6 +93,17 @@ alias. It selects 256 bits only when that width is available and the active
 payload crosses into its upper 128-bit group; otherwise it selects an available
 valid 128-bit specialization.
 
+`Aliases.h` also provides `partial_[u]int{8,16,32,64}x{native-lane-count}`
+alias templates. The 128-bit spellings are available under SSE4.2 and the
+256-bit spellings are additionally gated by AVX2; each takes the logical active
+lane count as its sole template argument.
+
+`PartialRegister` is audited through the same `IRegister` structural concept
+family as `Register`. Those concepts describe the shared register-shaped API
+while each concrete type retains its own logical-lane contract. Raw-byte
+transfer concepts therefore use `lane_count * sizeof(element_type)` as their
+logical extent.
+
 `SimdLib::Register` owns both register-shaped public types. It already carries
 the C++23 explicit-object and compiler-boundary requirements needed by
 `PartialRegister`, so a separate CMake interface target would only duplicate

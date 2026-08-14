@@ -74,6 +74,7 @@ if(SIMDLIB_BUILD_HEADER_PROBES)
         IImpl
         IRegister
         IRegisterMask
+		IPartialRegisterMask
         Api
         SimdApi
         SimdVector
@@ -136,6 +137,15 @@ if(SIMDLIB_BUILD_HEADER_PROBES)
 		simdlib_enable_development_warnings(HeaderPartialRegisterFwdProbe)
 		simdlib_enable_register_sse42(HeaderPartialRegisterFwdProbe)
 
+		add_library(HeaderPartialRegisterFwdAvx2Probe OBJECT
+			tests/headers/PartialRegisterFwdHeaderProbe.cpp)
+		simdlib_register_development_target(HeaderPartialRegisterFwdAvx2Probe COMPILER_CONTRACT)
+		target_link_libraries(HeaderPartialRegisterFwdAvx2Probe PRIVATE SimdLib::Register)
+		target_compile_definitions(HeaderPartialRegisterFwdAvx2Probe PRIVATE
+			SIMDLIB_PARTIAL_REGISTER_HEADER_PROBE_BITS=256)
+		simdlib_enable_development_warnings(HeaderPartialRegisterFwdAvx2Probe)
+		simdlib_enable_register_avx2(HeaderPartialRegisterFwdAvx2Probe)
+
 		add_library(HeaderPartialRegisterProbe OBJECT
 			tests/headers/PartialRegisterHeaderProbe.cpp)
 		simdlib_register_development_target(HeaderPartialRegisterProbe COMPILER_CONTRACT)
@@ -143,12 +153,30 @@ if(SIMDLIB_BUILD_HEADER_PROBES)
 		simdlib_enable_development_warnings(HeaderPartialRegisterProbe)
 		simdlib_enable_register_sse42(HeaderPartialRegisterProbe)
 
+		add_library(HeaderPartialRegisterAvx2Probe OBJECT
+			tests/headers/PartialRegisterHeaderProbe.cpp)
+		simdlib_register_development_target(HeaderPartialRegisterAvx2Probe COMPILER_CONTRACT)
+		target_link_libraries(HeaderPartialRegisterAvx2Probe PRIVATE SimdLib::Register)
+		target_compile_definitions(HeaderPartialRegisterAvx2Probe PRIVATE
+			SIMDLIB_PARTIAL_REGISTER_HEADER_PROBE_BITS=256)
+		simdlib_enable_development_warnings(HeaderPartialRegisterAvx2Probe)
+		simdlib_enable_register_avx2(HeaderPartialRegisterAvx2Probe)
+
 		add_library(HeaderPartialRegisterMaskProbe OBJECT
 			tests/headers/PartialRegisterMaskHeaderProbe.cpp)
 		simdlib_register_development_target(HeaderPartialRegisterMaskProbe COMPILER_CONTRACT)
 		target_link_libraries(HeaderPartialRegisterMaskProbe PRIVATE SimdLib::Register)
 		simdlib_enable_development_warnings(HeaderPartialRegisterMaskProbe)
 		simdlib_enable_register_sse42(HeaderPartialRegisterMaskProbe)
+
+		add_library(HeaderPartialRegisterMaskAvx2Probe OBJECT
+			tests/headers/PartialRegisterMaskHeaderProbe.cpp)
+		simdlib_register_development_target(HeaderPartialRegisterMaskAvx2Probe COMPILER_CONTRACT)
+		target_link_libraries(HeaderPartialRegisterMaskAvx2Probe PRIVATE SimdLib::Register)
+		target_compile_definitions(HeaderPartialRegisterMaskAvx2Probe PRIVATE
+			SIMDLIB_PARTIAL_REGISTER_HEADER_PROBE_BITS=256)
+		simdlib_enable_development_warnings(HeaderPartialRegisterMaskAvx2Probe)
+		simdlib_enable_register_avx2(HeaderPartialRegisterMaskAvx2Probe)
 
 		add_library(HeaderRegisterMaskProbe OBJECT
 			tests/headers/RegisterMaskHeaderProbe.cpp)

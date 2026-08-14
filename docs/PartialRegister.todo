@@ -217,14 +217,14 @@ PartialRegister Implementation Plan:
     ☒ Add exhaustive selector tests for small logical lane counts, representative cross-half tests, conversion source/target matrix tests, and compile-failure probes for invalid selectors and result cells.
 
   Phase 8 - Complete the Public Surface and Integration:
-    ☐ Add or adapt structural concepts so the complete PartialRegister surface is audited without claiming complete-register lane semantics.
-    ☐ Add aliases only after the primary template and native-width naming are approved; keep aliases grouped by their required instruction-set preconditions.
-    ☐ Add PartialRegister and its predicate to the focused and umbrella public headers under the existing C++23 availability boundary.
-    ☐ Add standalone first-include probes for every new public header.
-    ☐ Add ODR and multi-translation-unit coverage.
-    ☐ Add an external-consumer example that loads a partial logical value, performs representative operations, verifies inactive-lane behavior through public observations, and stores only active data.
-    ☐ Register all positive, negative, constexpr, header, availability, ODR, consumer, and runtime targets in CMake for SSE4.2 and AVX2 where supported.
-    ☐ Ensure installed-package consumers receive the new headers and target requirements without depending on source-tree-only paths.
+    ☒ Add or adapt structural concepts so the complete PartialRegister surface is audited without claiming complete-register lane semantics.
+    ☒ Add aliases only after the primary template and native-width naming are approved; keep aliases grouped by their required instruction-set preconditions.
+    ☒ Add PartialRegister and its predicate to the focused and umbrella public headers under the existing C++23 availability boundary.
+    ☒ Add standalone first-include probes for every new public header.
+    ☒ Add ODR and multi-translation-unit coverage.
+    ☒ Add an external-consumer example that loads a partial logical value, performs representative operations, verifies inactive-lane behavior through public observations, and stores only active data.
+    ☒ Register all positive, negative, constexpr, header, availability, ODR, consumer, and runtime targets in CMake for SSE4.2 and AVX2 where supported.
+    ☒ Ensure installed-package consumers receive the new headers and target requirements without depending on source-tree-only paths.
 
   Phase 9 - Qualify ABI, Generated Code, and Performance:
     ☐ Create PartialRegister generated-code fixtures paired with direct `Api` raw mirrors that perform the same required masking, neutral-operand preparation, and normalization.

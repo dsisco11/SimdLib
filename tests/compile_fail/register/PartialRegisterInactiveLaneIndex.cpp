@@ -14,4 +14,4 @@ template <class value_t>
 concept replaces_inactive_lane = requires(value_t value) { value.template with_lane<value_t::lane_count>(typename value_t::element_type{}); };
 
 static_assert(observes_inactive_lane<partial_register_type> || replaces_inactive_lane<partial_register_type>,
-	"SIMDLIB_PARTIAL_REGISTER_REJECTS_INACTIVE_LANE_INDEX");
+			  "SIMDLIB_PARTIAL_REGISTER_REJECTS_INACTIVE_LANE_INDEX");

@@ -6,6 +6,7 @@
 #error "SIMDLIB_PARTIAL_REGISTER_HEADER_REQUIRES_CXX23: <SimdLib/PartialRegister.h> requires C++23 explicit object parameter support"
 #endif
 
+#include <SimdLib/IRegister.h>
 #include <SimdLib/PartialRegisterFwd.h>
 #include <SimdLib/Register.h>
 
@@ -233,6 +234,29 @@ class PartialRegister final
 	[[nodiscard]] constexpr native_type SIMD_FLAGS(In, ForceInline, Flatten) to_native(this PartialRegister value) noexcept
 	{
 		return validate_native(value.native);
+	}
+
+	/**
+	 * @brief Imports the logical low prefix of a matching complete Register.
+	 * @param value Complete register whose low `lane_count` lanes are retained.
+	 * @return PartialRegister with the discarded high lanes cleared to all-bits zero.
+	 * @remarks Available exactly when inactive-suffix normalization is supported by the selected API.
+	 */
+	[[nodiscard]] constexpr static PartialRegister SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten)
+		from_register(Register<element_type, register_width> value) noexcept
+		requires IApi::BitwiseAnd<api_type>
+	{
+		return from_native(value.native);
+	}
+
+	/**
+	 * @brief Exports this value as a matching complete Register with zero high lanes.
+	 * @return Complete register containing the active prefix followed by the invariant zero suffix.
+	 */
+	[[nodiscard]] constexpr Register<element_type, register_width> SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten)
+		to_register(this PartialRegister value) noexcept
+	{
+		return Register<element_type, register_width>{value.to_native()};
 	}
 
 	/**

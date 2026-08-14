@@ -19,51 +19,36 @@ namespace
 {
 
 /** @brief Verifies bitwise, shift, and comparison surface parity for one partial geometry. */
-template <class element_t, std::size_t bits, std::size_t active_count>
-[[nodiscard]] consteval bool has_operation_surface_parity() noexcept
+template <class element_t, std::size_t bits, std::size_t active_count> [[nodiscard]] consteval bool has_operation_surface_parity() noexcept
 {
 	using value_t = SimdLib::PartialRegister<element_t, bits, active_count>;
 	using api_t = typename value_t::api_type;
 	static_assert(SimdLib::IRegister::BitwiseAnd<value_t> == SimdLib::IApi::BitwiseAnd<api_t>);
 	static_assert(SimdLib::IRegister::BitwiseOr<value_t> == SimdLib::IApi::BitwiseOr<api_t>);
 	static_assert(SimdLib::IRegister::BitwiseXor<value_t> == SimdLib::IApi::BitwiseXor<api_t>);
-	static_assert(SimdLib::IRegister::BitwiseNot<value_t> ==
-		(SimdLib::IApi::BitwiseNot<api_t> && SimdLib::IApi::BitwiseAnd<api_t>));
+	static_assert(SimdLib::IRegister::BitwiseNot<value_t> == (SimdLib::IApi::BitwiseNot<api_t> && SimdLib::IApi::BitwiseAnd<api_t>));
 	static_assert(SimdLib::IRegister::BitwiseAndNot<value_t> == SimdLib::IApi::BitwiseAndNot<api_t>);
 	static_assert(SimdLib::IRegister::Movemask<value_t> == SimdLib::IApi::Movemask<api_t>);
 	static_assert(SimdLib::IRegister::LaneSignBits<value_t> == SimdLib::IApi::MovemaskSlim<api_t>);
 	static_assert(SimdLib::IRegister::ShiftLeft<value_t> == SimdLib::IApi::ShiftLeft<api_t>);
 	static_assert(SimdLib::IRegister::LogicalShiftRight<value_t> == SimdLib::IApi::ShiftRight<api_t>);
-	static_assert(SimdLib::IRegister::ShiftRight<value_t> ==
-		((std::is_signed_v<element_t> && SimdLib::IApi::ArithmeticShiftRight<api_t>) ||
-			(std::is_unsigned_v<element_t> && SimdLib::IApi::ShiftRight<api_t>)));
-	static_assert(SimdLib::IRegister::ShiftBytesLeftSlow<value_t> ==
-		(bits == 128 && SimdLib::IApi::ShiftBytesSlow<api_t> && SimdLib::IApi::BitwiseAnd<api_t>));
-	static_assert(SimdLib::IRegister::ShiftBytesRightSlow<value_t> ==
-		(bits == 128 && SimdLib::IApi::ShiftBytesSlow<api_t>));
-	static_assert(SimdLib::IRegister::ShiftBytesLeft<value_t, 1> ==
-		(SimdLib::IApi::ShiftBytesLeft<api_t, 1> && SimdLib::IApi::BitwiseAnd<api_t>));
+	static_assert(SimdLib::IRegister::ShiftRight<value_t> == ((std::is_signed_v<element_t> && SimdLib::IApi::ArithmeticShiftRight<api_t>) ||
+															  (std::is_unsigned_v<element_t> && SimdLib::IApi::ShiftRight<api_t>)));
+	static_assert(SimdLib::IRegister::ShiftBytesLeftSlow<value_t> == (bits == 128 && SimdLib::IApi::ShiftBytesSlow<api_t> && SimdLib::IApi::BitwiseAnd<api_t>));
+	static_assert(SimdLib::IRegister::ShiftBytesRightSlow<value_t> == (bits == 128 && SimdLib::IApi::ShiftBytesSlow<api_t>));
+	static_assert(SimdLib::IRegister::ShiftBytesLeft<value_t, 1> == (SimdLib::IApi::ShiftBytesLeft<api_t, 1> && SimdLib::IApi::BitwiseAnd<api_t>));
 	static_assert(SimdLib::IRegister::ShiftBytesRight<value_t, 1> == SimdLib::IApi::ShiftBytesRight<api_t, 1>);
-	static_assert(SimdLib::IRegister::ShiftBitsLeftSlow<value_t> ==
-		(bits == 128 && SimdLib::IApi::ShiftBitsSlow<api_t> && SimdLib::IApi::BitwiseAnd<api_t>));
-	static_assert(SimdLib::IRegister::ShiftBitsRightSlow<value_t> ==
-		(bits == 128 && SimdLib::IApi::ShiftBitsSlow<api_t>));
-	static_assert(SimdLib::IRegister::ShiftBitsLeft<value_t, 1> ==
-		(bits == 128 && SimdLib::IApi::ShiftBits<api_t, 1> && SimdLib::IApi::BitwiseAnd<api_t>));
-	static_assert(SimdLib::IRegister::ShiftBitsRight<value_t, 1> ==
-		(bits == 128 && SimdLib::IApi::ShiftBits<api_t, 1>));
-	static_assert(SimdLib::IRegister::CompareEqual<value_t> ==
-		(SimdLib::IApi::CompareEqual<api_t> && SimdLib::IApi::BitwiseAnd<api_t>));
-	static_assert(SimdLib::IRegister::CompareGreater<value_t> ==
-		(SimdLib::IApi::CompareGreater<api_t> && SimdLib::IApi::BitwiseAnd<api_t>));
-	static_assert(SimdLib::IRegister::CompareGreaterEqual<value_t> ==
-		(SimdLib::IApi::CompareGreaterEqual<api_t> && SimdLib::IApi::BitwiseAnd<api_t>));
-	static_assert(SimdLib::IRegister::CompareLess<value_t> ==
-		(SimdLib::IApi::CompareLess<api_t> && SimdLib::IApi::BitwiseAnd<api_t>));
-	static_assert(SimdLib::IRegister::CompareLessEqual<value_t> ==
-		(SimdLib::IApi::CompareLessEqual<api_t> && SimdLib::IApi::BitwiseAnd<api_t>));
+	static_assert(SimdLib::IRegister::ShiftBitsLeftSlow<value_t> == (bits == 128 && SimdLib::IApi::ShiftBitsSlow<api_t> && SimdLib::IApi::BitwiseAnd<api_t>));
+	static_assert(SimdLib::IRegister::ShiftBitsRightSlow<value_t> == (bits == 128 && SimdLib::IApi::ShiftBitsSlow<api_t>));
+	static_assert(SimdLib::IRegister::ShiftBitsLeft<value_t, 1> == (bits == 128 && SimdLib::IApi::ShiftBits<api_t, 1> && SimdLib::IApi::BitwiseAnd<api_t>));
+	static_assert(SimdLib::IRegister::ShiftBitsRight<value_t, 1> == (bits == 128 && SimdLib::IApi::ShiftBits<api_t, 1>));
+	static_assert(SimdLib::IRegister::CompareEqual<value_t> == (SimdLib::IApi::CompareEqual<api_t> && SimdLib::IApi::BitwiseAnd<api_t>));
+	static_assert(SimdLib::IRegister::CompareGreater<value_t> == (SimdLib::IApi::CompareGreater<api_t> && SimdLib::IApi::BitwiseAnd<api_t>));
+	static_assert(SimdLib::IRegister::CompareGreaterEqual<value_t> == (SimdLib::IApi::CompareGreaterEqual<api_t> && SimdLib::IApi::BitwiseAnd<api_t>));
+	static_assert(SimdLib::IRegister::CompareLess<value_t> == (SimdLib::IApi::CompareLess<api_t> && SimdLib::IApi::BitwiseAnd<api_t>));
+	static_assert(SimdLib::IRegister::CompareLessEqual<value_t> == (SimdLib::IApi::CompareLessEqual<api_t> && SimdLib::IApi::BitwiseAnd<api_t>));
 	static_assert(SimdLib::IRegister::Equal<value_t> ==
-		(SimdLib::IApi::CompareEqual<api_t> && SimdLib::IApi::BitwiseAnd<api_t> && SimdLib::IApi::MovemaskSlim<api_t>));
+				  (SimdLib::IApi::CompareEqual<api_t> && SimdLib::IApi::BitwiseAnd<api_t> && SimdLib::IApi::MovemaskSlim<api_t>));
 	static_assert(SimdLib::IRegister::NotEqual<value_t> == SimdLib::IRegister::Equal<value_t>);
 	static_assert(!SimdLib::IRegister::ShiftBytesLeft<value_t, -1>);
 	static_assert(!SimdLib::IRegister::ShiftBytesRight<value_t, -1>);
@@ -72,8 +57,7 @@ template <class element_t, std::size_t bits, std::size_t active_count>
 	return true;
 }
 
-#define SIMDLIB_PARTIAL_OPERATION_SURFACE(element_type, width, count) \
-	static_assert(has_operation_surface_parity<element_type, width, count>())
+#define SIMDLIB_PARTIAL_OPERATION_SURFACE(element_type, width, count) static_assert(has_operation_surface_parity<element_type, width, count>())
 SIMDLIB_PARTIAL_OPERATION_SURFACE(std::int8_t, 128, 13);
 SIMDLIB_PARTIAL_OPERATION_SURFACE(std::uint8_t, 128, 13);
 SIMDLIB_PARTIAL_OPERATION_SURFACE(std::int16_t, 128, 5);
@@ -206,10 +190,8 @@ template <std::size_t bits, std::size_t active_count> void require_payload_shift
 		REQUIRE(slow_bits_right.to_array() == bits_right.to_array());
 		REQUIRE(value.template shift_bytes_left<active_count>().to_array() == std::array<std::uint8_t, active_count>{});
 		REQUIRE(value.template shift_bytes_right<active_count>().to_array() == std::array<std::uint8_t, active_count>{});
-		REQUIRE(value.template shift_bits_left<static_cast<int>(active_count * 8)>().to_array() ==
-			std::array<std::uint8_t, active_count>{});
-		REQUIRE(value.template shift_bits_right<static_cast<int>(active_count * 8)>().to_array() ==
-			std::array<std::uint8_t, active_count>{});
+		REQUIRE(value.template shift_bits_left<static_cast<int>(active_count * 8)>().to_array() == std::array<std::uint8_t, active_count>{});
+		REQUIRE(value.template shift_bits_right<static_cast<int>(active_count * 8)>().to_array() == std::array<std::uint8_t, active_count>{});
 		require_zero_suffix(bits_left);
 		require_zero_suffix(bits_right);
 		require_zero_suffix(slow_bytes_left);
@@ -247,7 +229,8 @@ template <class element_t, std::size_t bits, std::size_t active_count> void requ
 	REQUIRE_FALSE(lhs == rhs);
 	REQUIRE(lhs != rhs);
 	REQUIRE(lhs == lhs);
-	const auto require_false_suffix = []<class mask_t>(mask_t mask) {
+	const auto require_false_suffix = []<class mask_t>(mask_t mask)
+	{
 		const auto native = mask_t::api_type::to_array(mask.to_native());
 		for (std::size_t lane = mask_t::lane_count; lane < mask_t::native_lane_count; ++lane)
 			REQUIRE(has_zero_bits(native[lane]));

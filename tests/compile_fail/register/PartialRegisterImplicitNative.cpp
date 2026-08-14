@@ -6,5 +6,4 @@
 
 using partial_register_type = SimdLib::PartialRegister<std::int32_t, 128, 3>;
 
-static_assert(std::is_convertible_v<partial_register_type::native_type, partial_register_type>,
-	"SIMDLIB_PARTIAL_REGISTER_REJECTS_IMPLICIT_NATIVE");
+static_assert(std::is_convertible_v<partial_register_type::native_type, partial_register_type>, "SIMDLIB_PARTIAL_REGISTER_REJECTS_IMPLICIT_NATIVE");
