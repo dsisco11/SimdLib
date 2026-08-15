@@ -1,7 +1,7 @@
 # Register Implementation Matrix
 
-This document makes the accepted design in `RegisterProposal.md` executable and
-traceable. The proposal controls semantics; `ApiOperationMatrix.md` controls the
+This document makes the accepted design in `RegisterContract.md` executable and
+traceable. The contract controls semantics; `ApiOperationMatrix.md` controls the
 current backend availability matrix; and this matrix records the implemented
 operation coverage. A disagreement is resolved by correcting the controlling
 semantic or availability document before implementing the affected operation.
@@ -63,7 +63,7 @@ These portability rules do not change a public declaration.
 | Compact mask bits | `bits_type` is normalized from lane count, is `uint32_t` for initial widths, maps bit `i` to lane `i`, and clears unused bits | 5 | Static assertions and mask-pattern tests |
 | Comparison semantics | Named comparisons reproduce the selected intrinsic, including signedness, NaNs, signed zero, ordered/unordered predicates, and lane bit patterns | 5 | Runtime, portable, emulated, and constexpr parity |
 | Whole equality | `operator==` means all lanes compare equal; `operator!=` is its Boolean negation; relational operators are absent | 5 | Boolean and compile-rejection tests |
-| Shift counts | Per-lane negative counts are invalid; logical overshifts zero, arithmetic overshifts sign-fill, and byte/whole-register shifts follow the proposal boundary table | 6 | Boundary, precondition, constexpr, and codegen tests |
+| Shift counts | Per-lane negative counts are invalid; logical overshifts zero, arithmetic overshifts sign-fill, and byte/whole-register shifts follow the contract boundary table | 6 | Boundary, precondition, constexpr, and codegen tests |
 | Immediate controls | Every `imm8` is constrained to `0..255`; logical element and byte shuffles require exactly one selector per output lane or byte, permit repeated selectors, and reject selectors outside the complete source register | 7, 8 | Compile-success/failure boundaries |
 | Rearrangement order | `lower_half()`, unpacking, and shuffling use logical low-to-high lanes or bytes. The 256-bit logical element and byte shuffles may select from the complete source register across the 128-bit boundary; lane-group restrictions remain only on operations whose names or intrinsic contracts specify them | 8 | Independent lane and byte oracles, cross-half selectors, highest-position sentinels, and exact code-generation parity |
 | Type-changing results | Public operations name the exact constrained namespace-level result alias and never expose a raw intrinsic result | 7 | Type assertions and unsupported-combination rejection |
@@ -317,7 +317,7 @@ the complete correctness, layout, ABI, and generated-code gates pass.
 | Non-inlined ABI mirrors | `tests/codegen/RegisterAbi.cpp`, `tests/codegen/RegisterAbiRaw.cpp` | ABI records owned by `RegisterCodegen128Sse42`, `RegisterCodegen128Avx2`, and `RegisterCodegen256Avx2` |
 | Register pressure and opaque calls | `tests/codegen/RegisterCodegenFixture.h` | Register code-generation gate |
 | Code-generation comparison | `cmake/CompareRegisterCodegen.cmake` and checked-in allowlisted normalization rules | CTest mandatory performance gate |
-| Permanent generated-code ownership audit | `docs/RegisterCodegenSymbolAudit.csv` and `docs/RegisterCodegenAudit.md` | Per-symbol fixture, baseline, record, validation, and retention traceability |
+| Generated-code ownership | `docs/RegisterQualification.md`, fixture sources, CMake symbol filters, and generated comparison records | Fixture, baseline, record, validation, and per-symbol traceability |
 | Checks-enabled preconditions | `tests/RegisterPreconditionFailure.tests.cpp` | Existing precondition death-test infrastructure |
 | Sanitizers | Runtime Register and mask sources | Fresh Clang ASan/UBSan configuration |
 | Supplemental benchmarks | `benchmarks/Register.benchmarks.cpp` | `Benchmarks`; never a correctness/codegen substitute |
@@ -325,7 +325,7 @@ the complete correctness, layout, ABI, and generated-code gates pass.
 
 Every production class and method has Doxygen documentation. Test
 and generated-code sources use only public SimdLib declarations except the
-proposal-approved narrow internal comparison adapter tests.
+contract-approved narrow internal comparison adapter tests.
 
 ## Validation ownership
 

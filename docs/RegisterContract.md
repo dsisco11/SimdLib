@@ -1,4 +1,4 @@
-# Register Class Proposal
+# Register Contract
 
 Status: implemented and qualified public interface. Supported cells and explicit
 exceptions are controlled by `RegisterQualification.md`.
@@ -1438,9 +1438,9 @@ Tests use the current `Api` as the permanent generated-code parity baseline.
 Independent scalar references remain necessary in behavioral tests and
 benchmarks so both public surfaces cannot agree on the same defect unnoticed;
 those references are not retained as duplicate permanent codegen algorithms.
-The complete per-symbol retention and ownership decisions are defined by
-`RegisterCodegenSymbolAudit.csv` and summarized with the build and artifact
-inventory in `RegisterCodegenAudit.md`.
+The generated comparison records are the authoritative per-symbol inventories.
+Fixture, baseline, record, and validator ownership is defined by
+`RegisterQualification.md`, the fixture sources, and the CMake symbol filters.
 
 ## Acceptance criteria
 

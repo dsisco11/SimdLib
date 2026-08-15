@@ -311,6 +311,9 @@ fixtures retain normal `/GS` protection and paired disassembly for review.
   configuration details, formatting, and development commands.
 - [Public namespace and compatibility](docs/PublicNamespace.md) describes the
   supported API boundary.
+- [Register contract and qualification](docs/RegisterContract.md) records the
+  complete-register semantics; [RegisterQualification.md](docs/RegisterQualification.md)
+  records its compiler, ABI, generated-code, and validation boundaries.
 - [PartialRegister design and qualification](docs/PartialRegisterQualification.md)
   records the active-prefix contract, result rules, examples, compiler matrix,
   and validation evidence.
