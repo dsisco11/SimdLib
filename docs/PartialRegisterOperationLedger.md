@@ -2,9 +2,9 @@
 
 ## Purpose
 
-This document fixes the public contract for `PartialRegister` before its
-implementation begins. It applies to every method and operator currently
-exposed by `Register`; no Register surface may be silently omitted.
+This document records the current public contract for `PartialRegister`. It
+applies to every method and operator currently exposed by `Register`; no
+Register surface may be silently omitted.
 
 `PartialRegister` is a value containing a fixed prefix of logical SIMD lanes.
 It is not a partial load helper, a dynamically sized value, a mask, or a
