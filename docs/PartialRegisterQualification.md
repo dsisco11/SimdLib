@@ -109,7 +109,7 @@ tail handling.
 | Architecture | x86-64 |
 | Width and ISA | 128-bit under SSE4.2; 256-bit additionally under AVX2 |
 | Elements | Signed and unsigned 8-, 16-, 32-, and 64-bit integers; `float`; `double` |
-| Windows | MSVC 19.44 and clang-cl 22, C++23 register interface |
+| Windows | MSVC 19.44, clang-cl 20.1.8, and clang-cl 22.1.7, C++23 register interface |
 | Linux | GCC 14.2 and Clang 22.1 on pinned Alpine/musl images |
 | Core-only compatibility | GCC 13.2 compiles the C++20 umbrella with the register interface unavailable |
 | Sanitizers | Clang 22 Debug with ASan and UBSan |

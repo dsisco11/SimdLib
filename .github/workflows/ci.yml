@@ -38,22 +38,22 @@ jobs:
             out/pipeline/provenance
           if-no-files-found: error
 
-  native-clangcl:
-    name: clang-cl and Clang coverage x64 validation
+  windows-clang20-container:
+    name: Windows clang-cl 20 container validation
     runs-on: windows-2022
     steps:
       - uses: actions/checkout@v4
-      - name: Build every Clang validation cell
-        run: tools/Build.ps1 -Scope Native -Compiler ClangCl,ClangCoverage
-      - name: Test the exact Clang build receipt
-        run: tools/Run-Tests.ps1 -Scope Native -Compiler ClangCl,ClangCoverage
-      - name: Build clang-cl benchmark artifacts explicitly
-        run: tools/Build-Benchmarks.ps1 -Scope Native -Compiler ClangCl
-      - name: Upload Clang evidence
+      - name: Build the Windows clang-cl 20 container and validation cell
+        run: tools/Run-WindowsClang20Container.ps1 -Action Build
+      - name: Test the exact clang-cl 20 build receipt
+        run: tools/Run-WindowsClang20Container.ps1 -Action Test -SkipImageBuild
+      - name: Build clang-cl 20 benchmark artifacts explicitly
+        run: tools/Run-WindowsClang20Container.ps1 -Action BuildBenchmarks -SkipImageBuild
+      - name: Upload clang-cl 20 evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: clang-evidence
+          name: clang20-evidence
           path: |
             out/pipeline/windows-clangcl/**/provenance
             out/pipeline/windows-clangcl/**/reports
@@ -61,6 +61,60 @@ jobs:
             out/pipeline/windows-clangcl/**/benchmark-build.manifest
             out/pipeline/windows-clangcl/**/build/register-codegen/**/*.json
             out/pipeline/windows-clangcl/**/build/register-codegen/**/*.txt
+            out/pipeline/windows-clangcl/**/build/partial-register-codegen/**/*.json
+            out/pipeline/windows-clangcl/**/build/partial-register-codegen/**/*.txt
+            out/pipeline/windows-clangcl/**/build/method-flags-codegen/**/*.json
+            out/pipeline/windows-clangcl/**/build/method-flags-codegen/**/*.txt
+            out/pipeline/logs
+            out/pipeline/provenance
+          if-no-files-found: error
+
+  native-clang22:
+    name: clang-cl 22 and Clang 22 coverage x64 validation
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install the pinned Windows toolchain with Chocolatey
+        shell: pwsh
+        run: |
+          choco upgrade cmake --version=4.4.0 --yes --allow-downgrade --no-progress --limit-output
+          if ($LASTEXITCODE -notin @(0, 1605, 1614, 1641, 3010)) {
+            throw "Chocolatey failed to install CMake 4.4.0 with exit code $LASTEXITCODE"
+          }
+          choco upgrade llvm --version=22.1.7 --yes --allow-downgrade --no-progress --limit-output
+          if ($LASTEXITCODE -notin @(0, 1605, 1614, 1641, 3010)) {
+            throw "Chocolatey failed to install LLVM 22.1.7 with exit code $LASTEXITCODE"
+          }
+          'C:\Program Files\CMake\bin' | Out-File -Encoding utf8 -Append $env:GITHUB_PATH
+          'C:\Program Files\LLVM\bin' | Out-File -Encoding utf8 -Append $env:GITHUB_PATH
+      - name: Verify the pinned Windows toolchain
+        run: |
+          $cmakeVersion = & 'C:\Program Files\CMake\bin\cmake.exe' --version | Select-Object -First 1
+          if ($cmakeVersion -ne 'cmake version 4.4.0') { throw "Unexpected CMake version: $cmakeVersion" }
+          $version = & 'C:\Program Files\LLVM\bin\clang-cl.exe' --version | Select-Object -First 1
+          if ($version -notmatch 'clang version 22\.1\.7\b') { throw "Unexpected clang-cl version: $version" }
+          $cmakeVersion
+          $version
+      - name: Build every Clang 22 validation cell
+        run: tools/Build.ps1 -Scope Native -Compiler ClangCl,ClangCoverage
+      - name: Test the exact Clang 22 build receipt
+        run: tools/Run-Tests.ps1 -Scope Native -Compiler ClangCl,ClangCoverage
+      - name: Build clang-cl 22 benchmark artifacts explicitly
+        run: tools/Build-Benchmarks.ps1 -Scope Native -Compiler ClangCl
+      - name: Upload Clang 22 evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: clang22-evidence
+          path: |
+            out/pipeline/windows-clangcl/**/provenance
+            out/pipeline/windows-clangcl/**/reports
+            out/pipeline/windows-clangcl/**/validation-build.manifest
+            out/pipeline/windows-clangcl/**/benchmark-build.manifest
+            out/pipeline/windows-clangcl/**/build/register-codegen/**/*.json
+            out/pipeline/windows-clangcl/**/build/register-codegen/**/*.txt
+            out/pipeline/windows-clangcl/**/build/partial-register-codegen/**/*.json
+            out/pipeline/windows-clangcl/**/build/partial-register-codegen/**/*.txt
             out/pipeline/windows-clangcl/**/build/method-flags-codegen/**/*.json
             out/pipeline/windows-clangcl/**/build/method-flags-codegen/**/*.txt
             out/pipeline/windows-clang-coverage/**/provenance

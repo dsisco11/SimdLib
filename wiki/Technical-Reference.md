@@ -427,9 +427,11 @@ for example
 ## Continuous validation
 
 `.github/workflows/ci.yml` delegates to the same scoped `Build.ps1` and
-`Run-Tests.ps1` commands used locally. Native MSVC, native clang-cl
-plus coverage, and Linux container compilers each build their assigned
-fingerprints once and then run test-only operations. Each benchmark-owning CI
+`Run-Tests.ps1` commands used locally. Native MSVC, the explicit
+Chocolatey-provisioned Windows clang-cl 20 compatibility-floor container,
+native clang-cl 22 plus coverage, and Linux container compilers
+each build their assigned fingerprints once and then run test-only operations.
+Each benchmark-owning CI
 job invokes `Build-Benchmarks.ps1` explicitly after correctness testing; the
 default build remains benchmark-free. Clang ASan+UBSan remains an independent
 instrumented fingerprint. Mandatory instruction-family labels,

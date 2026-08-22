@@ -289,7 +289,7 @@ compile-time audit; no prose-only availability list can drift independently.
 | C++20 core | GCC 13.2 | Linux x64; Debug and Release | Existing full public matrix remains supported; Register unavailable |
 | C++20 core sanitizer | Clang 22.1.8 | Linux x64 Debug, `-O1`, ASan/UBSan, frame pointers | No sanitizer diagnostics |
 | Register | MSVC 19.44 | Windows x64, `/std:c++latest`; supported ISA profiles | SSE4.2 diagnostics and strict AVX2 gates; memory-writing fixtures retain `/GS` and the exact documented exception |
-| Register and PartialRegister | clang-cl 22 or newer | Windows x64, C++23; supported ISA profiles | Strict SSE4.2 and AVX2 correctness, ABI, and generated-code gates |
+| Register and PartialRegister | clang-cl 20.1.8 and 22.1.7 | Windows x64, C++23; supported ISA profiles | Separate strict SSE4.2 and AVX2 correctness, ABI, and generated-code gates for the explicit clang-cl 20 compatibility floor and the newer compiler |
 | Register and PartialRegister | Clang 22 or newer | Linux x64, C++23; supported ISA profiles | Strict SSE4.2 and AVX2 correctness, ABI, and generated-code gates |
 | Register and PartialRegister | GCC 14 or newer | Linux x64, C++23; supported ISA profiles | Strict SSE4.2 and AVX2 correctness, ABI, and generated-code gates |
 
