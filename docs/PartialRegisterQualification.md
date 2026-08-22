@@ -165,6 +165,13 @@ the compiler identity and version, ISA profile, symbol mapping,
 instruction, symbol set, or profile hash fails the build rather than silently
 refreshing the exception.
 
+`cmake/development/PartialRegisterCodegenProfiles.json` is the authoritative
+configuration for retained PartialRegister differences. Each entry identifies
+the compiler and accepted versions, profile, register width, ISA, reason, and
+wrapper/raw SHA-256 values. Configuration fails on malformed schema members,
+invalid hashes, or multiple entries matching the active compiler cell; the
+CMake gate contains selection and validation logic but no retained hash data.
+
 MSVC accepts only the following hash-pinned difference categories:
 
 | Exception | Exact instruction categories |

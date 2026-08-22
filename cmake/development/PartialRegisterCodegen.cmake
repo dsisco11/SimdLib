@@ -6,6 +6,205 @@ endif()
 
 block(SCOPE_FOR VARIABLES)
 
+set(simdlib_partial_codegen_profiles_file
+	"${CMAKE_CURRENT_LIST_DIR}/PartialRegisterCodegenProfiles.json")
+if(NOT EXISTS "${simdlib_partial_codegen_profiles_file}")
+	message(FATAL_ERROR
+		"PartialRegister retained code-generation profiles are missing: "
+		"${simdlib_partial_codegen_profiles_file}")
+endif()
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+	"${simdlib_partial_codegen_profiles_file}")
+file(READ "${simdlib_partial_codegen_profiles_file}"
+	simdlib_partial_codegen_profiles_json)
+
+# @brief Reads one required property from a retained code-generation profile.
+# @param output_variable Variable receiving the decoded property value.
+# @param entry_index Zero-based profile entry index.
+# @param member_name Required JSON member name.
+# @param expected_type Required JSON value type.
+function(simdlib_partial_codegen_profile_property output_variable entry_index member_name expected_type)
+	string(JSON actual_type ERROR_VARIABLE property_error TYPE
+		"${simdlib_partial_codegen_profiles_json}"
+		entries ${entry_index} "${member_name}")
+	if(property_error)
+		message(FATAL_ERROR
+			"PartialRegister code-generation profile ${entry_index} does not define "
+			"${member_name}: ${property_error}")
+	endif()
+	if(NOT actual_type STREQUAL expected_type)
+		message(FATAL_ERROR
+			"PartialRegister code-generation profile ${entry_index} member "
+			"${member_name} must be ${expected_type}, not ${actual_type}")
+	endif()
+	string(JSON property_value GET "${simdlib_partial_codegen_profiles_json}"
+		entries ${entry_index} "${member_name}")
+	set(${output_variable} "${property_value}" PARENT_SCOPE)
+endfunction()
+
+string(JSON simdlib_partial_codegen_root_member_count
+	ERROR_VARIABLE simdlib_partial_codegen_root_error LENGTH
+	"${simdlib_partial_codegen_profiles_json}")
+if(simdlib_partial_codegen_root_error OR
+		NOT simdlib_partial_codegen_root_member_count EQUAL 2)
+	message(FATAL_ERROR
+		"PartialRegister code-generation profile root must contain exactly "
+		"schemaVersion and entries: ${simdlib_partial_codegen_root_error}")
+endif()
+string(JSON simdlib_partial_codegen_schema_type
+	ERROR_VARIABLE simdlib_partial_codegen_schema_error TYPE
+	"${simdlib_partial_codegen_profiles_json}" schemaVersion)
+string(JSON simdlib_partial_codegen_entries_type
+	ERROR_VARIABLE simdlib_partial_codegen_entries_type_error TYPE
+	"${simdlib_partial_codegen_profiles_json}" entries)
+if(simdlib_partial_codegen_schema_error OR
+		NOT simdlib_partial_codegen_schema_type STREQUAL "NUMBER" OR
+		simdlib_partial_codegen_entries_type_error OR
+		NOT simdlib_partial_codegen_entries_type STREQUAL "ARRAY")
+	message(FATAL_ERROR
+		"PartialRegister code-generation profile root requires numeric schemaVersion "
+		"and array entries")
+endif()
+string(JSON simdlib_partial_codegen_schema_version GET
+	"${simdlib_partial_codegen_profiles_json}" schemaVersion)
+if(NOT simdlib_partial_codegen_schema_version EQUAL 1)
+	message(FATAL_ERROR
+		"PartialRegister code-generation profile schemaVersion must be 1")
+endif()
+string(JSON simdlib_partial_codegen_profile_count
+	ERROR_VARIABLE simdlib_partial_codegen_entries_error LENGTH
+	"${simdlib_partial_codegen_profiles_json}" entries)
+if(simdlib_partial_codegen_entries_error OR
+		simdlib_partial_codegen_profile_count EQUAL 0)
+	message(FATAL_ERROR
+		"PartialRegister code-generation profiles must define a non-empty entries array: "
+		"${simdlib_partial_codegen_entries_error}")
+endif()
+math(EXPR simdlib_partial_codegen_profile_last
+	"${simdlib_partial_codegen_profile_count} - 1")
+set(simdlib_partial_codegen_wildcard_keys "")
+set(simdlib_partial_codegen_exact_base_keys "")
+set(simdlib_partial_codegen_exact_versions "")
+foreach(entry_index RANGE ${simdlib_partial_codegen_profile_last})
+	string(JSON entry_member_count LENGTH
+		"${simdlib_partial_codegen_profiles_json}" entries ${entry_index})
+	if(NOT entry_member_count EQUAL 8)
+		message(FATAL_ERROR
+			"PartialRegister code-generation profile ${entry_index} must contain "
+			"exactly the eight schema members")
+	endif()
+	simdlib_partial_codegen_profile_property(entry_compiler ${entry_index} compiler STRING)
+	simdlib_partial_codegen_profile_property(entry_profile ${entry_index} profile STRING)
+	simdlib_partial_codegen_profile_property(entry_register_width ${entry_index} registerWidth NUMBER)
+	simdlib_partial_codegen_profile_property(entry_isa_profile ${entry_index} isaProfile STRING)
+	simdlib_partial_codegen_profile_property(entry_reason ${entry_index} reason STRING)
+	simdlib_partial_codegen_profile_property(entry_wrapper_hash ${entry_index} wrapperSha256 STRING)
+	simdlib_partial_codegen_profile_property(entry_raw_hash ${entry_index} rawSha256 STRING)
+	if(NOT entry_compiler STREQUAL "clang-cl" AND
+			NOT entry_compiler STREQUAL "msvc")
+		message(FATAL_ERROR
+			"PartialRegister code-generation profile ${entry_index} has unsupported "
+			"compiler ${entry_compiler}")
+	endif()
+	if(NOT entry_profile MATCHES "^(predicate|value|arithmetic|general|abi)$")
+		message(FATAL_ERROR
+			"PartialRegister code-generation profile ${entry_index} has unsupported "
+			"profile ${entry_profile}")
+	endif()
+	if(NOT entry_register_width EQUAL 128 AND
+			NOT entry_register_width EQUAL 256)
+		message(FATAL_ERROR
+			"PartialRegister code-generation profile ${entry_index} has unsupported "
+			"registerWidth ${entry_register_width}")
+	endif()
+	if(NOT entry_isa_profile STREQUAL "SSE42" AND
+			NOT entry_isa_profile STREQUAL "AVX2")
+		message(FATAL_ERROR
+			"PartialRegister code-generation profile ${entry_index} has unsupported "
+			"isaProfile ${entry_isa_profile}")
+	endif()
+	if(entry_reason STREQUAL "")
+		message(FATAL_ERROR
+			"PartialRegister code-generation profile ${entry_index} has an empty reason")
+	endif()
+	foreach(hash_name IN ITEMS wrapper raw)
+		set(hash_value "${entry_${hash_name}_hash}")
+		string(LENGTH "${hash_value}" hash_length)
+		if(NOT hash_length EQUAL 64 OR NOT hash_value MATCHES "^[0-9a-f]+$")
+			message(FATAL_ERROR
+				"PartialRegister code-generation profile ${entry_index} has an invalid "
+				"${hash_name} SHA-256 value")
+		endif()
+	endforeach()
+	string(JSON entry_version_count ERROR_VARIABLE entry_versions_error LENGTH
+		"${simdlib_partial_codegen_profiles_json}"
+		entries ${entry_index} compilerVersions)
+	if(entry_versions_error OR entry_version_count EQUAL 0)
+		message(FATAL_ERROR
+			"PartialRegister code-generation profile ${entry_index} must define "
+			"at least one compiler version: ${entry_versions_error}")
+	endif()
+	math(EXPR entry_version_last "${entry_version_count} - 1")
+	set(entry_base_key
+		"${entry_compiler}|${entry_profile}|${entry_register_width}|${entry_isa_profile}")
+	foreach(version_index RANGE ${entry_version_last})
+		string(JSON entry_version_type TYPE
+			"${simdlib_partial_codegen_profiles_json}"
+			entries ${entry_index} compilerVersions ${version_index})
+		string(JSON entry_version GET "${simdlib_partial_codegen_profiles_json}"
+			entries ${entry_index} compilerVersions ${version_index})
+		if(NOT entry_version_type STREQUAL "STRING" OR entry_version STREQUAL "")
+			message(FATAL_ERROR
+				"PartialRegister code-generation profile ${entry_index} has an invalid "
+				"compiler version at index ${version_index}")
+		endif()
+		if(entry_version STREQUAL "*")
+			list(FIND simdlib_partial_codegen_wildcard_keys
+				"${entry_base_key}" duplicate_wildcard_index)
+			list(FIND simdlib_partial_codegen_exact_base_keys
+				"${entry_base_key}" wildcard_exact_overlap_index)
+			if(NOT duplicate_wildcard_index EQUAL -1 OR
+					NOT wildcard_exact_overlap_index EQUAL -1)
+				message(FATAL_ERROR
+					"PartialRegister code-generation profile ${entry_index} overlaps "
+					"another retained profile for ${entry_base_key}")
+			endif()
+			list(APPEND simdlib_partial_codegen_wildcard_keys "${entry_base_key}")
+		else()
+			if(NOT entry_version MATCHES "^[0-9]+(\\.[0-9]+)*$")
+				message(FATAL_ERROR
+					"PartialRegister code-generation profile ${entry_index} has invalid "
+					"compiler version ${entry_version}")
+			endif()
+			list(FIND simdlib_partial_codegen_wildcard_keys
+				"${entry_base_key}" exact_wildcard_overlap_index)
+			if(NOT exact_wildcard_overlap_index EQUAL -1)
+				message(FATAL_ERROR
+					"PartialRegister code-generation profile ${entry_index} overlaps "
+					"a wildcard retained profile for ${entry_base_key}")
+			endif()
+			list(LENGTH simdlib_partial_codegen_exact_base_keys exact_key_count)
+			if(exact_key_count GREATER 0)
+				math(EXPR exact_key_last "${exact_key_count} - 1")
+				foreach(exact_key_index RANGE ${exact_key_last})
+					list(GET simdlib_partial_codegen_exact_base_keys
+						${exact_key_index} existing_base_key)
+					list(GET simdlib_partial_codegen_exact_versions
+						${exact_key_index} existing_version)
+					if("${existing_base_key}" STREQUAL "${entry_base_key}" AND
+							"${entry_version}" VERSION_EQUAL "${existing_version}")
+						message(FATAL_ERROR
+							"PartialRegister code-generation profile ${entry_index} overlaps "
+							"another retained profile for ${entry_base_key}, ${entry_version}")
+					endif()
+				endforeach()
+			endif()
+			list(APPEND simdlib_partial_codegen_exact_base_keys "${entry_base_key}")
+			list(APPEND simdlib_partial_codegen_exact_versions "${entry_version}")
+		endif()
+	endforeach()
+endforeach()
+
 # @brief Selects the exact retained generated-code profiles for one qualified compiler cell.
 # @param profile Qualified PartialRegister code-generation profile.
 # @param register_width Native width selected for the fixture.
@@ -17,80 +216,61 @@ function(simdlib_partial_retained_profiles profile register_width isa_profile re
 	set(reason "")
 	set(wrapper_hash "")
 	set(raw_hash "")
-	if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND SIMDLIB_MSVC_STYLE_DRIVER AND
-		(CMAKE_CXX_COMPILER_VERSION VERSION_EQUAL 20.1.8 OR
-		 CMAKE_CXX_COMPILER_VERSION VERSION_EQUAL 22.1.7 OR
-		 CMAKE_CXX_COMPILER_VERSION VERSION_EQUAL 22.1.8))
-		if(profile STREQUAL "arithmetic" AND register_width EQUAL 128)
-			set(reason "clang-equivalent-operand-selection-and-scalar-division-scheduling")
-			if(CMAKE_CXX_COMPILER_VERSION VERSION_EQUAL 20.1.8)
-				set(wrapper_hash "7a7bdc8388855fc36ff194b173a1390af3cdfb19b60744d6d8b290576dbda609")
-				set(raw_hash "d0aa4f63e875a0f8ee53c64add1f7cc97a6ef2c7172f81e1cc4707d01aefccc1")
-			else()
-				set(wrapper_hash "895b587adb28f832780881dc106e6419dc5d55bcc8c68aec36a3e0caad2dd70c")
-				set(raw_hash "ae9f72212abfe3ed49b456a04b547b43a1f388c52ede0391ffaa63ebe3e57d7a")
-			endif()
-		elseif(profile STREQUAL "arithmetic" AND register_width EQUAL 256)
-			set(reason "clang-equivalent-commutative-operand-and-register-selection")
-			if(CMAKE_CXX_COMPILER_VERSION VERSION_EQUAL 20.1.8)
-				set(wrapper_hash "b21046545181e11fda3364e0a2617ff0534add9d8edb02899f93cb42d6bdc449")
-				set(raw_hash "dddc628b21cab6ac671229a69e15d64b2745ef2bf93a8ccd95c4c092557d7e29")
-			else()
-				set(wrapper_hash "f6c808129c4d128a7c0b49bff6732f99bccc47d1a430462040d4cd840dbd853f")
-				set(raw_hash "7534f844dae0255c78786edce1196290fc97d1f8f85b651cc77f8578eb5ad38e")
-			endif()
-		elseif(profile STREQUAL "value" AND register_width EQUAL 128)
-			set(reason "clang-equivalent-add-operand-selection-and-scalar-division-scheduling")
-			set(wrapper_hash "caa6b7c5c57cc3754f495f85bb2f1593de64c0d425df56f2798aeebd2e0ae297")
-			set(raw_hash "e0972c1f50b1a8e1448c63879488fb04416e1510e0396ea922822b42be0f3031")
-		elseif(profile STREQUAL "value" AND register_width EQUAL 256)
-			set(reason "clang-equivalent-commutative-add-operand-selection")
-			set(wrapper_hash "cfd9f0deb4b440152aac87cb0d1cd2223b8c0023a81aa9666fc37c8491aa786f")
-			set(raw_hash "947545f582ed36c65c4252daab6b7e406d49a764d2761b8f4e3e437a240ae14b")
-		endif()
+	if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND SIMDLIB_MSVC_STYLE_DRIVER)
+		set(compiler_key "clang-cl")
 	elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-		if(profile STREQUAL "predicate" AND register_width EQUAL 128)
-			set(reason "msvc-gs-predicate-composition-cookie")
-			set(wrapper_hash "40d3d2c14684c7cf4f7ec54e2745a71cc9c96ca77045f8e20e1d2cf2125f5d0f")
-			set(raw_hash "274480001869ad12ae5da9e9bfc801eb9823aa555ef42c2dd70ca4d37fb61c2a")
-		elseif(profile STREQUAL "predicate" AND register_width EQUAL 256)
-			set(reason "msvc-gs-predicate-composition-cookie")
-			set(wrapper_hash "d080a20d867fa7df30bb9ea1701ec5199900025e9629b4fbc25ee317d9e7a890")
-			set(raw_hash "c93ce1d1b5f1089deb799e23ed0e17deb3049498e50c10c37d65905296dfa555")
-		elseif(profile STREQUAL "value" AND register_width EQUAL 128)
-			set(reason "msvc-equivalent-import-normalization-gs-and-value-operation-allocation")
-			set(wrapper_hash "e500054cea61f6aabcebf97fadf9264b6de112e5d00519119b9ed093d70239dd")
-			set(raw_hash "9c085b63a9217f371422e89c09f4984b04cd0b37c3e780d3cb9bc4356f9857d1")
-		elseif(profile STREQUAL "value" AND register_width EQUAL 256)
-			set(reason "msvc-equivalent-import-normalization-gs-and-value-operation-allocation")
-			set(wrapper_hash "c6addf1f03722e3402215409c4f7c076ee16deecabcead203205e8e89d581ad8")
-			set(raw_hash "94367252b5828ebb560c32fdbcc95014c0991337a8adac50a808404378fa0d5c")
-		elseif(profile STREQUAL "arithmetic" AND register_width EQUAL 128)
-			set(reason "msvc-equivalent-unaligned-moves-and-register-allocation")
-			set(wrapper_hash "558ce994846ad0e4a9a44fff73b7e156eee94861041cb82ad2016d65af1b537c")
-			set(raw_hash "1d135fce910efd2919e05b564bc41f3d9fdaa5a474c0900947a9594716c8132c")
-		elseif(profile STREQUAL "arithmetic" AND register_width EQUAL 256)
-			set(reason "msvc-equivalent-unaligned-moves-and-register-allocation")
-			set(wrapper_hash "2eb906ffce8bf9931bcd1867dd50332fb06f4a17f288f98f7f7906e9c0f0067b")
-			set(raw_hash "167f03d2b0e974c1db1250d84257fe0a0612cb2173a2cde65d65dc636c72e8f0")
-		elseif(profile STREQUAL "general" AND register_width EQUAL 128)
-			set(reason "msvc-equivalent-vector-moves-mask-materialization-register-allocation-and-gs-cookie")
-			set(wrapper_hash "3e1b4ffebe93da71eec7360fb305c441d4255bea45d6af73e2fdc3a174d00075")
-			set(raw_hash "6b764b03be59acd44ab6301df1db1b2997902d94c20e603865f3a9fadb240709")
-		elseif(profile STREQUAL "general" AND register_width EQUAL 256)
-			set(reason "msvc-equivalent-vector-moves-mask-materialization-register-allocation-and-gs-cookie")
-			set(wrapper_hash "58abbe6e22f172fff40d7053103eb667cf4eb70a9c9b4a28eb40a998a8c12c26")
-			set(raw_hash "98e2e877a335a6423a156a813f6bf17a87bd04fd11cb8210eb26d2cc5ba0673a")
-		elseif(profile STREQUAL "abi" AND register_width EQUAL 128)
-			set(reason "msvc-partial-invariant-boundary-normalization-and-gs-cookie")
-			set(wrapper_hash "e2fc5990e063a65e7a77fd7bdcdd7469fed24bc3ccc3a4c927c2ab4fb5c528d1")
-			set(raw_hash "f8c290188f776e5887e14f2b2254d7d43a9fa6cdc8edfd0b835331d0270befca")
-		elseif(profile STREQUAL "abi" AND register_width EQUAL 256)
-			set(reason "msvc-partial-invariant-boundary-normalization-and-gs-cookie")
-			set(wrapper_hash "50201329cc0be4ebf40194ad0f789818634b0616c56bc690893023b111bf1ed4")
-			set(raw_hash "1db3aea52362ed96c2c45709be8725a73cbdf97db50ac7d5ae2481b0bf803b13")
-		endif()
+		set(compiler_key "msvc")
+	else()
+		set(${reason_variable} "" PARENT_SCOPE)
+		set(${wrapper_hash_variable} "" PARENT_SCOPE)
+		set(${raw_hash_variable} "" PARENT_SCOPE)
+		return()
 	endif()
+	set(match_count 0)
+	foreach(entry_index RANGE ${simdlib_partial_codegen_profile_last})
+		string(JSON entry_compiler GET "${simdlib_partial_codegen_profiles_json}"
+			entries ${entry_index} compiler)
+		string(JSON entry_profile GET "${simdlib_partial_codegen_profiles_json}"
+			entries ${entry_index} profile)
+		string(JSON entry_register_width GET "${simdlib_partial_codegen_profiles_json}"
+			entries ${entry_index} registerWidth)
+		string(JSON entry_isa_profile GET "${simdlib_partial_codegen_profiles_json}"
+			entries ${entry_index} isaProfile)
+		if(NOT entry_compiler STREQUAL "${compiler_key}" OR
+				NOT entry_profile STREQUAL "${profile}" OR
+				NOT entry_register_width EQUAL register_width OR
+				NOT entry_isa_profile STREQUAL "${isa_profile}")
+			continue()
+		endif()
+		string(JSON entry_version_count LENGTH
+			"${simdlib_partial_codegen_profiles_json}"
+			entries ${entry_index} compilerVersions)
+		math(EXPR entry_version_last "${entry_version_count} - 1")
+		set(version_matches FALSE)
+		foreach(version_index RANGE ${entry_version_last})
+			string(JSON entry_version GET "${simdlib_partial_codegen_profiles_json}"
+				entries ${entry_index} compilerVersions ${version_index})
+			if(entry_version STREQUAL "*" OR
+					CMAKE_CXX_COMPILER_VERSION VERSION_EQUAL "${entry_version}")
+				set(version_matches TRUE)
+			endif()
+		endforeach()
+		if(NOT version_matches)
+			continue()
+		endif()
+		math(EXPR match_count "${match_count} + 1")
+		if(match_count GREATER 1)
+			message(FATAL_ERROR
+				"Multiple PartialRegister code-generation profiles match ${compiler_key} "
+				"${CMAKE_CXX_COMPILER_VERSION}, ${profile}, ${register_width}, ${isa_profile}")
+		endif()
+		string(JSON reason GET "${simdlib_partial_codegen_profiles_json}"
+			entries ${entry_index} reason)
+		string(JSON wrapper_hash GET "${simdlib_partial_codegen_profiles_json}"
+			entries ${entry_index} wrapperSha256)
+		string(JSON raw_hash GET "${simdlib_partial_codegen_profiles_json}"
+			entries ${entry_index} rawSha256)
+	endforeach()
 	set(${reason_variable} "${reason}" PARENT_SCOPE)
 	set(${wrapper_hash_variable} "${wrapper_hash}" PARENT_SCOPE)
 	set(${raw_hash_variable} "${raw_hash}" PARENT_SCOPE)

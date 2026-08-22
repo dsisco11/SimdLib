@@ -1,0 +1,165 @@
+{
+  "schemaVersion": 1,
+  "entries": [
+    {
+      "compiler": "clang-cl",
+      "compilerVersions": ["20.1.8"],
+      "profile": "arithmetic",
+      "registerWidth": 128,
+      "isaProfile": "SSE42",
+      "reason": "clang-equivalent-operand-selection-and-scalar-division-scheduling",
+      "wrapperSha256": "7a7bdc8388855fc36ff194b173a1390af3cdfb19b60744d6d8b290576dbda609",
+      "rawSha256": "d0aa4f63e875a0f8ee53c64add1f7cc97a6ef2c7172f81e1cc4707d01aefccc1"
+    },
+    {
+      "compiler": "clang-cl",
+      "compilerVersions": ["22.1.7", "22.1.8"],
+      "profile": "arithmetic",
+      "registerWidth": 128,
+      "isaProfile": "SSE42",
+      "reason": "clang-equivalent-operand-selection-and-scalar-division-scheduling",
+      "wrapperSha256": "895b587adb28f832780881dc106e6419dc5d55bcc8c68aec36a3e0caad2dd70c",
+      "rawSha256": "ae9f72212abfe3ed49b456a04b547b43a1f388c52ede0391ffaa63ebe3e57d7a"
+    },
+    {
+      "compiler": "clang-cl",
+      "compilerVersions": ["20.1.8"],
+      "profile": "arithmetic",
+      "registerWidth": 256,
+      "isaProfile": "AVX2",
+      "reason": "clang-equivalent-commutative-operand-and-register-selection",
+      "wrapperSha256": "b21046545181e11fda3364e0a2617ff0534add9d8edb02899f93cb42d6bdc449",
+      "rawSha256": "dddc628b21cab6ac671229a69e15d64b2745ef2bf93a8ccd95c4c092557d7e29"
+    },
+    {
+      "compiler": "clang-cl",
+      "compilerVersions": ["22.1.7", "22.1.8"],
+      "profile": "arithmetic",
+      "registerWidth": 256,
+      "isaProfile": "AVX2",
+      "reason": "clang-equivalent-commutative-operand-and-register-selection",
+      "wrapperSha256": "f6c808129c4d128a7c0b49bff6732f99bccc47d1a430462040d4cd840dbd853f",
+      "rawSha256": "7534f844dae0255c78786edce1196290fc97d1f8f85b651cc77f8578eb5ad38e"
+    },
+    {
+      "compiler": "clang-cl",
+      "compilerVersions": ["20.1.8", "22.1.7", "22.1.8"],
+      "profile": "value",
+      "registerWidth": 128,
+      "isaProfile": "SSE42",
+      "reason": "clang-equivalent-add-operand-selection-and-scalar-division-scheduling",
+      "wrapperSha256": "caa6b7c5c57cc3754f495f85bb2f1593de64c0d425df56f2798aeebd2e0ae297",
+      "rawSha256": "e0972c1f50b1a8e1448c63879488fb04416e1510e0396ea922822b42be0f3031"
+    },
+    {
+      "compiler": "clang-cl",
+      "compilerVersions": ["20.1.8", "22.1.7", "22.1.8"],
+      "profile": "value",
+      "registerWidth": 256,
+      "isaProfile": "AVX2",
+      "reason": "clang-equivalent-commutative-add-operand-selection",
+      "wrapperSha256": "cfd9f0deb4b440152aac87cb0d1cd2223b8c0023a81aa9666fc37c8491aa786f",
+      "rawSha256": "947545f582ed36c65c4252daab6b7e406d49a764d2761b8f4e3e437a240ae14b"
+    },
+    {
+      "compiler": "msvc",
+      "compilerVersions": ["*"],
+      "profile": "predicate",
+      "registerWidth": 128,
+      "isaProfile": "SSE42",
+      "reason": "msvc-gs-predicate-composition-cookie",
+      "wrapperSha256": "40d3d2c14684c7cf4f7ec54e2745a71cc9c96ca77045f8e20e1d2cf2125f5d0f",
+      "rawSha256": "274480001869ad12ae5da9e9bfc801eb9823aa555ef42c2dd70ca4d37fb61c2a"
+    },
+    {
+      "compiler": "msvc",
+      "compilerVersions": ["*"],
+      "profile": "predicate",
+      "registerWidth": 256,
+      "isaProfile": "AVX2",
+      "reason": "msvc-gs-predicate-composition-cookie",
+      "wrapperSha256": "d080a20d867fa7df30bb9ea1701ec5199900025e9629b4fbc25ee317d9e7a890",
+      "rawSha256": "c93ce1d1b5f1089deb799e23ed0e17deb3049498e50c10c37d65905296dfa555"
+    },
+    {
+      "compiler": "msvc",
+      "compilerVersions": ["*"],
+      "profile": "value",
+      "registerWidth": 128,
+      "isaProfile": "SSE42",
+      "reason": "msvc-equivalent-import-normalization-gs-and-value-operation-allocation",
+      "wrapperSha256": "e500054cea61f6aabcebf97fadf9264b6de112e5d00519119b9ed093d70239dd",
+      "rawSha256": "9c085b63a9217f371422e89c09f4984b04cd0b37c3e780d3cb9bc4356f9857d1"
+    },
+    {
+      "compiler": "msvc",
+      "compilerVersions": ["*"],
+      "profile": "value",
+      "registerWidth": 256,
+      "isaProfile": "AVX2",
+      "reason": "msvc-equivalent-import-normalization-gs-and-value-operation-allocation",
+      "wrapperSha256": "c6addf1f03722e3402215409c4f7c076ee16deecabcead203205e8e89d581ad8",
+      "rawSha256": "94367252b5828ebb560c32fdbcc95014c0991337a8adac50a808404378fa0d5c"
+    },
+    {
+      "compiler": "msvc",
+      "compilerVersions": ["*"],
+      "profile": "arithmetic",
+      "registerWidth": 128,
+      "isaProfile": "SSE42",
+      "reason": "msvc-equivalent-unaligned-moves-and-register-allocation",
+      "wrapperSha256": "558ce994846ad0e4a9a44fff73b7e156eee94861041cb82ad2016d65af1b537c",
+      "rawSha256": "1d135fce910efd2919e05b564bc41f3d9fdaa5a474c0900947a9594716c8132c"
+    },
+    {
+      "compiler": "msvc",
+      "compilerVersions": ["*"],
+      "profile": "arithmetic",
+      "registerWidth": 256,
+      "isaProfile": "AVX2",
+      "reason": "msvc-equivalent-unaligned-moves-and-register-allocation",
+      "wrapperSha256": "2eb906ffce8bf9931bcd1867dd50332fb06f4a17f288f98f7f7906e9c0f0067b",
+      "rawSha256": "167f03d2b0e974c1db1250d84257fe0a0612cb2173a2cde65d65dc636c72e8f0"
+    },
+    {
+      "compiler": "msvc",
+      "compilerVersions": ["*"],
+      "profile": "general",
+      "registerWidth": 128,
+      "isaProfile": "SSE42",
+      "reason": "msvc-equivalent-vector-moves-mask-materialization-register-allocation-and-gs-cookie",
+      "wrapperSha256": "3e1b4ffebe93da71eec7360fb305c441d4255bea45d6af73e2fdc3a174d00075",
+      "rawSha256": "6b764b03be59acd44ab6301df1db1b2997902d94c20e603865f3a9fadb240709"
+    },
+    {
+      "compiler": "msvc",
+      "compilerVersions": ["*"],
+      "profile": "general",
+      "registerWidth": 256,
+      "isaProfile": "AVX2",
+      "reason": "msvc-equivalent-vector-moves-mask-materialization-register-allocation-and-gs-cookie",
+      "wrapperSha256": "58abbe6e22f172fff40d7053103eb667cf4eb70a9c9b4a28eb40a998a8c12c26",
+      "rawSha256": "98e2e877a335a6423a156a813f6bf17a87bd04fd11cb8210eb26d2cc5ba0673a"
+    },
+    {
+      "compiler": "msvc",
+      "compilerVersions": ["*"],
+      "profile": "abi",
+      "registerWidth": 128,
+      "isaProfile": "SSE42",
+      "reason": "msvc-partial-invariant-boundary-normalization-and-gs-cookie",
+      "wrapperSha256": "e2fc5990e063a65e7a77fd7bdcdd7469fed24bc3ccc3a4c927c2ab4fb5c528d1",
+      "rawSha256": "f8c290188f776e5887e14f2b2254d7d43a9fa6cdc8edfd0b835331d0270befca"
+    },
+    {
+      "compiler": "msvc",
+      "compilerVersions": ["*"],
+      "profile": "abi",
+      "registerWidth": 256,
+      "isaProfile": "AVX2",
+      "reason": "msvc-partial-invariant-boundary-normalization-and-gs-cookie",
+      "wrapperSha256": "50201329cc0be4ebf40194ad0f789818634b0616c56bc690893023b111bf1ed4",
+      "rawSha256": "1db3aea52362ed96c2c45709be8725a73cbdf97db50ac7d5ae2481b0bf803b13"
+    }
+  ]
+}
