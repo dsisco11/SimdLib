@@ -163,6 +163,7 @@ if(SIMDLIB_BUILD_CONFIGURATION_PROBES)
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/RegisterUnsuffixedRuntimeImmediate.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/availability/ImmediateControlSlowPathProbe.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/availability/CompleteRegisterShiftProbe.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/availability/RegisterComparisonChainingProbe.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/api/ApiNegativeCompleteByteShift.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/RegisterNegativeCompleteByteShift.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/RegisterInvalidRearrangementImmediate.cpp
@@ -196,6 +197,15 @@ if(SIMDLIB_BUILD_CONFIGURATION_PROBES)
 
 		simdlib_add_language_probe(RegisterEnabledProbe
 			tests/availability/RegisterEnabledProbe.cpp 23 SimdLib::Register)
+
+		simdlib_add_language_probe(RegisterComparisonChainingProbe
+			tests/availability/RegisterComparisonChainingProbe.cpp 23 SimdLib::Register)
+		simdlib_enable_register_sse42(RegisterComparisonChainingProbe)
+		if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+			# C4686 is disabled by default, so the regression must enable that
+			# specific diagnostic and fail the build if it returns.
+			target_compile_options(RegisterComparisonChainingProbe PRIVATE /we4686)
+		endif()
 
 		foreach(register_width IN ITEMS 128 256)
 			add_library(RegisterRepresentation${register_width} OBJECT

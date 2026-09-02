@@ -37,6 +37,11 @@ class Register final
 	using native_type = typename api_type::vector_t;
 	using mask_type = RegisterMask<element_type, bits>;
 
+	// Instantiate the associated mask before MSVC fixes the return ABI of the
+	// comparison members below. Merely naming the specialization does not make
+	// it complete soon enough to prevent warning C4686 at a chained call site.
+	static_assert(sizeof(mask_type) > 0, "The associated RegisterMask specialization must be complete.");
+
 	constexpr static inline std::size_t register_width = bits;
 	constexpr static inline std::size_t byte_count = api_type::byte_count;
 	constexpr static inline std::size_t lane_count = api_type::element_count;
