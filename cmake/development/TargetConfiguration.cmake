@@ -29,7 +29,9 @@ if(SIMDLIB_STRICT_WARNINGS)
 				-Wno-unknown-attributes -Wno-ignored-attributes -Wno-c2y-extensions)
 		endif()
 	elseif(SIMDLIB_MSVC_STYLE_DRIVER)
-		target_compile_options(DevelopmentWarnings INTERFACE /W4 /WX /permissive-)
+		target_compile_options(DevelopmentWarnings INTERFACE
+			/W4 /WX /permissive-
+			/we4686)
     elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
         target_compile_options(DevelopmentWarnings INTERFACE
             -Wall -Wextra -Wpedantic -Werror

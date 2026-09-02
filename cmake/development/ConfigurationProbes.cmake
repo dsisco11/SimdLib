@@ -201,11 +201,6 @@ if(SIMDLIB_BUILD_CONFIGURATION_PROBES)
 		simdlib_add_language_probe(RegisterComparisonChainingProbe
 			tests/availability/RegisterComparisonChainingProbe.cpp 23 SimdLib::Register)
 		simdlib_enable_register_sse42(RegisterComparisonChainingProbe)
-		if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-			# C4686 is disabled by default, so the regression must enable that
-			# specific diagnostic and fail the build if it returns.
-			target_compile_options(RegisterComparisonChainingProbe PRIVATE /we4686)
-		endif()
 
 		foreach(register_width IN ITEMS 128 256)
 			add_library(RegisterRepresentation${register_width} OBJECT
