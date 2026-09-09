@@ -15,7 +15,7 @@
 #include <span>
 #include <type_traits>
 
-#if SIMDLIB_COMPILER_MSVC && defined(_M_X64)
+#if SIMDLIB_TARGET_X64 && (SIMDLIB_COMPILER_MSVC || (SIMDLIB_COMPILER_CLANG && defined(_WIN32)))
 #include <intrin.h>
 #endif
 
@@ -649,30 +649,76 @@ template <> struct hash<SimdLib::uint128_t>
 };
 } // namespace std
 
+namespace SimdLib::Bmi::Detail
+{
+/**
+ * @brief Shifts a pair of 64-bit words right and returns the low result word.
+ * @param low The low word of the 128-bit source.
+ * @param high The high word of the 128-bit source.
+ * @param shift The shift count in the inclusive range [0, 63].
+ * @return The low 64 bits of the shifted double-word value.
+ */
+[[nodiscard]] constexpr std::uint64_t SIMD_FLAGS(Neither, ForceInline)
+	funnel_shift_right(const std::uint64_t low, const std::uint64_t high, const std::uint8_t shift) noexcept
+{
+#if SIMDLIB_TARGET_X64 && (SIMDLIB_COMPILER_MSVC || (SIMDLIB_COMPILER_CLANG && defined(_WIN32)))
+	// The MS-compatible intrinsic maps the two source words directly to SHRD.
+	if (!std::is_constant_evaluated())
+		return __shiftright128(low, high, shift);
+#elif defined(__SIZEOF_INT128__)
+	// GNU-family compilers recognize a native double-word shift as a funnel shift.
+	__extension__ typedef unsigned __int128 native_uint128;
+	return static_cast<std::uint64_t>((static_cast<native_uint128>(high) << 64u | low) >> shift);
+#endif
+	// Avoid a 64-bit shift when the portable expression receives a zero count.
+	return shift == 0 ? low : (low >> shift) | (high << (64u - shift));
+}
+} // namespace SimdLib::Bmi::Detail
+
 namespace SimdLib::Bmi
 {
-/** @brief Extracts a contiguous bit range from a 128-bit value and shifts it to bit zero. */
-[[nodiscard]] constexpr uint128_t bextr(const uint128_t value, const std::uint8_t len, const std::uint8_t start) noexcept
-{
-	if (len == 0 || start >= 128)
-	{
-		return {};
-	}
-	const unsigned retained = static_cast<unsigned>(len) > 128u - start ? 128u - start : len;
-	return (value >> start) & uint128_t::create_mask(static_cast<int>(retained));
-}
-
 /**
  * @brief Extracts a contiguous bit range from a 128-bit value using an encoded BMI control mask.
  * @param value The 128-bit value from which to extract bits.
  * @param control The encoded start in bits 0-7 and length in bits 8-15; higher bits are ignored.
  * @return The extracted bit range shifted to bit zero.
  */
-[[nodiscard]] constexpr uint128_t bextr(const uint128_t value, const std::uint32_t control) noexcept
+[[nodiscard]] constexpr uint128_t SIMD_FLAGS(Neither, ForceInline) bextr(const uint128_t value, const std::uint32_t control) noexcept
 {
 	const auto start = static_cast<std::uint8_t>(control);
 	const auto len = static_cast<std::uint8_t>(control >> 8u);
-	return bextr(value, len, start);
+#if SIMDLIB_TARGET_X64 && SIMDLIB_HAS_BMI1
+	if (!std::is_constant_evaluated())
+	{
+		// An upper-word range becomes one native 64-bit extraction after rebasing its start field.
+		if (start >= 64)
+			return uint128_t{Bmi::bextr(value.high(), control - 64u)};
+
+		// A range wholly inside the low word maps directly to one native extraction.
+		if (len <= 64u - start)
+			return uint128_t{Bmi::bextr(value.low(), control)};
+
+		// Cross-word ranges first align their next 64 result bits with one funnel shift.
+		const std::uint64_t resultLow = Detail::funnel_shift_right(value.low(), value.high(), start);
+		if (len <= 64)
+			return uint128_t{Bmi::bextr(resultLow, control & 0xFF00u)};
+
+		// Longer ranges retain the aligned low word and extract only the remaining high result bits.
+		return uint128_t{resultLow, Bmi::bextr(value.high(), control - (64u << 8u))};
+	}
+#endif
+	// Constant evaluation and targets without native 64-bit BEXTR retain the portable whole-value contract.
+	if (len == 0 || start >= 128)
+		return {};
+	const unsigned retained = static_cast<unsigned>(len) > 128u - start ? 128u - start : len;
+	return (value >> start) & uint128_t::create_mask(static_cast<int>(retained));
+}
+
+/** @brief Extracts a contiguous bit range from a 128-bit value and shifts it to bit zero. */
+[[nodiscard]] constexpr uint128_t SIMD_FLAGS(Neither, ForceInline) bextr(const uint128_t value, const std::uint8_t len, const std::uint8_t start) noexcept
+{
+	const std::uint32_t control = static_cast<std::uint32_t>(start) | (static_cast<std::uint32_t>(len) << 8u);
+	return bextr(value, control);
 }
 
 template <std::size_t len>
