@@ -150,6 +150,7 @@ template <std::integral Integer> [[nodiscard]] consteval bool bmi_width_contract
 
 static_assert(blsmsk<std::uint32_t>(0b10100) == 0b00111);
 static_assert(bextr<std::uint32_t>(0xFEDC'BA98u, 8, 12) == 0xCBu);
+static_assert(bextr<std::uint32_t>(0xFEDC'BA98u, 12u | (8u << 8u) | 0xFFFF'0000u) == 0xCBu);
 static_assert(pdep_u64(0b101u, 0b01010100u) == 0b01000100u);
 static_assert(pext_u64(0b01000100u, 0b01010100u) == 0b101u);
 static_assert(bmi_width_contract<std::int8_t>());

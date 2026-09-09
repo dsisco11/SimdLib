@@ -763,6 +763,41 @@ template <std::integral int_t>
 }
 } // namespace Detail
 
+/**
+ * @brief Extracts contiguous bits using an encoded BMI control mask.
+ *
+ * Bits 0-7 of control specify the starting bit and bits 8-15 specify the
+ * extraction length. Higher control bits are ignored, matching the BEXTR
+ * instruction. The extracted bits are shifted to the least-significant side
+ * of the result.
+ *
+ * @param source The integer from which to extract bits.
+ * @param control The encoded start and length fields.
+ * @return The extracted bit range.
+ */
+template <std::integral int_t> [[nodiscard]] constexpr int_t SIMD_FLAGS(Neither, ForceInline) bextr(const int_t source, const std::uint32_t control) noexcept
+{
+#if SIMDLIB_TARGET_X86 && SIMDLIB_HAS_BMI1
+	if (!std::is_constant_evaluated())
+	{
+#if SIMDLIB_TARGET_X64
+		if constexpr (sizeof(int_t) == sizeof(std::uint64_t))
+		{
+			return static_cast<int_t>(_bextr2_u64(static_cast<std::uint64_t>(source), static_cast<std::uint64_t>(control)));
+		}
+		else
+#endif
+			if constexpr (sizeof(int_t) == sizeof(std::uint32_t))
+		{
+			return static_cast<int_t>(_bextr2_u32(static_cast<std::uint32_t>(source), control));
+		}
+	}
+#endif
+	const auto start = static_cast<std::uint8_t>(control);
+	const auto len = static_cast<std::uint8_t>(control >> 8u);
+	return Detail::portable_bextr(source, start, len);
+}
+
 /// @brief Extract contiguous bits from source integer, and return them shifted to the LSB side of the output. Extract the number of bits specified by len,
 /// starting at the bit specified by start.
 template <std::integral int_t>
