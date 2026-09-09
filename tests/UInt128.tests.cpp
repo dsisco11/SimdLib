@@ -510,6 +510,8 @@ TEST_CASE("uint128 deprecated extraction remains compatible with Bmi bextr at bo
 		CAPTURE(length, start);
 		CHECK(deprecated_extract(source, length, start) == test.expected);
 		CHECK(SimdLib::Bmi::bextr(source, length, start) == test.expected);
+		const volatile std::uint32_t control = static_cast<std::uint32_t>(start) | (static_cast<std::uint32_t>(length) << 8u) | 0xA5A5'0000u;
+		CHECK(SimdLib::Bmi::bextr(source, control) == test.expected);
 	}
 }
 

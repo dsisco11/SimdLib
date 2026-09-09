@@ -8,6 +8,7 @@
 
 static_assert(std::same_as<decltype(SimdLib::Bmi::blsi(SimdLib::uint128_t{8})), SimdLib::uint128_t>);
 static_assert(std::same_as<decltype(SimdLib::Bmi::bextr(SimdLib::uint128_t{0xF0}, 4, 4)), SimdLib::uint128_t>);
+static_assert(std::same_as<decltype(SimdLib::Bmi::bextr(SimdLib::uint128_t{0xF0}, std::uint32_t{4u | (4u << 8u)})), SimdLib::uint128_t>);
 
 #if SIMDLIB_HAS_SSE42
 static_assert(SimdLib::ApiAvailable<128, std::uint32_t>);

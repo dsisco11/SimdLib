@@ -662,6 +662,19 @@ namespace SimdLib::Bmi
 	return (value >> start) & uint128_t::create_mask(static_cast<int>(retained));
 }
 
+/**
+ * @brief Extracts a contiguous bit range from a 128-bit value using an encoded BMI control mask.
+ * @param value The 128-bit value from which to extract bits.
+ * @param control The encoded start in bits 0-7 and length in bits 8-15; higher bits are ignored.
+ * @return The extracted bit range shifted to bit zero.
+ */
+[[nodiscard]] constexpr uint128_t bextr(const uint128_t value, const std::uint32_t control) noexcept
+{
+	const auto start = static_cast<std::uint8_t>(control);
+	const auto len = static_cast<std::uint8_t>(control >> 8u);
+	return bextr(value, len, start);
+}
+
 template <std::size_t len>
 	requires(len <= 64)
 [[nodiscard]] constexpr std::uint64_t bextr(const uint128_t value, const std::uint8_t start) noexcept
