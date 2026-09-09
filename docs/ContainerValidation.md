@@ -18,8 +18,14 @@ for `SimdLib::Register`. GCC 14 and Clang 22 own the complete core and Register
 surface.
 
 Each image builds the checksum-verified CMake 4.4.0 source release and contains
-the exact Catch2 commit declared by its Dockerfile. Package versions, Alpine
-images, and the Dockerfile frontend are pinned. The entrypoint rejects an
+the exact Catch2 commit declared by its Dockerfile. Compiler/toolchain packages,
+Alpine images, and the Dockerfile frontend remain pinned. OpenSSL runtime and
+development packages, like CA certificates, resolve from the configured Alpine
+release repositories without exact version pins. This allows compatible OpenSSL
+updates when older packages disappear from the repository. Other existing
+package pins remain unchanged. A base-image digest does not freeze package
+repositories or make subsequent package installation fully reproducible.
+The entrypoint rejects an
 unexpected compiler or CMake version before configuring the project.
 Building these images requires Docker Compose 2.39.0 or newer so the runner can
 disable BuildKit provenance without changing the image-identity contract.
@@ -171,7 +177,9 @@ Image refreshes are deliberate review changes:
 
 1. Select the smallest maintained Alpine release that provides the required
    compiler and retrieve its immutable multi-platform manifest digest.
-2. Update every exact package version, CMake checksum, and Catch2 commit.
+2. Review the pinned package versions, CMake checksum, and Catch2 commit, updating
+   them as needed. Keep OpenSSL and CA certificates unpinned within the selected
+   Alpine release repositories and review their resolved versions during inspection.
 3. Run `InspectEnvironment` with `-NoImageCache` and review the identities.
 4. Run `tools/Build.ps1 -Scope Containers`, then
    `tools/Run-Tests.ps1 -Scope Containers` and

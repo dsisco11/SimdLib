@@ -17,7 +17,7 @@ RUN apk add --no-cache \
         linux-headers=6.6-r0 \
         make=4.4.1-r2 \
         ninja-is-really-ninja=1.12.1-r0 \
-        openssl-dev=3.3.7-r0 \
+        openssl-dev \
     && wget -q "https://cmake.org/files/v4.4/cmake-${CMAKE_VERSION}.tar.gz" -O /tmp/cmake.tar.gz \
     && echo "${CMAKE_SHA256}  /tmp/cmake.tar.gz" | sha256sum -c - \
     && mkdir /tmp/cmake-source \
@@ -60,7 +60,7 @@ RUN apk add --no-cache \
         gcc=13.2.1_git20240309-r1 \
         musl-dev=1.2.5-r3 \
         ninja-is-really-ninja=1.12.1-r0 \
-        openssl=3.3.7-r0 \
+        openssl \
         strace=6.9-r0 \
     && addgroup -g 1000 simdlib \
     && adduser -D -u 1000 -G simdlib simdlib \
