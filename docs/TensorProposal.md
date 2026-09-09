@@ -4,10 +4,15 @@ Status: proposed design for discussion; no implementation or performance qualifi
 
 ## Recommendation
 
-Introduce `SimdLib::Tensor<T, Extent = std::dynamic_extent>` as a non-owning,
+Introduce `SimdLib::Tensor::TensorView<T, Extent = std::dynamic_extent>` as a non-owning,
 contiguous numerical view. Pair it with a small expression system and explicit
 evaluation into caller-provided storage. Element-wise expressions execute in
 one traversal, processing full SIMD registers followed by the remaining elements.
+
+`SimdLib::Tensor` is the namespace for the abstraction. Named operations live
+there, giving call sites such as `Tensor::any(...)` and `Tensor::clamp(...)`
+with `namespace Tensor = SimdLib::Tensor;`. The view type is explicitly named
+`TensorView`, and can be imported with `using Tensor::TensorView;`.
 
 The intended uses include terrain and voxel data, image and audio samples,
 simulation fields, packed flags, and general numerical buffers. Execution is
@@ -45,16 +50,16 @@ design below gives those requirements an explicit extension boundary.
 
 ## View and ownership contract
 
-`Tensor<T>` has runtime extent; `Tensor<T, N>` has compile-time extent. Both
-borrow live `T` objects in contiguous storage. `Tensor<const T>` is read-only;
+`TensorView<T>` has runtime extent; `TensorView<T, N>` has compile-time extent. Both
+borrow live `T` objects in contiguous storage. `TensorView<const T>` is read-only;
 constness of the descriptor alone follows `std::span` semantics. Copying or
-assigning a Tensor descriptor copies or rebinds the view. Numerical writes use
+assigning a TensorView descriptor copies or rebinds the view. Numerical writes use
 an explicit `assign(expression)` terminal, avoiding ambiguous copy assignment.
 
 The initial element domain is the existing signed/unsigned 8-, 16-, 32-, and
 64-bit integer lane types, `float`, and `double`. Exclude `bool`, `long double`,
 `uint128_t`, and custom numeric types initially. Predicate expressions have
-their own type and are not `Tensor<bool>` specializations.
+their own type and are not `TensorView<bool>` specializations.
 
 Construction accepts compatible spans, C arrays, `std::array`, and borrowed
 contiguous sized ranges. Require an lvalue for an owning range such as
@@ -66,39 +71,41 @@ Expose `data()`, `size()`, `empty()`, `span()`, indexing, and contiguous
 `subspan()` operations. Provide a static subspan overload that preserves known
 extent. Ordinary storage needs only `alignof(T)`; use unaligned SIMD transfers
 by default. An alignment promise is an optional, explicitly validated tuning
-facility, not a condition of constructing Tensor.
+facility, not a condition of constructing TensorView.
 
 No allocations, resizing, padding ownership, or storage lifetime extension are
 implicit. A dynamic view can be rebound or sliced; it cannot resize its backing
 allocation. If ownership later proves useful, add a separate `TensorBuffer<T>`
-that produces views, without making static and dynamic Tensor mean different
+that produces views, without making static and dynamic TensorView mean different
 ownership models.
 
 ## Composition and evaluation
 
 Use view members for observation and explicit mutation terminals; use constrained
-operators and free functions for expressions spanning multiple inputs. This
-keeps multi-input operations symmetric and avoids a large algorithm class.
+operators and free functions in `SimdLib::Tensor` for expressions spanning
+multiple inputs. This keeps multi-input operations symmetric and avoids a
+large algorithm class. View types, expression types, and their operators share
+that namespace so argument-dependent lookup finds the expression operators.
 
 Proposed spelling, not currently compilable API:
 
 ```cpp
-using SimdLib::Tensor;
-using SimdLib::clamp;
+namespace Tensor = SimdLib::Tensor;
+using Tensor::TensorView;
 
-Tensor<const float> heights{std::span<const float>{heightStorage}};
-Tensor<float> output{std::span<float>{outputStorage}};
+TensorView<const float> heights{std::span<const float>{heightStorage}};
+TensorView<float> output{std::span<float>{outputStorage}};
 
 // Compute the complete expression in one traversal of the buffers.
-output.assign(clamp(heights * 0.02F + 64.0F, -500.0F, 8'000.0F));
+output.assign(Tensor::clamp(heights * 0.02F + 64.0F, -500.0F, 8'000.0F));
 
 // Exact same-view mutation is supported for element-wise expressions.
-output.assign(clamp(output * 0.5F, 0.0F, 1.0F));
+output.assign(Tensor::clamp(output * 0.5F, 0.0F, 1.0F));
 
 std::array<std::uint32_t, 64> flags{};
 std::array<std::uint32_t, 64> allowed{};
-Tensor<std::uint32_t, 64> f{flags};
-Tensor<const std::uint32_t, 64> a{allowed};
+TensorView<std::uint32_t, 64> f{flags};
+TensorView<const std::uint32_t, 64> a{allowed};
 f.assign((f & a) | std::uint32_t{0x10});
 ```
 
@@ -125,15 +132,15 @@ Initial building blocks:
 
 | Family | Proposed operations |
 | --- | --- |
-| Numerical | `+`, `-`, `*`, `/`, `min`, `max`, `clamp`, and separately named saturated integer operations where supported |
+| Numerical | `+`, `-`, `*`, `/`, `Tensor::min`, `Tensor::max`, `Tensor::clamp`, and separately named saturated integer operations where supported |
 | Integer bits | `&`, `|`, `^`, `~`; shifts after their count semantics are specified |
-| Predicates | `==`, `!=`, `<`, `<=`, `>`, `>=`, predicate `&`, `|`, `~`, and `select` |
+| Predicates | `==`, `!=`, `<`, `<=`, `>`, `>=`, predicate `&`, `|`, `~`, and `Tensor::select` |
 | Writes | `destination.assign(expression)` and `destination.fill(value)` |
-| Predicate terminals | `any`, `all`, `count`, and `pack_bits` |
-| Subsequent additions | `sum`, `min_value`, `max_value`, `dot`, and explicitly typed numerical conversion |
+| Predicate terminals | `Tensor::any`, `Tensor::all`, `Tensor::count`, and `Tensor::pack_bits` |
+| Subsequent additions | `Tensor::sum`, `Tensor::min_value`, `Tensor::max_value`, `Tensor::dot`, and explicitly typed numerical conversion |
 
 Selection evaluates both value branches; it is not scalar short-circuit
-control flow. For example, `select(x != 0, 1 / x, 0)` must not be advertised
+control flow. For example, `Tensor::select(x != 0, 1 / x, 0)` must not be advertised
 as a safe integer divide-by-zero guard. Arbitrary user callbacks should be a
 later extension requiring compatible scalar and SIMD implementations plus a
 documented element-wise, side-effect-free contract. Existing `Api::transform`
@@ -174,7 +181,7 @@ Specify semantics by operation rather than accepting whatever a fallback does:
   define `!=` explicitly as the complement of equality, including NaNs.
 - `min` and `max` must retain a specified operand order and reproduce the
   selected intrinsic's NaN and signed-zero behavior in the scalar path.
-  Define `clamp(x, lo, hi)` as `min(max(x, lo), hi)` with `lo <= hi` and non-NaN
+  Define `Tensor::clamp(x, lo, hi)` as `Tensor::min(Tensor::max(x, lo), hi)` with `lo <= hi` and non-NaN
   bounds as preconditions.
 - Expression traversal fusion does not itself authorize floating reassociation
   or contraction into FMA. Compiler floating-point options remain relevant;
@@ -189,10 +196,10 @@ respectively. Materialize only on request:
 
 ```cpp
 auto selected = heights > 100.0F;
-bool found = SimdLib::any(selected);
-std::size_t count = SimdLib::count(selected);
-output.assign(SimdLib::select(selected, heights, 0.0F));
-SimdLib::pack_bits(selected, std::span<std::uint32_t>{maskWords});
+bool found = Tensor::any(selected);
+std::size_t count = Tensor::count(selected);
+output.assign(Tensor::select(selected, heights, 0.0F));
+Tensor::pack_bits(selected, std::span<std::uint32_t>{maskWords});
 ```
 
 Packed output uses unsigned words, ascending input index into ascending bit
@@ -214,26 +221,26 @@ an underspecified generic `reduce` first.
 Expose numerical conversion as an expression evaluated into separately typed
 storage, with explicit rounding and range behavior. Start with the existing
 equal-lane-count 32-bit integer/float combinations after selecting their
-contracts. For example, a proposed `convert<std::int32_t>(values,
-rounding::toward_zero)` requires finite, representable results; saturated
+contracts. For example, a proposed `Tensor::convert<std::int32_t>(values,
+Tensor::rounding::toward_zero)` requires finite, representable results; saturated
 conversion is a separate operation. No generic `static_cast` promise should
 hide different SIMD rounding behavior.
 
 Widening/narrowing preserves logical element count while changing byte count.
 It may emit or consume several registers per block. Do not forward `widen_low`
 and accidentally discard the upper source elements. Same-size element-wise
-`bit_cast<U>` is distinct from numeric conversion. Raw byte reinterpretation
+`Tensor::bit_cast<U>` is distinct from numeric conversion. Raw byte reinterpretation
 that changes element count, alignment, or object lifetime is outside the
 initial Tensor contract. General in-place type conversion is deferred.
 
-Retain `Tensor<T, N>` as the flat contiguous primitive. Add a separate
+Retain `TensorView<T, N>` as the flat contiguous primitive. Add a separate
 `ShapedTensorView<T, Rank>` when multidimensional workflows are implemented:
-it combines a flat Tensor view with fixed-rank runtime extents and a canonical
+it lives in `SimdLib::Tensor` and combines a flat TensorView with fixed-rank runtime extents and a canonical
 row-major layout. Check extent products for overflow and agreement with flat
 size. `reshape` changes metadata only when the element count is preserved.
 Equal-shape element-wise work delegates to the flat evaluator.
 
-Contiguous row/slab slices can return Tensor views. A column, transpose, or
+Contiguous row/slab slices can return TensorView objects. A column, transpose, or
 step slice generally needs a distinct strided view and execution path; it must
 not masquerade as contiguous storage. Initially support scalar broadcasting;
 axis broadcasting, strided slices, and axis reductions are subsequent shaped
@@ -256,7 +263,7 @@ all numerical operations are constexpr.
 
 Runtime CPU dispatch is a separate future facility: it needs separately
 compiled target variants and CPU/OS feature checks. Choosing based on length
-is not a substitute. Keep ISA width out of Tensor's public representation;
+is not a substitute. Keep ISA width out of TensorView's public representation;
 do not exchange target-dependent expression implementation types across
 translation units with incompatible configuration. Use consistent header
 configuration, or explicit out-of-line dispatch boundaries for multiversioning.
@@ -265,7 +272,7 @@ Proposed ownership of files:
 
 ```text
 include/SimdLib/Tensor.h                    # Focused public umbrella
-include/SimdLib/Tensor/View.h               # Contiguous descriptor
+include/SimdLib/Tensor/TensorView.h         # Contiguous descriptor
 include/SimdLib/Tensor/Arithmetic.h         # Arithmetic expression builders
 include/SimdLib/Tensor/Bitwise.h            # Bitwise expression builders
 include/SimdLib/Tensor/Comparison.h         # Predicates and selection
@@ -286,9 +293,9 @@ Do not create a separate customization framework merely to share simple calls.
 
 | Existing operation | Proposed equivalent or disposition |
 | --- | --- |
-| Static `AnyEqual(read, value)` | `any(tensor == value)` for static and dynamic views |
-| Static `AllEqual(read, value)` | `all(tensor == value)` |
-| Static `Compare(read, write, value)` | `pack_bits(tensor == value, write)`; preserve existing valid-input bit order and add defined arbitrary tails |
+| Static `AnyEqual(read, value)` | `Tensor::any(tensor == value)` for static and dynamic views |
+| Static `AllEqual(read, value)` | `Tensor::all(tensor == value)` |
+| Static `Compare(read, write, value)` | `Tensor::pack_bits(tensor == value, write)`; preserve existing valid-input bit order and add defined arbitrary tails |
 | Static/dynamic `BitwiseAnd` | `out.assign(a & b)` |
 | Static/dynamic `BitwiseOr` | `out.assign(a | b)` |
 | Static/dynamic `BitwiseXor` | `out.assign(a ^ b)` |
