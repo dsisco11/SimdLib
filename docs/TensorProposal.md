@@ -21,9 +21,10 @@ value is managing traversal, composition, and memory contracts above the
 existing register operations.
 
 The first useful delivery should cover flat views, element-wise arithmetic and
-bitwise expressions, predicates, selection, and explicit writes. Reductions,
-conversion, and shaped views have additional contracts described below and
-should follow independently rather than inflate the first implementation.
+bitwise expressions, predicates, selection, and explicit writes. Include a
+`PackedTensorView` for unsigned sub-byte fields, with the packed operation subset
+defined below. Numerical reductions, conversion, and shaped views have additional
+contracts and should follow independently rather than inflate the first implementation.
 
 ## Evidence from this checkout
 
@@ -56,7 +57,7 @@ constness of the descriptor alone follows `std::span` semantics. Copying or
 assigning a TensorView descriptor copies or rebinds the view. Numerical writes use
 an explicit `assign(expression)` terminal, avoiding ambiguous copy assignment.
 
-The initial element domain is the existing signed/unsigned 8-, 16-, 32-, and
+The initial ordinary-view element domain is the existing signed/unsigned 8-, 16-, 32-, and
 64-bit integer lane types, `float`, and `double`. Exclude `bool`, `long double`,
 `uint128_t`, and custom numeric types initially. Predicate expressions have
 their own type and are not `TensorView<bool>` specializations.
@@ -78,6 +79,165 @@ implicit. A dynamic view can be rebound or sliced; it cannot resize its backing
 allocation. If ownership later proves useful, add a separate `TensorBuffer<T>`
 that produces views, without making static and dynamic TensorView mean different
 ownership models.
+
+## Packed element views
+
+Add `SimdLib::Tensor::PackedTensorView<StorageWord, ElementBits,
+Extent = std::dynamic_extent>` alongside `TensorView`. Storage words and logical
+elements have separate widths: 64 `uint64_t` words contain 2,048 two-bit elements
+in 512 bytes. Their dense equality mask occupies 2,048 bits, or 32 `uint64_t`
+words (256 bytes).
+
+Initially support unsigned 1-, 2-, and 4-bit elements in `uint32_t` or `uint64_t`
+storage words. `StorageWord` may be const for read-only views. Field widths
+divide the storage word width, so no element crosses a word boundary. Logical
+element values use `std::uint8_t`, with a representable range of
+`0 .. (1 << ElementBits) - 1`. Signed fields, arbitrary widths, and changes of
+packed element width are subsequent work with separate contracts.
+
+`size()` and static `Extent` count logical elements, never storage words. A
+whole-storage constructor exposes every complete field; an explicit logical
+count permits a partially used last word. Contiguous `subspan` operates in
+logical elements and retains a first-field offset into the underlying storage.
+Validate capacity/count/offset arithmetic without overflow. Field zero occupies
+the lowest bits of its storage word; subsequent fields occupy successively
+higher bits, followed by the next storage word.
+
+Packed views borrow storage under the same owner-lifetime rules as ordinary
+views. Reading an element produces a value, not `T&`; writing one updates only
+that field. Expose backing words explicitly as `storage_words()` rather than
+implying there is a `std::span<element_type>` over the packed values. Writes,
+including fills and subview assignments, preserve all fields outside the view
+and unused storage bits. Values outside the representable range violate the
+write precondition; do not silently truncate them. Exact in-place element-wise
+assignments load their inputs before replacing a word; other overlapping output
+storage is excluded. Concurrent writes to distinct fields in one storage word
+are not independently safe.
+
+The initial packed subset supports equality/inequality, membership, predicate
+composition, `Tensor::any`, `Tensor::all`, `Tensor::count`, `Tensor::pack_bits`,
+field-wise bitwise expressions, selection, and explicit assignment/fill.
+Bitwise results stay within `ElementBits`; in particular, value NOT complements
+only the logical field bits. Predicate composition aligns results by logical
+element index even when packed inputs have different first-field offsets.
+Packed arithmetic and ordered comparisons are not implied by the ordinary-view
+operation table. Arithmetic needs field-aware carry/overflow rules before it
+can share the numerical surface. Mixed packed/ordinary numerical expressions
+also require a separately specified conversion path.
+
+Proposed call sites:
+
+```cpp
+namespace Tensor = SimdLib::Tensor;
+using Tensor::PackedTensorView;
+
+std::array<std::uint64_t, 64> storage{};
+PackedTensorView<std::uint64_t, 2> voxels{storage};
+std::array<std::uint64_t, 32> mask{};
+
+// Equality produces one logical predicate per two-bit voxel.
+auto equalTwo = voxels == std::uint8_t{2};
+Tensor::pack_bits(equalTwo, std::span{mask});
+bool found = Tensor::any(equalTwo);
+std::size_t matchingCount = Tensor::count(equalTwo);
+
+// Membership compares stored field values directly; no palette remapping occurs.
+const std::array<std::uint16_t, 3> selectedValues{1, 2, 300};
+auto selected = Tensor::is_in(voxels, std::span<const std::uint16_t>{selectedValues});
+Tensor::pack_bits(selected, std::span{mask});
+Tensor::pack_bits(~selected, std::span{mask});
+```
+
+`Tensor::is_in` is a lazy membership predicate: equality results are ORed across
+the supplied candidates. Candidate spans are borrowed and must outlive
+evaluation; expressions copy the descriptor, not the candidate data. Duplicate
+candidates are harmless. An empty list matches nothing; its complement matches
+every logical element. Accept integral comparison candidates and inspect their
+original values before conversion: negative or too-large candidates cannot
+match an unsigned packed field. This comparison rule deliberately differs from
+the representability precondition for writes. In the example, 300 cannot match
+any two-bit element and is ignored without narrowing to a different value.
+
+### Packed equality and dense masks
+
+Use the user's supplied `MaskEqual<Invert>` sketch as the implementation model:
+compare fields in place, combine exact field-high-bit equality flags, compact
+them, and assemble complete output words locally. Do not unpack a buffer into
+one byte per element. The sketch supplies the algorithm; Tensor must adapt its
+fixed-store assumptions to dynamic extents and subviews.
+
+For field width `B` in an unsigned word, let `H` contain the high bit of every
+field and let `L = ~H` within the word width. For four-bit fields, these repeat
+`1000` and `0111`, respectively. Repeat a representable candidate in every field
+and compute the following unsigned word-width expressions:
+
+```cpp
+const auto difference = packed ^ repeatedCandidate;
+const auto equalFlags = ~(((difference & lowBits) + lowBits)
+                         | difference | lowBits);
+matches |= equalFlags;
+```
+
+Clearing each difference field's high bit before adding its lower-bit mask
+ensures no carry leaves that field. A nonzero lower part sets the high bit;
+ORing the original difference detects a high bit that was already set. Forcing
+the lower bits to one and then inverting leaves exactly one high-bit flag for
+each zero difference field. All other bits are zero. For one-bit fields the
+lower-bit mask is zero and the same expression still applies. Scalar evaluation
+must explicitly preserve the unsigned storage word width.
+
+This exact per-field result matters for dense masks: a subtract-based zero-field
+existence test can propagate a borrow into a neighboring field and mark it
+incorrectly. Do not use such an existence-only test to construct a mask or count
+individual matches. OR the exact equality flags across candidates first. For
+non-membership, complement the completed union rather than complementing each
+candidate comparison independently. When retaining dispersed flags, predicate
+NOT is `(~matches) & validFieldHighBits`; it must not turn lower field bits or
+padding into additional matches. `all` compares against that same valid-field
+mask, while `any` and `count` ignore flags outside it.
+
+Complete SIMD batches contain storage words as lanes; every lane still contains
+multiple packed elements. Broadcast `L` and each repeated candidate, then apply
+the same XOR/AND/add/OR/NOT sequence to every lane. Hoist invariant masks and
+single-candidate broadcasts out of the hot loop where practical. The supplied
+sketch uses `NativeRegister`; implement the ordinary C++20 path through `Api`
+with equivalent operations, preserving the existing language-level contract.
+Remaining source words use the identical arithmetic one word at a time, not a
+loop over individual elements. No allocation is required.
+
+Compact each word's high-bit flags with `SimdLib::Bmi::pext_u32` or `pext_u64`
+using `H`. These helpers already provide a BMI2 path when compiled for it and
+a portable fallback in [Bmi.h](../include/SimdLib/Bmi.h). Assemble the compacted
+pieces in ascending logical order into a local output word, then store that word
+once. `Tensor::any`, `Tensor::all`, and `Tensor::count` can inspect the valid
+dispersed flags directly, avoiding compaction and materialized output.
+
+For a word-aligned source and equal source/destination word widths `W`, one full
+output word describes `W` elements and consumes `B` source words. An offset
+subview can touch an additional source word. That relationship is a useful packing
+rule, not a restriction on SIMD batch size. In particular, two-bit fields in
+64-bit words consume only two source words per output, while a 256-bit register
+holds four source words. Permit batches to span output-word boundaries, or use
+an appropriately qualified narrower backend; do not let an output-local loop
+silently eliminate SIMD for this principal use case. Source and output word
+widths can also differ, so the general assembler tracks logical bits produced.
+
+For arbitrary view lengths, recompute the available source words and valid
+fields for each final batch; a single global `WordsPerOutput` is insufficient.
+For example, 65 two-bit elements use three 64-bit source words and two output
+words: the last output uses one source word, not two. Load only complete SIMD
+batches within storage bounds and process remaining existing words individually.
+Subview prefixes discard fields before the logical start, tails discard fields
+after the logical end, and compaction maps the first selected logical element
+to output bit zero. No read beyond the supplied word span is permitted.
+
+After optional inversion, clear unused high bits in the last dense output word,
+even when source padding is dirty. A full-word result must avoid shifts by `W`;
+use a defined full-width mask case or the corresponding Bmi helper. An empty
+view writes no output. Packed mask destinations have the exact required size
+and must not overlap either packed source storage or borrowed candidate storage.
+SIMD eligibility and BMI2 availability are independent compile-target decisions;
+benchmark the fallback and extraction/assembly overhead as well as field comparison.
 
 ## Composition and evaluation
 
@@ -148,7 +308,9 @@ continues to serve callers with raw register callbacks.
 
 ## Memory, tails, and numerical semantics
 
-All non-scalar operands and the destination must have equal logical extent.
+Element-wise tensor operands and their logical destination must have equal
+logical extent. Membership candidate spans are sets and may have independent
+lengths; dense mask word spans use the required packed output size instead.
 Statically known mismatches are rejected at compile time. Validate dynamic
 contracts once at the evaluation boundary through `SIMDLIB_PRECONDITION`, whose
 default checks disappear under `NDEBUG`; do not imply unconditional runtime
@@ -162,7 +324,9 @@ allocate a temporary. This permits `a.assign(a + b)` but excludes writing into
 disjoint destination storage. Future permutations and stencils need separate
 alias rules.
 
-Use full-register processing plus a scalar remainder initially. Scalar
+For ordinary numerical views, use full-register processing plus a scalar
+element remainder initially. Packed comparisons instead retain packed-word
+processing for remaining words, as specified above. Scalar
 operation definitions must match the SIMD contract, including modular integer
 arithmetic and floating-point edge cases. Blind zero padding can introduce
 invalid inactive-lane division, change floating exception flags, or corrupt
@@ -190,7 +354,9 @@ Specify semantics by operation rather than accepting whatever a fallback does:
 - No global exception-flag/trapping equivalence with a scalar loop is promised.
   Avoid performing extra operations on fictitious tail elements nonetheless.
 
-Predicate expressions remain SIMD masks within a block. `any`/`all` may stop
+Ordinary-view predicate expressions remain SIMD masks within a block; packed
+predicates can retain exact field-high-bit flags until a terminal requires a
+dense mask. Their public composition and logical ordering agree. `any`/`all` may stop
 early; `count` returns `std::size_t`. Empty predicates give false/true/zero,
 respectively. Materialize only on request:
 
@@ -273,6 +439,7 @@ Proposed ownership of files:
 ```text
 include/SimdLib/Tensor.h                    # Focused public umbrella
 include/SimdLib/Tensor/TensorView.h         # Contiguous descriptor
+include/SimdLib/Tensor/PackedTensorView.h    # Packed storage descriptor
 include/SimdLib/Tensor/Arithmetic.h         # Arithmetic expression builders
 include/SimdLib/Tensor/Bitwise.h            # Bitwise expression builders
 include/SimdLib/Tensor/Comparison.h         # Predicates and selection
@@ -281,10 +448,13 @@ include/SimdLib/Tensor/Reduction.h          # Whole-span reductions, when added
 include/SimdLib/Tensor/Conversion.h         # Conversion contracts, when added
 include/SimdLib/Detail/Tensor/Expression.h   # Typed expression representation
 include/SimdLib/Detail/Tensor/Evaluator.h    # Validation, traversal, tail handling
+include/SimdLib/Detail/Tensor/PackedComparison.h # Exact packed field comparisons
+include/SimdLib/Detail/Tensor/MaskWriter.h   # Dense predicate output assembly
 ```
 
 Operation families own their scalar/SIMD semantics; the evaluator owns traversal.
-Dependencies flow toward `Api`, never from Register or Api back into Tensor.
+Dependencies flow toward `Api` and `Bmi`, never from those layers or Register
+back into Tensor.
 Keep the umbrella thin. Memory-writing terminals use the appropriate
 `SIMD_FLAGS(Neither, ...)` boundary and must not claim `RegisterOnly`.
 Do not create a separate customization framework merely to share simple calls.
@@ -322,6 +492,17 @@ boundaries, mask ordering, and final-word padding. Include compile rejection
 for mismatched static extents, mutation through const elements, unsupported
 types, and temporary owning sources.
 
+For packed views, verify every supported field/storage width against an
+independent per-element oracle. Include singleton, duplicate, multiple, empty,
+negative, and too-large candidates; equality unions and their complements;
+adjacent fields that expose borrow-based false flags; dirty prefix/tail bits;
+non-word-aligned subviews; full and partial output words; and lengths around
+storage-word, output-word, and SIMD-batch boundaries. Test 65 two-bit elements
+explicitly to catch fixed final-batch bounds, and the 2,048-element voxel example.
+Verify mutation preserves neighboring fields, write range checks occur before
+narrowing, candidate/output overlap is excluded, and all/count/any ignore padding.
+Qualify both BMI2-enabled and portable compaction independently of SIMD width.
+
 Compare against existing SimdAlgo on its supported valid inputs. Check focused
 and umbrella headers, C++20 core integration, constexpr subsets, installation,
 and configuration consistency. Preserve the project's compiler and generated-code
@@ -331,6 +512,10 @@ Benchmark small static inputs, cache-resident buffers, and buffers exceeding
 last-level cache. Include aligned and offset spans, exact widths and tails,
 unary/binary writes, a scale/add/clamp composition, bitwise compositions,
 early/late/no-match predicates, and eventually conversions and reductions.
+Include packed 1-/2-/4-bit equality and membership with varying candidate counts,
+inverted masks, subviews, dirty tails, and lengths that expose output-local SIMD
+batching limits. Compare fused packed-field evaluation against a per-element
+reference and equivalent direct Api/Bmi loops, with and without compiled BMI2.
 Compare Tensor against handwritten scalar loops with normal optimization,
 direct fused Api loops, separate Api passes, and SimdAlgo where applicable.
 Report compiler/options, ISA, sizes, throughput, repetitions, and observable
