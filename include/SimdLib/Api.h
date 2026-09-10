@@ -86,6 +86,11 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 	constexpr static inline std::size_t byte_count_half = byte_count / 2;
 	constexpr static inline std::size_t element_count = register_width / (sizeof(element_t) * 8);
 	constexpr static inline std::size_t element_count_half = element_count / 2;
+
+	// Instantiate the lane-array specialization before MSVC fixes the return ABI
+	// of to_array() and of constexpr helpers that consume its result.
+	static_assert(sizeof(std::array<element_type, element_count>) > 0, "The associated lane-array specialization must be complete.");
+
 	template <std::size_t result_bit_width> using packed_element_t = select_unsigned_integer_t<result_bit_width>;
 	template <std::size_t result_bit_width, std::size_t source_count>
 	constexpr static inline std::size_t packed_element_count =
