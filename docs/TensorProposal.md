@@ -7,7 +7,9 @@ Status: proposed design for discussion; no implementation or performance qualifi
 Introduce `SimdLib::Tensor::TensorView<T, Extent = std::dynamic_extent>` as a non-owning,
 contiguous numerical view. Pair it with a small expression system and explicit
 evaluation into caller-provided storage. Element-wise expressions execute in
-one traversal, processing full SIMD registers followed by the remaining elements.
+one traversal through a single SIMD batch evaluator. Logical range iteration
+extracts elements from those computed batches; it has no separate scalar
+implementation of the expression.
 
 `SimdLib::Tensor` is the namespace for the abstraction. Named operations live
 there, giving call sites such as `Tensor::any(...)` and `Tensor::clamp(...)`
@@ -183,8 +185,8 @@ ensures no carry leaves that field. A nonzero lower part sets the high bit;
 ORing the original difference detects a high bit that was already set. Forcing
 the lower bits to one and then inverting leaves exactly one high-bit flag for
 each zero difference field. All other bits are zero. For one-bit fields the
-lower-bit mask is zero and the same expression still applies. Scalar evaluation
-must explicitly preserve the unsigned storage word width.
+lower-bit mask is zero and the same expression still applies. The SIMD lane
+arithmetic preserves the unsigned storage word width.
 
 This exact per-field result matters for dense masks: a subtract-based zero-field
 existence test can propagate a borrow into a neighboring field and mark it
@@ -202,8 +204,12 @@ the same XOR/AND/add/OR/NOT sequence to every lane. Hoist invariant masks and
 single-candidate broadcasts out of the hot loop where practical. The supplied
 sketch uses `NativeRegister`; implement the ordinary C++20 path through `Api`
 with equivalent operations, preserving the existing language-level contract.
-Remaining source words use the identical arithmetic one word at a time, not a
-loop over individual elements. No allocation is required.
+Remaining source words are staged into a register and use this same SIMD
+arithmetic, with flags outside the logical extent excluded. This refines the
+sketch's per-word remainder to follow the single-evaluator contract. Scalar
+control, candidate validation, lane extraction, and Bmi compaction remain
+permitted; there is no second scalar packed-comparison implementation.
+No allocation is required.
 
 Compact each word's high-bit flags with `SimdLib::Bmi::pext_u32` or `pext_u64`
 using `H`. These helpers already provide a BMI2 path when compiled for it and
@@ -226,7 +232,8 @@ For arbitrary view lengths, recompute the available source words and valid
 fields for each final batch; a single global `WordsPerOutput` is insufficient.
 For example, 65 two-bit elements use three 64-bit source words and two output
 words: the last output uses one source word, not two. Load only complete SIMD
-batches within storage bounds and process remaining existing words individually.
+batches within storage bounds and stage only the remaining existing words into
+a bounded scratch register for SIMD evaluation.
 Subview prefixes discard fields before the logical start, tails discard fields
 after the logical end, and compaction maps the first selected logical element
 to output bit zero. No read beyond the supplied word span is permitted.
@@ -238,6 +245,118 @@ view writes no output. Packed mask destinations have the exact required size
 and must not overlap either packed source storage or borrowed candidate storage.
 SIMD eligibility and BMI2 availability are independent compile-target decisions;
 benchmark the fallback and extraction/assembly overhead as well as field comparison.
+
+## Ranges and SIMD batch evaluation
+
+Express both logical traversal and execution traversal as ranges, with distinct
+element types and contracts:
+
+| Surface | Range contract |
+| --- | --- |
+| `TensorView<T>` | Sized, contiguous, random-access range over actual `T` objects |
+| `PackedTensorView<Word, Bits>` | Sized, random-access logical range; elements are extracted values, not contiguous `T` objects |
+| Finite expression | Sized, random-access range of values extracted from computed SIMD batches |
+| Full-chunk view | Range of complete fixed-extent spans, with a separately described remainder |
+| Prepared batch view | Range of logical intervals evaluated under one selected SIMD configuration |
+
+Packed backing words form a separate contiguous storage range. Expression and
+packed logical iterators return values; do not claim writable-reference or
+contiguous-iterator semantics for them. Ordinary TensorView iteration accesses
+existing objects directly and performs no expression computation. Expressions
+use the same SIMD operations regardless of whether a caller requests one logical
+value or a terminal consumes complete batches.
+
+### One expression evaluator
+
+Every computational expression node supplies SIMD batch evaluation. Do not add
+a scalar `evaluate_element` implementation beside it. The logical iterator maps
+its index to a batch and an element within that batch, evaluates the batch using
+the shared evaluator, and extracts the requested result. Packed values and
+predicates also map through their storage-lane and field geometry when extracting
+one logical result.
+
+Cache the current computed batch within an expression iterator so sequential
+dereferences reuse it until the iterator crosses a batch boundary. Iterator
+copies maintain independent position/cache state and satisfy multipass rules;
+do not put one shared mutable cache on the expression object. Random-access jumps
+invalidate or replace the cache when they leave its logical interval. Repeated
+standalone indexing may recompute the containing batch; it must still delegate
+to this evaluator. Extraction may use existing runtime-index facilities or a
+cached register representation without reimplementing the numerical operation.
+
+Sources and borrowed candidate lists must remain stable throughout an expression
+traversal, including the lifetime of its active iterator caches. A new traversal
+observes current source contents. A single dereference may evaluate other valid
+elements in its containing batch; preconditions apply to every evaluated lane.
+Bulk exact-alias assignments are owned by the terminal, which consumes each
+computed batch before writing it and does not retain stale source caches.
+
+Standard range algorithms can consume logical values, but arbitrary standard
+adaptors or callbacks do not automatically become Tensor expression nodes.
+Retain typed operation identity for fusion, broadcast preparation, and packed
+comparison selection. An opaque callback requires a compatible SIMD batch
+contract before the Tensor evaluator accepts it.
+
+### Full chunks and batch geometry
+
+Provide an internal `FullChunksView<T, N>` over a span. It exposes only complete
+`std::span<T, N>` blocks and separately describes the remaining span. Compute
+the complete-block boundary once. A complete chunk guarantees load capacity,
+not aligned addresses. This C++20 range utility owns no numerical operations;
+the evaluator loads registers from its spans. Packed source access reuses it
+over storage words and tracks first-field offsets and valid logical fields.
+
+Choose supported execution traits for the complete expression once at the
+evaluation boundary. The initial policy selects the largest compiled register
+width supported by its operations, while leaving room for qualified tuning.
+Traits describe register width, storage lane type, logical coverage, result
+representation, and valid-element information. For a 256-bit register:
+
+| Input representation | Storage lanes | Logical elements represented |
+| --- | ---: | ---: |
+| `float` | 8 | 8 |
+| `uint64_t` | 4 | 4 |
+| Two-bit fields in `uint64_t` | 4 | 128 |
+
+Input batches and output assembly are independent: the final row produces 128
+predicate bits, enough for two 64-bit mask words. Future type-changing operations
+may consume or produce multiple registers while covering one agreed logical
+interval. A partial prefix/tail retains valid-element information and invokes
+the same evaluator through bounded staging, as specified below.
+
+### Scalar expression leaves
+
+An internal `ScalarExpression<T>` owns a scalar value and has an unbound extent.
+It is not a one-element range that truncates a zipped expression, nor an
+implicitly traversed infinite range. An input or destination establishes its
+finite extent; constant-only expressions need an explicit extent or destination.
+Once bound, it participates in the same logical and batch range contracts.
+
+Prepare the scalar's broadcast after selecting execution traits and reuse it
+across batches. Expression storage retains the scalar value, not a
+target-dependent register. For packed operations, repeat the candidate into
+every field of a storage word before broadcasting that word into SIMD lanes.
+Broadcasting the integer `2` directly into each 64-bit lane would populate only
+its lowest field. Logical access to a bound constant uses the prepared broadcast
+and extraction, through the same batch evaluator as any other expression.
+
+### Internal responsibilities
+
+| Concept | Responsibility |
+| --- | --- |
+| Source, scalar, unary, binary, selection, and membership nodes | Preserve operation identity, values, and borrowed sources |
+| Extent resolution | Bind scalar leaves and validate compatible logical sizes |
+| Execution traits and batch geometry | Describe supported SIMD operations and logical coverage |
+| Source access | Load complete or staged ordinary/packed inputs with their offsets |
+| Predicate representation | Preserve native lane masks or exact packed flags and valid-element information |
+| Evaluation terminals | Store batches, assemble masks, reduce, or stop early |
+| Boundary staging | Prepare bounded SIMD inputs and commit only valid results |
+
+These are focused types, concepts, and helpers, without a runtime graph or
+general scheduler. Terminals resolve extents and contracts, select execution
+traits, prepare constants, enumerate complete batches, evaluate staged boundary
+batches, and finish output assembly or reductions. Iterator traversal follows
+the same preparation and batch-evaluation contracts.
 
 ## Composition and evaluation
 
@@ -302,7 +421,7 @@ Initial building blocks:
 Selection evaluates both value branches; it is not scalar short-circuit
 control flow. For example, `Tensor::select(x != 0, 1 / x, 0)` must not be advertised
 as a safe integer divide-by-zero guard. Arbitrary user callbacks should be a
-later extension requiring compatible scalar and SIMD implementations plus a
+later extension requiring a SIMD batch implementation plus a
 documented element-wise, side-effect-free contract. Existing `Api::transform`
 continues to serve callers with raw register callbacks.
 
@@ -324,27 +443,37 @@ allocate a temporary. This permits `a.assign(a + b)` but excludes writing into
 disjoint destination storage. Future permutations and stencils need separate
 alias rules.
 
-For ordinary numerical views, use full-register processing plus a scalar
-element remainder initially. Packed comparisons instead retain packed-word
-processing for remaining words, as specified above. Scalar
-operation definitions must match the SIMD contract, including modular integer
-arithmetic and floating-point edge cases. Blind zero padding can introduce
-invalid inactive-lane division, change floating exception flags, or corrupt
-horizontal reductions. Masking the final result does not undo those effects.
-No public partial-register type or `SimdVector` invariant is needed for this
-tail strategy. Later optimized tails require operation-specific proof.
+All nonempty remainders use the same SIMD expression evaluator as complete
+batches. Load only valid source objects into bounded staging storage; never
+overread a span or commit results outside its logical extent. Staging and lane
+extraction transfer data and do not implement a second numerical path.
+
+For the initial pure element-wise ordinary expressions, fill inactive lanes by
+replicating one valid logical input tuple: use the same valid element index in
+every input. Those lanes then repeat an already-valid computation through the
+entire expression, including nested division or conversion. Blind zero padding
+can instead introduce invalid inactive-lane division. Do not assume masking a
+final result undoes invalid operations. Empty input evaluates no batch.
+
+Packed boundary batches retain existing storage words and exclude prefix/tail
+fields and staged lanes from logical results. Their defined bitwise/equality
+operations can use zero-filled unused storage lanes, since valid-field masks
+exclude them. Predicates, compaction, and reductions must consume only valid
+logical results. Cross-lane operations or future callbacks need a separate
+boundary contract before admission; they cannot inherit the element-wise tuple
+replication rule. No public partial-register value type is required.
 
 Specify semantics by operation rather than accepting whatever a fallback does:
 
-- Integer add/subtract/multiply use lane-width modular results, implemented
-  without signed C++ overflow in scalar evaluation. Saturation has separate names.
+- Integer add/subtract/multiply use lane-width modular results through the
+  existing SIMD operation surface. Saturation has separate names.
 - Integer division requires nonzero divisors and excludes signed minimum divided
   by negative one. Existing integer division is synthesized from scalar lane
   work; a Tensor name does not make every operation a native packed instruction.
 - Floating comparisons follow the corresponding documented backend semantics;
   define `!=` explicitly as the complement of equality, including NaNs.
-- `min` and `max` must retain a specified operand order and reproduce the
-  selected intrinsic's NaN and signed-zero behavior in the scalar path.
+- `min` and `max` must retain a specified operand order and the selected
+  intrinsic's NaN and signed-zero behavior for both batch and extracted results.
   Define `Tensor::clamp(x, lo, hi)` as `Tensor::min(Tensor::max(x, lo), hi)` with `lo <= hi` and non-NaN
   bounds as preconditions.
 - Expression traversal fusion does not itself authorize floating reassociation
@@ -352,7 +481,8 @@ Specify semantics by operation rather than accepting whatever a fallback does:
   avoid a cross-toolchain bitwise promise. Any explicitly fused operation needs
   a separate rounding/fallback contract before exposure.
 - No global exception-flag/trapping equivalence with a scalar loop is promised.
-  Avoid performing extra operations on fictitious tail elements nonetheless.
+  Staged lanes may repeat valid computations, but must not introduce invalid
+  operations through fabricated operand combinations.
 
 Ordinary-view predicate expressions remain SIMD masks within a block; packed
 predicates can retain exact field-high-bit flags until a terminal requires a
@@ -371,7 +501,8 @@ Tensor::pack_bits(selected, std::span<std::uint32_t>{maskWords});
 Packed output uses unsigned words, ascending input index into ascending bit
 position, exactly `size / word_bits + (size % word_bits != 0)` words, and zeroed
 unused high bits in the last word. Packed output must not overlap inputs.
-Scalar `any` and `all` avoid building a whole mask buffer.
+Scalar-result terminals `any` and `all` avoid building a whole mask buffer;
+their predicates are still computed through the SIMD evaluator.
 
 Numerical reductions are separate kernels; register-local horizontal operations
 are not automatically whole-buffer reductions. Require explicit accumulator
@@ -380,7 +511,11 @@ Provide an ordered floating sum as the conservative default and an explicitly
 named fast reduction that permits SIMD regrouping. Fast reduction results may
 vary by width and target. Empty sums return their identity; extrema should
 return `std::optional<T>`, with NaN behavior separately specified. Do not ship
-an underspecified generic `reduce` first.
+an underspecified generic `reduce` first. Reduction kernels also use the SIMD
+operation surface; an ordered sum must preserve its prescribed sequence with
+register operations, and cannot introduce a duplicate scalar numerical evaluator.
+Qualify that kernel before exposing it. Scalar result extraction and existing
+Bmi bit-count/compaction helpers do not constitute alternate expression evaluators.
 
 ## Conversion and shape
 
@@ -416,16 +551,20 @@ direction without putting runtime shape/stride overhead on every flat buffer.
 ## Execution and source organization
 
 Keep ordinary Tensor C++20-compatible and delegate SIMD operations to the
-public `Api` facade. Select 256-bit operations only when available for the
-compile target, otherwise 128-bit operations when available, with scalar
-execution for supported operations when no compiled SIMD path applies.
+public `Api` facade. Select a supported 256-bit configuration when available
+for the expression, otherwise a supported 128-bit configuration. Constrain
+expression evaluation when no compiled SIMD backend supports it; do not add a
+Tensor scalar fallback. Existing Api implementations may themselves synthesize
+operations, and Bmi helpers retain their existing portable paths.
 This does not extend the library's supported platform matrix beyond its
 currently qualified targets.
 
-Use scalar evaluation during constant evaluation for the supported operation
-subset. Both static and dynamic views may participate when their backing
-storage is valid in that constant expression; static extent does not imply
-all numerical operations are constexpr.
+View metadata, construction, and slicing can remain constexpr where their
+underlying storage permits it. Do not add a separate scalar constant-evaluation
+engine for expressions. Only expose constexpr expression operations when the
+same batch path is supported by the existing backend during constant evaluation;
+otherwise expression evaluation is runtime-only. Static extent does not imply
+constexpr numerical evaluation.
 
 Runtime CPU dispatch is a separate future facility: it needs separately
 compiled target variants and CPU/OS feature checks. Choosing based on length
@@ -447,12 +586,18 @@ include/SimdLib/Tensor/Evaluation.h         # Explicit evaluation terminals
 include/SimdLib/Tensor/Reduction.h          # Whole-span reductions, when added
 include/SimdLib/Tensor/Conversion.h         # Conversion contracts, when added
 include/SimdLib/Detail/Tensor/Expression.h   # Typed expression representation
+include/SimdLib/Detail/Tensor/ScalarExpression.h # Owned constant and bound broadcast
+include/SimdLib/Detail/Tensor/ExpressionIterator.h # Cached batch and logical extraction
+include/SimdLib/Detail/Tensor/FullChunksView.h # Complete span chunks and remainder
+include/SimdLib/Detail/Tensor/ExecutionTraits.h # SIMD selection and logical geometry
+include/SimdLib/Detail/Tensor/Extent.h       # Extent binding and validation
+include/SimdLib/Detail/Tensor/SourceAccess.h # Complete and bounded staged loads
 include/SimdLib/Detail/Tensor/Evaluator.h    # Validation, traversal, tail handling
 include/SimdLib/Detail/Tensor/PackedComparison.h # Exact packed field comparisons
 include/SimdLib/Detail/Tensor/MaskWriter.h   # Dense predicate output assembly
 ```
 
-Operation families own their scalar/SIMD semantics; the evaluator owns traversal.
+Operation families own their SIMD semantics; the evaluator owns traversal.
 Dependencies flow toward `Api` and `Bmi`, never from those layers or Register
 back into Tensor.
 Keep the umbrella thin. Memory-writing terminals use the appropriate
@@ -492,6 +637,15 @@ boundaries, mask ordering, and final-word padding. Include compile rejection
 for mismatched static extents, mutation through const elements, unsupported
 types, and temporary owning sources.
 
+Verify range concepts, iterator copies and random-access jumps, repeated
+dereference caching, logical order, bound scalar extents, and agreement between
+extracted iteration and bulk evaluation. Confirm both routes invoke the same
+computational nodes. Test tail expressions such as division and nested
+conversion with valid input tuples that would fail under naive zero padding;
+verify no invalid inactive-lane arithmetic and no out-of-bounds stores. Check
+that constants are prepared outside the batch loop. Scalar reference oracles
+belong in tests only, not as a production expression execution mode.
+
 For packed views, verify every supported field/storage width against an
 independent per-element oracle. Include singleton, duplicate, multiple, empty,
 negative, and too-large candidates; equality unions and their complements;
@@ -512,6 +666,10 @@ Benchmark small static inputs, cache-resident buffers, and buffers exceeding
 last-level cache. Include aligned and offset spans, exact widths and tails,
 unary/binary writes, a scale/add/clamp composition, bitwise compositions,
 early/late/no-match predicates, and eventually conversions and reductions.
+Measure sequential expression iteration, repeated dereferences, random indexing,
+and staged tails alongside bulk terminals, checking batch reuse and extraction
+cost. Retain generated-code evidence that constants are hoisted and no separate
+scalar Tensor evaluator is selected for logical iteration or remainders.
 Include packed 1-/2-/4-bit equality and membership with varying candidate counts,
 inverted masks, subviews, dirty tails, and lengths that expose output-local SIMD
 batching limits. Compare fused packed-field evaluation against a per-element
