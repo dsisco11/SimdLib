@@ -37,7 +37,8 @@ static_assert(popcount(std::numeric_limits<uint128_t>::max()) == 128);
 		return false;
 	return popcount(lhs) == std::popcount(lhs.low()) + std::popcount(lhs.high()) && countr_zero(uint128_t{}) == 128 && countl_zero(uint128_t{}) == 128 &&
 		   bit_width(highBit) == 128 && bit_floor(highBit) == highBit && bit_ceil(highBit) == highBit && has_single_bit(highBit) &&
-		   Bmi::bextr(lhs, 17, 61) == ((lhs >> 61) & uint128_t::create_mask(17));
+		   Bmi::bextr(lhs, 17, 61) == ((lhs >> 61) & uint128_t::create_mask(17)) &&
+		   Bmi::bextr(lhs, 61u | (17u << 8u) | 0xFFFF'0000u) == ((lhs >> 61) & uint128_t::create_mask(17));
 }
 
 static_assert(uint128_contract());

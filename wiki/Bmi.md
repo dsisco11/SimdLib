@@ -117,9 +117,12 @@ SimdLib::Bmi::andn(0b1100U, 0b1010U); // => 0b0010U
 
 Extract contiguous bits from source integer, and return them shifted to the LSB side of the output. Extract the number of bits specified by len, starting at the bit specified by start.
 
+The control-mask overload encodes `start` in bits 0-7 and `len` in bits 8-15. Bits 16 and above are ignored.
+
 Signatures:
 
 ```cpp
+template <std::integral int_t> int_t bextr(int_t source, std::uint32_t control)
 template <std::integral int_t> int_t bextr(int_t source, std::uint8_t len, std::uint8_t start)
 template <std::integral int_t, std::size_t len> int_t bextr(int_t source, std::uint8_t start)
 template <std::integral int_t, std::size_t start, std::size_t len> int_t bextr(int_t source)
@@ -129,6 +132,7 @@ Example:
 
 ```cpp
 SimdLib::Bmi::bextr(0b1101'0110U, 3, 2); // => 0b101U
+SimdLib::Bmi::bextr(0b1101'0110U, 2U | (3U << 8U)); // => 0b101U
 ```
 
 <a id="blse"></a>

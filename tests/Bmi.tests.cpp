@@ -565,7 +565,11 @@ TEST_CASE("BMI exhaustive 8-bit domains match scalar references", "[simdlib][bmi
 			CHECK(Bmi::bzhi(byte, index) == reference_bzhi(byte, index));
 		for (unsigned start = 0; start <= 10; ++start)
 			for (unsigned len = 0; len <= 10; ++len)
+			{
 				CHECK(Bmi::bextr(byte, static_cast<std::uint8_t>(len), static_cast<std::uint8_t>(start)) == reference_bextr(byte, start, len));
+				const std::uint32_t control = start | (len << 8u);
+				CHECK(Bmi::bextr(byte, control) == reference_bextr(byte, start, len));
+			}
 
 		for (unsigned mask = 0; mask <= 0xFF; ++mask)
 		{
@@ -601,12 +605,14 @@ TEST_CASE("BMI randomized 32-bit operations match scalar references", "[simdlib]
 		const unsigned index = static_cast<unsigned>(random.next() % 41);
 		const unsigned start = static_cast<unsigned>(random.next() % 41);
 		const unsigned len = static_cast<unsigned>(random.next() % 41);
+		const std::uint32_t control = start | (len << 8u) | 0xA5A5'0000u;
 		CHECK(Bmi::andn(lhs, rhs) == (rhs & ~lhs));
 		CHECK(Bmi::bzhi(lhs, index) == reference_bzhi(lhs, index));
 		CHECK(Bmi::blsi(lhs) == (lhs & (0u - lhs)));
 		CHECK(Bmi::blsr(lhs) == (lhs & (lhs - 1u)));
 		CHECK(Bmi::blsmsk(lhs) == (lhs ^ (lhs - 1u)));
 		CHECK(Bmi::bextr(lhs, static_cast<std::uint8_t>(len), static_cast<std::uint8_t>(start)) == reference_bextr(lhs, start, len));
+		CHECK(Bmi::bextr(lhs, control) == reference_bextr(lhs, start, len));
 		CHECK(Bmi::pdep_u32(lhs, rhs) == reference_pdep(lhs, rhs));
 		CHECK(Bmi::pext_u32(lhs, rhs) == reference_pext(lhs, rhs));
 		std::uint32_t high = 0;
@@ -627,12 +633,14 @@ TEST_CASE("BMI randomized 64-bit operations match scalar references", "[simdlib]
 		const unsigned index = static_cast<unsigned>(random.next() % 73);
 		const unsigned start = static_cast<unsigned>(random.next() % 73);
 		const unsigned len = static_cast<unsigned>(random.next() % 73);
+		const std::uint32_t control = start | (len << 8u) | 0x5A5A'0000u;
 		CHECK(Bmi::andn(lhs, rhs) == (rhs & ~lhs));
 		CHECK(Bmi::bzhi(lhs, index) == reference_bzhi(lhs, index));
 		CHECK(Bmi::blsi(lhs) == (lhs & (std::uint64_t{0} - lhs)));
 		CHECK(Bmi::blsr(lhs) == (lhs & (lhs - 1)));
 		CHECK(Bmi::blsmsk(lhs) == (lhs ^ (lhs - 1)));
 		CHECK(Bmi::bextr(lhs, static_cast<std::uint8_t>(len), static_cast<std::uint8_t>(start)) == reference_bextr(lhs, start, len));
+		CHECK(Bmi::bextr(lhs, control) == reference_bextr(lhs, start, len));
 		CHECK(Bmi::pdep_u64(lhs, rhs) == reference_pdep(lhs, rhs));
 		CHECK(Bmi::pext_u64(lhs, rhs) == reference_pext(lhs, rhs));
 		std::uint64_t high = 0;
@@ -674,6 +682,7 @@ TEST_CASE("BMI feature paths produce the scalar-reference result digest", "[simd
 		mix_digest(actual_digest, Bmi::blsi(lhs));
 		mix_digest(actual_digest, Bmi::blsr(lhs));
 		mix_digest(actual_digest, Bmi::blsmsk(lhs));
+		mix_digest(actual_digest, Bmi::bextr(lhs, static_cast<std::uint32_t>(rhs)));
 		mix_digest(actual_digest, Bmi::pdep_u64(lhs, rhs));
 		mix_digest(actual_digest, Bmi::pdepl_u64(lhs, rhs));
 		mix_digest(actual_digest, Bmi::pext_u64(lhs, rhs));
@@ -688,6 +697,7 @@ TEST_CASE("BMI feature paths produce the scalar-reference result digest", "[simd
 		mix_digest(reference_digest, lhs & (std::uint64_t{0} - lhs));
 		mix_digest(reference_digest, lhs & (lhs - 1));
 		mix_digest(reference_digest, lhs ^ (lhs - 1));
+		mix_digest(reference_digest, reference_bextr(lhs, static_cast<unsigned>(rhs & 0xFFu), static_cast<unsigned>((rhs >> 8u) & 0xFFu)));
 		mix_digest(reference_digest, reference_pdep(lhs, rhs));
 		mix_digest(reference_digest, reference_pdep(lhs >> (std::popcount(~rhs) & 63), rhs));
 		mix_digest(reference_digest, reference_pext(lhs, rhs));

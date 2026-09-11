@@ -22,6 +22,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+#include <algorithm>
 #include <array>
 #include <bit>
 #include <cstdint>
@@ -144,6 +145,28 @@ template <int Width> [[nodiscard]] uint128_t runtime_create_mask(const int offse
 	if (count >= 64)
 		return {value.high >> (count - 64), 0};
 	return {(value.low >> count) | (value.high << (64 - count)), value.high >> count};
+}
+
+/**
+ * @brief Extracts a low-aligned bit range from the portable two-word representation.
+ * @param value Source words.
+ * @param length Requested bit count.
+ * @param start First source bit.
+ * @return The extracted words without using the production extraction implementation.
+ */
+[[nodiscard]] constexpr words128 bextr_words(const words128 value, const unsigned length, const unsigned start) noexcept
+{
+	if (length == 0 || start >= 128)
+		return {};
+	const unsigned retained = std::min(length, 128u - start);
+	const words128 shifted = shift_right_words(value, start);
+	if (retained < 64)
+		return {shifted.low & ((std::uint64_t{1} << retained) - 1), 0};
+	if (retained == 64)
+		return {shifted.low, 0};
+	if (retained < 128)
+		return {shifted.low, shifted.high & ((std::uint64_t{1} << (retained - 64)) - 1)};
+	return shifted;
 }
 
 [[nodiscard]] constexpr int compare_words(const words128 lhs, const words128 rhs) noexcept
@@ -510,6 +533,30 @@ TEST_CASE("uint128 deprecated extraction remains compatible with Bmi bextr at bo
 		CAPTURE(length, start);
 		CHECK(deprecated_extract(source, length, start) == test.expected);
 		CHECK(SimdLib::Bmi::bextr(source, length, start) == test.expected);
+		const volatile std::uint32_t control = static_cast<std::uint32_t>(start) | (static_cast<std::uint32_t>(length) << 8u) | 0xA5A5'0000u;
+		CHECK(SimdLib::Bmi::bextr(source, control) == test.expected);
+	}
+}
+
+TEST_CASE("uint128 Bmi bextr control fields match the portable oracle exhaustively", "[simdlib][uint128][bmi][bextr][exhaustive]")
+{
+	constexpr std::array sources{
+		words128{},
+		words128{std::numeric_limits<std::uint64_t>::max(), std::numeric_limits<std::uint64_t>::max()},
+		words128{0x0123'4567'89AB'CDEFULL, 0xFEDC'BA98'7654'3210ULL},
+		words128{0x8000'0000'0000'0001ULL, 0x0000'0000'0000'0001ULL},
+	};
+	for (unsigned start = 0; start <= 0xFF; ++start)
+	{
+		for (unsigned length = 0; length <= 0xFF; ++length)
+		{
+			const std::uint32_t control = start | (length << 8u) | 0xA5A5'0000u;
+			for (const words128 source : sources)
+			{
+				CAPTURE(start, length, source.low, source.high);
+				CHECK(words(SimdLib::Bmi::bextr(uint128_t{source.low, source.high}, control)) == bextr_words(source, length, start));
+			}
+		}
 	}
 }
 
@@ -629,7 +676,8 @@ TEST_CASE("uint128 optimized operations match the portable two-word oracle", "[s
 		const uint128_t lhs{random.next(), random.next()};
 		const uint128_t rhs{random.next(), random.next()};
 		const unsigned shift = static_cast<unsigned>(random.next() % 260);
-		CAPTURE(iteration, shift, lhs.low(), lhs.high(), rhs.low(), rhs.high());
+		const std::uint32_t control = static_cast<std::uint32_t>(random.next());
+		CAPTURE(iteration, shift, control, lhs.low(), lhs.high(), rhs.low(), rhs.high());
 
 		CHECK(words(lhs + rhs) == add_words(words(lhs), words(rhs)));
 		CHECK(words(lhs - rhs) == subtract_words(words(lhs), words(rhs)));
@@ -639,6 +687,8 @@ TEST_CASE("uint128 optimized operations match the portable two-word oracle", "[s
 		CHECK((words(~lhs) == words128{~lhs.low(), ~lhs.high()}));
 		CHECK(words(lhs << shift) == shift_left_words(words(lhs), shift));
 		CHECK(words(lhs >> shift) == shift_right_words(words(lhs), shift));
+		CHECK(words(SimdLib::Bmi::bextr(lhs, control)) ==
+			  bextr_words(words(lhs), static_cast<unsigned>((control >> 8u) & 0xFFu), static_cast<unsigned>(control & 0xFFu)));
 		CHECK((lhs < rhs) == (compare_words(words(lhs), words(rhs)) < 0));
 		CHECK((lhs == rhs) == (compare_words(words(lhs), words(rhs)) == 0));
 
@@ -685,6 +735,7 @@ TEST_CASE("uint128 compiler paths produce the portable-oracle result digest", "[
 		const uint128_t lhs{random.next(), random.next()};
 		const uint128_t rhs{random.next(), random.next()};
 		const unsigned shift = static_cast<unsigned>(random.next() % 260);
+		const std::uint32_t control = static_cast<std::uint32_t>(random.next());
 		mix_digest(actualDigest, lhs + rhs);
 		mix_digest(actualDigest, lhs - rhs);
 		mix_digest(actualDigest, lhs & rhs);
@@ -693,6 +744,7 @@ TEST_CASE("uint128 compiler paths produce the portable-oracle result digest", "[
 		mix_digest(actualDigest, ~lhs);
 		mix_digest(actualDigest, lhs << shift);
 		mix_digest(actualDigest, lhs >> shift);
+		mix_digest(actualDigest, SimdLib::Bmi::bextr(lhs, control));
 
 		const auto add = add_words(words(lhs), words(rhs));
 		const auto subtract = subtract_words(words(lhs), words(rhs));
@@ -706,6 +758,8 @@ TEST_CASE("uint128 compiler paths produce the portable-oracle result digest", "[
 		const auto right = shift_right_words(words(lhs), shift);
 		mix_digest(oracleDigest, uint128_t{left.low, left.high});
 		mix_digest(oracleDigest, uint128_t{right.low, right.high});
+		const auto extracted = bextr_words(words(lhs), static_cast<unsigned>((control >> 8u) & 0xFFu), static_cast<unsigned>(control & 0xFFu));
+		mix_digest(oracleDigest, uint128_t{extracted.low, extracted.high});
 	}
 	CHECK(actualDigest == oracleDigest);
 	std::cout << "SIMDLIB_UINT128_RESULT_DIGEST=" << std::hex << actualDigest << '\n';

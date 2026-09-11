@@ -43,8 +43,8 @@ prefixes:
 | `Register.SSE42.*` | 128-bit Register and RegisterMask behavior under the SSE4.2 availability profile |
 | `Register.AVX2.*` | 128-bit and 256-bit Register and RegisterMask behavior under AVX2 |
 | `Register.AVX2Preconditions.*` | Marker-gated Register alignment and runtime-shift precondition failures |
-| `UInt128Optimized.*` | UInt128 with compiler carry primitives and available SIMD support |
-| `UInt128Portable.*` | UInt128 with portable carry/borrow |
+| `UInt128Optimized.*` | UInt128 with compiler carry primitives, BMI1 extraction, and available SIMD support |
+| `UInt128Portable.*` | UInt128 with portable carry/borrow and BMI1 extraction disabled |
 | `UInt128Scalar.*` | UInt128 with all SIMD, BMI, FMA, and compiler-carry features disabled |
 | `UInt128ResultSetEquivalence` | Optimized-versus-portable deterministic result digest |
 | `UInt128ScalarResultSetEquivalence` | Optimized-versus-scalar deterministic result digest |
@@ -193,7 +193,7 @@ requires high-lane contributions in the floating-point dot-product cases.
 | --- | --- |
 | Heterogeneous comparison | Signed integral cases cover a negative right operand, zero, matching and mismatching positive low words, a nonzero high word, equality true/false, and less/equal/greater ordering. Unsigned cases separately retain matching/mismatching equality and all three ordering results. |
 | Deprecated dynamic `extract` | Volatile-derived runtime calls cover zero length, bit 127, starts 128 and 200, a 12-bit range crossing bit 64, and a 16-bit request truncated at bit 127. Every result is checked against an exact value and the preferred `Bmi::bextr` call. |
-| `Bmi::bextr(uint128_t)` | The same table directly covers zero length, out-of-range starts, cross-word extraction, ordinary extraction, and truncation at the upper object boundary. |
+| `Bmi::bextr(uint128_t)` | The length/start and encoded-control overloads use the same boundary table. An independent two-word oracle exhaustively covers all 65,536 encoded start/length combinations across zero, all-ones, mixed-word, and sparse-boundary inputs. Profile digests additionally compare randomized controls across optimized, portable, and scalar configurations. |
 | `create_mask<Width>(offset)` | Runtime offsets cover negative, zero, 63, 64, 127, 128, and 129 for a five-bit mask, proving unchanged, cross-word, truncated-final-bit, and empty out-of-range results. Existing cases retain representative widths 1, 64, 65, and 128. |
 | Shift counts | Volatile-derived values cover `false`, `true`, negative, zero, 1, 63, 64, 65, 127, 128, 129, 191, 255, 256, and `UINT64_MAX` for both directions. The optimized profile executes SIMD shifts; the scalar-only profile executes the two-word branches. |
 | `numeric_limits` sentinels | Runtime assertions cover `min`, `lowest`, `max`, `epsilon`, `round_error`, `infinity`, `quiet_NaN`, `signaling_NaN`, and `denorm_min`. All non-finite/fractional sentinels are zero because this is an exact bounded unsigned integer type. |
