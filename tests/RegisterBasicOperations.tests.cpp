@@ -573,6 +573,43 @@ template <class element_t> void require_bitwise_type()
 		require_bitwise_operations<element_t, 256>();
 }
 
+/** @brief Verifies every lane-sign combination while independently varying all non-sign payload bits. */
+template <class element_t, std::size_t bits>
+	requires(std::is_integral_v<element_t> && (sizeof(element_t) == 4 || sizeof(element_t) == 8))
+void require_exhaustive_lane_sign_bits()
+{
+	using register_type = SimdLib::Register<element_t, bits>;
+	using bits_type = bit_integer_t<element_t>;
+	constexpr auto sign_bit = static_cast<bits_type>(bits_type{1} << (std::numeric_limits<bits_type>::digits - 1));
+	constexpr auto payload_mask = static_cast<bits_type>(~sign_bit);
+	constexpr std::uint32_t combination_count = std::uint32_t{1} << register_type::lane_count;
+
+	for (std::uint32_t expected = 0; expected < combination_count; ++expected)
+	{
+		std::array<element_t, register_type::lane_count> sparse_payload{};
+		std::array<element_t, register_type::lane_count> dense_payload{};
+		for (std::size_t lane = 0; lane < register_type::lane_count; ++lane)
+		{
+			const auto lane_sign = static_cast<bits_type>(((expected >> lane) & 1U) != 0 ? sign_bit : bits_type{});
+			const auto sparse_bits = static_cast<bits_type>((bits_type{1} << (lane % (std::numeric_limits<bits_type>::digits - 1))) | bits_type{0x15});
+			const auto dense_bits = static_cast<bits_type>(~static_cast<bits_type>(lane * 0x10203U + expected * 0x101U));
+			sparse_payload[lane] = scalar_from_bits<element_t>(static_cast<bits_type>(lane_sign | (sparse_bits & payload_mask)));
+			dense_payload[lane] = scalar_from_bits<element_t>(static_cast<bits_type>(lane_sign | (dense_bits & payload_mask)));
+		}
+
+		REQUIRE(register_type::from_array(sparse_payload).lane_sign_bits() == expected);
+		REQUIRE(register_type::from_array(dense_payload).lane_sign_bits() == expected);
+	}
+}
+
+/** @brief Runs exhaustive 32-bit and 64-bit integral sign-mask coverage at both supported widths. */
+template <class element_t> void require_exhaustive_lane_sign_bits_type()
+{
+	require_exhaustive_lane_sign_bits<element_t, 128>();
+	if constexpr (SIMDLIB_REGISTER_TEST_ENABLE_256)
+		require_exhaustive_lane_sign_bits<element_t, 256>();
+}
+
 /** @brief Runs per-lane shift coverage at both supported register widths. */
 template <class element_t> void require_shift_type()
 {
@@ -607,6 +644,14 @@ TEST_CASE("Register bitwise operations and sign masks preserve exact bits", "[si
 	require_bitwise_type<std::uint64_t>();
 	require_bitwise_type<float>();
 	require_bitwise_type<double>();
+}
+
+TEST_CASE("Register lane sign masks exhaustively ignore non-sign integer payload bits", "[simdlib][register][movemask][exhaustive]")
+{
+	require_exhaustive_lane_sign_bits_type<std::int32_t>();
+	require_exhaustive_lane_sign_bits_type<std::uint32_t>();
+	require_exhaustive_lane_sign_bits_type<std::int64_t>();
+	require_exhaustive_lane_sign_bits_type<std::uint64_t>();
 }
 
 TEST_CASE("Register shifts match lane and complete-register boundary contracts", "[simdlib][register][shift]")
