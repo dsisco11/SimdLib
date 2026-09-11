@@ -3805,7 +3805,17 @@ template <class element_t> struct SimdMappings<128, element_t> : public SimdImpl
 	/// <summary> Returns a mask of the most significant BIT of each element. </summary>
 	static mask_t SIMD_FLAGS(In, RegisterOnly, ForceInline, Flatten) movemask_slim(const vector_t lhs) noexcept
 	{
-		if constexpr (std::is_integral_v<element_t>)
+		if constexpr (std::is_integral_v<element_t> && sizeof(element_t) == sizeof(float))
+		{
+			// Reinterpret each integer lane as float so MOVMSKPS reads the same lane sign bits without conversion.
+			return _mm_movemask_ps(_mm_castsi128_ps(lhs));
+		}
+		else if constexpr (std::is_integral_v<element_t> && sizeof(element_t) == sizeof(double))
+		{
+			// Reinterpret each integer lane as double so MOVMSKPD reads the same lane sign bits without conversion.
+			return _mm_movemask_pd(_mm_castsi128_pd(lhs));
+		}
+		else if constexpr (std::is_integral_v<element_t>)
 			return movemask(swizzle_msb(lhs));
 		else if constexpr (std::is_same_v<element_t, float>)
 			return _mm_movemask_ps(lhs);
@@ -7194,7 +7204,17 @@ template <class element_t> struct SimdMappings<256, element_t> : public SimdImpl
 	/// <summary> Returns a mask of the most significant BIT of each element. </summary>
 	static mask_t SIMD_FLAGS(In, RegisterOnly, ForceInline, Flatten) movemask_slim(const vector_t lhs) noexcept
 	{
-		if constexpr (std::is_integral_v<element_t>)
+		if constexpr (std::is_integral_v<element_t> && sizeof(element_t) == sizeof(float))
+		{
+			// Reinterpret each integer lane as float so VMOVMSKPS reads the same lane sign bits without conversion.
+			return _mm256_movemask_ps(_mm256_castsi256_ps(lhs));
+		}
+		else if constexpr (std::is_integral_v<element_t> && sizeof(element_t) == sizeof(double))
+		{
+			// Reinterpret each integer lane as double so VMOVMSKPD reads the same lane sign bits without conversion.
+			return _mm256_movemask_pd(_mm256_castsi256_pd(lhs));
+		}
+		else if constexpr (std::is_integral_v<element_t>)
 		{
 			// Note: _mm256_shuffle_epi8 is lane-local; compress the resulting byte-mask to element bits.
 			const uint32_t raw = static_cast<uint32_t>(movemask(swizzle_msb(lhs)));
