@@ -3805,7 +3805,12 @@ template <class element_t> struct SimdMappings<128, element_t> : public SimdImpl
 	/// <summary> Returns a mask of the most significant BIT of each element. </summary>
 	static mask_t SIMD_FLAGS(In, RegisterOnly, ForceInline, Flatten) movemask_slim(const vector_t lhs) noexcept
 	{
-		if constexpr (std::is_integral_v<element_t> && sizeof(element_t) == sizeof(float))
+		if constexpr (std::is_integral_v<element_t> && sizeof(element_t) == 1)
+		{
+			// Byte lanes already match MOVMSK's native granularity, so no lane compaction is required.
+			return _mm_movemask_epi8(lhs);
+		}
+		else if constexpr (std::is_integral_v<element_t> && sizeof(element_t) == sizeof(float))
 		{
 			// Reinterpret each integer lane as float so MOVMSKPS reads the same lane sign bits without conversion.
 			return _mm_movemask_ps(_mm_castsi128_ps(lhs));
@@ -7204,7 +7209,12 @@ template <class element_t> struct SimdMappings<256, element_t> : public SimdImpl
 	/// <summary> Returns a mask of the most significant BIT of each element. </summary>
 	static mask_t SIMD_FLAGS(In, RegisterOnly, ForceInline, Flatten) movemask_slim(const vector_t lhs) noexcept
 	{
-		if constexpr (std::is_integral_v<element_t> && sizeof(element_t) == sizeof(float))
+		if constexpr (std::is_integral_v<element_t> && sizeof(element_t) == 1)
+		{
+			// Byte lanes already match VMOVMSK's native granularity, so no lane compaction is required.
+			return _mm256_movemask_epi8(lhs);
+		}
+		else if constexpr (std::is_integral_v<element_t> && sizeof(element_t) == sizeof(float))
 		{
 			// Reinterpret each integer lane as float so VMOVMSKPS reads the same lane sign bits without conversion.
 			return _mm256_movemask_ps(_mm256_castsi256_ps(lhs));
@@ -7219,11 +7229,7 @@ template <class element_t> struct SimdMappings<256, element_t> : public SimdImpl
 			// Note: _mm256_shuffle_epi8 is lane-local; compress the resulting byte-mask to element bits.
 			const uint32_t raw = static_cast<uint32_t>(movemask(swizzle_msb(lhs)));
 
-			if constexpr (sizeof(element_t) == 1)
-			{
-				return static_cast<mask_t>(raw);
-			}
-			else if constexpr (sizeof(element_t) == 2)
+			if constexpr (sizeof(element_t) == 2)
 			{ // 8 elements per 128-bit lane => bits 0..7 and 16..23
 				return static_cast<mask_t>((raw & 0x00FFu) | ((raw >> 8) & 0xFF00u));
 			}

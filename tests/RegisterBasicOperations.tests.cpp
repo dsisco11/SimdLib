@@ -610,6 +610,47 @@ template <class element_t> void require_exhaustive_lane_sign_bits_type()
 		require_exhaustive_lane_sign_bits<element_t, 256>();
 }
 
+/** @brief Verifies representative byte-lane masks while independently varying every lane's non-sign payload. */
+template <class element_t, std::size_t bits>
+	requires(std::is_integral_v<element_t> && sizeof(element_t) == 1)
+void require_byte_lane_sign_bits()
+{
+	using register_type = SimdLib::Register<element_t, bits>;
+	constexpr std::uint32_t all_lane_bits = []() constexpr noexcept
+	{
+		if constexpr (register_type::lane_count == 32)
+			return std::numeric_limits<std::uint32_t>::max();
+		else
+			return (std::uint32_t{1} << register_type::lane_count) - 1;
+	}();
+	constexpr std::array masks{std::uint32_t{}, all_lane_bits, std::uint32_t{1}, std::uint32_t{1} << (register_type::lane_count - 1),
+		std::uint32_t{0xA5A5A5A5} & all_lane_bits, std::uint32_t{0x3CC35AA5} & all_lane_bits};
+
+	for (const std::uint32_t expected : masks)
+	{
+		std::array<element_t, register_type::lane_count> sparse_payload{};
+		std::array<element_t, register_type::lane_count> dense_payload{};
+		for (std::size_t lane = 0; lane < register_type::lane_count; ++lane)
+		{
+			const auto sign = static_cast<std::uint8_t>(((expected >> lane) & 1U) != 0 ? 0x80U : 0U);
+			sparse_payload[lane] = scalar_from_bits<element_t>(static_cast<std::uint8_t>(sign | ((lane * 5U + 1U) & 0x7FU)));
+			dense_payload[lane] =
+				scalar_from_bits<element_t>(static_cast<std::uint8_t>(sign | (0x7FU - static_cast<unsigned>((lane * 11U) & 0x7FU))));
+		}
+
+		REQUIRE(register_type::from_array(sparse_payload).lane_sign_bits() == expected);
+		REQUIRE(register_type::from_array(dense_payload).lane_sign_bits() == expected);
+	}
+}
+
+/** @brief Runs byte-lane sign-mask coverage for signed and unsigned elements at both supported widths. */
+template <class element_t> void require_byte_lane_sign_bits_type()
+{
+	require_byte_lane_sign_bits<element_t, 128>();
+	if constexpr (SIMDLIB_REGISTER_TEST_ENABLE_256)
+		require_byte_lane_sign_bits<element_t, 256>();
+}
+
 /** @brief Runs per-lane shift coverage at both supported register widths. */
 template <class element_t> void require_shift_type()
 {
@@ -652,6 +693,12 @@ TEST_CASE("Register lane sign masks exhaustively ignore non-sign integer payload
 	require_exhaustive_lane_sign_bits_type<std::uint32_t>();
 	require_exhaustive_lane_sign_bits_type<std::int64_t>();
 	require_exhaustive_lane_sign_bits_type<std::uint64_t>();
+}
+
+TEST_CASE("Register byte lane sign masks preserve lane order and ignore payload bits", "[simdlib][register][movemask][byte]")
+{
+	require_byte_lane_sign_bits_type<std::int8_t>();
+	require_byte_lane_sign_bits_type<std::uint8_t>();
 }
 
 TEST_CASE("Register shifts match lane and complete-register boundary contracts", "[simdlib][register][shift]")
