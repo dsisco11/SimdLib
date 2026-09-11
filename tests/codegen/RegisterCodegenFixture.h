@@ -26,6 +26,7 @@ using register_type = SimdLib::Register<float, SIMDLIB_REGISTER_TEST_WIDTH>;
 #endif
 using uint_api_type = SimdLib::Api<SIMDLIB_REGISTER_TEST_WIDTH, std::uint32_t>;
 using uint_native_type = typename uint_api_type::vector_t;
+using byte_api_type = SimdLib::Api<SIMDLIB_REGISTER_TEST_WIDTH, std::uint8_t>;
 #if SIMDLIB_CODEGEN_USE_WRAPPER
 using uint_register_type = SimdLib::Register<std::uint32_t, SIMDLIB_REGISTER_TEST_WIDTH>;
 #endif
@@ -117,7 +118,9 @@ SIMDLIB_CODEGEN_NOINLINE bool SIMD_FLAGS(In, RegisterOnly) simdlib_codegen_mask_
 #if SIMDLIB_CODEGEN_USE_WRAPPER
 	return SimdLibCodegen::register_type{lhs}.compare_equal(SimdLibCodegen::register_type{rhs}).any();
 #else
-	return SimdLibCodegen::api_type::movemask_slim(SimdLibCodegen::api_type::compare_equal(lhs, rhs)) != 0;
+	const auto predicate = SimdLibCodegen::api_type::compare_equal(lhs, rhs);
+	const auto bits = SimdLibCodegen::api_type::template bit_cast<std::uint8_t>(predicate);
+	return !SimdLibCodegen::byte_api_type::testz(bits, bits);
 #endif
 }
 

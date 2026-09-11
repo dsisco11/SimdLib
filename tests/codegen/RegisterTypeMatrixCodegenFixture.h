@@ -223,6 +223,26 @@ enum class scalar_operation
 	extract_first,
 };
 
+#if !SIMDLIB_CODEGEN_USE_WRAPPER
+/** @brief Mirrors the public mask any-lane Boolean-return boundary with the raw backend operation. */
+template <class element_t> [[nodiscard]] bool SIMD_FLAGS(In, ForceInline) raw_mask_any(native_t<element_t> value) noexcept
+{
+	using api_type = api_t<element_t>;
+	using byte_api_type = api_t<std::uint8_t>;
+	const auto bits = api_type::template bit_cast<std::uint8_t>(value);
+	return byte_api_type::testz(bits, bits) == 0;
+}
+
+/** @brief Mirrors the public mask no-lanes Boolean-return boundary with the raw backend operation. */
+template <class element_t> [[nodiscard]] bool SIMD_FLAGS(In, ForceInline) raw_mask_none(native_t<element_t> value) noexcept
+{
+	using api_type = api_t<element_t>;
+	using byte_api_type = api_t<std::uint8_t>;
+	const auto bits = api_type::template bit_cast<std::uint8_t>(value);
+	return byte_api_type::testz(bits, bits) != 0;
+}
+#endif
+
 /**
  * @brief Emits one isolated scalar-result operation for exact wrapper/raw comparison.
  * @tparam operation Operation selected at compile time.
@@ -231,7 +251,7 @@ enum class scalar_operation
  * @return Compact scalar result of the selected operation.
  */
 template <scalar_operation operation, class element_t>
-[[nodiscard]] typename api_t<element_t>::mask_t SIMD_FLAGS(In, ForceInline) scalar_result(native_t<element_t> lhs, native_t<element_t> rhs) noexcept
+[[nodiscard]] auto SIMD_FLAGS(In, ForceInline) scalar_result(native_t<element_t> lhs, native_t<element_t> rhs) noexcept
 {
 	using api_type = api_t<element_t>;
 	using register_type [[maybe_unused]] = register_t<element_t>;
@@ -247,11 +267,11 @@ template <scalar_operation operation, class element_t>
 	else if constexpr (operation == scalar_operation::mask_bits)
 		return mask.bits();
 	else if constexpr (operation == scalar_operation::mask_any)
-		return static_cast<mask_bits_t>(mask.any());
+		return mask.any();
 	else if constexpr (operation == scalar_operation::mask_all)
 		return static_cast<mask_bits_t>(mask.all());
 	else if constexpr (operation == scalar_operation::mask_none)
-		return static_cast<mask_bits_t>(mask.none());
+		return mask.none();
 	else if constexpr (operation == scalar_operation::equal)
 		return static_cast<mask_bits_t>(left == right);
 	else if constexpr (operation == scalar_operation::not_equal)
@@ -264,11 +284,11 @@ template <scalar_operation operation, class element_t>
 	else if constexpr (operation == scalar_operation::lane_sign_bits || operation == scalar_operation::mask_bits)
 		return api_type::movemask_slim(lhs);
 	else if constexpr (operation == scalar_operation::mask_any)
-		return static_cast<mask_bits_t>(api_type::movemask_slim(lhs) != 0);
+		return raw_mask_any<element_t>(lhs);
 	else if constexpr (operation == scalar_operation::mask_all)
 		return static_cast<mask_bits_t>(api_type::movemask_slim(lhs) == all_lane_bits<element_t>());
 	else if constexpr (operation == scalar_operation::mask_none)
-		return static_cast<mask_bits_t>(api_type::movemask_slim(lhs) == 0);
+		return raw_mask_none<element_t>(lhs);
 	else if constexpr (operation == scalar_operation::equal)
 		return static_cast<mask_bits_t>(api_type::movemask_slim(api_type::compare_equal(lhs, rhs)) == all_lane_bits<element_t>());
 	else if constexpr (operation == scalar_operation::not_equal)
@@ -388,6 +408,14 @@ native_t<element_t> SIMD_FLAGS(Out, RegisterOnly, ForceInline) from_lanes(const 
 		return SimdLibTypeMatrixCodegen::scalar_result<SimdLibTypeMatrixCodegen::scalar_operation::operation, element_type>(lhs, rhs);                         \
 	}
 
+#define SIMDLIB_DEFINE_TYPE_MATRIX_BOOLEAN(token, element_type, operation)                                                                                     \
+	/** @brief Compares one isolated Boolean-result operation with its raw Api expression. */                                                                  \
+	SIMDLIB_TYPE_MATRIX_NOINLINE bool SIMD_FLAGS(In) simdlib_type_matrix_##operation##_##token(                                                                \
+		SimdLibTypeMatrixCodegen::native_t<element_type> lhs, SimdLibTypeMatrixCodegen::native_t<element_type> rhs) noexcept                                   \
+	{                                                                                                                                                          \
+		return SimdLibTypeMatrixCodegen::scalar_result<SimdLibTypeMatrixCodegen::scalar_operation::operation, element_type>(lhs, rhs);                         \
+	}
+
 #define SIMDLIB_DEFINE_TYPE_MATRIX_COMMON_FIXTURES(token, element_type)                                                                                        \
 	SIMDLIB_DEFINE_TYPE_MATRIX_VECTOR(token, element_type, zero)                                                                                               \
 	SIMDLIB_DEFINE_TYPE_MATRIX_VECTOR(token, element_type, broadcast)                                                                                          \
@@ -415,9 +443,9 @@ native_t<element_t> SIMD_FLAGS(Out, RegisterOnly, ForceInline) from_lanes(const 
 	SIMDLIB_DEFINE_TYPE_MATRIX_SCALAR(token, element_type, movemask)                                                                                           \
 	SIMDLIB_DEFINE_TYPE_MATRIX_SCALAR(token, element_type, lane_sign_bits)                                                                                     \
 	SIMDLIB_DEFINE_TYPE_MATRIX_SCALAR(token, element_type, mask_bits)                                                                                          \
-	SIMDLIB_DEFINE_TYPE_MATRIX_SCALAR(token, element_type, mask_any)                                                                                           \
+	SIMDLIB_DEFINE_TYPE_MATRIX_BOOLEAN(token, element_type, mask_any)                                                                                          \
 	SIMDLIB_DEFINE_TYPE_MATRIX_SCALAR(token, element_type, mask_all)                                                                                           \
-	SIMDLIB_DEFINE_TYPE_MATRIX_SCALAR(token, element_type, mask_none)                                                                                          \
+	SIMDLIB_DEFINE_TYPE_MATRIX_BOOLEAN(token, element_type, mask_none)                                                                                         \
 	SIMDLIB_DEFINE_TYPE_MATRIX_SCALAR(token, element_type, equal)                                                                                              \
 	SIMDLIB_DEFINE_TYPE_MATRIX_SCALAR(token, element_type, not_equal)                                                                                          \
 	SIMDLIB_DEFINE_TYPE_MATRIX_SCALAR(token, element_type, extract_first)                                                                                      \
@@ -512,6 +540,7 @@ static_assert(!SimdLib::IRegister::ShiftRight<SimdLibTypeMatrixCodegen::register
 
 #undef SIMDLIB_DEFINE_TYPE_MATRIX_INTEGER_FIXTURES
 #undef SIMDLIB_DEFINE_TYPE_MATRIX_COMMON_FIXTURES
+#undef SIMDLIB_DEFINE_TYPE_MATRIX_BOOLEAN
 #undef SIMDLIB_DEFINE_TYPE_MATRIX_SCALAR
 #undef SIMDLIB_DEFINE_TYPE_MATRIX_VECTOR
 #undef SIMDLIB_TYPE_MATRIX_NOINLINE
