@@ -187,8 +187,11 @@ template <class element_t, std::size_t bits> void require_mask_contracts()
 	REQUIRE(alternating.bits() == alternating_bits);
 	REQUIRE(rewrapped.bits() == alternating_bits);
 	REQUIRE(alternating.any());
+	REQUIRE_FALSE(alternating.none());
 	REQUIRE_FALSE(alternating.all());
 	REQUIRE(all_true.bits() == all_bits);
+	REQUIRE(all_true.any());
+	REQUIRE_FALSE(all_true.none());
 	REQUIRE(all_true.all());
 	REQUIRE((alternating | inverse).bits() == all_bits);
 	REQUIRE((alternating & inverse).none());

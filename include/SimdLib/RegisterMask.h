@@ -55,7 +55,13 @@ class RegisterMask final
 	 */
 	[[nodiscard]] constexpr bool SIMD_FLAGS(In, RegisterOnly, ForceInline, Flatten) any(this RegisterMask value) noexcept
 	{
-		return value.bits() != 0;
+		if (std::is_constant_evaluated())
+			return value.bits() != 0;
+
+		using byte_api_type = Api<register_bits, std::uint8_t>;
+		const auto bits = api_type::template bit_cast<std::uint8_t>(value.native);
+		// Canonical predicates are all-zero or all-one per lane, so any set bit proves that a lane is true.
+		return byte_api_type::testz(bits, bits) == 0;
 	}
 
 	/**
@@ -77,7 +83,13 @@ class RegisterMask final
 	 */
 	[[nodiscard]] constexpr bool SIMD_FLAGS(In, RegisterOnly, ForceInline, Flatten) none(this RegisterMask value) noexcept
 	{
-		return value.bits() == 0;
+		if (std::is_constant_evaluated())
+			return value.bits() == 0;
+
+		using byte_api_type = Api<register_bits, std::uint8_t>;
+		const auto bits = api_type::template bit_cast<std::uint8_t>(value.native);
+		// Testing the complete canonical predicate avoids materializing a compact scalar lane mask.
+		return byte_api_type::testz(bits, bits) != 0;
 	}
 
 	/**
