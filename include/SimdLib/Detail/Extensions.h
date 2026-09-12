@@ -220,16 +220,26 @@ constexpr void SIMD_FLAGS(Neither, ForceInline) register_set_constexpr(Vector &v
 #endif
 }
 
+/**
+ * @brief Constructs a native register from a complete forward-order lane array.
+ * @tparam Vector Compiler-native register type.
+ * @tparam Element Scalar lane type.
+ * @tparam Count Complete logical lane count.
+ * @param lanes Source lanes in increasing register-lane order.
+ * @return Native register containing every source lane.
+ */
 template <class Vector, class Element, std::size_t Count>
 	requires(sizeof(Vector) == sizeof(Element) * Count)
 constexpr Vector SIMD_FLAGS(Neither, ForceInline) register_from_array(const std::array<Element, Count> &lanes) noexcept
 {
+#if SIMDLIB_COMPILER_MSVC
 	Vector result{};
 	for (std::size_t index = 0; index < Count; ++index)
-	{
 		register_set_constexpr<Element>(result, index, lanes[index]);
-	}
 	return result;
+#else
+	return std::bit_cast<Vector>(lanes);
+#endif
 }
 
 template <class Vector, class Element, class... Args>
