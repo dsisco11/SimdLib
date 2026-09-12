@@ -3851,26 +3851,17 @@ template <class element_t> struct SimdMappings<128, element_t> : public SimdImpl
 	}
 
 	/// <summary> Returns the shuffle order to move the most significant byte of each element into the least significant bytes. </summary>
-	constexpr static int_vector_t get_msb_swizzle_order() noexcept
+	constexpr static int_vector_t SIMD_FLAGS(Out, RegisterOnly, ForceInline, Flatten) get_msb_swizzle_order() noexcept
 	{
-		int_vector_t seq{};
-		constexpr const auto elem_size = sizeof(element_t);
-		constexpr const auto elem_count = 16 / elem_size;
-
-		for (std::size_t i = 0; i < 16; ++i)
+		return make_static_register<SimdImpl128<std::uint8_t>>([]<std::size_t index>() constexpr noexcept
 		{
-			if (i < elem_count)
-			{
-				// Select the MSB byte of each element, packing them into the low bytes.
-				register_set_constexpr<std::uint8_t>(seq, i, static_cast<std::uint8_t>((i * elem_size) + (elem_size - 1)));
-			}
+			constexpr std::size_t element_size = sizeof(element_t);
+			constexpr std::size_t element_count = 16 / element_size;
+			if constexpr (index < element_count)
+				return static_cast<std::uint8_t>((index * element_size) + (element_size - 1));
 			else
-			{
-				// Zero out the rest (PSHUFB: high bit set => 0).
-				register_set_constexpr<std::uint8_t>(seq, i, 0x80);
-			}
-		}
-		return seq;
+				return std::uint8_t{0x80};
+		});
 	}
 
 	/// <summary> Swizzle the vector to only contain the most significant bit of each byte. </summary>
@@ -7275,30 +7266,18 @@ template <class element_t> struct SimdMappings<256, element_t> : public SimdImpl
 	}
 
 	/// <summary> Returns the shuffle order to move the most significant byte of each element into the least significant bytes. </summary>
-	constexpr static int_vector_t get_msb_swizzle_order() noexcept
+	constexpr static int_vector_t SIMD_FLAGS(Out, RegisterOnly, ForceInline, Flatten) get_msb_swizzle_order() noexcept
 	{
-		int_vector_t seq{};
-		constexpr const auto elem_size = sizeof(element_t);
-		constexpr const auto elems_per_lane = 16 / elem_size;
-
-		for (std::size_t lane = 0; lane < 2; ++lane)
+		return make_static_register<SimdImpl256<std::uint8_t>>([]<std::size_t index>() constexpr noexcept
 		{
-			const std::size_t lane_base = lane * 16;
-			for (std::size_t i = 0; i < 16; ++i)
-			{
-				if (i < elems_per_lane)
-				{
-					// Select the MSB byte of each element within the 128-bit lane.
-					register_set_constexpr<std::uint8_t>(seq, lane_base + i, static_cast<std::uint8_t>((i * elem_size) + (elem_size - 1)));
-				}
-				else
-				{
-					// Zero out the rest (PSHUFB: high bit set => 0).
-					register_set_constexpr<std::uint8_t>(seq, lane_base + i, 0x80);
-				}
-			}
-		}
-		return seq;
+			constexpr std::size_t element_size = sizeof(element_t);
+			constexpr std::size_t elements_per_group = 16 / element_size;
+			constexpr std::size_t group_index = index % 16;
+			if constexpr (group_index < elements_per_group)
+				return static_cast<std::uint8_t>((group_index * element_size) + (element_size - 1));
+			else
+				return std::uint8_t{0x80};
+		});
 	}
 
 	/// <summary> Swizzle the vector to only contain the most significant bit of each byte. </summary>

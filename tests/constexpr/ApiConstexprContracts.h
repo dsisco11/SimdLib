@@ -152,6 +152,23 @@ template <std::size_t Width, class Element> [[nodiscard]] consteval bool constru
 }
 
 /**
+ * @brief Verifies generator-based native register construction during constant evaluation.
+ * @tparam Implementation Native byte backend selected by the owning width-specific probe.
+ * @return True when every generated lane preserves its compile-time index-derived value.
+ */
+template <class Implementation> [[nodiscard]] consteval bool static_register_construction_contract() noexcept
+{
+	constexpr auto value = Detail::make_static_register<Implementation>([]<std::size_t index>() constexpr noexcept
+	{
+		return static_cast<std::uint8_t>((index * 7U) + 3U);
+	});
+	std::array<std::uint8_t, sizeof(value)> expected{};
+	for (std::size_t index = 0; index < expected.size(); ++index)
+		expected[index] = static_cast<std::uint8_t>((index * 7U) + 3U);
+	return Detail::register_to_array<std::uint8_t>(value) == expected;
+}
+
+/**
  * @brief Verifies signed and unsigned 64-bit forward-order construction during constant evaluation.
  * @return True when lane order and complete unsigned bit patterns are preserved.
  */

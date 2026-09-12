@@ -575,7 +575,7 @@ template <class element_t> void require_bitwise_type()
 
 /** @brief Verifies every lane-sign combination while independently varying all non-sign payload bits. */
 template <class element_t, std::size_t bits>
-	requires(std::is_integral_v<element_t> && (sizeof(element_t) == 4 || sizeof(element_t) == 8))
+	requires(std::is_integral_v<element_t> && (sizeof(element_t) == 2 || sizeof(element_t) == 4 || sizeof(element_t) == 8))
 void require_exhaustive_lane_sign_bits()
 {
 	using register_type = SimdLib::Register<element_t, bits>;
@@ -602,7 +602,7 @@ void require_exhaustive_lane_sign_bits()
 	}
 }
 
-/** @brief Runs exhaustive 32-bit and 64-bit integral sign-mask coverage at both supported widths. */
+/** @brief Runs exhaustive 16-bit, 32-bit, and 64-bit integral sign-mask coverage at both supported widths. */
 template <class element_t> void require_exhaustive_lane_sign_bits_type()
 {
 	require_exhaustive_lane_sign_bits<element_t, 128>();
@@ -689,6 +689,8 @@ TEST_CASE("Register bitwise operations and sign masks preserve exact bits", "[si
 
 TEST_CASE("Register lane sign masks exhaustively ignore non-sign integer payload bits", "[simdlib][register][movemask][exhaustive]")
 {
+	require_exhaustive_lane_sign_bits_type<std::int16_t>();
+	require_exhaustive_lane_sign_bits_type<std::uint16_t>();
 	require_exhaustive_lane_sign_bits_type<std::int32_t>();
 	require_exhaustive_lane_sign_bits_type<std::uint32_t>();
 	require_exhaustive_lane_sign_bits_type<std::int64_t>();
