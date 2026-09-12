@@ -662,7 +662,10 @@ template <> struct SimdImpl128<uint8_t>
 	/** @brief Computes minimum-value position metadata for this native register specialization. */
 	static auto SIMD_FLAGS(In, RegisterOnly, ForceInline, Flatten) min_position(auto lhs) noexcept
 	{
-		constexpr __m128i indices = register_from_values<__m128i, std::uint8_t>(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15);
+		const __m128i indices = make_static_register<SimdImpl128<std::uint8_t>>([]<std::size_t index>() constexpr noexcept
+		{
+			return static_cast<std::uint8_t>(index);
+		});
 		const __m128i signBit = _mm_set1_epi8(static_cast<char>(0x80));
 		__m128i values = lhs;
 		__m128i positions = indices;
@@ -2104,7 +2107,10 @@ template <> struct SimdImpl128<uint32_t>
 	/** @brief Computes minimum-value position metadata for this native register specialization. */
 	static auto SIMD_FLAGS(In, RegisterOnly, ForceInline, Flatten) min_position(auto lhs) noexcept
 	{
-		constexpr __m128i indices = register_from_values<__m128i, std::uint32_t>(0u, 1u, 2u, 3u);
+		const __m128i indices = make_static_register<SimdImpl128<std::uint32_t>>([]<std::size_t index>() constexpr noexcept
+		{
+			return static_cast<std::uint32_t>(index);
+		});
 		const __m128i signBit = _mm_set1_epi32(static_cast<int>(0x80000000u));
 		__m128i values = lhs;
 		__m128i positions = indices;
@@ -2706,7 +2712,10 @@ template <> struct SimdImpl128<uint64_t>
 	/** @brief Computes minimum-value position metadata for this native register specialization. */
 	static auto SIMD_FLAGS(In, RegisterOnly, ForceInline, Flatten) min_position(auto lhs) noexcept
 	{
-		constexpr __m128i indices = register_from_values<__m128i, std::uint64_t>(0ull, 1ull);
+		const __m128i indices = make_static_register<SimdImpl128<std::uint64_t>>([]<std::size_t index>() constexpr noexcept
+		{
+			return static_cast<std::uint64_t>(index);
+		});
 		const __m128i signBit = _mm_set1_epi64x(std::numeric_limits<std::int64_t>::min());
 		const __m128i shiftedValues = _mm_bsrli_si128(lhs, 8);
 		const __m128i shiftedIndices = _mm_bsrli_si128(indices, 8);
@@ -3405,7 +3414,7 @@ template <class element_t> struct SimdMappings<128, element_t> : public SimdImpl
 	/** @brief Broadcasts one value through the portable compile-time register representation. */
 	constexpr static vector_t set1_constexpr(const element_t value) noexcept
 	{
-		return register_from_repeated_value<vector_t>(value);
+		return register_from_repeated_value<impl>(value);
 	}
 
 	/** @brief Constructs a register from forward-order lanes during constant evaluation. */
@@ -6907,7 +6916,7 @@ template <class element_t> struct SimdMappings<256, element_t> : public SimdImpl
 	/** @brief Broadcasts one value through the portable compile-time register representation. */
 	constexpr static vector_t set1_constexpr(const element_t value) noexcept
 	{
-		return register_from_repeated_value<vector_t>(value);
+		return register_from_repeated_value<impl>(value);
 	}
 
 	/** @brief Constructs a register from forward-order lanes during constant evaluation. */
