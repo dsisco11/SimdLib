@@ -330,16 +330,16 @@ constexpr Vector SIMD_FLAGS(Neither, ForceInline) register_insert_constexpr(Vect
 	return value;
 }
 
-/** @brief Emulates an immediate-controlled lane blend with a runtime scalar mask.
+/** @brief Evaluates an immediate-controlled lane blend through the portable constant-evaluation representation.
  *  @tparam Element Logical lane type.
  *  @tparam Vector Native register type.
  *  @param lhs Source for lanes whose control bits are clear.
  *  @param rhs Source for lanes whose control bits are set.
- *  @param mask Runtime control byte.
+ *  @param mask Immediate control represented during constant evaluation.
  *  @return Register containing the selected lanes.
  */
 template <class Element, class Vector>
-constexpr Vector SIMD_FLAGS(Neither, ForceInline) register_blend_slow(Vector lhs, const Vector rhs, const unsigned int mask) noexcept
+constexpr Vector SIMD_FLAGS(Neither, ForceInline) register_blend_constexpr(Vector lhs, const Vector rhs, const unsigned int mask) noexcept
 {
 	constexpr std::size_t count = sizeof(Vector) / sizeof(Element);
 	for (std::size_t index = 0; index < count; ++index)

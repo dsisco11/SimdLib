@@ -1302,7 +1302,7 @@ template <> struct SimdImpl128<int16_t>
 	template <int imm8> constexpr static auto SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) blend(const __m128i lhs, const __m128i rhs) noexcept
 	{
 		if (std::is_constant_evaluated())
-			return register_blend_slow<std::int16_t>(lhs, rhs, static_cast<unsigned int>(imm8));
+			return register_blend_constexpr<std::int16_t>(lhs, rhs, static_cast<unsigned int>(imm8));
 		return _mm_blend_epi16(lhs, rhs, imm8);
 	}
 };
@@ -1691,7 +1691,7 @@ template <> struct SimdImpl128<uint16_t>
 	template <int imm8> constexpr static auto SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) blend(const __m128i lhs, const __m128i rhs) noexcept
 	{
 		if (std::is_constant_evaluated())
-			return register_blend_slow<std::uint16_t>(lhs, rhs, static_cast<unsigned int>(imm8));
+			return register_blend_constexpr<std::uint16_t>(lhs, rhs, static_cast<unsigned int>(imm8));
 		return _mm_blend_epi16(lhs, rhs, imm8);
 	}
 };
@@ -2014,7 +2014,7 @@ template <> struct SimdImpl128<int32_t>
 	template <int imm8> constexpr static auto SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) blend(const __m128i lhs, const __m128i rhs) noexcept
 	{
 		if (std::is_constant_evaluated())
-			return register_blend_slow<std::int32_t>(lhs, rhs, static_cast<unsigned int>(imm8));
+			return register_blend_constexpr<std::int32_t>(lhs, rhs, static_cast<unsigned int>(imm8));
 		return _mm_castps_si128(_mm_blend_ps(_mm_castsi128_ps(lhs), _mm_castsi128_ps(rhs), imm8 & 0x0F));
 	}
 };
@@ -2363,7 +2363,7 @@ template <> struct SimdImpl128<uint32_t>
 	template <int imm8> constexpr static auto SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) blend(const __m128i lhs, const __m128i rhs) noexcept
 	{
 		if (std::is_constant_evaluated())
-			return register_blend_slow<std::uint32_t>(lhs, rhs, static_cast<unsigned int>(imm8));
+			return register_blend_constexpr<std::uint32_t>(lhs, rhs, static_cast<unsigned int>(imm8));
 		return _mm_castps_si128(_mm_blend_ps(_mm_castsi128_ps(lhs), _mm_castsi128_ps(rhs), imm8 & 0x0F));
 	}
 };
@@ -3125,7 +3125,7 @@ template <> struct SimdImpl128<float>
 	template <int imm8> constexpr static auto SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) blend(const __m128 lhs, const __m128 rhs) noexcept
 	{
 		if (std::is_constant_evaluated())
-			return register_blend_slow<float>(lhs, rhs, static_cast<unsigned int>(imm8));
+			return register_blend_constexpr<float>(lhs, rhs, static_cast<unsigned int>(imm8));
 		return _mm_blend_ps(lhs, rhs, imm8 & 0x0F);
 	}
 	static auto SIMD_FLAGS(In, RegisterOnly, ForceInline) movemask(auto lhs) noexcept
@@ -3361,7 +3361,7 @@ template <> struct SimdImpl128<double>
 	template <int imm8> constexpr static auto SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) blend(const __m128d lhs, const __m128d rhs) noexcept
 	{
 		if (std::is_constant_evaluated())
-			return register_blend_slow<double>(lhs, rhs, static_cast<unsigned int>(imm8));
+			return register_blend_constexpr<double>(lhs, rhs, static_cast<unsigned int>(imm8));
 		return _mm_blend_pd(lhs, rhs, imm8 & 0x03);
 	}
 	static auto SIMD_FLAGS(In, RegisterOnly, ForceInline) movemask(auto lhs) noexcept
@@ -4931,7 +4931,7 @@ template <> struct SimdImpl256<int16_t>
 	template <int imm8> constexpr static auto SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) blend(const __m256i lhs, const __m256i rhs) noexcept
 	{
 		if (std::is_constant_evaluated())
-			return register_blend_slow<std::int16_t>(lhs, rhs, static_cast<unsigned int>(imm8));
+			return register_blend_constexpr<std::int16_t>(lhs, rhs, static_cast<unsigned int>(imm8));
 		return _mm256_blend_epi16(lhs, rhs, imm8);
 	}
 };
@@ -5298,7 +5298,7 @@ template <> struct SimdImpl256<uint16_t>
 	template <int imm8> constexpr static auto SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) blend(const __m256i lhs, const __m256i rhs) noexcept
 	{
 		if (std::is_constant_evaluated())
-			return register_blend_slow<std::uint16_t>(lhs, rhs, static_cast<unsigned int>(imm8));
+			return register_blend_constexpr<std::uint16_t>(lhs, rhs, static_cast<unsigned int>(imm8));
 		return _mm256_blend_epi16(lhs, rhs, imm8);
 	}
 };
@@ -5581,7 +5581,7 @@ template <> struct SimdImpl256<int32_t>
 	template <int imm8> constexpr static auto SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) blend(const __m256i lhs, const __m256i rhs) noexcept
 	{
 		if (std::is_constant_evaluated())
-			return register_blend_slow<std::int32_t>(lhs, rhs, static_cast<unsigned int>(imm8));
+			return register_blend_constexpr<std::int32_t>(lhs, rhs, static_cast<unsigned int>(imm8));
 		return _mm256_blend_epi32(lhs, rhs, imm8);
 	}
 };
@@ -5879,7 +5879,7 @@ template <> struct SimdImpl256<uint32_t>
 	template <int imm8> constexpr static auto SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) blend(const __m256i lhs, const __m256i rhs) noexcept
 	{
 		if (std::is_constant_evaluated())
-			return register_blend_slow<std::uint32_t>(lhs, rhs, static_cast<unsigned int>(imm8));
+			return register_blend_constexpr<std::uint32_t>(lhs, rhs, static_cast<unsigned int>(imm8));
 		return _mm256_blend_epi32(lhs, rhs, imm8);
 	}
 };
@@ -6574,7 +6574,7 @@ template <> struct SimdImpl256<float>
 	template <int imm8> constexpr static auto SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) blend(const __m256 lhs, const __m256 rhs) noexcept
 	{
 		if (std::is_constant_evaluated())
-			return register_blend_slow<float>(lhs, rhs, static_cast<unsigned int>(imm8));
+			return register_blend_constexpr<float>(lhs, rhs, static_cast<unsigned int>(imm8));
 		return _mm256_blend_ps(lhs, rhs, imm8);
 	}
 };
@@ -6829,7 +6829,7 @@ template <> struct SimdImpl256<double>
 	template <int imm8> constexpr static auto SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) blend(const __m256d lhs, const __m256d rhs) noexcept
 	{
 		if (std::is_constant_evaluated())
-			return register_blend_slow<double>(lhs, rhs, static_cast<unsigned int>(imm8));
+			return register_blend_constexpr<double>(lhs, rhs, static_cast<unsigned int>(imm8));
 		return _mm256_blend_pd(lhs, rhs, imm8 & 0x0F);
 	}
 };
