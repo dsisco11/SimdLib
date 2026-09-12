@@ -4252,13 +4252,11 @@ template <> struct SimdImpl256<int8_t>
 	static __m256i SIMD_FLAGS(InOut, RegisterOnly, ForceInline) insert_slow(const __m256i lhs, const int8_t rhs, const int index) noexcept
 	{
 		SIMDLIB_PRECONDITION(index >= 0 && index < 32, "Signed 8-bit insertion requires a valid 256-bit lane index");
-		if (index < 16)
-		{
-			const __m128i lower = SimdImpl128<int8_t>::insert_slow(_mm256_castsi256_si128(lhs), rhs, index);
-			return _mm256_inserti128_si256(lhs, lower, 0);
-		}
-		const __m128i upper = SimdImpl128<int8_t>::insert_slow(_mm256_extracti128_si256(lhs, 1), rhs, index - 16);
-		return _mm256_inserti128_si256(lhs, upper, 1);
+		const __m256i lane_indices =
+			_mm256_setr_epi8(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31);
+		// A full-width equality mask selects the requested lane without branching on the 128-bit half.
+		const __m256i selected_lane = _mm256_cmpeq_epi8(lane_indices, _mm256_set1_epi8(static_cast<char>(index)));
+		return _mm256_blendv_epi8(lhs, _mm256_set1_epi8(rhs), selected_lane);
 	}
 
 	// unpack / pack
@@ -4547,13 +4545,11 @@ template <> struct SimdImpl256<uint8_t>
 	static __m256i SIMD_FLAGS(InOut, RegisterOnly, ForceInline) insert_slow(const __m256i lhs, const uint8_t rhs, const int index) noexcept
 	{
 		SIMDLIB_PRECONDITION(index >= 0 && index < 32, "Unsigned 8-bit insertion requires a valid 256-bit lane index");
-		if (index < 16)
-		{
-			const __m128i lower = SimdImpl128<uint8_t>::insert_slow(_mm256_castsi256_si128(lhs), rhs, index);
-			return _mm256_inserti128_si256(lhs, lower, 0);
-		}
-		const __m128i upper = SimdImpl128<uint8_t>::insert_slow(_mm256_extracti128_si256(lhs, 1), rhs, index - 16);
-		return _mm256_inserti128_si256(lhs, upper, 1);
+		const __m256i lane_indices =
+			_mm256_setr_epi8(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31);
+		// A full-width equality mask selects the requested lane without branching on the 128-bit half.
+		const __m256i selected_lane = _mm256_cmpeq_epi8(lane_indices, _mm256_set1_epi8(static_cast<char>(index)));
+		return _mm256_blendv_epi8(lhs, _mm256_set1_epi8(std::bit_cast<int8_t>(rhs)), selected_lane);
 	}
 
 	// unpack / pack
@@ -4864,13 +4860,10 @@ template <> struct SimdImpl256<int16_t>
 	static __m256i SIMD_FLAGS(InOut, RegisterOnly, ForceInline) insert_slow(const __m256i lhs, const int16_t rhs, const int index) noexcept
 	{
 		SIMDLIB_PRECONDITION(index >= 0 && index < 16, "Signed 16-bit insertion requires a valid 256-bit lane index");
-		if (index < 8)
-		{
-			const __m128i lower = SimdImpl128<int16_t>::insert_slow(_mm256_castsi256_si128(lhs), rhs, index);
-			return _mm256_inserti128_si256(lhs, lower, 0);
-		}
-		const __m128i upper = SimdImpl128<int16_t>::insert_slow(_mm256_extracti128_si256(lhs, 1), rhs, index - 8);
-		return _mm256_inserti128_si256(lhs, upper, 1);
+		const __m256i lane_indices = _mm256_setr_epi16(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15);
+		// A full-width equality mask selects the requested lane without branching on the 128-bit half.
+		const __m256i selected_lane = _mm256_cmpeq_epi16(lane_indices, _mm256_set1_epi16(static_cast<std::int16_t>(index)));
+		return _mm256_blendv_epi8(lhs, _mm256_set1_epi16(rhs), selected_lane);
 	}
 
 	// unpack / pack
@@ -5231,13 +5224,10 @@ template <> struct SimdImpl256<uint16_t>
 	static __m256i SIMD_FLAGS(InOut, RegisterOnly, ForceInline) insert_slow(const __m256i lhs, const uint16_t rhs, const int index) noexcept
 	{
 		SIMDLIB_PRECONDITION(index >= 0 && index < 16, "Unsigned 16-bit insertion requires a valid 256-bit lane index");
-		if (index < 8)
-		{
-			const __m128i lower = SimdImpl128<uint16_t>::insert_slow(_mm256_castsi256_si128(lhs), rhs, index);
-			return _mm256_inserti128_si256(lhs, lower, 0);
-		}
-		const __m128i upper = SimdImpl128<uint16_t>::insert_slow(_mm256_extracti128_si256(lhs, 1), rhs, index - 8);
-		return _mm256_inserti128_si256(lhs, upper, 1);
+		const __m256i lane_indices = _mm256_setr_epi16(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15);
+		// A full-width equality mask selects the requested lane without branching on the 128-bit half.
+		const __m256i selected_lane = _mm256_cmpeq_epi16(lane_indices, _mm256_set1_epi16(static_cast<std::int16_t>(index)));
+		return _mm256_blendv_epi8(lhs, _mm256_set1_epi16(std::bit_cast<int16_t>(rhs)), selected_lane);
 	}
 
 	// unpack / pack
@@ -5524,13 +5514,10 @@ template <> struct SimdImpl256<int32_t>
 	static __m256i SIMD_FLAGS(InOut, RegisterOnly, ForceInline) insert_slow(const __m256i lhs, const int32_t rhs, const int index) noexcept
 	{
 		SIMDLIB_PRECONDITION(index >= 0 && index < 8, "Signed 32-bit insertion requires a valid 256-bit lane index");
-		if (index < 4)
-		{
-			const __m128i lower = SimdImpl128<int32_t>::insert_slow(_mm256_castsi256_si128(lhs), rhs, index);
-			return _mm256_inserti128_si256(lhs, lower, 0);
-		}
-		const __m128i upper = SimdImpl128<int32_t>::insert_slow(_mm256_extracti128_si256(lhs, 1), rhs, index - 4);
-		return _mm256_inserti128_si256(lhs, upper, 1);
+		const __m256i lane_indices = _mm256_setr_epi32(0, 1, 2, 3, 4, 5, 6, 7);
+		// A full-width equality mask selects the requested lane without branching on the 128-bit half.
+		const __m256i selected_lane = _mm256_cmpeq_epi32(lane_indices, _mm256_set1_epi32(index));
+		return _mm256_blendv_epi8(lhs, _mm256_set1_epi32(rhs), selected_lane);
 	}
 
 	// unpack / pack
@@ -5822,13 +5809,10 @@ template <> struct SimdImpl256<uint32_t>
 	static __m256i SIMD_FLAGS(InOut, RegisterOnly, ForceInline) insert_slow(const __m256i lhs, const uint32_t rhs, const int index) noexcept
 	{
 		SIMDLIB_PRECONDITION(index >= 0 && index < 8, "Unsigned 32-bit insertion requires a valid 256-bit lane index");
-		if (index < 4)
-		{
-			const __m128i lower = SimdImpl128<uint32_t>::insert_slow(_mm256_castsi256_si128(lhs), rhs, index);
-			return _mm256_inserti128_si256(lhs, lower, 0);
-		}
-		const __m128i upper = SimdImpl128<uint32_t>::insert_slow(_mm256_extracti128_si256(lhs, 1), rhs, index - 4);
-		return _mm256_inserti128_si256(lhs, upper, 1);
+		const __m256i lane_indices = _mm256_setr_epi32(0, 1, 2, 3, 4, 5, 6, 7);
+		// A full-width equality mask selects the requested lane without branching on the 128-bit half.
+		const __m256i selected_lane = _mm256_cmpeq_epi32(lane_indices, _mm256_set1_epi32(index));
+		return _mm256_blendv_epi8(lhs, _mm256_set1_epi32(std::bit_cast<int32_t>(rhs)), selected_lane);
 	}
 
 	// unpack / pack
@@ -6089,13 +6073,10 @@ template <> struct SimdImpl256<int64_t>
 	static __m256i SIMD_FLAGS(InOut, RegisterOnly, ForceInline) insert_slow(const __m256i lhs, const int64_t rhs, const int index) noexcept
 	{
 		SIMDLIB_PRECONDITION(index >= 0 && index < 4, "Signed 64-bit insertion requires a valid 256-bit lane index");
-		if (index < 2)
-		{
-			const __m128i lower = SimdImpl128<int64_t>::insert_slow(_mm256_castsi256_si128(lhs), rhs, index);
-			return _mm256_inserti128_si256(lhs, lower, 0);
-		}
-		const __m128i upper = SimdImpl128<int64_t>::insert_slow(_mm256_extracti128_si256(lhs, 1), rhs, index - 2);
-		return _mm256_inserti128_si256(lhs, upper, 1);
+		const __m256i lane_indices = _mm256_setr_epi64x(0, 1, 2, 3);
+		// A full-width equality mask selects the requested lane without branching on the 128-bit half.
+		const __m256i selected_lane = _mm256_cmpeq_epi64(lane_indices, _mm256_set1_epi64x(index));
+		return _mm256_blendv_epi8(lhs, _mm256_set1_epi64x(rhs), selected_lane);
 	}
 
 	// unpack / pack
@@ -6314,13 +6295,10 @@ template <> struct SimdImpl256<uint64_t>
 	static __m256i SIMD_FLAGS(InOut, RegisterOnly, ForceInline) insert_slow(const __m256i lhs, const uint64_t rhs, const int index) noexcept
 	{
 		SIMDLIB_PRECONDITION(index >= 0 && index < 4, "Unsigned 64-bit insertion requires a valid 256-bit lane index");
-		if (index < 2)
-		{
-			const __m128i lower = SimdImpl128<uint64_t>::insert_slow(_mm256_castsi256_si128(lhs), rhs, index);
-			return _mm256_inserti128_si256(lhs, lower, 0);
-		}
-		const __m128i upper = SimdImpl128<uint64_t>::insert_slow(_mm256_extracti128_si256(lhs, 1), rhs, index - 2);
-		return _mm256_inserti128_si256(lhs, upper, 1);
+		const __m256i lane_indices = _mm256_setr_epi64x(0, 1, 2, 3);
+		// A full-width equality mask selects the requested lane without branching on the 128-bit half.
+		const __m256i selected_lane = _mm256_cmpeq_epi64(lane_indices, _mm256_set1_epi64x(index));
+		return _mm256_blendv_epi8(lhs, _mm256_set1_epi64x(std::bit_cast<int64_t>(rhs)), selected_lane);
 	}
 
 	// unpack / pack
