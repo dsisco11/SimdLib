@@ -11,7 +11,7 @@ application-level speedup.
 | Item | Area | Intended improvement | Status |
 |---:|---|---|---|
 | 1 | Runtime integer lane insertion | Replace 256-bit half selection with one native comparison and blend using static lane indices. | Complete. |
-| 2 | Runtime complete-register byte shifts | Materialize the fixed byte-shuffle indices as static constants. | Candidate; codegen comparison required. |
+| 2 | Runtime complete-register byte shifts | Eliminate fixed byte-shuffle selector preparation in unoptimized output. | Complete; existing implementation is optimal. |
 | 3 | Signed minimum-position reductions | Audit signed lane-index constants for stack construction and use static registers where necessary. | Candidate; codegen inspection required. |
 | 4 | `RegisterMask::all()` | Evaluate a complete-register containment test instead of compact-mask extraction. | Candidate; the all-one operand cost must be compared. |
 | 5 | Runtime 128-bit whole-register bit shifts | Evaluate control-flow or selection strategies that avoid computing both count ranges. | Candidate; benchmark and codegen evidence required. |
@@ -61,10 +61,29 @@ Validation results:
 ## 2. Runtime complete-register byte shifts
 
 The 128-bit runtime byte-shift extensions use fixed ascending or biased byte
-indices to construct `PSHUFB` controls. The constants can be expressed with
-`make_static_register()`. Adoption requires matched generated-code inspection to
-confirm that it removes constant preparation without adding loads or extending
-live ranges.
+indices to construct `PSHUFB` controls. Optimized MSVC output loads both
+`_mm_setr_epi8` values directly from the constant pool, but SimdLib evaluates
+instruction implementations against unoptimized output so correctness does not
+depend on optimizer recognition. The `/Od` paths therefore remain authoritative.
+
+The left-shift control computes `indices - counts`; its constant must be the
+destination of the two-operand SSE subtraction and therefore requires a register
+load. The right-shift control computes `biasedIndices + counts`, so reversing the
+commutative intrinsic operands was evaluated as a way to fold the constant into
+`PADDB`. MSVC canonicalizes both source expressions to the same constant-first
+sequence, leaving the separate constant-pool load unchanged.
+
+The `/Od` audit confirms that the existing local `_mm_setr_epi8` expressions each
+produce one aligned constant-pool load, with no byte-wise selector stores and no
+selector-construction helper call. An explicit aligned static array produces the
+same instruction, while `make_static_register()` introduces calls and procedural
+stack construction when optimization is disabled. A static native `__m128i`
+requires dynamic initialization and is also unsuitable.
+
+The remaining `/Od` stack traffic belongs to ordinary intrinsic temporaries and
+the public API or Register call boundaries rather than selector preparation.
+Item 2 therefore requires no source change: the existing expression already
+produces the optimal selector instruction under the unoptimized policy.
 
 ## 3. Signed minimum-position reductions
 
