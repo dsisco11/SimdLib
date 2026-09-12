@@ -524,8 +524,13 @@ void require_complete_register_shifts()
 	using word_register = SimdLib::Register<std::uint64_t, 128>;
 	constexpr std::array<std::uint64_t, 2> words{0x0123456789ABCDEFULL, 0xFEDCBA9876543210ULL};
 	const word_register word_value = word_register::from_array(words);
-	constexpr std::array<int, 11> bit_counts{std::numeric_limits<int>::lowest(), -1, 0, 1, 63, 64, 65, 127, 128, 129, std::numeric_limits<int>::max()};
-	for (const int count : bit_counts)
+	for (int count = 0; count < 128; ++count)
+	{
+		REQUIRE(word_value.shift_bits_left_slow(count).to_array() == whole_left(words, count));
+		REQUIRE(word_value.shift_bits_right_slow(count).to_array() == whole_right(words, count));
+	}
+	constexpr std::array<int, 6> out_of_range_bit_counts{std::numeric_limits<int>::lowest(), -17, -1, 128, 129, std::numeric_limits<int>::max()};
+	for (const int count : out_of_range_bit_counts)
 	{
 		REQUIRE(word_value.shift_bits_left_slow(count).to_array() == whole_left(words, count));
 		REQUIRE(word_value.shift_bits_right_slow(count).to_array() == whole_right(words, count));

@@ -14,7 +14,7 @@ application-level speedup.
 | 2 | Runtime complete-register byte shifts | Eliminate fixed byte-shuffle selector preparation in unoptimized output. | Complete; existing implementation is optimal. |
 | 3 | Signed minimum-position reductions | Replace procedural lane-index construction with native constant expressions. | Complete. |
 | 4 | `RegisterMask::all()` | Use complete-register containment for 16-bit predicate lanes. | Complete. |
-| 5 | Runtime 128-bit whole-register bit shifts | Evaluate control-flow or selection strategies that avoid computing both count ranges. | Candidate; benchmark and codegen evidence required. |
+| 5 | Runtime 128-bit whole-register bit shifts | Execute only the runtime count range selected by the caller. | Complete; distribution-sensitive tradeoff documented. |
 
 ## 1. Runtime integer lane insertion
 
@@ -141,8 +141,31 @@ Validation results:
 
 ## 5. Runtime 128-bit whole-register bit shifts
 
-The runtime whole-register shifts currently compute results for counts below and
-above 64 bits and combine them. A control-flow or vector-selection implementation
-could execute fewer instructions for a given count, but its value depends on
-branch predictability and surrounding register pressure. This item requires both
-matched codegen and a representative microbenchmark before implementation.
+The previous runtime whole-register shifts clamped the count, computed results
+for counts below and above 64 bits, and combined them. The implementations now
+branch according to the public count contract and compute only the selected
+identity, zero, below-64, exactly-64, or above-64 result. This mirrors the static
+shift structure and avoids calculating a range result that will be discarded.
+
+The change deliberately favors predictable or range-skewed counts. A matched
+MSVC `/O2 /arch:AVX2` microbenchmark used chained results, 65,536-count inputs,
+256 repetitions per sample, 11 alternating baseline/candidate rounds, and three
+process runs on an Intel Family 6 Model 151 processor. The candidate took
+approximately 51-73% of the previous time for mostly-below-64,
+mostly-above-64, and predictable mixed distributions. Uniformly randomized
+counts from 1 through 127 instead took approximately 2.27-2.51 times as long
+because the range branch was unpredictable. This is a distribution-sensitive
+local tradeoff, not evidence of an application-level speedup.
+
+Validation results:
+
+- five focused SSE4.2 and AVX2 runtime suites passed, including exhaustive
+  runtime counts from 0 through 127 and negative and above-width boundaries;
+- the API and Register constant-evaluation probes compiled successfully;
+- MSVC `/Od /Ob0` helper size decreased from `0x1CE` to `0x173` bytes for SSE4.2
+  and from `0x1D2` to `0x176` bytes for AVX2;
+- optimized helper size decreased from `0x58` to `0x50` bytes for SSE4.2 and to
+  `0x53` bytes for AVX2, although the static instruction count increased from 23
+  to 25 or 26 because all range branches are present;
+- the selected optimized runtime paths execute approximately 4-16 instructions
+  rather than the complete branchless calculation.
