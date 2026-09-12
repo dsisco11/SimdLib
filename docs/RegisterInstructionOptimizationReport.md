@@ -13,7 +13,7 @@ application-level speedup.
 | 1 | Runtime integer lane insertion | Replace 256-bit half selection with one native comparison and blend using static lane indices. | Complete. |
 | 2 | Runtime complete-register byte shifts | Eliminate fixed byte-shuffle selector preparation in unoptimized output. | Complete; existing implementation is optimal. |
 | 3 | Signed minimum-position reductions | Replace procedural lane-index construction with native constant expressions. | Complete. |
-| 4 | `RegisterMask::all()` | Evaluate a complete-register containment test instead of compact-mask extraction. | Candidate; the all-one operand cost must be compared. |
+| 4 | `RegisterMask::all()` | Use complete-register containment for 16-bit predicate lanes. | Complete. |
 | 5 | Runtime 128-bit whole-register bit shifts | Evaluate control-flow or selection strategies that avoid computing both count ranges. | Candidate; benchmark and codegen evidence required. |
 
 ## 1. Runtime integer lane insertion
@@ -113,10 +113,31 @@ Validation results:
 ## 4. `RegisterMask::all()`
 
 Canonical predicate lanes permit a complete-register containment test against an
-all-one vector. This could replace compact lane-mask extraction and scalar
-comparison. The change is conditional on the cost of producing the all-one
-operand; generated-code comparison must show a net improvement for each supported
-width before adoption.
+all-one vector. The 16-bit specializations now use `PTEST` or `VPTEST` for this
+purpose, avoiding the byte shuffle, byte movemask, and scalar mask comparison
+required by their previous compact-mask path. Constant evaluation and non-x86
+backends retain the portable compact-mask comparison, and other x86 element
+widths retain their existing paths because their direct movemask instructions
+are already competitive.
+
+The runtime path creates the all-one predicate by comparing the byte view with
+itself. This is expressed directly with the width-appropriate native intrinsics
+so MSVC `/Od /Ob0` does not introduce calls to the constant-evaluation,
+bit-cast, comparison, test, or compact-mask helpers. Optimized MSVC folds the
+all-one value into the memory operand of `PTEST` or `VPTEST`.
+
+Validation results:
+
+- the focused SSE4.2 mask test passed 558 assertions;
+- the focused AVX2 mask test passed 1,342 assertions;
+- fresh MSVC `/Od /Ob0` output uses `PCMPEQB` plus `PTEST` for 128-bit masks and
+  `VPCMPEQB` plus `VPTEST` for 256-bit masks, with no reduction-helper calls;
+- optimized 128-bit output decreased from 25 bytes to 15 bytes and removes
+  `PSHUFB`, `PMOVMSKB`, and the scalar comparison;
+- optimized 256-bit output decreased from 44 bytes to 18 bytes and removes
+  `VPSHUFB`, `VPMOVMSKB`, scalar byte-mask compaction, and the scalar comparison;
+- signed and unsigned 16-bit masks produce identical reduction sequences, while
+  8-, 32-, and 64-bit integer and floating-point paths remain unchanged.
 
 ## 5. Runtime 128-bit whole-register bit shifts
 
