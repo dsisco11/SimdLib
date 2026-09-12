@@ -12,7 +12,7 @@ application-level speedup.
 |---:|---|---|---|
 | 1 | Runtime integer lane insertion | Replace 256-bit half selection with one native comparison and blend using static lane indices. | Complete. |
 | 2 | Runtime complete-register byte shifts | Eliminate fixed byte-shuffle selector preparation in unoptimized output. | Complete; existing implementation is optimal. |
-| 3 | Signed minimum-position reductions | Audit signed lane-index constants for stack construction and use static registers where necessary. | Candidate; codegen inspection required. |
+| 3 | Signed minimum-position reductions | Replace procedural lane-index construction with native constant expressions. | Complete. |
 | 4 | `RegisterMask::all()` | Evaluate a complete-register containment test instead of compact-mask extraction. | Candidate; the all-one operand cost must be compared. |
 | 5 | Runtime 128-bit whole-register bit shifts | Evaluate control-flow or selection strategies that avoid computing both count ranges. | Candidate; benchmark and codegen evidence required. |
 
@@ -87,11 +87,28 @@ produces the optimal selector instruction under the unoptimized policy.
 
 ## 3. Signed minimum-position reductions
 
-Signed 8-, 16-, 32-, and 64-bit minimum-position implementations retain
-`register_from_values()` lane-index constants. They should be compared with the
-static-register accessor pattern used by the unsigned implementations. Only
-specializations that currently materialize addressable storage or add stack
-protection should change.
+Signed 8-, 16-, 32-, and 64-bit minimum-position implementations previously
+constructed their 128-bit lane-index vectors through `register_from_values()`.
+Under MSVC `/Od`, that path emitted 16 byte, 8 word, 4 double-word, or 2
+quad-word immediate stores respectively before loading the completed vector.
+
+The implementations now express those constants with the corresponding native
+`_mm_setr_epi*` intrinsic, or `_mm_set_epi64x` for 64-bit lanes. MSVC lowers
+each expression to one constant-pool vector load even without optimization and
+does not call a construction helper. The 256-bit reductions divide their
+inputs into 128-bit halves and therefore inherit the improved construction for
+each half without requiring a separate 256-bit constant.
+
+Validation results:
+
+- the focused SSE4.2 position test passed 32 assertions;
+- the focused AVX2 position test passed 64 assertions across 128- and 256-bit
+  registers;
+- fresh MSVC `/Od /Ob0` SSE4.2 and AVX2 output uses one `MOVDQA` or `VMOVDQU`
+  constant-pool load for each signed lane-index vector;
+- no scalar immediate lane stores or register-construction helper calls remain;
+- remaining unoptimized spills and reloads are ordinary debug lowering after
+  the constant has been loaded.
 
 ## 4. `RegisterMask::all()`
 
