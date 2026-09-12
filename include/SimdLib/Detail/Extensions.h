@@ -1555,16 +1555,23 @@ __m128i SIMD_FLAGS(InOut, ForceInline) _ext_max_epu64(__m128i lhs, __m128i rhs) 
  * @param lhs Source register interpreted as one unsigned 128-bit bit string.
  * @param shift Runtime count; nonpositive counts are identity and counts of at least 128 produce zero.
  * @return Shifted register with zero-filled low bits.
+ * @remarks Count ranges are handled independently so the runtime path computes only the selected cross-lane transfer.
  */
 __m128i SIMD_FLAGS(InOut, RegisterOnly, ForceInline) _ext128_shift_bits_left_slow(const __m128i lhs, const int shift) noexcept
 {
-	const __m128i count = _mm_min_epi32(_mm_max_epi32(_mm_cvtsi32_si128(shift), _mm_setzero_si128()), _mm_cvtsi32_si128(128));
-	const __m128i midpoint = _mm_cvtsi32_si128(64);
-	const __m128i complement = _mm_sub_epi64(midpoint, count);
-	const __m128i excess = _mm_sub_epi64(count, midpoint);
-	const __m128i low_range = _mm_or_si128(_mm_sll_epi64(lhs, count), _mm_slli_si128(_mm_srl_epi64(lhs, complement), 8));
-	const __m128i high_range = _mm_sll_epi64(_mm_slli_si128(lhs, 8), excess);
-	return _mm_or_si128(low_range, high_range);
+	if (shift <= 0)
+		return lhs;
+	if (shift >= 128)
+		return _mm_setzero_si128();
+	if (shift < 64)
+	{
+		const __m128i count = _mm_cvtsi32_si128(shift);
+		const __m128i complement = _mm_cvtsi32_si128(64 - shift);
+		return _mm_or_si128(_mm_sll_epi64(lhs, count), _mm_slli_si128(_mm_srl_epi64(lhs, complement), 8));
+	}
+	if (shift == 64)
+		return _mm_slli_si128(lhs, 8);
+	return _mm_sll_epi64(_mm_slli_si128(lhs, 8), _mm_cvtsi32_si128(shift - 64));
 }
 
 /**
@@ -1593,16 +1600,23 @@ template <int shift> __m128i SIMD_FLAGS(InOut, RegisterOnly, ForceInline) _ext12
  * @param lhs Source register interpreted as one unsigned 128-bit bit string.
  * @param shift Runtime count; nonpositive counts are identity and counts of at least 128 produce zero.
  * @return Shifted register with zero-filled high bits.
+ * @remarks Count ranges are handled independently so the runtime path computes only the selected cross-lane transfer.
  */
 __m128i SIMD_FLAGS(InOut, RegisterOnly, ForceInline) _ext128_shift_bits_right_slow(const __m128i lhs, const int shift) noexcept
 {
-	const __m128i count = _mm_min_epi32(_mm_max_epi32(_mm_cvtsi32_si128(shift), _mm_setzero_si128()), _mm_cvtsi32_si128(128));
-	const __m128i midpoint = _mm_cvtsi32_si128(64);
-	const __m128i complement = _mm_sub_epi64(midpoint, count);
-	const __m128i excess = _mm_sub_epi64(count, midpoint);
-	const __m128i low_range = _mm_or_si128(_mm_srl_epi64(lhs, count), _mm_srli_si128(_mm_sll_epi64(lhs, complement), 8));
-	const __m128i high_range = _mm_srl_epi64(_mm_srli_si128(lhs, 8), excess);
-	return _mm_or_si128(low_range, high_range);
+	if (shift <= 0)
+		return lhs;
+	if (shift >= 128)
+		return _mm_setzero_si128();
+	if (shift < 64)
+	{
+		const __m128i count = _mm_cvtsi32_si128(shift);
+		const __m128i complement = _mm_cvtsi32_si128(64 - shift);
+		return _mm_or_si128(_mm_srl_epi64(lhs, count), _mm_srli_si128(_mm_sll_epi64(lhs, complement), 8));
+	}
+	if (shift == 64)
+		return _mm_srli_si128(lhs, 8);
+	return _mm_srl_epi64(_mm_srli_si128(lhs, 8), _mm_cvtsi32_si128(shift - 64));
 }
 
 /**
