@@ -315,7 +315,7 @@ template <> struct SimdImpl128<int8_t>
 	/** @brief Computes minimum-value position metadata for this native register specialization. */
 	static auto SIMD_FLAGS(In, RegisterOnly, ForceInline, Flatten) min_position(auto lhs) noexcept
 	{
-		constexpr __m128i indices = register_from_values<__m128i, std::int8_t>(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15);
+		const __m128i indices = _mm_setr_epi8(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15);
 		__m128i values = lhs;
 		__m128i positions = indices;
 		auto reduce = [&]<int offset>() noexcept
@@ -1015,7 +1015,7 @@ template <> struct SimdImpl128<int16_t>
 	/** @brief Computes minimum-value position metadata for this native register specialization. */
 	static auto SIMD_FLAGS(In, RegisterOnly, ForceInline, Flatten) min_position(auto lhs) noexcept
 	{
-		constexpr __m128i indices = register_from_values<__m128i, std::int16_t>(0, 1, 2, 3, 4, 5, 6, 7);
+		const __m128i indices = _mm_setr_epi16(0, 1, 2, 3, 4, 5, 6, 7);
 		__m128i values = lhs;
 		__m128i positions = indices;
 		auto reduce = [&]<int offset>() noexcept
@@ -1789,7 +1789,7 @@ template <> struct SimdImpl128<int32_t>
 	/** @brief Computes minimum-value position metadata for this native register specialization. */
 	static auto SIMD_FLAGS(In, RegisterOnly, ForceInline, Flatten) min_position(auto lhs) noexcept
 	{
-		constexpr __m128i indices = register_from_values<__m128i, std::int32_t>(0, 1, 2, 3);
+		const __m128i indices = _mm_setr_epi32(0, 1, 2, 3);
 		__m128i values = lhs;
 		__m128i positions = indices;
 		const __m128i shifted1Values = _mm_bsrli_si128(values, 4);
@@ -2488,7 +2488,7 @@ template <> struct SimdImpl128<int64_t>
 	/** @brief Computes minimum-value position metadata for this native register specialization. */
 	static auto SIMD_FLAGS(In, RegisterOnly, ForceInline, Flatten) min_position(auto lhs) noexcept
 	{
-		constexpr __m128i indices = register_from_values<__m128i, std::int64_t>(0, 1);
+		const __m128i indices = _mm_set_epi64x(1, 0);
 		const __m128i shiftedValues = _mm_bsrli_si128(lhs, 8);
 		const __m128i shiftedIndices = _mm_bsrli_si128(indices, 8);
 		const __m128i less = _mm_cmpgt_epi64(lhs, shiftedValues);
