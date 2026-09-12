@@ -659,13 +659,19 @@ template <> struct SimdImpl128<uint8_t>
 		return magnitude_checked_result<std::uint8_t>(result, overflow);
 	}
 
-	/** @brief Computes minimum-value position metadata for this native register specialization. */
-	static auto SIMD_FLAGS(In, RegisterOnly, ForceInline, Flatten) min_position(auto lhs) noexcept
+	/** @brief Returns the unsigned-byte lane indices as one compile-time-generated native register. */
+	static __m128i SIMD_FLAGS(Out, RegisterOnly, ForceInline, Flatten) lane_indices() noexcept
 	{
-		const __m128i indices = make_static_register<SimdImpl128<std::uint8_t>>([]<std::size_t index>() constexpr noexcept
+		return make_static_register<SimdImpl128<std::uint8_t>>([]<std::size_t index>() constexpr noexcept
 		{
 			return static_cast<std::uint8_t>(index);
 		});
+	}
+
+	/** @brief Computes minimum-value position metadata for this native register specialization. */
+	static auto SIMD_FLAGS(In, RegisterOnly, ForceInline, Flatten) min_position(auto lhs) noexcept
+	{
+		const __m128i indices = lane_indices();
 		const __m128i signBit = _mm_set1_epi8(static_cast<char>(0x80));
 		__m128i values = lhs;
 		__m128i positions = indices;
@@ -1285,7 +1291,12 @@ template <> struct SimdImpl128<int16_t>
 	 */
 	static auto SIMD_FLAGS(InOut, ForceInline) blend_slow(auto lhs, auto rhs, const int imm8) noexcept
 	{
-		return register_blend_slow<std::int16_t>(lhs, rhs, static_cast<unsigned int>(imm8));
+		const __m128i selectors = make_static_register<SimdImpl128<std::int16_t>>([]<std::size_t index>() constexpr noexcept
+		{
+			return static_cast<std::int16_t>(1u << index);
+		});
+		const __m128i selected = _mm_and_si128(_mm_set1_epi16(static_cast<std::int16_t>(imm8)), selectors);
+		return _mm_blendv_epi8(lhs, rhs, _mm_cmpeq_epi16(selected, selectors));
 	}
 	/** @brief Selects signed 16-bit lanes from two registers with an immediate control. */
 	template <int imm8> constexpr static auto SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) blend(const __m128i lhs, const __m128i rhs) noexcept
@@ -1669,7 +1680,12 @@ template <> struct SimdImpl128<uint16_t>
 	 */
 	static auto SIMD_FLAGS(InOut, ForceInline) blend_slow(auto lhs, auto rhs, const int imm8) noexcept
 	{
-		return register_blend_slow<std::int16_t>(lhs, rhs, static_cast<unsigned int>(imm8));
+		const __m128i selectors = make_static_register<SimdImpl128<std::uint16_t>>([]<std::size_t index>() constexpr noexcept
+		{
+			return static_cast<std::uint16_t>(1u << index);
+		});
+		const __m128i selected = _mm_and_si128(_mm_set1_epi16(static_cast<std::int16_t>(imm8)), selectors);
+		return _mm_blendv_epi8(lhs, rhs, _mm_cmpeq_epi16(selected, selectors));
 	}
 	/** @brief Selects unsigned 16-bit lanes from two registers with an immediate control. */
 	template <int imm8> constexpr static auto SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) blend(const __m128i lhs, const __m128i rhs) noexcept
@@ -1987,7 +2003,12 @@ template <> struct SimdImpl128<int32_t>
 	 */
 	static auto SIMD_FLAGS(InOut, ForceInline) blend_slow(auto lhs, auto rhs, const int imm8) noexcept
 	{
-		return register_blend_slow<std::int32_t>(lhs, rhs, static_cast<unsigned int>(imm8));
+		const __m128i selectors = make_static_register<SimdImpl128<std::int32_t>>([]<std::size_t index>() constexpr noexcept
+		{
+			return static_cast<std::int32_t>(1u << index);
+		});
+		const __m128i selected = _mm_and_si128(_mm_set1_epi32(imm8), selectors);
+		return _mm_blendv_epi8(lhs, rhs, _mm_cmpeq_epi32(selected, selectors));
 	}
 	/** @brief Selects signed 32-bit lanes from two registers with an immediate control. */
 	template <int imm8> constexpr static auto SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) blend(const __m128i lhs, const __m128i rhs) noexcept
@@ -2104,13 +2125,19 @@ template <> struct SimdImpl128<uint32_t>
 		return magnitude_checked_result<std::uint32_t>(result, overflow);
 	}
 
-	/** @brief Computes minimum-value position metadata for this native register specialization. */
-	static auto SIMD_FLAGS(In, RegisterOnly, ForceInline, Flatten) min_position(auto lhs) noexcept
+	/** @brief Returns the unsigned-doubleword lane indices as one compile-time-generated native register. */
+	static __m128i SIMD_FLAGS(Out, RegisterOnly, ForceInline, Flatten) lane_indices() noexcept
 	{
-		const __m128i indices = make_static_register<SimdImpl128<std::uint32_t>>([]<std::size_t index>() constexpr noexcept
+		return make_static_register<SimdImpl128<std::uint32_t>>([]<std::size_t index>() constexpr noexcept
 		{
 			return static_cast<std::uint32_t>(index);
 		});
+	}
+
+	/** @brief Computes minimum-value position metadata for this native register specialization. */
+	static auto SIMD_FLAGS(In, RegisterOnly, ForceInline, Flatten) min_position(auto lhs) noexcept
+	{
+		const __m128i indices = lane_indices();
 		const __m128i signBit = _mm_set1_epi32(static_cast<int>(0x80000000u));
 		__m128i values = lhs;
 		__m128i positions = indices;
@@ -2325,7 +2352,12 @@ template <> struct SimdImpl128<uint32_t>
 	 */
 	static auto SIMD_FLAGS(InOut, ForceInline) blend_slow(auto lhs, auto rhs, const int imm8) noexcept
 	{
-		return register_blend_slow<std::int32_t>(lhs, rhs, static_cast<unsigned int>(imm8));
+		const __m128i selectors = make_static_register<SimdImpl128<std::uint32_t>>([]<std::size_t index>() constexpr noexcept
+		{
+			return static_cast<std::uint32_t>(1u << index);
+		});
+		const __m128i selected = _mm_and_si128(_mm_set1_epi32(imm8), selectors);
+		return _mm_blendv_epi8(lhs, rhs, _mm_cmpeq_epi32(selected, selectors));
 	}
 	/** @brief Selects unsigned 32-bit lanes from two registers with an immediate control. */
 	template <int imm8> constexpr static auto SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) blend(const __m128i lhs, const __m128i rhs) noexcept
@@ -2709,13 +2741,19 @@ template <> struct SimdImpl128<uint64_t>
 		return magnitude_checked_result<std::uint64_t>(result, overflow);
 	}
 
-	/** @brief Computes minimum-value position metadata for this native register specialization. */
-	static auto SIMD_FLAGS(In, RegisterOnly, ForceInline, Flatten) min_position(auto lhs) noexcept
+	/** @brief Returns the unsigned-quadword lane indices as one compile-time-generated native register. */
+	static __m128i SIMD_FLAGS(Out, RegisterOnly, ForceInline, Flatten) lane_indices() noexcept
 	{
-		const __m128i indices = make_static_register<SimdImpl128<std::uint64_t>>([]<std::size_t index>() constexpr noexcept
+		return make_static_register<SimdImpl128<std::uint64_t>>([]<std::size_t index>() constexpr noexcept
 		{
 			return static_cast<std::uint64_t>(index);
 		});
+	}
+
+	/** @brief Computes minimum-value position metadata for this native register specialization. */
+	static auto SIMD_FLAGS(In, RegisterOnly, ForceInline, Flatten) min_position(auto lhs) noexcept
+	{
+		const __m128i indices = lane_indices();
 		const __m128i signBit = _mm_set1_epi64x(std::numeric_limits<std::int64_t>::min());
 		const __m128i shiftedValues = _mm_bsrli_si128(lhs, 8);
 		const __m128i shiftedIndices = _mm_bsrli_si128(indices, 8);
@@ -3076,10 +3114,12 @@ template <> struct SimdImpl128<float>
 	 */
 	static auto SIMD_FLAGS(InOut, RegisterOnly, ForceInline) blend_slow(auto lhs, auto rhs, const int imm8) noexcept
 	{
-		const unsigned int control = static_cast<unsigned int>(imm8);
-		const __m128 mask = _mm_castsi128_ps(_mm_set_epi32(-static_cast<int>((control >> 3) & 0x1u), -static_cast<int>((control >> 2) & 0x1u),
-														   -static_cast<int>((control >> 1) & 0x1u), -static_cast<int>(control & 0x1u)));
-		return _mm_blendv_ps(lhs, rhs, mask);
+		const __m128i selectors = make_static_register<SimdImpl128<std::uint32_t>>([]<std::size_t index>() constexpr noexcept
+		{
+			return static_cast<std::uint32_t>(1u << index);
+		});
+		const __m128i selected = _mm_and_si128(_mm_set1_epi32(imm8), selectors);
+		return _mm_blendv_ps(lhs, rhs, _mm_castsi128_ps(_mm_cmpeq_epi32(selected, selectors)));
 	}
 	/** @brief Selects 32-bit floating-point lanes from two registers with an immediate control. */
 	template <int imm8> constexpr static auto SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) blend(const __m128 lhs, const __m128 rhs) noexcept
@@ -3310,9 +3350,12 @@ template <> struct SimdImpl128<double>
 	 */
 	static auto SIMD_FLAGS(InOut, RegisterOnly, ForceInline) blend_slow(auto lhs, auto rhs, const int imm8) noexcept
 	{
-		const unsigned int control = static_cast<unsigned int>(imm8);
-		const __m128d mask = _mm_castsi128_pd(_mm_set_epi64x(-static_cast<long long>((control >> 1) & 0x1u), -static_cast<long long>(control & 0x1u)));
-		return _mm_blendv_pd(lhs, rhs, mask);
+		const __m128i selectors = make_static_register<SimdImpl128<std::uint64_t>>([]<std::size_t index>() constexpr noexcept
+		{
+			return static_cast<std::uint64_t>(1u << index);
+		});
+		const __m128i selected = _mm_and_si128(_mm_set1_epi64x(imm8), selectors);
+		return _mm_blendv_pd(lhs, rhs, _mm_castsi128_pd(_mm_cmpeq_epi64(selected, selectors)));
 	}
 	/** @brief Selects 64-bit floating-point lanes from two registers with an immediate control. */
 	template <int imm8> constexpr static auto SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) blend(const __m128d lhs, const __m128d rhs) noexcept
@@ -3414,7 +3457,7 @@ template <class element_t> struct SimdMappings<128, element_t> : public SimdImpl
 	/** @brief Broadcasts one value through the portable compile-time register representation. */
 	constexpr static vector_t set1_constexpr(const element_t value) noexcept
 	{
-		return register_from_repeated_value<impl>(value);
+		return register_from_repeated_value<vector_t>(value);
 	}
 
 	/** @brief Constructs a register from forward-order lanes during constant evaluation. */
@@ -4877,7 +4920,12 @@ template <> struct SimdImpl256<int16_t>
 	 */
 	static auto SIMD_FLAGS(InOut, ForceInline) blend_slow(auto lhs, auto rhs, const int imm8) noexcept
 	{
-		return register_blend_slow<std::int16_t>(lhs, rhs, static_cast<unsigned int>(imm8));
+		const __m256i selectors = make_static_register<SimdImpl256<std::int16_t>>([]<std::size_t index>() constexpr noexcept
+		{
+			return static_cast<std::int16_t>(1u << (index % 8));
+		});
+		const __m256i selected = _mm256_and_si256(_mm256_set1_epi16(static_cast<std::int16_t>(imm8)), selectors);
+		return _mm256_blendv_epi8(lhs, rhs, _mm256_cmpeq_epi16(selected, selectors));
 	}
 	/** @brief Selects signed 16-bit lanes from two 256-bit registers with a repeated immediate control. */
 	template <int imm8> constexpr static auto SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) blend(const __m256i lhs, const __m256i rhs) noexcept
@@ -5239,7 +5287,12 @@ template <> struct SimdImpl256<uint16_t>
 	 */
 	static auto SIMD_FLAGS(InOut, ForceInline) blend_slow(auto lhs, auto rhs, const int imm8) noexcept
 	{
-		return register_blend_slow<std::int16_t>(lhs, rhs, static_cast<unsigned int>(imm8));
+		const __m256i selectors = make_static_register<SimdImpl256<std::uint16_t>>([]<std::size_t index>() constexpr noexcept
+		{
+			return static_cast<std::uint16_t>(1u << (index % 8));
+		});
+		const __m256i selected = _mm256_and_si256(_mm256_set1_epi16(static_cast<std::int16_t>(imm8)), selectors);
+		return _mm256_blendv_epi8(lhs, rhs, _mm256_cmpeq_epi16(selected, selectors));
 	}
 	/** @brief Selects unsigned 16-bit lanes from two 256-bit registers with a repeated immediate control. */
 	template <int imm8> constexpr static auto SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) blend(const __m256i lhs, const __m256i rhs) noexcept
@@ -5517,7 +5570,12 @@ template <> struct SimdImpl256<int32_t>
 	 */
 	static auto SIMD_FLAGS(InOut, ForceInline) blend_slow(auto lhs, auto rhs, const int imm8) noexcept
 	{
-		return register_blend_slow<std::int32_t>(lhs, rhs, static_cast<unsigned int>(imm8));
+		const __m256i selectors = make_static_register<SimdImpl256<std::int32_t>>([]<std::size_t index>() constexpr noexcept
+		{
+			return static_cast<std::int32_t>(1u << index);
+		});
+		const __m256i selected = _mm256_and_si256(_mm256_set1_epi32(imm8), selectors);
+		return _mm256_blendv_epi8(lhs, rhs, _mm256_cmpeq_epi32(selected, selectors));
 	}
 	/** @brief Selects signed 32-bit lanes from two 256-bit registers with an immediate control. */
 	template <int imm8> constexpr static auto SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) blend(const __m256i lhs, const __m256i rhs) noexcept
@@ -5810,7 +5868,12 @@ template <> struct SimdImpl256<uint32_t>
 	 */
 	static auto SIMD_FLAGS(InOut, ForceInline) blend_slow(auto lhs, auto rhs, const int imm8) noexcept
 	{
-		return register_blend_slow<std::int32_t>(lhs, rhs, static_cast<unsigned int>(imm8));
+		const __m256i selectors = make_static_register<SimdImpl256<std::uint32_t>>([]<std::size_t index>() constexpr noexcept
+		{
+			return static_cast<std::uint32_t>(1u << index);
+		});
+		const __m256i selected = _mm256_and_si256(_mm256_set1_epi32(imm8), selectors);
+		return _mm256_blendv_epi8(lhs, rhs, _mm256_cmpeq_epi32(selected, selectors));
 	}
 	/** @brief Selects unsigned 32-bit lanes from two 256-bit registers with an immediate control. */
 	template <int imm8> constexpr static auto SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) blend(const __m256i lhs, const __m256i rhs) noexcept
@@ -6500,7 +6563,12 @@ template <> struct SimdImpl256<float>
 	 */
 	static auto SIMD_FLAGS(InOut, ForceInline) blend_slow(auto lhs, auto rhs, const int imm8) noexcept
 	{
-		return register_blend_slow<float>(lhs, rhs, static_cast<unsigned int>(imm8));
+		const __m256i selectors = make_static_register<SimdImpl256<std::uint32_t>>([]<std::size_t index>() constexpr noexcept
+		{
+			return static_cast<std::uint32_t>(1u << index);
+		});
+		const __m256i selected = _mm256_and_si256(_mm256_set1_epi32(imm8), selectors);
+		return _mm256_blendv_ps(lhs, rhs, _mm256_castsi256_ps(_mm256_cmpeq_epi32(selected, selectors)));
 	}
 	/** @brief Selects 32-bit floating-point lanes from two 256-bit registers with an immediate control. */
 	template <int imm8> constexpr static auto SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) blend(const __m256 lhs, const __m256 rhs) noexcept
@@ -6750,7 +6818,12 @@ template <> struct SimdImpl256<double>
 	 */
 	static auto SIMD_FLAGS(InOut, ForceInline) blend_slow(auto lhs, auto rhs, const int imm8) noexcept
 	{
-		return register_blend_slow<double>(lhs, rhs, static_cast<unsigned int>(imm8));
+		const __m256i selectors = make_static_register<SimdImpl256<std::uint64_t>>([]<std::size_t index>() constexpr noexcept
+		{
+			return static_cast<std::uint64_t>(1u << index);
+		});
+		const __m256i selected = _mm256_and_si256(_mm256_set1_epi64x(imm8), selectors);
+		return _mm256_blendv_pd(lhs, rhs, _mm256_castsi256_pd(_mm256_cmpeq_epi64(selected, selectors)));
 	}
 	/** @brief Selects 64-bit floating-point lanes from two 256-bit registers with an immediate control. */
 	template <int imm8> constexpr static auto SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) blend(const __m256d lhs, const __m256d rhs) noexcept
@@ -6916,7 +6989,7 @@ template <class element_t> struct SimdMappings<256, element_t> : public SimdImpl
 	/** @brief Broadcasts one value through the portable compile-time register representation. */
 	constexpr static vector_t set1_constexpr(const element_t value) noexcept
 	{
-		return register_from_repeated_value<impl>(value);
+		return register_from_repeated_value<vector_t>(value);
 	}
 
 	/** @brief Constructs a register from forward-order lanes during constant evaluation. */
