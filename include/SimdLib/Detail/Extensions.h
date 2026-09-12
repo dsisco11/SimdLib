@@ -14,6 +14,7 @@
 #endif
 #include <limits>
 #include <type_traits>
+#include <utility>
 
 namespace SimdLib::Detail
 {
@@ -236,6 +237,43 @@ template <class Vector, class Element, class... Args>
 constexpr Vector SIMD_FLAGS(Neither, ForceInline) register_from_values(Args &&...values) noexcept
 {
 	return register_from_array<Vector>(std::array<Element, sizeof...(Args)>{static_cast<Element>(values)...});
+}
+
+/**
+ * @brief Expands a static lane generator over the complete inferred register geometry.
+ * @tparam Implementation Native backend providing `set1` and the runtime `setr` constructor.
+ * @tparam expression Stateless compile-time lane generator invoked as `expression.operator()<index>()`.
+ * @tparam indices Internally generated forward-order lane indices.
+ * @return Native register containing the generated lane sequence.
+ */
+template <class Implementation, auto expression, std::size_t... indices>
+constexpr auto SIMD_FLAGS(Out, RegisterOnly, ForceInline, Flatten) make_static_register_impl(std::index_sequence<indices...>) noexcept
+{
+	using element_type = std::remove_cvref_t<decltype(expression.template operator()<0>())>;
+	using vector_type = decltype(Implementation::setr(expression.template operator()<indices>()...));
+	if (std::is_constant_evaluated())
+		return register_from_values<vector_type, element_type>(expression.template operator()<indices>()...);
+	return Implementation::setr(expression.template operator()<indices>()...);
+}
+
+/**
+ * @brief Constructs a native register from one stateless compile-time lane generator.
+ * @tparam Implementation Native backend providing `set1` and the runtime `setr` constructor.
+ * @tparam Expression Stateless generator type with a templated zero-argument call operator.
+ * @param generator Generator used only for type deduction; its stateless type defines the compile-time expression.
+ * @return Native register containing one generated value per inferred logical lane.
+ * @remarks The helper owns register-width discovery and index-sequence expansion. Constant evaluation uses the portable lane writer; runtime uses native `setr`.
+ */
+template <class Implementation, class Expression>
+	requires std::is_empty_v<std::remove_cvref_t<Expression>> && std::is_default_constructible_v<std::remove_cvref_t<Expression>>
+constexpr auto SIMD_FLAGS(Out, RegisterOnly, ForceInline, Flatten) make_static_register([[maybe_unused]] Expression generator) noexcept
+{
+	using expression_type = std::remove_cvref_t<Expression>;
+	constexpr expression_type expression{};
+	using element_type = std::remove_cvref_t<decltype(expression.template operator()<0>())>;
+	using vector_type = decltype(Implementation::set1(expression.template operator()<0>()));
+	constexpr std::size_t lane_count = sizeof(vector_type) / sizeof(element_type);
+	return make_static_register_impl<Implementation, expression>(std::make_index_sequence<lane_count>{});
 }
 
 /** @brief Constructs a constant-evaluated native register with every lane set to one value.
