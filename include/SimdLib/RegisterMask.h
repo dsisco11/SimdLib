@@ -72,7 +72,29 @@ class RegisterMask final
 	 */
 	[[nodiscard]] constexpr bool SIMD_FLAGS(In, RegisterOnly, ForceInline, Flatten) all(this RegisterMask value) noexcept
 	{
-		return value.bits() == all_bits;
+		if consteval
+		{
+			return value.bits() == all_bits;
+		}
+		else
+		{
+#if SIMDLIB_TARGET_X86
+			if constexpr (sizeof(element_type) == 2)
+			{
+				// Canonical predicates are all-one or all-zero per lane, so containment by an all-one mask proves every lane true.
+				if constexpr (register_bits == 128)
+					return _mm_testc_si128(value.native, _mm_cmpeq_epi8(value.native, value.native)) != 0;
+				else
+					return _mm256_testc_si256(value.native, _mm256_cmpeq_epi8(value.native, value.native)) != 0;
+			}
+			else
+			{
+				return value.bits() == all_bits;
+			}
+#else
+			return value.bits() == all_bits;
+#endif
+		}
 	}
 
 	/**
