@@ -260,7 +260,7 @@ alignas(sizeof(decltype(Implementation::setr(expression.template operator()<indi
  * @return Native register containing the generated lane sequence.
  */
 template <class Implementation, auto expression, std::size_t... indices>
-constexpr auto SIMD_FLAGS(Out, RegisterOnly, ForceInline, Flatten) make_static_register_impl(std::index_sequence<indices...>) noexcept
+constexpr auto SIMD_FLAGS(Out, RegisterOnly, ForceInline, Flatten) make_static_register_from_indices(std::index_sequence<indices...>) noexcept
 {
 	using element_type = std::remove_cvref_t<decltype(expression.template operator()<0>())>;
 	using vector_type = decltype(Implementation::setr(expression.template operator()<indices>()...));
@@ -314,7 +314,7 @@ constexpr auto SIMD_FLAGS(Out, RegisterOnly, ForceInline, Flatten) make_static_r
 	using element_type = std::remove_cvref_t<decltype(expression.template operator()<0>())>;
 	using vector_type = decltype(Implementation::set1(expression.template operator()<0>()));
 	constexpr std::size_t lane_count = sizeof(vector_type) / sizeof(element_type);
-	return make_static_register_impl<Implementation, expression>(std::make_index_sequence<lane_count>{});
+	return make_static_register_from_indices<Implementation, expression>(std::make_index_sequence<lane_count>{});
 }
 
 /** @brief Constructs a constant-evaluated native register with every lane set to one value.
