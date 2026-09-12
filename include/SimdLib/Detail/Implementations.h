@@ -3436,7 +3436,7 @@ template <class element_t> struct SimdMappings<128, element_t> : public SimdImpl
 	{
 		if (std::is_constant_evaluated())
 		{
-			return register_from_array<vector_t>(data);
+			return register_from_array_constexpr<vector_t>(data);
 		}
 		else
 		{
@@ -6946,7 +6946,7 @@ template <class element_t> struct SimdMappings<256, element_t> : public SimdImpl
 	{
 		if (std::is_constant_evaluated())
 		{
-			return register_from_array<vector_t>(data);
+			return register_from_array_constexpr<vector_t>(data);
 		}
 		else
 		{

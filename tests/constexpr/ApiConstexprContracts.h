@@ -96,7 +96,7 @@ template <std::size_t Width, class Element> [[nodiscard]] consteval bool detail_
 {
 	using simd = Api<Width, Element>;
 	constexpr auto values = lane_values<Width, Element>();
-	auto value = Detail::register_from_array<typename simd::vector_t>(values);
+	auto value = Detail::register_from_array_constexpr<typename simd::vector_t>(values);
 
 	for (std::size_t index = 0; index < simd::element_count; ++index)
 	{
