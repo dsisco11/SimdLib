@@ -6,6 +6,8 @@ Code Architecture:
     ☐ Implement a `SimdLib::ImmMask` class to represent compile-time immediate-mode masks for SIMD intrinsics, providing methods for creating and manipulating masks based on compile-time conditions. This class should be compatible with the `SimdLib::Register` and `SimdLib::Tensor` classes, allowing for efficient lane control in SIMD operations.
     ☐ Make register types implicitly convertable to their `native_type`.
     ☐ Make register types implicitly constructable from their `native_type`.
+    ☐ SimdApi: implement support for 32-bit add, subtract, and multiply operations.
+    ☐ SimdApi: implement support for 64-bit add, subtract, and multiply operations.
 
     ☐ Design a `SimdLib::Tensor` class to represent multi-dimensional arrays (tensors) and provide methods for performing tensor operations in a SIMD context.
         The Tensor type should support various data types and dimensions, allowing for efficient manipulation of large datasets in parallel.
