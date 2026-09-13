@@ -33,8 +33,11 @@ the rename preserves the complete member API rather than selecting a subset.
 | Automatically sized complete-register value | `SimdLib::NativeRegister<element_t>` |
 | Explicit-width complete-register value | `SimdLib::Register<element_t, register_width>` |
 | Complete-register predicate value | `SimdLib::RegisterMask<element_t, register_width>` |
+| Automatically sized partial-register value | `SimdLib::NativePartialRegister<element_t, active_lane_count>` |
+| Explicit-width partial-register value | `SimdLib::PartialRegister<element_t, register_width, active_lane_count>` |
+| Partial-register predicate value | `SimdLib::PartialRegisterMask<element_t, register_width, active_lane_count>` |
 | Fixed logical SIMD value | `SimdLib::SimdVector<element_t, element_count>` |
-| Fixed-width complete-register aliases | C++23 root `SimdLib::*x*` and `SimdLib::Vector*` aliases |
+| Fixed-width register aliases | C++23 root complete-register aliases and `partial_*` alias templates |
 | Bit manipulation | `SimdLib::Bmi` |
 | Unsigned wide integer | `SimdLib::uint128_t` |
 | Byte-mask resampling | `SimdLib::SimdResample` |
@@ -50,6 +53,21 @@ For C++23 complete-register expressions, `NativeRegister<element_t>` is the
 preferred entry point when consumers do not require a fixed register width.
 Explicit `Register<element_t, register_width>` is required when storage layout
 or an ABI contract must remain stable across target configurations.
+
+`PartialRegister<element_t, register_width, active_lane_count>` is the sibling
+value type for one native register whose contiguous low-lane prefix is logical
+data and whose remaining lanes are always all-bits-zero. Use
+`NativePartialRegister<element_t, active_lane_count>` when target-selected width
+is appropriate, and use the explicit-width spelling at storage or ABI
+boundaries. `PartialRegisterMask` provides the matching active-prefix predicate.
+
+`SimdVector<element_t, element_count>` remains the fixed logical vector type;
+it is not a register-tail policy. Collection operations such as `SimdAlgo`
+continue to own iteration and dynamic final-batch handling. In short,
+`Register` means every native lane is active, `PartialRegister` means a
+compile-time low-lane prefix is active in one native register, `SimdVector`
+means one fixed logical value, and collection algorithms decide how a sequence
+is divided into complete and partial work.
 
 `NativeApi<element_t>` remains the preferred backend facade for C++20,
 collection helpers, compatibility code, and specialized low-level operations.

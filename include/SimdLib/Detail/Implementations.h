@@ -3483,6 +3483,13 @@ template <class element_t> struct SimdMappings<128, element_t> : public SimdImpl
 		return _mm_loadl_epi64(reinterpret_cast<const int_vector_t *>(ptr));
 	}
 
+	/** @brief Loads the aligned lower half of the register and clears its upper half. */
+	static int_vector_t SIMD_FLAGS(Out, RegisterOnly, ForceInline, Flatten) load_half_aligned(const element_t *ptr) noexcept
+		requires std::is_integral_v<element_t>
+	{
+		return _mm_loadl_epi64(reinterpret_cast<const int_vector_t *>(ptr));
+	}
+
 	/// <summary>Loads a full register from memory. Pointer must be appropriately aligned for the register width.</summary>
 	static vector_t SIMD_FLAGS(Out, RegisterOnly, ForceInline, Flatten) load(const element_t *ptr) noexcept
 		requires std::is_floating_point_v<element_t>
@@ -3524,6 +3531,13 @@ template <class element_t> struct SimdMappings<128, element_t> : public SimdImpl
 	/// Intended for safe tail handling without over-writing past the end of a buffer.
 	/// </summary>
 	static void SIMD_FLAGS(In, ForceInline, Flatten) store_half(int_vector_t lhs, void *ptr) noexcept
+		requires std::is_integral_v<element_t>
+	{
+		_mm_storel_epi64(reinterpret_cast<int_vector_t *>(ptr), lhs);
+	}
+
+	/** @brief Stores the aligned lower half of the register without touching its upper-half destination. */
+	static void SIMD_FLAGS(In, ForceInline, Flatten) store_half_aligned(int_vector_t lhs, void *ptr) noexcept
 		requires std::is_integral_v<element_t>
 	{
 		_mm_storel_epi64(reinterpret_cast<int_vector_t *>(ptr), lhs);
@@ -6975,6 +6989,14 @@ template <class element_t> struct SimdMappings<256, element_t> : public SimdImpl
 		return _mm256_inserti128_si256(_mm256_setzero_si256(), lo, 0);
 	}
 
+	/** @brief Loads the aligned lower half of the register and clears its upper half. */
+	static int_vector_t SIMD_FLAGS(Out, RegisterOnly, ForceInline, Flatten) load_half_aligned(const element_t *ptr) noexcept
+		requires std::is_integral_v<element_t>
+	{
+		const __m128i lo = _mm_load_si128(reinterpret_cast<const __m128i *>(ptr));
+		return _mm256_inserti128_si256(_mm256_setzero_si256(), lo, 0);
+	}
+
 	/// <summary>Loads a full register from memory. Pointer must be appropriately aligned for the register width.</summary>
 	static vector_t SIMD_FLAGS(Out, RegisterOnly, ForceInline, Flatten) load(const element_t *ptr) noexcept
 		requires std::is_floating_point_v<element_t>
@@ -7021,6 +7043,14 @@ template <class element_t> struct SimdMappings<256, element_t> : public SimdImpl
 	{
 		const __m128i lo = _mm256_castsi256_si128(lhs);
 		_mm_storeu_si128(reinterpret_cast<__m128i *>(ptr), lo);
+	}
+
+	/** @brief Stores the aligned lower half of the register without touching its upper-half destination. */
+	static void SIMD_FLAGS(In, ForceInline, Flatten) store_half_aligned(int_vector_t lhs, void *ptr) noexcept
+		requires std::is_integral_v<element_t>
+	{
+		const __m128i lo = _mm256_castsi256_si128(lhs);
+		_mm_store_si128(reinterpret_cast<__m128i *>(ptr), lo);
 	}
 
 	/// <summary>Stores a full register to memory. Pointer must be appropriately aligned for the register width.</summary>

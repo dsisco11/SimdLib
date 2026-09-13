@@ -7,8 +7,9 @@ command. A complete local build is:
 tools/Build.ps1 -Scope All
 ```
 
-This builds MSVC Release and the representative MSVC Debug cell, clang-cl
-Release, native Clang Debug coverage, GCC 13 core-only Release, GCC 14 Release,
+This builds MSVC Release and the representative MSVC Debug cell, the
+caller-selected Windows clang-cl Release, native Clang Debug coverage, GCC 13
+core-only Release, GCC 14 Release,
 and Clang 22 Release plus the representative ASan+UBSan Debug cell. It builds
 the correctness, ABI, sanitizer, consumer, coverage, probe, example, and
 header-validation artifacts, plus the mandatory optimized generated-code gates
@@ -16,6 +17,13 @@ in Release. The default matrix does not build ordinary clang-cl, GCC 13,
 GCC 14, or Clang 22 Debug cells. Debug, sanitizer, and coverage cells do not
 compile Register generated-code fixtures. The command does not compile
 benchmark targets or run any executable.
+
+GitHub Actions runs the Windows clang-cl Release ownership twice: the explicit
+LLVM 20.1.8 compatibility floor inside a dedicated Visual Studio Build Tools
+container, and LLVM 22.1.7 on the native Windows runner. The native job obtains
+LLVM and CMake 4.4.0 through Chocolatey. Clang coverage belongs only to the LLVM
+22.1.7 job. The LLVM 20 cell is not a claim about Visual Studio's default or
+optional bundled Clang version.
 
 Before starting compiler cells, `Build.ps1` performs two focused validations.
 `tools/Validate-PipelineTooling.ps1` validates matrix topology, pipeline
@@ -55,7 +63,10 @@ The complete `All` scope requires a Windows x64 host with:
 
 - Visual Studio 2022 and the MSVC x64 C++ tools;
 - LLVM 20 or newer with `clang-cl`, `clang++`, `llvm-profdata`, `llvm-cov`, and
-  `llvm-readobj` available on `PATH`;
+  `llvm-readobj` available on `PATH`; the GitHub workflow qualifies LLVM 20.1.8
+  as its explicit Windows clang-cl compatibility floor in a dedicated container
+  and installs LLVM 22.1.7 and CMake 4.4.0 through Chocolatey for the newer
+  native compiler and coverage cells;
 - CMake 3.31 or newer; and
 - Docker Desktop with a running Linux-container daemon.
 
@@ -324,10 +335,13 @@ create additional consumer contracts.
 
 ## Diagnostic runners and cleanup
 
-`Run-NativeMatrix.ps1` and `Run-ContainerMatrix.ps1` are lower-level diagnostic
-and CI implementation interfaces. Normal repository workflows use `Build.ps1`,
-`Run-Tests.ps1`, `Build-Benchmarks.ps1`, and `Run-Benchmarks.ps1`; the
-lower-level scripts do not define additional mandatory modes.
+`Run-NativeMatrix.ps1`, `Run-ContainerMatrix.ps1`, and
+`Run-WindowsClang20Container.ps1` are lower-level diagnostic and CI
+implementation interfaces. Normal repository workflows use `Build.ps1`,
+`Run-Tests.ps1`, `Build-Benchmarks.ps1`, and `Run-Benchmarks.ps1`; the lower-level
+scripts do not define additional mandatory modes. The Windows container runner
+is the exception used to isolate the LLVM 20.1.8 compatibility cell from a
+host's newer LLVM installation.
 
 Container images and selected Linux fingerprint roots can be removed with:
 

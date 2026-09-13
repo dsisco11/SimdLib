@@ -22,6 +22,7 @@ set(simdlib_development_modules
     ConstexprProbes
     HeaderProbes
     RegisterCodegen
+	PartialRegisterCodegen
     SmokeTests
     RuntimeTests
     Examples

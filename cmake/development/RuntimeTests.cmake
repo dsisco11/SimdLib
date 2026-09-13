@@ -84,6 +84,7 @@ if(SIMDLIB_BUILD_RUNTIME_TESTS)
 			CHECKS_VALIDATION)
 		target_link_libraries(RegisterPreconditionTests PRIVATE SimdLib::Register Catch2::Catch2WithMain)
 		simdlib_enable_development_warnings(RegisterPreconditionTests)
+		target_compile_definitions(RegisterPreconditionTests PRIVATE SIMDLIB_ENABLE_CHECKS=1)
 		simdlib_set_coverage_profile_prefix(RegisterPreconditionTests
 			"Register.AVX2Preconditions")
 		simdlib_enable_register_sse42(RegisterPreconditionTests)
@@ -94,7 +95,41 @@ if(SIMDLIB_BUILD_RUNTIME_TESTS)
 				PASS_REGULAR_EXPRESSION "SIMDLIB_REGISTER_PRECONDITION_FAILURE_EXPECTED_61B4C2"
 				TIMEOUT 10)
 		simdlib_label_discovered_tests(RegisterPreconditionTests_DISCOVERED_TESTS
-			"REGISTER;PRECONDITIONS;AVX2" CHECKS_VALIDATION)
+			"REGISTER;PARTIAL_REGISTER;PRECONDITIONS;AVX2" CHECKS_VALIDATION)
+
+		simdlib_add_catch_test(PartialRegisterAvx2Tests tests/PartialRegisterObjectModel.tests.cpp
+			PartialRegister.AVX2 "PARTIAL_REGISTER;AVX2")
+		target_sources(PartialRegisterAvx2Tests PRIVATE
+			tests/PartialRegisterConstructionTransfer.tests.cpp
+			tests/PartialRegisterArithmetic.tests.cpp
+			tests/PartialRegisterBitwiseShiftComparison.tests.cpp
+			tests/PartialRegisterRearrangementConversion.tests.cpp
+			tests/PartialRegisterOperationMatrix.tests.cpp
+			tests/PartialRegisterSpecializedOperations.tests.cpp)
+		target_link_libraries(PartialRegisterAvx2Tests PRIVATE SimdLib::Register)
+		target_compile_definitions(PartialRegisterAvx2Tests PRIVATE
+			SIMDLIB_PARTIAL_REGISTER_TEST_ENABLE_256=1)
+		if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+			target_compile_options(PartialRegisterAvx2Tests PRIVATE /bigobj)
+		endif()
+		simdlib_enable_register_avx2(PartialRegisterAvx2Tests)
+
+		simdlib_add_catch_test(PartialRegisterSse42Tests tests/PartialRegisterObjectModel.tests.cpp
+			PartialRegister.SSE42 "PARTIAL_REGISTER;SSE42")
+		target_sources(PartialRegisterSse42Tests PRIVATE
+			tests/PartialRegisterConstructionTransfer.tests.cpp
+			tests/PartialRegisterArithmetic.tests.cpp
+			tests/PartialRegisterBitwiseShiftComparison.tests.cpp
+			tests/PartialRegisterRearrangementConversion.tests.cpp
+			tests/PartialRegisterOperationMatrix.tests.cpp
+			tests/PartialRegisterSpecializedOperations.tests.cpp)
+		target_link_libraries(PartialRegisterSse42Tests PRIVATE SimdLib::Register)
+		target_compile_definitions(PartialRegisterSse42Tests PRIVATE
+			SIMDLIB_PARTIAL_REGISTER_TEST_ENABLE_256=0)
+		if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+			target_compile_options(PartialRegisterSse42Tests PRIVATE /bigobj)
+		endif()
+		simdlib_enable_register_sse42(PartialRegisterSse42Tests)
 	endif()
 
     simdlib_add_catch_test(BmiPortableTests tests/Bmi.tests.cpp
@@ -140,7 +175,21 @@ if(SIMDLIB_BUILD_RUNTIME_TESTS)
 		endif()
 	endif()
 
-    if(SIMDLIB_BUILD_API_SSE42_TESTS)
+	if(SIMDLIB_BUILD_API_SSE42_TESTS)
+		simdlib_add_catch_test(ImplHalfTransfer128Tests tests/ImplementationHalfTransfer.tests.cpp
+			Implementation.HalfTransfer128 "IMPLEMENTATION;PARTIAL_TRANSFER;SSE42")
+		target_compile_definitions(ImplHalfTransfer128Tests PRIVATE
+			SIMDLIB_IMPLEMENTATION_HALF_TRANSFER_TEST_WIDTH=128)
+		if(SIMDLIB_MSVC_STYLE_DRIVER)
+			target_compile_definitions(ImplHalfTransfer128Tests PRIVATE
+				SIMDLIB_HAS_SSE3=1 SIMDLIB_HAS_SSSE3=1 SIMDLIB_HAS_SSE41=1 SIMDLIB_HAS_SSE42=1)
+			if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+				target_compile_options(ImplHalfTransfer128Tests PRIVATE /arch:AVX2)
+			endif()
+		else()
+			target_compile_options(ImplHalfTransfer128Tests PRIVATE -msse4.2)
+		endif()
+
         simdlib_add_catch_test(LogicalShuffleImpl128Tests tests/LogicalShuffleImpl128.tests.cpp
             LogicalShuffle.Impl128 "LOGICAL_SHUFFLE;SSE42")
         if(SIMDLIB_MSVC_STYLE_DRIVER)
@@ -156,10 +205,12 @@ if(SIMDLIB_BUILD_RUNTIME_TESTS)
         simdlib_add_catch_test(ApiSse42Tests tests/Api128.tests.cpp
             Api.SSE42 "SSE42")
 		target_sources(ApiSse42Tests PRIVATE
+			tests/ApiPartialTransfer.tests.cpp
 			tests/LogicalShuffleApi.tests.cpp
 			tests/ImmediateControlSlowPaths.tests.cpp
 			tests/CompleteRegisterShift.tests.cpp)
 		target_compile_definitions(ApiSse42Tests PRIVATE
+			SIMDLIB_API_PARTIAL_TRANSFER_TEST_WIDTH=128
 			SIMDLIB_LOGICAL_SHUFFLE_TEST_WIDTH=128
 			SIMDLIB_IMMEDIATE_CONTROL_TEST_WIDTH=128
 			SIMDLIB_COMPLETE_SHIFT_TEST_WIDTH=128)
@@ -184,7 +235,7 @@ if(SIMDLIB_BUILD_RUNTIME_TESTS)
             target_compile_definitions(${uint128_target} PRIVATE
                 SIMDLIB_TEST_CONSTEXPR_ASSERTIONS=$<BOOL:${SIMDLIB_BUILD_CONSTEXPR_PROBES}>)
         endforeach()
-        target_compile_definitions(UInt128PortableTests PRIVATE
+		target_compile_definitions(UInt128PortableTests PRIVATE
 			SIMDLIB_USE_COMPILER_CARRY_INTRINSICS=0 SIMDLIB_EXPECT_CARRY_PATH=0 SIMDLIB_HAS_BMI1=0)
 		target_compile_definitions(UInt128ScalarTests PRIVATE SIMDLIB_EXPECT_CARRY_PATH=0)
 		target_compile_definitions(UInt128OptimizedTests PRIVATE SIMDLIB_HAS_BMI1=1)
@@ -207,7 +258,7 @@ if(SIMDLIB_BUILD_RUNTIME_TESTS)
 				target_compile_options(UInt128OptimizedTests PRIVATE /arch:AVX2)
 				target_compile_options(UInt128PortableTests PRIVATE /arch:AVX2)
 			endif()
-        else()
+		else()
 			target_compile_options(UInt128OptimizedTests PRIVATE -msse4.2 -mbmi)
 			target_compile_options(UInt128PortableTests PRIVATE -msse4.2 -mno-bmi)
         endif()
@@ -228,7 +279,17 @@ if(SIMDLIB_BUILD_RUNTIME_TESTS)
 		simdlib_register_development_test(UInt128ScalarResultSetEquivalence RUNTIME_VALIDATION)
     endif()
 
-    if(SIMDLIB_BUILD_API_AVX2_TESTS)
+	if(SIMDLIB_BUILD_API_AVX2_TESTS)
+		simdlib_add_catch_test(ImplHalfTransfer256Tests tests/ImplementationHalfTransfer.tests.cpp
+			Implementation.HalfTransfer256 "IMPLEMENTATION;PARTIAL_TRANSFER;AVX2")
+		target_compile_definitions(ImplHalfTransfer256Tests PRIVATE
+			SIMDLIB_IMPLEMENTATION_HALF_TRANSFER_TEST_WIDTH=256)
+		if(SIMDLIB_MSVC_STYLE_DRIVER)
+			target_compile_options(ImplHalfTransfer256Tests PRIVATE /arch:AVX2)
+		else()
+			target_compile_options(ImplHalfTransfer256Tests PRIVATE -mavx2)
+		endif()
+
         simdlib_add_catch_test(LogicalShuffleImpl256Tests tests/LogicalShuffleImpl256.tests.cpp
             LogicalShuffle.Impl256 "LOGICAL_SHUFFLE;AVX2")
         if(SIMDLIB_MSVC_STYLE_DRIVER)
@@ -240,10 +301,12 @@ if(SIMDLIB_BUILD_RUNTIME_TESTS)
         simdlib_add_catch_test(ApiAvx2Tests tests/Api256.tests.cpp
             Api.AVX2 "AVX2")
 		target_sources(ApiAvx2Tests PRIVATE
+			tests/ApiPartialTransfer.tests.cpp
 			tests/LogicalShuffleApi.tests.cpp
 			tests/ImmediateControlSlowPaths.tests.cpp
 			tests/CompleteRegisterShift.tests.cpp)
 		target_compile_definitions(ApiAvx2Tests PRIVATE
+			SIMDLIB_API_PARTIAL_TRANSFER_TEST_WIDTH=256
 			SIMDLIB_LOGICAL_SHUFFLE_TEST_WIDTH=256
 			SIMDLIB_IMMEDIATE_CONTROL_TEST_WIDTH=256
 			SIMDLIB_COMPLETE_SHIFT_TEST_WIDTH=256)
