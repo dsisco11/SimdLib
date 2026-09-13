@@ -5,6 +5,18 @@ Clang 22 validation. The same Dockerfiles, Compose definition, entrypoint, and
 PowerShell runner are used locally and in GitHub Actions. Native jobs remain
 authoritative for MSVC, clang-cl, Windows ABI behavior, and vector calling-convention behavior.
 
+The Windows clang-cl 20 compatibility cell is isolated separately in
+`containers/Dockerfile.windows-clang20`. That Windows Server Core image contains
+Visual Studio 2022 Build Tools, Chocolatey-provisioned LLVM 20.1.8, CMake
+3.31.6, PowerShell 7.5.3, and MinGit.
+`tools/Run-WindowsClang20Container.ps1` runs the ordinary native
+`ClangCl` build, test, and benchmark commands inside it. It requires a Windows
+Docker engine; it is intentionally not part of the Linux Compose matrix. Visual
+Studio supplies the MSVC ABI, standard library, SDK, linker, and build
+environment, while the standalone LLVM installation defines SimdLib's explicit
+clang-cl 20 compatibility floor. The image does not represent Visual Studio's
+default compiler selection or its optional bundled Clang version.
+
 ## Environment contract
 
 | Service | Scope | Base | Compiler |

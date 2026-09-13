@@ -144,6 +144,27 @@ if(SIMDLIB_BUILD_CONFIGURATION_PROBES)
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/config/MethodFlagsConfigUnsupportedTargetProbe.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/RegisterHeaderCxx20.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/RegisterRequirementCxx20.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/PartialRegisterHeaderCxx20.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/PartialRegisterRequirementCxx20.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/PartialRegisterMaskInvalidActiveCount.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/PartialRegisterZeroActiveCount.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/PartialRegisterExcessiveActiveCount.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/PartialRegisterInactiveUpperHalf.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/PartialRegisterOversizedLaneList.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/PartialRegisterFullTransferExtent.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/PartialRegisterInactiveLaneIndex.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/PartialRegisterImplicitScalar.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/PartialRegisterImplicitNative.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/PartialRegisterUnavailableWidth.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/PartialRegisterNegativeByteShiftLeft.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/PartialRegisterNegativeByteShiftRight.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/PartialRegisterNegativeBitShiftLeft.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/PartialRegisterNegativeBitShiftRight.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/PartialRegisterInvalidShuffleSelector.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/PartialRegisterInvalidShuffleSelectorCount.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/PartialRegisterInvalidByteShuffleSelector.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/PartialRegisterFractionalBitCast.cpp
+		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/PartialRegisterInactiveWidenResult.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/RegisterAvailabilityOverride.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/RegisterUnsupportedCompiler.cpp
 		${CMAKE_CURRENT_SOURCE_DIR}/tests/compile_fail/register/RegisterPartialLaneList.cpp
@@ -197,10 +218,75 @@ if(SIMDLIB_BUILD_CONFIGURATION_PROBES)
 
 		simdlib_add_language_probe(RegisterEnabledProbe
 			tests/availability/RegisterEnabledProbe.cpp 23 SimdLib::Register)
-
 		simdlib_add_language_probe(RegisterComparisonChainingProbe
 			tests/availability/RegisterComparisonChainingProbe.cpp 23 SimdLib::Register)
 		simdlib_enable_register_sse42(RegisterComparisonChainingProbe)
+
+		simdlib_add_language_probe(PartialRegisterEnabledProbe
+			tests/availability/PartialRegisterEnabledProbe.cpp 23 SimdLib::Register)
+		simdlib_enable_register_sse42(PartialRegisterEnabledProbe)
+		simdlib_add_language_probe(PartialRegisterAvx2EnabledProbe
+			tests/availability/PartialRegisterEnabledProbe.cpp 23 SimdLib::Register)
+		target_compile_definitions(PartialRegisterAvx2EnabledProbe PRIVATE
+			SIMDLIB_PARTIAL_REGISTER_AVAILABILITY_BITS=256)
+		simdlib_enable_register_avx2(PartialRegisterAvx2EnabledProbe)
+		simdlib_expect_language_probe_failure(PartialRegisterMaskInvalidActiveCountFailure
+			tests/compile_fail/register/PartialRegisterMaskInvalidActiveCount.cpp 23
+			constraints)
+		simdlib_expect_language_probe_failure(PartialRegisterZeroActiveCountFailure
+			tests/compile_fail/register/PartialRegisterZeroActiveCount.cpp 23
+			constraints)
+		simdlib_expect_language_probe_failure(PartialRegisterExcessiveActiveCountFailure
+			tests/compile_fail/register/PartialRegisterExcessiveActiveCount.cpp 23
+			constraints)
+		simdlib_expect_language_probe_failure(PartialRegisterInactiveUpperHalfFailure
+			tests/compile_fail/register/PartialRegisterInactiveUpperHalf.cpp 23
+			SIMDLIB_PARTIAL_REGISTER_REJECTS_INACTIVE_UPPER_HALF)
+		simdlib_expect_language_probe_failure(PartialRegisterOversizedLaneListFailure
+			tests/compile_fail/register/PartialRegisterOversizedLaneList.cpp 23
+			SIMDLIB_PARTIAL_REGISTER_REJECTS_OVERSIZED_LANE_LIST)
+		simdlib_expect_language_probe_failure(PartialRegisterFullTransferExtentFailure
+			tests/compile_fail/register/PartialRegisterFullTransferExtent.cpp 23
+			SIMDLIB_PARTIAL_REGISTER_REJECTS_FULL_TRANSFER_EXTENT)
+		simdlib_expect_language_probe_failure(PartialRegisterInactiveLaneIndexFailure
+			tests/compile_fail/register/PartialRegisterInactiveLaneIndex.cpp 23
+			SIMDLIB_PARTIAL_REGISTER_REJECTS_INACTIVE_LANE_INDEX)
+		simdlib_expect_language_probe_failure(PartialRegisterImplicitScalarFailure
+			tests/compile_fail/register/PartialRegisterImplicitScalar.cpp 23
+			SIMDLIB_PARTIAL_REGISTER_REJECTS_IMPLICIT_SCALAR)
+		simdlib_expect_language_probe_failure(PartialRegisterImplicitNativeFailure
+			tests/compile_fail/register/PartialRegisterImplicitNative.cpp 23
+			SIMDLIB_PARTIAL_REGISTER_REJECTS_IMPLICIT_NATIVE)
+		simdlib_expect_language_probe_failure(PartialRegisterUnavailableWidthFailure
+			tests/compile_fail/register/PartialRegisterUnavailableWidth.cpp 23
+			constraints)
+		simdlib_expect_language_probe_failure(PartialRegisterNegativeByteShiftLeftFailure
+			tests/compile_fail/register/PartialRegisterNegativeByteShiftLeft.cpp 23
+			shift_bytes_left)
+		simdlib_expect_language_probe_failure(PartialRegisterNegativeByteShiftRightFailure
+			tests/compile_fail/register/PartialRegisterNegativeByteShiftRight.cpp 23
+			shift_bytes_right)
+		simdlib_expect_language_probe_failure(PartialRegisterNegativeBitShiftLeftFailure
+			tests/compile_fail/register/PartialRegisterNegativeBitShiftLeft.cpp 23
+			shift_bits_left)
+		simdlib_expect_language_probe_failure(PartialRegisterNegativeBitShiftRightFailure
+			tests/compile_fail/register/PartialRegisterNegativeBitShiftRight.cpp 23
+			shift_bits_right)
+		simdlib_expect_language_probe_failure(PartialRegisterInvalidShuffleSelectorFailure
+			tests/compile_fail/register/PartialRegisterInvalidShuffleSelector.cpp 23
+			SIMDLIB_PARTIAL_REGISTER_REJECTS_INVALID_SHUFFLE_SELECTOR)
+		simdlib_expect_language_probe_failure(PartialRegisterInvalidShuffleSelectorCountFailure
+			tests/compile_fail/register/PartialRegisterInvalidShuffleSelectorCount.cpp 23
+			SIMDLIB_PARTIAL_REGISTER_REJECTS_INVALID_SHUFFLE_SELECTOR_COUNT)
+		simdlib_expect_language_probe_failure(PartialRegisterInvalidByteShuffleSelectorFailure
+			tests/compile_fail/register/PartialRegisterInvalidByteShuffleSelector.cpp 23
+			SIMDLIB_PARTIAL_REGISTER_REJECTS_INVALID_BYTE_SHUFFLE_SELECTOR)
+		simdlib_expect_language_probe_failure(PartialRegisterFractionalBitCastFailure
+			tests/compile_fail/register/PartialRegisterFractionalBitCast.cpp 23
+			SIMDLIB_PARTIAL_REGISTER_REJECTS_FRACTIONAL_BIT_CAST_RESULT)
+		simdlib_expect_language_probe_failure(PartialRegisterInactiveWidenResultFailure
+			tests/compile_fail/register/PartialRegisterInactiveWidenResult.cpp 23
+			SIMDLIB_PARTIAL_REGISTER_REJECTS_INACTIVE_UPPER_HALF_WIDEN_RESULT)
 
 		foreach(register_width IN ITEMS 128 256)
 			add_library(RegisterRepresentation${register_width} OBJECT
@@ -215,6 +301,20 @@ if(SIMDLIB_BUILD_CONFIGURATION_PROBES)
 				simdlib_enable_register_sse42(RegisterRepresentation${register_width})
 			else()
 				simdlib_enable_register_avx2(RegisterRepresentation${register_width})
+			endif()
+
+			add_library(PartialRegisterRepresentation${register_width} OBJECT
+				tests/partial_register/PartialRegisterRepresentation.tests.cpp)
+			simdlib_register_development_target(
+				PartialRegisterRepresentation${register_width} COMPILER_CONTRACT)
+			target_link_libraries(PartialRegisterRepresentation${register_width} PRIVATE SimdLib::Register)
+			target_compile_definitions(PartialRegisterRepresentation${register_width} PRIVATE
+				SIMDLIB_REGISTER_TEST_WIDTH=${register_width})
+			simdlib_enable_development_warnings(PartialRegisterRepresentation${register_width})
+			if(register_width EQUAL 128)
+				simdlib_enable_register_sse42(PartialRegisterRepresentation${register_width})
+			else()
+				simdlib_enable_register_avx2(PartialRegisterRepresentation${register_width})
 			endif()
 		endforeach()
 
@@ -283,6 +383,12 @@ if(SIMDLIB_BUILD_CONFIGURATION_PROBES)
 		SIMDLIB_REGISTER_HEADER_REQUIRES_CXX23)
 	simdlib_expect_language_probe_failure(RegisterRequirementCxx20Failure
 		tests/compile_fail/register/RegisterRequirementCxx20.cpp 20
+		SIMDLIB_REGISTER_INTERFACE_UNAVAILABLE)
+	simdlib_expect_language_probe_failure(PartialRegisterHeaderCxx20Failure
+		tests/compile_fail/register/PartialRegisterHeaderCxx20.cpp 20
+		SIMDLIB_PARTIAL_REGISTER_HEADER_REQUIRES_CXX23)
+	simdlib_expect_language_probe_failure(PartialRegisterRequirementCxx20Failure
+		tests/compile_fail/register/PartialRegisterRequirementCxx20.cpp 20
 		SIMDLIB_REGISTER_INTERFACE_UNAVAILABLE)
 	simdlib_expect_language_probe_failure(RegisterAvailabilityOverrideFailure
 		tests/compile_fail/register/RegisterAvailabilityOverride.cpp 20

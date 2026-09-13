@@ -20,7 +20,7 @@ example, start with the [project README](../README.md).
 ## Library model
 
 SimdLib is a header-only library with a C++20 core and an opt-in C++23
-complete-register interface. Its CMake targets are `INTERFACE_LIBRARY`
+register-value interface. Its CMake targets are `INTERFACE_LIBRARY`
 targets; they do not produce a DLL or static library. The public API lives in
 the `SimdLib` namespace, while `SimdLib::Detail` contains implementation
 details that consumer code must not name.
@@ -31,6 +31,11 @@ The main API families are:
   that selects the widest available register;
 - `Register<element_t, register_width>` and `RegisterMask`, the explicit-width
   complete-register value and predicate types;
+- `NativePartialRegister<element_t, active_lane_count>`, the target-selected
+  C++23 partial-register value;
+- `PartialRegister<element_t, register_width, active_lane_count>` and
+  `PartialRegisterMask`, the explicit-width active-prefix value and predicate
+  types whose inactive suffix is always all-bits-zero;
 - `NativeApi<element_t>`, the C++20 backend facade that selects the widest
   available register;
 - `Api<register_width, element_t>`, a typed intrinsic facade;
@@ -55,8 +60,8 @@ add_subdirectory(external/SimdLib)
 target_link_libraries(MyTarget PRIVATE SimdLib::SimdLib)
 ```
 
-Targets that use `Register`, `RegisterMask`, or `NativeRegister` link the
-C++23 interface target instead:
+Targets that use complete- or partial-register values link the C++23 interface
+target instead:
 
 ```cmake
 target_link_libraries(MyRegisterTarget PRIVATE SimdLib::Register)
@@ -85,7 +90,7 @@ translation units pay for formatting support only when they use it.
 
 The repository's CMake project requires CMake 3.31 or newer. Consumers that
 integrate the headers without the provided CMake project need a supported C++20
-compiler for the core, a supported C++23 compiler for the Register interface,
+compiler for the core, a supported C++23 compiler for the register-value interface,
 and the appropriate target flags.
 
 ## Supported environments
@@ -116,6 +121,14 @@ resolves to the widest available `Register` specialization. Use explicit
 the target configuration. This is a compile-time choice based on compiler
 flags; it is not runtime CPU detection.
 
+Use `PartialRegister<element_t, register_width, active_lane_count>` when one
+native register carries a compile-time contiguous low-lane prefix. Every
+inactive high lane has the all-bits-zero representation. Use
+`NativePartialRegister` only when target-selected width is acceptable. A
+`SimdVector` instead models one fixed logical value, while `SimdAlgo` and other
+collection-level code own iteration and runtime tail handling; a
+`PartialRegister` is not itself a dynamic collection-tail policy.
+
 Use `SimdLib::NativeApi<element_t>` for C++20, collection helpers, or direct
 backend access. It resolves to `Api<256, element_t>` when the compile target
 enables AVX2 and SSE4.2, and otherwise resolves to `Api<128, element_t>` when
@@ -143,8 +156,11 @@ FMA-disabled paths, and all four BMI1/BMI2 combinations.
 | `<SimdLib/Api.h>`          | Auto-sized `NativeApi<element_t>`, explicit-width `Api<register_width, element_t>`, and availability query |
 | `<SimdLib/Register.h>`     | C++23 `Register<element_t, register_width>` and `NativeRegister<element_t>` complete-register values       |
 | `<SimdLib/RegisterMask.h>` | C++23 `RegisterMask<element_t, register_width>` predicate values                                           |
+| `<SimdLib/PartialRegister.h>` | C++23 explicit-width and target-selected active-prefix register values                                  |
+| `<SimdLib/PartialRegisterMask.h>` | C++23 active-prefix predicate values whose inactive lanes are false                                  |
+| `<SimdLib/PartialRegisterFwd.h>` | Forward declarations and PartialRegister availability queries                                          |
 | `<SimdLib/SimdApi.h>`      | Deprecated compatibility forwarding header; use `Api.h`                                                    |
-| `<SimdLib/Aliases.h>`      | C++23 named `Register` aliases exposed when their SSE4.2 or AVX2 width is available                         |
+| `<SimdLib/Aliases.h>`      | C++23 named complete-register aliases and `partial_*` alias templates for available widths                 |
 | `<SimdLib/SimdVector.h>`   | `SimdVector<element_t, element_count>` value type                                                          |
 | `<SimdLib/SimdAlgo.h>`     | Fixed-extent and dynamic-span `SimdAlgo` operations                                                        |
 | `<SimdLib/SimdResample.h>` | Byte-mask reduction and expansion functions                                                                |
@@ -154,6 +170,47 @@ FMA-disabled paths, and all four BMI1/BMI2 combinations.
 | `<SimdLib/SimdLib.h>`      | Complete non-formatting public surface                                                                     |
 
 Headers and declarations below `SimdLib::Detail` are implementation-only.
+
+### Partial-register workflows
+
+The following examples use only public APIs. The active count is part of the
+type, and `store()` writes exactly that many elements.
+
+```cpp
+#include <SimdLib/PartialRegister.h>
+
+#include <array>
+#include <cstdint>
+
+using Tail = SimdLib::PartialRegister<std::uint32_t, 128, 3>;
+
+const auto input = Tail::from_array(std::array<std::uint32_t, 3>{2, 4, 6});
+const auto adjusted = (input + Tail::broadcast(1)) * Tail::broadcast(2);
+const auto positive = adjusted.compare_greater(Tail::zero());
+const auto selected = positive.select(adjusted, Tail::zero());
+const auto reordered = selected.shuffle<2, 0, 1>();
+
+std::array<std::uint32_t, 3> output{};
+reordered.store(output);
+```
+
+Bit reinterpretation, numeric conversion, and widening are distinct public
+operations with independently selected result types:
+
+```cpp
+const auto reinterpreted = input.bit_cast<float>();
+const auto converted = input.convert<float>();
+
+using Narrow = SimdLib::PartialRegister<std::uint16_t, 128, 7>;
+const auto widened = Narrow::from_lanes(1, 2, 3, 4, 5, 6, 7)
+                         .widen_low<std::uint32_t, 128>();
+```
+
+`bit_cast()` preserves the active bit extent, `convert()` preserves the active
+lane count when the target cell is available, and `widen_low()` consumes the
+documented low source prefix. See
+[`PartialRegisterOperationLedger.md`](../docs/PartialRegisterOperationLedger.md)
+for the complete result-type rules.
 
 SimdLib 0.2.0 uses `Api` as the primary facade name. The deprecated `SimdApi`
 spelling remains available through `<SimdLib/SimdApi.h>` until 1.0.0. Wide
@@ -370,9 +427,11 @@ for example
 ## Continuous validation
 
 `.github/workflows/ci.yml` delegates to the same scoped `Build.ps1` and
-`Run-Tests.ps1` commands used locally. Native MSVC, native clang-cl
-plus coverage, and Linux container compilers each build their assigned
-fingerprints once and then run test-only operations. Each benchmark-owning CI
+`Run-Tests.ps1` commands used locally. Native MSVC, the explicit
+Chocolatey-provisioned Windows clang-cl 20 compatibility-floor container,
+native clang-cl 22 plus coverage, and Linux container compilers
+each build their assigned fingerprints once and then run test-only operations.
+Each benchmark-owning CI
 job invokes `Build-Benchmarks.ps1` explicitly after correctness testing; the
 default build remains benchmark-free. Clang ASan+UBSan remains an independent
 instrumented fingerprint. Mandatory instruction-family labels,

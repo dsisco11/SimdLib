@@ -1,7 +1,7 @@
 # Register Implementation Matrix
 
-This document makes the accepted design in `RegisterProposal.md` executable and
-traceable. The proposal controls semantics; `ApiOperationMatrix.md` controls the
+This document makes the accepted design in `RegisterContract.md` executable and
+traceable. The contract controls semantics; `ApiOperationMatrix.md` controls the
 current backend availability matrix; and this matrix records the implemented
 operation coverage. A disagreement is resolved by correcting the controlling
 semantic or availability document before implementing the affected operation.
@@ -63,7 +63,7 @@ These portability rules do not change a public declaration.
 | Compact mask bits | `bits_type` is normalized from lane count, is `uint32_t` for initial widths, maps bit `i` to lane `i`, and clears unused bits | 5 | Static assertions and mask-pattern tests |
 | Comparison semantics | Named comparisons reproduce the selected intrinsic, including signedness, NaNs, signed zero, ordered/unordered predicates, and lane bit patterns | 5 | Runtime, portable, emulated, and constexpr parity |
 | Whole equality | `operator==` means all lanes compare equal; `operator!=` is its Boolean negation; relational operators are absent | 5 | Boolean and compile-rejection tests |
-| Shift counts | Per-lane negative counts are invalid; logical overshifts zero, arithmetic overshifts sign-fill, and byte/whole-register shifts follow the proposal boundary table | 6 | Boundary, precondition, constexpr, and codegen tests |
+| Shift counts | Per-lane negative counts are invalid; logical overshifts zero, arithmetic overshifts sign-fill, and byte/whole-register shifts follow the contract boundary table | 6 | Boundary, precondition, constexpr, and codegen tests |
 | Immediate controls | Every `imm8` is constrained to `0..255`; logical element and byte shuffles require exactly one selector per output lane or byte, permit repeated selectors, and reject selectors outside the complete source register | 7, 8 | Compile-success/failure boundaries |
 | Rearrangement order | `lower_half()`, unpacking, and shuffling use logical low-to-high lanes or bytes. The 256-bit logical element and byte shuffles may select from the complete source register across the 128-bit boundary; lane-group restrictions remain only on operations whose names or intrinsic contracts specify them | 8 | Independent lane and byte oracles, cross-half selectors, highest-position sentinels, and exact code-generation parity |
 | Type-changing results | Public operations name the exact constrained namespace-level result alias and never expose a raw intrinsic result | 7 | Type assertions and unsupported-combination rejection |
@@ -77,7 +77,7 @@ These portability rules do not change a public declaration.
 
 | Excluded surface | Classification | Reason |
 | --- | --- | --- |
-| Partial load/store or lane construction | Higher-level responsibility | Register has no inactive lanes or fill policy |
+| Partial load/store or lane construction | Sibling-type responsibility | Register has no inactive lanes or fill policy; fixed compile-time prefixes use `PartialRegister`, while dynamic tails remain collection-owned |
 | Dynamic-extent `load_unsafe` | `Api` compatibility-only | Its precondition is unsuitable for the restrictive value type |
 | Native-order `set` | `Api` compatibility-only | Public lane order is logical low-to-high |
 | Implicit scalar broadcast | Excluded | Broadcast cost and intent remain explicit |
@@ -113,7 +113,7 @@ the operation or intentionally leaves it in a compatibility or collection layer.
 | `load` | `Register::load(fixed_span)` | Implemented |
 | `load_aligned` | `Register::load_aligned(fixed_span)` | Implemented |
 | `load_unaligned` | Canonicalized to `Register::load(fixed_span)` | Implemented |
-| `load_partial` | No Register operation | Compatibility |
+| `load_partial` | No Register operation; fixed-prefix consumers use `PartialRegister::load` | Compatibility and sibling routing |
 | `load_unsafe` | No Register operation | Compatibility |
 | Element `store` | `value.store(fixed_span)` | Implemented |
 | `store_aligned` | `value.store_aligned(fixed_span)` | Implemented |
@@ -126,7 +126,7 @@ the operation or intentionally leaves it in a compatibility or collection layer.
 | `setzero` | Default construction and `Register::zero()` | Implemented |
 | `set1` | `Register::broadcast(value)` | Implemented |
 | `setr` | `Register::from_lanes(...)` | Implemented |
-| `set`, `set_partial`, `setr_partial` | No Register operation | Compatibility |
+| `set`, `set_partial`, `setr_partial` | No Register operation; fixed-prefix consumers use `PartialRegister::from_lanes` or `from_array` | Compatibility and sibling routing |
 | `add` | `lhs + rhs` | Implemented |
 | `subtract` | `lhs - rhs` | Implemented |
 | `multiply` | `lhs * rhs` | Implemented |
@@ -289,9 +289,9 @@ compile-time audit; no prose-only availability list can drift independently.
 | C++20 core | GCC 13.2 | Linux x64; Debug and Release | Existing full public matrix remains supported; Register unavailable |
 | C++20 core sanitizer | Clang 22.1.8 | Linux x64 Debug, `-O1`, ASan/UBSan, frame pointers | No sanitizer diagnostics |
 | Register | MSVC 19.44 | Windows x64, `/std:c++latest`; supported ISA profiles | SSE4.2 diagnostics and strict AVX2 gates; memory-writing fixtures retain `/GS` and the exact documented exception |
-| Register | clang-cl 20.1.8 | Windows x64, C++23; supported ISA profiles | SSE4.2 diagnostics and strict AVX2 correctness, ABI, and generated-code gates |
-| Register | Clang 22.1.8 | Linux x64, C++23; supported ISA profiles | SSE4.2 diagnostics and strict AVX2 correctness, ABI, and generated-code gates |
-| Register | GCC 14 or newer | Linux x64, C++23; supported ISA profiles | SSE4.2 diagnostics and strict AVX2 correctness, ABI, and generated-code gates |
+| Register and PartialRegister | clang-cl 20.1.8 and 22.1.7 | Windows x64, C++23; supported ISA profiles | Separate strict SSE4.2 and AVX2 correctness, ABI, and generated-code gates for the explicit clang-cl 20 compatibility floor and the newer compiler |
+| Register and PartialRegister | Clang 22 or newer | Linux x64, C++23; supported ISA profiles | Strict SSE4.2 and AVX2 correctness, ABI, and generated-code gates |
+| Register and PartialRegister | GCC 14 or newer | Linux x64, C++23; supported ISA profiles | Strict SSE4.2 and AVX2 correctness, ABI, and generated-code gates |
 
 Linux x64 GCC 13.2 remains the required unavailable-interface probe; it is not
 a Register compiler. A Register compiler floor is lowered or expanded only after
@@ -317,7 +317,7 @@ the complete correctness, layout, ABI, and generated-code gates pass.
 | Non-inlined ABI mirrors | `tests/codegen/RegisterAbi.cpp`, `tests/codegen/RegisterAbiRaw.cpp` | ABI records owned by `RegisterCodegen128Sse42`, `RegisterCodegen128Avx2`, and `RegisterCodegen256Avx2` |
 | Register pressure and opaque calls | `tests/codegen/RegisterCodegenFixture.h` | Register code-generation gate |
 | Code-generation comparison | `cmake/CompareRegisterCodegen.cmake` and checked-in allowlisted normalization rules | CTest mandatory performance gate |
-| Permanent generated-code ownership audit | `docs/RegisterCodegenSymbolAudit.csv` and `docs/RegisterCodegenAudit.md` | Per-symbol fixture, baseline, record, validation, and retention traceability |
+| Generated-code ownership | `docs/RegisterQualification.md`, fixture sources, CMake symbol filters, and generated comparison records | Fixture, baseline, record, validation, and per-symbol traceability |
 | Checks-enabled preconditions | `tests/RegisterPreconditionFailure.tests.cpp` | Existing precondition death-test infrastructure |
 | Sanitizers | Runtime Register and mask sources | Fresh Clang ASan/UBSan configuration |
 | Supplemental benchmarks | `benchmarks/Register.benchmarks.cpp` | `Benchmarks`; never a correctness/codegen substitute |
@@ -325,7 +325,7 @@ the complete correctness, layout, ABI, and generated-code gates pass.
 
 Every production class and method has Doxygen documentation. Test
 and generated-code sources use only public SimdLib declarations except the
-proposal-approved narrow internal comparison adapter tests.
+contract-approved narrow internal comparison adapter tests.
 
 ## Validation ownership
 

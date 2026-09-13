@@ -148,11 +148,81 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 		{
 			return impl::load_unaligned(data.data());
 		}
+		else if constexpr (active_count * sizeof(element_t) == byte_count_half)
+		{
+			if (std::is_constant_evaluated())
+			{
+				return [&data]<std::size_t... Indices>(std::index_sequence<Indices...>) constexpr noexcept -> vector_t
+				{ return setr_partial(static_cast<element_t>(data[Indices])...); }(std::make_index_sequence<active_count>{});
+			}
+			else if constexpr (using_int)
+			{
+				return impl::load_half(data.data());
+			}
+			else
+			{
+				using byte_api = Api<register_width, std::uint8_t>;
+				const auto bytes = byte_api::template load_partial<byte_count_half>(
+					std::span<const std::uint8_t>{reinterpret_cast<const std::uint8_t *>(data.data()), byte_count_half});
+				return byte_api::template bit_cast<element_t>(bytes);
+			}
+		}
 		else
 		{
 			return [&data]<std::size_t... Indices>(std::index_sequence<Indices...>) constexpr noexcept -> vector_t
 			{ return setr_partial(static_cast<element_t>(data[Indices])...); }(std::make_index_sequence<active_count>{});
 		}
+	}
+
+	/** @brief Loads a logical prefix from register-aligned storage and zero-fills the remaining lanes.
+	 *  @tparam active_count Number of leading elements to load.
+	 *  @param data Register-aligned source containing at least `active_count` elements.
+	 *  @return Register containing the requested active values followed by zero-filled inactive lanes.
+	 *  @pre `data.data()` is aligned to `byte_count` bytes.
+	 */
+	template <std::size_t active_count>
+	constexpr static vector_t SIMD_FLAGS(Out, RegisterOnly, ForceInline, Flatten) load_partial_aligned(std::span<const element_t> data) noexcept
+		requires(active_count <= element_count)
+	{
+		if (!std::is_constant_evaluated())
+		{
+			SIMDLIB_PRECONDITION(reinterpret_cast<std::uintptr_t>(data.data()) % byte_count == 0,
+								 "Aligned partial SIMD load requires register-width alignment");
+		}
+		if constexpr (active_count == element_count)
+			return impl::load(data.data());
+		else if constexpr (active_count * sizeof(element_t) == byte_count_half)
+		{
+			if (std::is_constant_evaluated())
+				return load_partial<active_count>(data);
+			else if constexpr (using_int)
+				return impl::load_half_aligned(data.data());
+			else
+			{
+				using byte_api = Api<register_width, std::uint8_t>;
+				const auto bytes = byte_api::template load_partial_aligned<byte_count_half>(
+					std::span<const std::uint8_t>{reinterpret_cast<const std::uint8_t *>(data.data()), byte_count_half});
+				return byte_api::template bit_cast<element_t>(bytes);
+			}
+		}
+		else
+			return load_partial<active_count>(data);
+	}
+
+	/** @brief Loads a logical prefix of one register's byte representation and zero-fills the remaining bytes.
+	 *  @tparam active_byte_count Number of leading bytes to load.
+	 *  @param data Source containing at least `active_byte_count` bytes.
+	 *  @return Register containing the requested byte prefix followed by zero-filled bytes.
+	 */
+	template <std::size_t active_byte_count>
+	static vector_t SIMD_FLAGS(Out, RegisterOnly, ForceInline, Flatten) load_bytes_partial(std::span<const std::byte> data) noexcept
+		requires(active_byte_count <= byte_count)
+	{
+		SIMDLIB_PRECONDITION(data.size() >= active_byte_count, "Data span must contain at least the requested active byte count");
+		using byte_api = Api<register_width, std::uint8_t>;
+		const auto bytes =
+			byte_api::template load_partial<active_byte_count>(std::span<const std::uint8_t>{reinterpret_cast<const std::uint8_t *>(data.data()), data.size()});
+		return byte_api::template bit_cast<element_t>(bytes);
 	}
 
 	/** @brief Loads element data into a SIMD register without enforcing a fixed extent.
@@ -197,6 +267,95 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 		impl::store_unaligned(vector, data.data());
 	}
 
+	/** @brief Stores a logical prefix of a SIMD register without writing the inactive suffix.
+	 *  @tparam active_count Number of leading elements to store.
+	 *  @param vector Register value to store.
+	 *  @param data Destination containing at least `active_count` elements.
+	 */
+	template <std::size_t active_count>
+	constexpr static void SIMD_FLAGS(In, ForceInline, Flatten) store_partial(vector_t vector, std::span<element_t> data) noexcept
+		requires(active_count <= element_count)
+	{
+		if (!std::is_constant_evaluated())
+		{
+			SIMDLIB_PRECONDITION(data.size() >= active_count, "Data span must contain at least the requested active element count");
+		}
+		if constexpr (active_count == element_count)
+		{
+			impl::store_unaligned(vector, data.data());
+		}
+		else if (std::is_constant_evaluated())
+		{
+			const auto lanes = to_array_constexpr(vector);
+			for (std::size_t index = 0; index < active_count; ++index)
+				data[index] = lanes[index];
+		}
+		else
+		{
+			if constexpr (active_count * sizeof(element_t) == byte_count_half && using_int)
+				impl::store_half(vector, data.data());
+			else if constexpr (active_count * sizeof(element_t) == byte_count_half)
+			{
+				using byte_api = Api<register_width, std::uint8_t>;
+				const auto bytes = Api::template bit_cast<std::uint8_t>(vector);
+				byte_api::template store_partial<byte_count_half>(bytes,
+																  std::span<std::uint8_t>{reinterpret_cast<std::uint8_t *>(data.data()), byte_count_half});
+			}
+			else
+			{
+				[vector, data]<std::size_t... Indices>(std::index_sequence<Indices...>) noexcept
+				{ ((data[Indices] = static_cast<element_t>(extract<static_cast<int>(Indices)>(vector))), ...); }(std::make_index_sequence<active_count>{});
+			}
+		}
+	}
+
+	/** @brief Stores a logical prefix to register-aligned storage without writing the inactive suffix.
+	 *  @tparam active_count Number of leading elements to store.
+	 *  @param vector Register value to store.
+	 *  @param data Register-aligned destination containing at least `active_count` elements.
+	 *  @pre `data.data()` is aligned to `byte_count` bytes.
+	 */
+	template <std::size_t active_count>
+	constexpr static void SIMD_FLAGS(In, ForceInline, Flatten) store_partial_aligned(vector_t vector, std::span<element_t> data) noexcept
+		requires(active_count <= element_count)
+	{
+		if (!std::is_constant_evaluated())
+		{
+			SIMDLIB_PRECONDITION(reinterpret_cast<std::uintptr_t>(data.data()) % byte_count == 0,
+								 "Aligned partial SIMD store requires register-width alignment");
+		}
+		if constexpr (active_count == element_count)
+			impl::store(vector, data.data());
+		else if (std::is_constant_evaluated())
+			store_partial<active_count>(vector, data);
+		else if constexpr (active_count * sizeof(element_t) == byte_count_half && using_int)
+			impl::store_half_aligned(vector, data.data());
+		else if constexpr (active_count * sizeof(element_t) == byte_count_half)
+		{
+			using byte_api = Api<register_width, std::uint8_t>;
+			const auto bytes = Api::template bit_cast<std::uint8_t>(vector);
+			byte_api::template store_partial_aligned<byte_count_half>(bytes,
+																	  std::span<std::uint8_t>{reinterpret_cast<std::uint8_t *>(data.data()), byte_count_half});
+		}
+		else
+			store_partial<active_count>(vector, data);
+	}
+
+	/** @brief Stores a logical prefix of one register's byte representation without writing the inactive suffix.
+	 *  @tparam active_byte_count Number of leading bytes to store.
+	 *  @param vector Register value to store.
+	 *  @param data Destination containing at least `active_byte_count` bytes.
+	 */
+	template <std::size_t active_byte_count>
+	static void SIMD_FLAGS(In, ForceInline, Flatten) store_bytes_partial(vector_t vector, std::span<std::byte> data) noexcept
+		requires(active_byte_count <= byte_count)
+	{
+		SIMDLIB_PRECONDITION(data.size() >= active_byte_count, "Data span must contain at least the requested active byte count");
+		using byte_api = Api<register_width, std::uint8_t>;
+		const auto bytes = Api::template bit_cast<std::uint8_t>(vector);
+		byte_api::template store_partial<active_byte_count>(bytes, std::span<std::uint8_t>{reinterpret_cast<std::uint8_t *>(data.data()), data.size()});
+	}
+
 	/** @brief Stores a SIMD register into a raw byte span.
 	 *  @param vector Register value to store.
 	 *  @param data Destination byte span with capacity for the full register payload.
@@ -230,6 +389,65 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 		return result;
 	}
 
+	/** @brief Converts a logical register prefix into an exactly sized fixed array.
+	 *  @tparam active_count Number of leading lanes to return.
+	 *  @param vector Register value to observe.
+	 *  @return Array containing exactly the requested leading lanes.
+	 */
+	template <std::size_t active_count>
+	[[nodiscard]] constexpr static std::array<element_t, active_count> SIMD_FLAGS(In, ForceInline, Flatten) to_array_partial(const vector_t vector) noexcept
+		requires(active_count <= element_count)
+	{
+		if (std::is_constant_evaluated())
+		{
+			const auto lanes = to_array_constexpr(vector);
+			return [&lanes]<std::size_t... Indices>(std::index_sequence<Indices...>) constexpr noexcept
+			{ return std::array<element_t, active_count>{lanes[Indices]...}; }(std::make_index_sequence<active_count>{});
+		}
+		else
+		{
+			std::array<element_t, active_count> result{};
+			store_partial<active_count>(vector, std::span<element_t>{result});
+			return result;
+		}
+	}
+
+	/** @brief Finishes integer magnitude by summing the SIMD-produced pairwise squares per 128-bit lane and broadcasting the root.
+	 *  @tparam partial_element_t Integer lane type produced by the first pairwise square-and-sum step.
+	 *  @param pairSums Register containing `x*x + y*y` style partial sums for each 128-bit lane group.
+	 *  @return Register containing the lane-local magnitudes broadcast to every source lane.
+	 */
+	template <class partial_element_t>
+	SIMDLIB_FORCE_INLINE static vector_t VECTORCALL
+	FinishIntegerMagnitudeFromPairSums(typename Api<register_width, partial_element_t>::vector_t pairSums) noexcept
+	{
+		using partial_simd = Api<register_width, partial_element_t>;
+		using accumulation_t = std::conditional_t<std::is_signed_v<partial_element_t>, int64_t, uint64_t>;
+		constexpr std::size_t LaneGroupCount = register_width / 128;
+		constexpr std::size_t SourceLaneWidth = element_count / LaneGroupCount;
+		constexpr std::size_t PartialLaneWidth = partial_simd::element_count / LaneGroupCount;
+
+		const auto partialValues = partial_simd::to_array(pairSums);
+		std::array<element_t, element_count> output{};
+		for (std::size_t groupIndex = 0; groupIndex < LaneGroupCount; ++groupIndex)
+		{
+			accumulation_t total{};
+			const std::size_t partialStart = groupIndex * PartialLaneWidth;
+			for (std::size_t partialOffset = 0; partialOffset < PartialLaneWidth; ++partialOffset)
+			{
+				total += static_cast<accumulation_t>(partialValues[partialStart + partialOffset]);
+			}
+
+			const element_t laneMagnitude = static_cast<element_t>(std::round(std::sqrt(static_cast<long double>(total))));
+			const std::size_t laneStart = groupIndex * SourceLaneWidth;
+			for (std::size_t laneOffset = 0; laneOffset < SourceLaneWidth; ++laneOffset)
+			{
+				output[laneStart + laneOffset] = laneMagnitude;
+			}
+		}
+
+		return construct(output);
+	}
 #pragma endregion
 
 #pragma region Arithmetic Operations
@@ -253,6 +471,34 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 		return impl::set1(value);
 	}
 
+	/**
+	 * @brief Broadcasts one scalar value into a logical lane prefix and zero-fills the remaining lanes.
+	 * @tparam active_count Number of leading lanes initialized to `value`.
+	 * @param value Scalar value to broadcast.
+	 * @return Register containing `value` in the active prefix and all-bits-zero inactive lanes.
+	 */
+	template <std::size_t active_count>
+	constexpr static vector_t SIMD_FLAGS(Out, RegisterOnly, ForceInline, Flatten) broadcast_partial(const element_t value) noexcept
+		requires(active_count <= element_count)
+	{
+		return broadcast_partial_native(value, std::make_index_sequence<active_count>{});
+	}
+
+  protected:
+	/**
+	 * @brief Expands one scalar into the requested active-prefix argument count.
+	 * @tparam indices Active lane positions used to repeat the scalar argument.
+	 * @param value Scalar value repeated across the active prefix.
+	 * @return Register containing the repeated active prefix and a zero-filled suffix.
+	 */
+	template <std::size_t... indices>
+	constexpr static vector_t SIMD_FLAGS(Out, RegisterOnly, ForceInline, Flatten)
+		broadcast_partial_native(const element_t value, std::index_sequence<indices...>) noexcept
+	{
+		return setr_partial(((void)indices, value)...);
+	}
+
+  public:
 	/** @brief Constructs a register from lane values in native argument order.
 	 *  @tparam Args Argument pack matching the register lane count.
 	 *  @param args Lane values in native intrinsic order.
