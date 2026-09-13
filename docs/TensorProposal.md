@@ -127,6 +127,16 @@ operation table. Arithmetic needs field-aware carry/overflow rules before it
 can share the numerical surface. Mixed packed/ordinary numerical expressions
 also require a separately specified conversion path.
 
+Initial multi-view packed operations require identical `ElementBits` and the
+same storage-word type after removing const qualification. Static/dynamic
+extents and first-field offsets may differ, provided logical lengths agree.
+This applies to equality/inequality, bitwise operations, predicate composition,
+selection, and assignment involving multiple packed views. Reject mixed packed
+field widths or storage-word types at compile time; sharing `uint8_t` as the
+logical value type does not make different packing geometries interchangeable.
+Scalar comparison candidates retain the separately defined representability
+rules below.
+
 Proposed call sites:
 
 ```cpp
@@ -284,6 +294,17 @@ standalone indexing may recompute the containing batch; it must still delegate
 to this evaluator. Extraction may use existing runtime-index facilities or a
 cached register representation without reimplementing the numerical operation.
 
+Expression iterators borrow their originating expression object; they do not
+own copies of its expression tree. That object must outlive every iterator
+derived from it. Destroying, moving, or replacing the expression invalidates
+those iterators, even if a cached batch or the backing buffers remain alive.
+Iterator copies continue borrowing the same expression with independent caches.
+Do not opt expression types into `std::ranges::enable_borrowed_range`: range
+algorithms on temporary expressions must preserve the standard dangling-result
+protection. Normal range-for lifetime extension of its expression range remains
+usable. Owning child nodes by value protects nested expression temporaries;
+it does not extend the lifetime of an iterator's root expression.
+
 Sources and borrowed candidate lists must remain stable throughout an expression
 traversal, including the lifetime of its active iterator caches. A new traversal
 observes current source contents. A single dereference may evaluate other valid
@@ -411,12 +432,86 @@ Initial building blocks:
 
 | Family | Proposed operations |
 | --- | --- |
-| Numerical | `+`, `-`, `*`, `/`, `Tensor::min`, `Tensor::max`, `Tensor::clamp`, and separately named saturated integer operations where supported |
+| Numerical | `+`, `-`, `*`, `/`, `Tensor::min`, `Tensor::max`, `Tensor::clamp`, `Tensor::add_saturated`, `Tensor::subtract_saturated`, and `Tensor::multiply_saturated`, under the exact type matrix below |
 | Integer bits | `&`, `|`, `^`, `~`; shifts after their count semantics are specified |
 | Predicates | `==`, `!=`, `<`, `<=`, `>`, `>=`, predicate `&`, `|`, `~`, and `Tensor::select` |
 | Writes | `destination.assign(expression)` and `destination.fill(value)` |
 | Predicate terminals | `Tensor::any`, `Tensor::all`, `Tensor::count`, and `Tensor::pack_bits` |
 | Subsequent additions | `Tensor::sum`, `Tensor::min_value`, `Tensor::max_value`, `Tensor::dot`, and explicitly typed numerical conversion |
+
+### Saturated arithmetic contract
+
+The complete initial Tensor saturation surface consists of the following three
+element-wise expression builders. Let `sat_T(x)` mean the mathematical integer
+`x` clamped to `[numeric_limits<T>::min(), numeric_limits<T>::max()]`. This is
+a semantic definition, not an instruction to perform overflowing C++ arithmetic
+and clamp the wrapped result afterward.
+
+| Public expression | Logical result at index `i` | Initial ordinary element types |
+| --- | --- | --- |
+| `Tensor::add_saturated(a, b)` | `sat_T(a[i] + b[i])` | `int8_t`, `uint8_t`, `int16_t`, `uint16_t` |
+| `Tensor::subtract_saturated(a, b)` | `sat_T(a[i] - b[i])` | `int8_t`, `uint8_t`, `int16_t`, `uint16_t` |
+| `Tensor::multiply_saturated(a, b)` | `sat_T(a[i] * b[i])` | `int16_t`, `uint16_t` |
+
+The type matrix applies at both 128 and 256 bits when that compiled backend is
+available. These types mirror the existing public Api paths: add/subtract have
+explicit forwarding methods in [Api.h](../include/SimdLib/Api.h), while the
+16-bit multiplication operation is inherited through its implementation mapping.
+The [existing SimdVector saturation methods](../include/SimdLib/SimdVector.h)
+also call these Api operations. Tensor calls the public Api surface, never
+`Detail` implementation types directly. Source availability is not a substitute
+for qualifying the full numerical contract before exposing a Tensor operation.
+
+Each builder accepts two same-element-type ordinary views/expressions, or one
+such operand and a scalar of exactly that element type on either side. Const
+qualification of source storage does not change its numerical type. Scalars
+bind and broadcast through `ScalarExpression`; there are no implicit promotions,
+mixed signedness, or narrowing scalar conversions. The result is a lazy
+expression of the same element type and logical extent. Existing extent,
+no-allocation, exact-alias, and iterator-lifetime rules apply. No input mutation
+occurs until an explicit terminal evaluates and stores the result.
+
+Signed results clamp at either endpoint; unsigned addition/multiplication clamp
+at the maximum, and unsigned subtraction clamps at zero. Saturation itself is
+defined behavior, not a failed precondition. No overflow flag is returned. Each
+node saturates before its parent executes, so fusion must retain that ordering:
+for signed 8-bit values, saturated `(120 + 20)` followed by saturated subtraction
+of 20 yields 107, whereas saturating the mathematical combined expression only
+once would yield 120. Do not reassociate operations across saturation boundaries.
+Ordinary arithmetic operators retain their existing modular integer semantics.
+
+```cpp
+TensorView<const std::uint8_t> input{inputBytes};
+TensorView<std::uint8_t> output{outputBytes};
+output.assign(Tensor::add_saturated(input, std::uint8_t{20}));
+output.assign(Tensor::subtract_saturated(std::uint8_t{100}, input));
+
+TensorView<const std::uint16_t> factors{factorWords};
+TensorView<std::uint16_t> products{productWords};
+products.assign(Tensor::multiply_saturated(factors, std::uint16_t{40000}));
+```
+
+Complete batches, iterator results, and replicated-tuple tails all use the same
+SIMD operation node. Unsigned 16-bit multiplication must handle the full product
+range through `65535 * 65535`, clamping to 65535 even when a widened product has
+bit 31 set. Independently qualify the inherited multiplication path for that
+case; signed interpretation during final packing must not turn a large unsigned
+product into zero. Any necessary backend correction belongs before the Tensor
+operation's acceptance gate, not in a duplicate Tensor scalar implementation.
+
+The following are explicitly outside the initial Tensor saturation surface:
+
+| Category | Disposition |
+| --- | --- |
+| Saturated add/subtract on 32-/64-bit integers, saturated multiply on 8-/32-/64-bit integers | No initial overloads; require additional qualified SIMD backend support |
+| Saturated packed 1-/2-/4-bit arithmetic | Deferred with packed arithmetic; the saturation bound would be the logical field range, not the storage word range |
+| Saturated floating arithmetic | No initial overloads; integer saturation does not define floating NaN, infinity, or overflow policy |
+| `Api::hadd_saturated` / `hsubtract_saturated`, exposed by Register as horizontal saturated operations | Retain their low-level role; cross-lane grouping, result order, and boundary behavior need a separate Tensor contract |
+| `Api::magnitude_checked` and specialized saturating pair arithmetic | Retain their low-level role; grouped magnitudes, overflow masks, and promoted pair results are not these element-wise operations |
+| Saturated division, remainder, negation, absolute value, or combined multiply-add | No initial Tensor overloads; separate contracts and backend qualification would be required |
+| Saturated numerical conversions and reductions | Deferred with conversion/reduction work; saturation point and rounding/accumulation order must be specified there |
+
+### Selection and custom operations
 
 Selection evaluates both value branches; it is not scalar short-circuit
 control flow. For example, `Tensor::select(x != 0, 1 / x, 0)` must not be advertised
@@ -637,6 +732,16 @@ boundaries, mask ordering, and final-word padding. Include compile rejection
 for mismatched static extents, mutation through const elements, unsupported
 types, and temporary owning sources.
 
+For the three saturated operations, test every admitted element type at both
+supported widths against independent wider-integer oracles. Cover exact
+endpoints, one-step overflow/underflow, signed minimum/maximum and negative
+products, unsigned products above `INT32_MAX`, zero/one, and mixed unsaturated
+and saturated lanes. Include scalar operands on either side, nested saturation
+order, empty inputs, short/staged tails, exact aliases, and iterator extraction.
+Reject every excluded type/operation combination at compile time, including
+packed arithmetic and mixed scalar types. Qualify inherited multiply before
+claiming the Tensor multiplication contract is supported.
+
 Verify range concepts, iterator copies and random-access jumps, repeated
 dereference caching, logical order, bound scalar extents, and agreement between
 extracted iteration and bulk evaluation. Confirm both routes invoke the same
@@ -645,6 +750,9 @@ conversion with valid input tuples that would fail under naive zero padding;
 verify no invalid inactive-lane arithmetic and no out-of-bounds stores. Check
 that constants are prepared outside the batch loop. Scalar reference oracles
 belong in tests only, not as a production expression execution mode.
+Check that expression types do not opt into borrowed-range behavior, and that
+standard algorithms on rvalue expressions use dangling-safe return types.
+Do not dereference invalid iterators to test the root-expression lifetime rule.
 
 For packed views, verify every supported field/storage width against an
 independent per-element oracle. Include singleton, duplicate, multiple, empty,
@@ -656,6 +764,9 @@ explicitly to catch fixed final-batch bounds, and the 2,048-element voxel exampl
 Verify mutation preserves neighboring fields, write range checks occur before
 narrowing, candidate/output overlap is excluded, and all/count/any ignore padding.
 Qualify both BMI2-enabled and portable compaction independently of SIMD width.
+Reject mixed packed field widths and storage-word types at compile time while
+accepting read-only/mutable source combinations of the same underlying geometry,
+matching logical lengths, and independently offset subviews.
 
 Compare against existing SimdAlgo on its supported valid inputs. Check focused
 and umbrella headers, C++20 core integration, constexpr subsets, installation,
@@ -685,5 +796,8 @@ traversal for representative expressions, correct tails and aliases, and no
 material regression against equivalent fused Api kernels. Set numerical
 regression budgets before measurements. No speedup or strict zero-overhead
 claim is established by this document. Ownership naming, flat/shaped separation,
-and the expression/terminal model are the principal design decisions to settle
-before implementation.
+the shared expression/terminal model, matching packed operand geometry, and
+borrowed expression-iterator lifetime are recorded design decisions. The initial
+saturation operation set and its type matrix are defined above. Implementation
+planning must preserve these contracts and distinguish initial delivery from
+the explicitly deferred extensions.
