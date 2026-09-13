@@ -175,7 +175,7 @@ if(SIMDLIB_BUILD_RUNTIME_TESTS)
 		endif()
 	endif()
 
-	if(SIMDLIB_BUILD_API_SSE42_TESTS)
+    if(SIMDLIB_BUILD_API_SSE42_TESTS)
 		simdlib_add_catch_test(ImplHalfTransfer128Tests tests/ImplementationHalfTransfer.tests.cpp
 			Implementation.HalfTransfer128 "IMPLEMENTATION;PARTIAL_TRANSFER;SSE42")
 		target_compile_definitions(ImplHalfTransfer128Tests PRIVATE
@@ -235,7 +235,7 @@ if(SIMDLIB_BUILD_RUNTIME_TESTS)
             target_compile_definitions(${uint128_target} PRIVATE
                 SIMDLIB_TEST_CONSTEXPR_ASSERTIONS=$<BOOL:${SIMDLIB_BUILD_CONSTEXPR_PROBES}>)
         endforeach()
-		target_compile_definitions(UInt128PortableTests PRIVATE
+        target_compile_definitions(UInt128PortableTests PRIVATE
 			SIMDLIB_USE_COMPILER_CARRY_INTRINSICS=0 SIMDLIB_EXPECT_CARRY_PATH=0 SIMDLIB_HAS_BMI1=0)
 		target_compile_definitions(UInt128ScalarTests PRIVATE SIMDLIB_EXPECT_CARRY_PATH=0)
 		target_compile_definitions(UInt128OptimizedTests PRIVATE SIMDLIB_HAS_BMI1=1)
@@ -258,7 +258,7 @@ if(SIMDLIB_BUILD_RUNTIME_TESTS)
 				target_compile_options(UInt128OptimizedTests PRIVATE /arch:AVX2)
 				target_compile_options(UInt128PortableTests PRIVATE /arch:AVX2)
 			endif()
-		else()
+        else()
 			target_compile_options(UInt128OptimizedTests PRIVATE -msse4.2 -mbmi)
 			target_compile_options(UInt128PortableTests PRIVATE -msse4.2 -mno-bmi)
         endif()
@@ -279,7 +279,7 @@ if(SIMDLIB_BUILD_RUNTIME_TESTS)
 		simdlib_register_development_test(UInt128ScalarResultSetEquivalence RUNTIME_VALIDATION)
     endif()
 
-	if(SIMDLIB_BUILD_API_AVX2_TESTS)
+    if(SIMDLIB_BUILD_API_AVX2_TESTS)
 		simdlib_add_catch_test(ImplHalfTransfer256Tests tests/ImplementationHalfTransfer.tests.cpp
 			Implementation.HalfTransfer256 "IMPLEMENTATION;PARTIAL_TRANSFER;AVX2")
 		target_compile_definitions(ImplHalfTransfer256Tests PRIVATE

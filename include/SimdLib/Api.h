@@ -412,42 +412,6 @@ struct Api : public Detail::SimdMappings<register_width, element_t>
 		}
 	}
 
-	/** @brief Finishes integer magnitude by summing the SIMD-produced pairwise squares per 128-bit lane and broadcasting the root.
-	 *  @tparam partial_element_t Integer lane type produced by the first pairwise square-and-sum step.
-	 *  @param pairSums Register containing `x*x + y*y` style partial sums for each 128-bit lane group.
-	 *  @return Register containing the lane-local magnitudes broadcast to every source lane.
-	 */
-	template <class partial_element_t>
-	SIMDLIB_FORCE_INLINE static vector_t VECTORCALL
-	FinishIntegerMagnitudeFromPairSums(typename Api<register_width, partial_element_t>::vector_t pairSums) noexcept
-	{
-		using partial_simd = Api<register_width, partial_element_t>;
-		using accumulation_t = std::conditional_t<std::is_signed_v<partial_element_t>, int64_t, uint64_t>;
-		constexpr std::size_t LaneGroupCount = register_width / 128;
-		constexpr std::size_t SourceLaneWidth = element_count / LaneGroupCount;
-		constexpr std::size_t PartialLaneWidth = partial_simd::element_count / LaneGroupCount;
-
-		const auto partialValues = partial_simd::to_array(pairSums);
-		std::array<element_t, element_count> output{};
-		for (std::size_t groupIndex = 0; groupIndex < LaneGroupCount; ++groupIndex)
-		{
-			accumulation_t total{};
-			const std::size_t partialStart = groupIndex * PartialLaneWidth;
-			for (std::size_t partialOffset = 0; partialOffset < PartialLaneWidth; ++partialOffset)
-			{
-				total += static_cast<accumulation_t>(partialValues[partialStart + partialOffset]);
-			}
-
-			const element_t laneMagnitude = static_cast<element_t>(std::round(std::sqrt(static_cast<long double>(total))));
-			const std::size_t laneStart = groupIndex * SourceLaneWidth;
-			for (std::size_t laneOffset = 0; laneOffset < SourceLaneWidth; ++laneOffset)
-			{
-				output[laneStart + laneOffset] = laneMagnitude;
-			}
-		}
-
-		return construct(output);
-	}
 #pragma endregion
 
 #pragma region Arithmetic Operations
