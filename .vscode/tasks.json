@@ -103,7 +103,7 @@
             "args": [
                 "-NoProfile",
                 "-Command",
-                "& clang-format -i --style=file --fallback-style=none @(& git ls-files -- '*.c' '*.cc' '*.cpp' '*.cxx' '*.h' '*.hh' '*.hpp' '*.hxx' '*.inl' '*.ipp' '*.cu' '*.cuh')"
+                "$clangFormat = (Get-Command clang-format -ErrorAction SilentlyContinue).Source; if (-not $clangFormat) { $llvmFormat = Join-Path $env:ProgramFiles 'LLVM\\bin\\clang-format.exe'; if (Test-Path $llvmFormat) { $clangFormat = $llvmFormat } }; if (-not $clangFormat) { throw 'clang-format was not found on PATH or in C:\\Program Files\\LLVM\\bin' }; & $clangFormat -i --style=file --fallback-style=none @(git ls-files -- '*.c' '*.cc' '*.cpp' '*.cxx' '*.h' '*.hh' '*.hpp' '*.hxx' '*.inl' '*.ipp' '*.cu' '*.cuh')"
             ],
             "options": {
                 "cwd": "${workspaceFolder}"
