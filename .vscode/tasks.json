@@ -23,7 +23,7 @@
             },
             "group": {
                 "kind": "build",
-                "isDefault": true
+                "isDefault": false
             },
             "detail": "Builds the complete native and container validation matrix without benchmark artifacts."
         },
