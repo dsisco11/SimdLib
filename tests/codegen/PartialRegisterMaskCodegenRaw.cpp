@@ -13,19 +13,22 @@ constexpr std::size_t partial_codegen_active_lane_count = SIMDLIB_PARTIAL_MASK_C
 namespace
 {
 
+using partial_mask_api_t = SimdLib::Api<SIMDLIB_PARTIAL_MASK_CODEGEN_WIDTH, std::uint32_t>;
+
+/** @brief Native all-one active prefix used by raw partial-predicate operations. */
+constexpr inline auto partial_mask_active_lane_filter = []() constexpr
+{
+	std::array<std::uint32_t, partial_mask_api_t::element_count> lanes{};
+	for (std::size_t lane = 0; lane < partial_codegen_active_lane_count; ++lane)
+		lanes[lane] = 0xffffffffU;
+	return lanes;
+}();
+
 /** @brief Clears the inactive suffix required by the partial-predicate invariant. */
 [[nodiscard]] constexpr typename SimdLib::Api<SIMDLIB_PARTIAL_MASK_CODEGEN_WIDTH, std::uint32_t>::vector_t normalize_partial_mask_native(
 	typename SimdLib::Api<SIMDLIB_PARTIAL_MASK_CODEGEN_WIDTH, std::uint32_t>::vector_t native) noexcept
 {
-	using api_t = SimdLib::Api<SIMDLIB_PARTIAL_MASK_CODEGEN_WIDTH, std::uint32_t>;
-	constexpr auto active_lane_filter = []() constexpr
-	{
-		std::array<std::uint32_t, api_t::element_count> lanes{};
-		for (std::size_t lane = 0; lane < partial_codegen_active_lane_count; ++lane)
-			lanes[lane] = 0xffffffffU;
-		return lanes;
-	}();
-	return api_t::bitwise_and(native, api_t::construct(active_lane_filter));
+	return partial_mask_api_t::bitwise_and(native, partial_mask_api_t::construct(partial_mask_active_lane_filter));
 }
 
 } // namespace
@@ -38,7 +41,7 @@ extern "C" [[nodiscard]] typename SimdLib::Api<SIMDLIB_PARTIAL_MASK_CODEGEN_WIDT
 	using api_t = SimdLib::Api<SIMDLIB_PARTIAL_MASK_CODEGEN_WIDTH, std::uint32_t>;
 	const auto normalized_rhs = normalize_partial_mask_native(rhs);
 	const auto normalized_lhs = normalize_partial_mask_native(lhs);
-	return normalize_partial_mask_native(api_t::bitwise_not(api_t::bitwise_xor(normalized_rhs, normalized_lhs)));
+	return api_t::bitwise_xor(api_t::bitwise_xor(normalized_rhs, normalized_lhs), api_t::construct(partial_mask_active_lane_filter));
 }
 
 /** @brief Raw Api mirror for the PartialRegister inactive-lane projection boundary. */

@@ -79,7 +79,7 @@ class PartialRegisterMask final
 		else
 		{
 			using byte_api_type = Api<register_width, std::uint8_t>;
-			const auto bits = api_type::template bit_cast<std::uint8_t>(value.native);
+			const auto bits = api_type::template bit_cast<std::uint8_t>(value.to_native());
 			// The inactive suffix is zero, so any set bit in the physical register proves that an active predicate lane is true.
 			return byte_api_type::testz(bits, bits) == 0;
 		}
@@ -101,9 +101,9 @@ class PartialRegisterMask final
 				const auto active_filter = api_type::construct(active_lane_filter);
 				// Containment by the active-lane filter proves every logical predicate true while ignoring the zero inactive suffix.
 				if constexpr (register_width == 128)
-					return _mm_testc_si128(value.native, active_filter) != 0;
+					return _mm_testc_si128(value.to_native(), active_filter) != 0;
 				else
-					return _mm256_testc_si256(value.native, active_filter) != 0;
+					return _mm256_testc_si256(value.to_native(), active_filter) != 0;
 			}
 			else
 			{
@@ -126,7 +126,7 @@ class PartialRegisterMask final
 		else
 		{
 			using byte_api_type = Api<register_width, std::uint8_t>;
-			const auto bits = api_type::template bit_cast<std::uint8_t>(value.native);
+			const auto bits = api_type::template bit_cast<std::uint8_t>(value.to_native());
 			// Testing the complete physical register is valid because every inactive predicate lane is always zero.
 			return byte_api_type::testz(bits, bits) != 0;
 		}
@@ -180,11 +180,12 @@ class PartialRegisterMask final
 		return PartialRegisterMask{api_type::bitwise_xor(lhs.to_native(), rhs.to_native())};
 	}
 
-	/** @brief Inverts active predicate lanes and explicitly clears the inactive predicate suffix. */
+	/** @brief Inverts active predicate lanes while preserving the false inactive predicate suffix. */
 	[[nodiscard]] constexpr PartialRegisterMask SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) operator~(this PartialRegisterMask value) noexcept
-		requires IApi::BitwiseNot<api_type> && IApi::BitwiseAnd<api_type>
+		requires IApi::BitwiseXor<api_type>
 	{
-		return PartialRegisterMask{normalize_native(api_type::bitwise_not(value.to_native()))};
+		// XOR with the active-lane filter complements the logical predicates without turning the zero inactive suffix into true lanes.
+		return PartialRegisterMask{api_type::bitwise_xor(value.to_native(), api_type::construct(active_lane_filter))};
 	}
 
   private:

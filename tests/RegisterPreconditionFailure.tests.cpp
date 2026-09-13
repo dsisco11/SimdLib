@@ -132,6 +132,36 @@ TEST_CASE("PartialRegisterMask rejects a true inactive lane from direct aggregat
 	FAIL("PartialRegisterMask accepted a true inactive lane from direct aggregate initialization");
 }
 
+TEST_CASE("PartialRegisterMask any rejects a true inactive lane", "[simdlib][partial_register][preconditions]")
+{
+	using mask_type = SimdLib::PartialRegisterMask<std::uint32_t, 128, 3>;
+	using api_type = typename mask_type::api_type;
+	std::array<std::uint32_t, mask_type::native_lane_count> lanes{};
+	lanes[3] = 0xffffffffU;
+	(void)mask_type{api_type::construct(lanes)}.any();
+	FAIL("PartialRegisterMask any accepted a true inactive lane");
+}
+
+TEST_CASE("PartialRegisterMask all rejects a true inactive lane", "[simdlib][partial_register][preconditions]")
+{
+	using mask_type = SimdLib::PartialRegisterMask<std::uint16_t, 128, 7>;
+	using api_type = typename mask_type::api_type;
+	std::array<std::uint16_t, mask_type::native_lane_count> lanes{};
+	lanes[7] = 0xffffU;
+	(void)mask_type{api_type::construct(lanes)}.all();
+	FAIL("PartialRegisterMask all accepted a true inactive lane");
+}
+
+TEST_CASE("PartialRegisterMask none rejects a true inactive lane", "[simdlib][partial_register][preconditions]")
+{
+	using mask_type = SimdLib::PartialRegisterMask<std::uint32_t, 128, 3>;
+	using api_type = typename mask_type::api_type;
+	std::array<std::uint32_t, mask_type::native_lane_count> lanes{};
+	lanes[3] = 0xffffffffU;
+	(void)mask_type{api_type::construct(lanes)}.none();
+	FAIL("PartialRegisterMask none accepted a true inactive lane");
+}
+
 TEST_CASE("PartialRegister aligned load rejects a misaligned active source", "[simdlib][partial_register][preconditions]")
 {
 	using value_type = SimdLib::PartialRegister<std::uint32_t, 128, 3>;

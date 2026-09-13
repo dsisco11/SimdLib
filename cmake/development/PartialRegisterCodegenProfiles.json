@@ -68,8 +68,8 @@
       "registerWidth": 128,
       "isaProfile": "SSE42",
       "reason": "msvc-gs-predicate-composition-cookie",
-      "wrapperSha256": "40d3d2c14684c7cf4f7ec54e2745a71cc9c96ca77045f8e20e1d2cf2125f5d0f",
-      "rawSha256": "274480001869ad12ae5da9e9bfc801eb9823aa555ef42c2dd70ca4d37fb61c2a"
+      "wrapperSha256": "4b0a2ae71fda1c5313ef89b6d675720c07faed6f6bb4a13616a32a0e761ea908",
+      "rawSha256": "f68da8e931089451ff02324ba929d6f225723ad65d528b3c9a58d99d52bf2d46"
     },
     {
       "compiler": "msvc",
@@ -78,8 +78,8 @@
       "registerWidth": 256,
       "isaProfile": "AVX2",
       "reason": "msvc-gs-predicate-composition-cookie",
-      "wrapperSha256": "d080a20d867fa7df30bb9ea1701ec5199900025e9629b4fbc25ee317d9e7a890",
-      "rawSha256": "c93ce1d1b5f1089deb799e23ed0e17deb3049498e50c10c37d65905296dfa555"
+      "wrapperSha256": "680664badb890acbe406dfe8d2d9325347c95a189cfcf94e79485094378d2aee",
+      "rawSha256": "71f62ae0b682328689652fa728398af5e7b87b8e0f48608254a564716025712b"
     },
     {
       "compiler": "msvc",
@@ -89,7 +89,7 @@
       "isaProfile": "SSE42",
       "reason": "msvc-equivalent-import-normalization-gs-and-value-operation-allocation",
       "wrapperSha256": "e500054cea61f6aabcebf97fadf9264b6de112e5d00519119b9ed093d70239dd",
-      "rawSha256": "9c085b63a9217f371422e89c09f4984b04cd0b37c3e780d3cb9bc4356f9857d1"
+      "rawSha256": "7e4902f5e0d7265c27a3460772a31ddd2e34a31a2a2ae1e3b0258c9a67e78c4d"
     },
     {
       "compiler": "msvc",
@@ -99,7 +99,7 @@
       "isaProfile": "AVX2",
       "reason": "msvc-equivalent-import-normalization-gs-and-value-operation-allocation",
       "wrapperSha256": "c6addf1f03722e3402215409c4f7c076ee16deecabcead203205e8e89d581ad8",
-      "rawSha256": "94367252b5828ebb560c32fdbcc95014c0991337a8adac50a808404378fa0d5c"
+      "rawSha256": "0269532845a4a093dc88dff99c2be6660c075d41e7aee860b454926d9a4d36d4"
     },
     {
       "compiler": "msvc",
