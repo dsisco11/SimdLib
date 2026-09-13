@@ -7,13 +7,15 @@
 #endif
 
 #include <SimdLib/IPartialRegisterMask.h>
-#include <SimdLib/PartialRegister.h>
+#include <SimdLib/PartialRegisterFwd.h>
 
 #include <algorithm>
 #include <array>
 #include <bit>
+#include <concepts>
 #include <cstddef>
 #include <cstdint>
+#include <type_traits>
 
 namespace SimdLib
 {
@@ -70,28 +72,72 @@ class PartialRegisterMask final
 	[[nodiscard]] constexpr bool SIMD_FLAGS(In, RegisterOnly, ForceInline, Flatten) any(this PartialRegisterMask value) noexcept
 		requires IApi::MovemaskSlim<api_type>
 	{
-		return value.bits() != 0;
+		if consteval
+		{
+			return value.bits() != 0;
+		}
+		else
+		{
+			using byte_api_type = Api<register_width, std::uint8_t>;
+			const auto bits = api_type::template bit_cast<std::uint8_t>(value.native);
+			// The inactive suffix is zero, so any set bit in the physical register proves that an active predicate lane is true.
+			return byte_api_type::testz(bits, bits) == 0;
+		}
 	}
 
 	/** @brief Tests whether every active predicate lane is true, ignoring false inactive lanes. */
 	[[nodiscard]] constexpr bool SIMD_FLAGS(In, RegisterOnly, ForceInline, Flatten) all(this PartialRegisterMask value) noexcept
 		requires IApi::MovemaskSlim<api_type>
 	{
-		return value.bits() == active_bits;
+		if consteval
+		{
+			return value.bits() == active_bits;
+		}
+		else
+		{
+#if SIMDLIB_TARGET_X86
+			if constexpr (sizeof(element_type) == 2)
+			{
+				const auto active_filter = api_type::construct(active_lane_filter);
+				// Containment by the active-lane filter proves every logical predicate true while ignoring the zero inactive suffix.
+				if constexpr (register_width == 128)
+					return _mm_testc_si128(value.native, active_filter) != 0;
+				else
+					return _mm256_testc_si256(value.native, active_filter) != 0;
+			}
+			else
+			{
+				return value.bits() == active_bits;
+			}
+#else
+			return value.bits() == active_bits;
+#endif
+		}
 	}
 
 	/** @brief Tests whether every active predicate lane is false. */
 	[[nodiscard]] constexpr bool SIMD_FLAGS(In, RegisterOnly, ForceInline, Flatten) none(this PartialRegisterMask value) noexcept
 		requires IApi::MovemaskSlim<api_type>
 	{
-		return value.bits() == 0;
+		if consteval
+		{
+			return value.bits() == 0;
+		}
+		else
+		{
+			using byte_api_type = Api<register_width, std::uint8_t>;
+			const auto bits = api_type::template bit_cast<std::uint8_t>(value.native);
+			// Testing the complete physical register is valid because every inactive predicate lane is always zero.
+			return byte_api_type::testz(bits, bits) != 0;
+		}
 	}
 
 	/** @brief Returns one compact Boolean bit for each active predicate lane. */
 	[[nodiscard]] constexpr bits_type SIMD_FLAGS(In, RegisterOnly, ForceInline, Flatten) bits(this PartialRegisterMask value) noexcept
 		requires IApi::MovemaskSlim<api_type>
 	{
-		return static_cast<bits_type>(api_type::movemask_slim(value.to_native())) & active_bits;
+		// The inactive predicate suffix is zero by invariant, so the compact native mask already contains only logical-lane bits.
+		return static_cast<bits_type>(api_type::movemask_slim(value.to_native()));
 	}
 
 	/**
@@ -100,12 +146,14 @@ class PartialRegisterMask final
 	 * @param when_true Value supplying true-selected active lanes.
 	 * @param when_false Value supplying false-selected active lanes.
 	 * @return A PartialRegister with selected active lanes and a bitwise-zero inactive suffix.
+	 * @tparam selected_register_t Delayed associated value type used to avoid requiring PartialRegister while this mask specialization is incomplete.
 	 */
-	[[nodiscard]] constexpr register_type SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten)
-		select(this PartialRegisterMask condition, register_type when_true, register_type when_false) noexcept
-		requires IApi::Select<api_type>
+	template <class selected_register_t = register_type>
+	[[nodiscard]] constexpr selected_register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten)
+		select(this PartialRegisterMask condition, selected_register_t when_true, selected_register_t when_false) noexcept
+		requires std::same_as<selected_register_t, register_type> && IApi::Select<api_type>
 	{
-		return register_type{api_type::select(condition.to_native(), when_true.to_native(), when_false.to_native())};
+		return selected_register_t{api_type::select(condition.to_native(), when_true.to_native(), when_false.to_native())};
 	}
 
 	/** @brief Computes the intersection of two partial predicates. */
@@ -218,3 +266,5 @@ class PartialRegisterMask final
 };
 
 } // namespace SimdLib
+
+#include <SimdLib/PartialRegister.h>

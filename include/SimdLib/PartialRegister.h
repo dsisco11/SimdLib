@@ -8,6 +8,7 @@
 
 #include <SimdLib/IRegister.h>
 #include <SimdLib/PartialRegisterFwd.h>
+#include <SimdLib/PartialRegisterMask.h>
 #include <SimdLib/Register.h>
 
 #include <array>
@@ -39,6 +40,11 @@ class PartialRegister final
 	using api_type = Api<bits, element_type>;
 	using native_type = typename api_type::vector_t;
 	using mask_type = PartialRegisterMask<element_type, bits, active_lane_count>;
+
+	// Instantiate the associated mask before MSVC fixes the return ABI of the
+	// comparison members below. Merely naming the specialization does not make
+	// it complete soon enough to prevent warning C4686 at a chained call site.
+	static_assert(sizeof(mask_type) > 0, "The associated PartialRegisterMask specialization must be complete.");
 
 	constexpr static inline std::size_t register_width = bits;
 	constexpr static inline std::size_t byte_count = api_type::byte_count;
@@ -1332,5 +1338,3 @@ class PartialRegister final
 };
 
 } // namespace SimdLib
-
-#include <SimdLib/PartialRegisterMask.h>
