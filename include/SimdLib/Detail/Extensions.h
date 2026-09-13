@@ -14,6 +14,7 @@
 #endif
 #include <limits>
 #include <type_traits>
+#include <utility>
 
 namespace SimdLib::Detail
 {
@@ -33,71 +34,6 @@ namespace SimdLib::Detail
 template <class Element, class Vector>
 	requires std::is_arithmetic_v<Element> && (sizeof(Vector) % sizeof(Element) == 0)
 constexpr Element SIMD_FLAGS(Neither, ForceInline) register_get_constexpr(const Vector value, const std::size_t index) noexcept
-{
-#if SIMDLIB_COMPILER_MSVC
-	if constexpr (sizeof(Vector) == 16)
-	{
-		if constexpr (std::is_integral_v<Element> && sizeof(Element) == 1 && std::is_unsigned_v<Element>)
-			return value.m128i_u8[index];
-		else if constexpr (std::is_integral_v<Element> && sizeof(Element) == 1)
-			return value.m128i_i8[index];
-		else if constexpr (std::is_integral_v<Element> && sizeof(Element) == 2 && std::is_unsigned_v<Element>)
-			return value.m128i_u16[index];
-		else if constexpr (std::is_integral_v<Element> && sizeof(Element) == 2)
-			return value.m128i_i16[index];
-		else if constexpr (std::is_integral_v<Element> && sizeof(Element) == 4 && std::is_unsigned_v<Element>)
-			return value.m128i_u32[index];
-		else if constexpr (std::is_integral_v<Element> && sizeof(Element) == 4)
-			return value.m128i_i32[index];
-		else if constexpr (std::is_integral_v<Element> && sizeof(Element) == 8 && std::is_unsigned_v<Element>)
-			return value.m128i_u64[index];
-		else if constexpr (std::is_integral_v<Element> && sizeof(Element) == 8)
-			return value.m128i_i64[index];
-		else if constexpr (std::same_as<Element, float>)
-			return value.m128_f32[index];
-		else
-			return value.m128d_f64[index];
-	}
-	else
-	{
-		if constexpr (std::is_integral_v<Element> && sizeof(Element) == 1 && std::is_unsigned_v<Element>)
-			return value.m256i_u8[index];
-		else if constexpr (std::is_integral_v<Element> && sizeof(Element) == 1)
-			return value.m256i_i8[index];
-		else if constexpr (std::is_integral_v<Element> && sizeof(Element) == 2 && std::is_unsigned_v<Element>)
-			return value.m256i_u16[index];
-		else if constexpr (std::is_integral_v<Element> && sizeof(Element) == 2)
-			return value.m256i_i16[index];
-		else if constexpr (std::is_integral_v<Element> && sizeof(Element) == 4 && std::is_unsigned_v<Element>)
-			return value.m256i_u32[index];
-		else if constexpr (std::is_integral_v<Element> && sizeof(Element) == 4)
-			return value.m256i_i32[index];
-		else if constexpr (std::is_integral_v<Element> && sizeof(Element) == 8 && std::is_unsigned_v<Element>)
-			return value.m256i_u64[index];
-		else if constexpr (std::is_integral_v<Element> && sizeof(Element) == 8)
-			return value.m256i_i64[index];
-		else if constexpr (std::same_as<Element, float>)
-			return value.m256_f32[index];
-		else
-			return value.m256d_f64[index];
-	}
-#else
-	return std::bit_cast<std::array<Element, sizeof(Vector) / sizeof(Element)>>(value)[index];
-#endif
-}
-
-/**
- * @brief Reads one runtime lane through the portable native-register representation.
- * @tparam Element Scalar lane type.
- * @tparam Vector Compiler-native register type.
- * @param value Source register.
- * @param index Selected lane index.
- * @return Selected scalar lane.
- * @note This fallback may materialize addressable storage and must not be used by register-only operation paths.
- */
-template <class Element, class Vector>
-	requires std::is_arithmetic_v<Element> && (sizeof(Vector) % sizeof(Element) == 0)
-Element SIMD_FLAGS(Neither, ForceInline) register_get(const Vector value, const std::size_t index) noexcept
 {
 #if SIMDLIB_COMPILER_MSVC
 	if constexpr (sizeof(Vector) == 16)
@@ -219,23 +155,111 @@ constexpr void SIMD_FLAGS(Neither, ForceInline) register_set_constexpr(Vector &v
 #endif
 }
 
+/**
+ * @brief Constructs a native register from a complete forward-order lane array.
+ * @tparam Vector Compiler-native register type.
+ * @tparam Element Scalar lane type.
+ * @tparam Count Complete logical lane count.
+ * @param lanes Source lanes in increasing register-lane order.
+ * @return Native register containing every source lane.
+ */
 template <class Vector, class Element, std::size_t Count>
 	requires(sizeof(Vector) == sizeof(Element) * Count)
-constexpr Vector SIMD_FLAGS(Neither, ForceInline) register_from_array(const std::array<Element, Count> &lanes) noexcept
+constexpr Vector SIMD_FLAGS(Neither, ForceInline) register_from_array_constexpr(const std::array<Element, Count> &lanes) noexcept
 {
+#if SIMDLIB_COMPILER_MSVC
 	Vector result{};
 	for (std::size_t index = 0; index < Count; ++index)
-	{
 		register_set_constexpr<Element>(result, index, lanes[index]);
-	}
 	return result;
+#else
+	return std::bit_cast<Vector>(lanes);
+#endif
 }
 
 template <class Vector, class Element, class... Args>
 	requires(sizeof(Vector) == sizeof(Element) * sizeof...(Args)) && (std::convertible_to<Args, Element> && ...)
 constexpr Vector SIMD_FLAGS(Neither, ForceInline) register_from_values(Args &&...values) noexcept
 {
-	return register_from_array<Vector>(std::array<Element, sizeof...(Args)>{static_cast<Element>(values)...});
+	return register_from_array_constexpr<Vector>(std::array<Element, sizeof...(Args)>{static_cast<Element>(values)...});
+}
+
+/** @brief Scalar element type generated by one static-register expression. */
+template <auto expression> using static_register_element_t = std::remove_cvref_t<decltype(expression.template operator()<0>())>;
+
+/**
+ * @brief Aligned, typed lane storage shared by constant-evaluated and runtime static-register construction.
+ * @tparam Implementation Native backend defining the resulting register type.
+ * @tparam expression Stateless compile-time lane generator.
+ * @tparam indices Complete forward-order lane index sequence.
+ */
+template <class Implementation, auto expression, std::size_t... indices>
+alignas(sizeof(decltype(Implementation::setr(expression.template operator()<indices>()...)))) inline constexpr static_register_element_t<expression>
+	static_register_lanes[sizeof...(indices)]{expression.template operator()<indices>()...};
+
+/**
+ * @brief Expands a static lane generator over the complete inferred register geometry.
+ * @tparam Implementation Native backend providing `set1` and the runtime `setr` constructor.
+ * @tparam expression Stateless compile-time lane generator invoked as `expression.operator()<index>()`.
+ * @tparam indices Internally generated forward-order lane indices.
+ * @return Native register containing the generated lane sequence.
+ */
+template <class Implementation, auto expression, std::size_t... indices>
+constexpr auto SIMD_FLAGS(Out, RegisterOnly, ForceInline, Flatten) make_static_register_from_indices(std::index_sequence<indices...>) noexcept
+{
+	using element_type = std::remove_cvref_t<decltype(expression.template operator()<0>())>;
+	using vector_type = decltype(Implementation::setr(expression.template operator()<indices>()...));
+	constexpr auto &lanes = static_register_lanes<Implementation, expression, indices...>;
+	if (std::is_constant_evaluated())
+	{
+		vector_type result{};
+		(register_set_constexpr<element_type>(result, indices, lanes[indices]), ...);
+		return result;
+	}
+
+#if SIMDLIB_TARGET_X86
+	// Load the typed static data directly so runtime construction never evaluates or stores individual lanes.
+	if constexpr (sizeof(vector_type) == 16)
+	{
+		if constexpr (std::is_integral_v<element_type>)
+			return _mm_load_si128(reinterpret_cast<const __m128i *>(lanes));
+		else if constexpr (std::same_as<element_type, float>)
+			return _mm_load_ps(lanes);
+		else
+			return _mm_load_pd(lanes);
+	}
+	else
+	{
+		if constexpr (std::is_integral_v<element_type>)
+			return _mm256_load_si256(reinterpret_cast<const __m256i *>(lanes));
+		else if constexpr (std::same_as<element_type, float>)
+			return _mm256_load_ps(lanes);
+		else
+			return _mm256_load_pd(lanes);
+	}
+#else
+	return Implementation::setr(expression.template operator()<indices>()...);
+#endif
+}
+
+/**
+ * @brief Constructs a native register from one stateless compile-time lane generator.
+ * @tparam Implementation Native backend providing `set1` and the runtime `setr` constructor.
+ * @tparam Expression Stateless generator type with a templated zero-argument call operator.
+ * @param generator Generator used only for type deduction; its stateless type defines the compile-time expression.
+ * @return Native register containing one generated value per inferred logical lane.
+ * @remarks The helper owns register-width discovery and index-sequence expansion. Constant evaluation uses the portable lane writer; runtime loads the same typed, aligned static lane data.
+ */
+template <class Implementation, class Expression>
+	requires std::is_empty_v<std::remove_cvref_t<Expression>> && std::is_default_constructible_v<std::remove_cvref_t<Expression>>
+constexpr auto SIMD_FLAGS(Out, RegisterOnly, ForceInline, Flatten) make_static_register([[maybe_unused]] Expression generator) noexcept
+{
+	using expression_type = std::remove_cvref_t<Expression>;
+	constexpr expression_type expression{};
+	using element_type = std::remove_cvref_t<decltype(expression.template operator()<0>())>;
+	using vector_type = decltype(Implementation::set1(expression.template operator()<0>()));
+	constexpr std::size_t lane_count = sizeof(vector_type) / sizeof(element_type);
+	return make_static_register_from_indices<Implementation, expression>(std::make_index_sequence<lane_count>{});
 }
 
 /** @brief Constructs a constant-evaluated native register with every lane set to one value.
@@ -250,7 +274,7 @@ constexpr Vector SIMD_FLAGS(Neither, ForceInline) register_from_repeated_value(c
 {
 	std::array<Element, sizeof(Vector) / sizeof(Element)> lanes{};
 	lanes.fill(value);
-	return register_from_array<Vector>(lanes);
+	return register_from_array_constexpr<Vector>(lanes);
 }
 
 template <class Element, class Vector> constexpr auto SIMD_FLAGS(Neither, ForceInline) register_to_array(const Vector value) noexcept
@@ -292,16 +316,16 @@ constexpr Vector SIMD_FLAGS(Neither, ForceInline) register_insert_constexpr(Vect
 	return value;
 }
 
-/** @brief Emulates an immediate-controlled lane blend with a runtime scalar mask.
+/** @brief Evaluates an immediate-controlled lane blend through the portable constant-evaluation representation.
  *  @tparam Element Logical lane type.
  *  @tparam Vector Native register type.
  *  @param lhs Source for lanes whose control bits are clear.
  *  @param rhs Source for lanes whose control bits are set.
- *  @param mask Runtime control byte.
+ *  @param mask Immediate control represented during constant evaluation.
  *  @return Register containing the selected lanes.
  */
 template <class Element, class Vector>
-constexpr Vector SIMD_FLAGS(Neither, ForceInline) register_blend_slow(Vector lhs, const Vector rhs, const unsigned int mask) noexcept
+constexpr Vector SIMD_FLAGS(Neither, ForceInline) register_blend_constexpr(Vector lhs, const Vector rhs, const unsigned int mask) noexcept
 {
 	constexpr std::size_t count = sizeof(Vector) / sizeof(Element);
 	for (std::size_t index = 0; index < count; ++index)
@@ -351,7 +375,10 @@ constexpr Vector SIMD_FLAGS(Neither, ForceInline) register_shuffle_float_slow(co
 		result[lane + 2] = right[lane + ((control >> 4) & 0x3u)];
 		result[lane + 3] = right[lane + ((control >> 6) & 0x3u)];
 	}
-	return register_from_array<Vector>(result);
+	if constexpr (sizeof(Vector) == 16)
+		return _mm_loadu_ps(result.data());
+	else
+		return _mm256_loadu_ps(result.data());
 }
 
 /** @brief Emulates a double shuffle with a runtime control byte.
@@ -373,7 +400,10 @@ constexpr Vector SIMD_FLAGS(Neither, ForceInline) register_shuffle_double_slow(c
 		result[lane] = left[lane + (lane_control & 0x1u)];
 		result[lane + 1] = right[lane + ((lane_control >> 1) & 0x1u)];
 	}
-	return register_from_array<Vector>(result);
+	if constexpr (sizeof(Vector) == 16)
+		return _mm_loadu_pd(result.data());
+	else
+		return _mm256_loadu_pd(result.data());
 }
 
 /** @brief Emulates a 32-bit shuffle with a runtime control byte.
@@ -394,7 +424,7 @@ constexpr Vector SIMD_FLAGS(InOut, RegisterOnly, ForceInline) register_shuffle_3
 			for (std::size_t index = 0; index < 4; ++index)
 				result[lane + index] = source[lane + ((control >> (index * 2)) & 0x3u)];
 		}
-		return register_from_array<Vector>(result);
+		return register_from_array_constexpr<Vector>(result);
 	}
 
 	const int index0 = static_cast<int>(control & 0x3u);
@@ -436,7 +466,7 @@ constexpr Vector SIMD_FLAGS(InOut, RegisterOnly, ForceInline)
 			for (std::size_t index = 0; index < 4; ++index)
 				result[base + index] = source[base + ((control >> (index * 2)) & 0x3u)];
 		}
-		return register_from_array<Vector>(result);
+		return register_from_array_constexpr<Vector>(result);
 	}
 
 	const int index0 = static_cast<int>(control & 0x3u);
@@ -464,16 +494,6 @@ constexpr Vector SIMD_FLAGS(InOut, RegisterOnly, ForceInline)
 		return _mm_shuffle_epi8(value, byte_indices);
 	else
 		return _mm256_shuffle_epi8(value, _mm256_broadcastsi128_si256(byte_indices));
-}
-
-template <class Element, class Vector, class Operation>
-constexpr Vector SIMD_FLAGS(Neither, ForceInline) register_transform_binary(const Vector lhs, const Vector rhs, Operation &&operation) noexcept
-{
-	constexpr std::size_t count = sizeof(Vector) / sizeof(Element);
-	std::array<Element, count> result{};
-	for (std::size_t index = 0; index < count; ++index)
-		result[index] = static_cast<Element>(operation(register_get_constexpr<Element>(lhs, index), register_get_constexpr<Element>(rhs, index)));
-	return register_from_array<Vector>(result);
 }
 
 #if SIMDLIB_HAS_SSE42
@@ -1535,16 +1555,23 @@ __m128i SIMD_FLAGS(InOut, ForceInline) _ext_max_epu64(__m128i lhs, __m128i rhs) 
  * @param lhs Source register interpreted as one unsigned 128-bit bit string.
  * @param shift Runtime count; nonpositive counts are identity and counts of at least 128 produce zero.
  * @return Shifted register with zero-filled low bits.
+ * @remarks Count ranges are handled independently so the runtime path computes only the selected cross-lane transfer.
  */
 __m128i SIMD_FLAGS(InOut, RegisterOnly, ForceInline) _ext128_shift_bits_left_slow(const __m128i lhs, const int shift) noexcept
 {
-	const __m128i count = _mm_min_epi32(_mm_max_epi32(_mm_cvtsi32_si128(shift), _mm_setzero_si128()), _mm_cvtsi32_si128(128));
-	const __m128i midpoint = _mm_cvtsi32_si128(64);
-	const __m128i complement = _mm_sub_epi64(midpoint, count);
-	const __m128i excess = _mm_sub_epi64(count, midpoint);
-	const __m128i low_range = _mm_or_si128(_mm_sll_epi64(lhs, count), _mm_slli_si128(_mm_srl_epi64(lhs, complement), 8));
-	const __m128i high_range = _mm_sll_epi64(_mm_slli_si128(lhs, 8), excess);
-	return _mm_or_si128(low_range, high_range);
+	if (shift <= 0)
+		return lhs;
+	if (shift >= 128)
+		return _mm_setzero_si128();
+	if (shift < 64)
+	{
+		const __m128i count = _mm_cvtsi32_si128(shift);
+		const __m128i complement = _mm_cvtsi32_si128(64 - shift);
+		return _mm_or_si128(_mm_sll_epi64(lhs, count), _mm_slli_si128(_mm_srl_epi64(lhs, complement), 8));
+	}
+	if (shift == 64)
+		return _mm_slli_si128(lhs, 8);
+	return _mm_sll_epi64(_mm_slli_si128(lhs, 8), _mm_cvtsi32_si128(shift - 64));
 }
 
 /**
@@ -1573,16 +1600,23 @@ template <int shift> __m128i SIMD_FLAGS(InOut, RegisterOnly, ForceInline) _ext12
  * @param lhs Source register interpreted as one unsigned 128-bit bit string.
  * @param shift Runtime count; nonpositive counts are identity and counts of at least 128 produce zero.
  * @return Shifted register with zero-filled high bits.
+ * @remarks Count ranges are handled independently so the runtime path computes only the selected cross-lane transfer.
  */
 __m128i SIMD_FLAGS(InOut, RegisterOnly, ForceInline) _ext128_shift_bits_right_slow(const __m128i lhs, const int shift) noexcept
 {
-	const __m128i count = _mm_min_epi32(_mm_max_epi32(_mm_cvtsi32_si128(shift), _mm_setzero_si128()), _mm_cvtsi32_si128(128));
-	const __m128i midpoint = _mm_cvtsi32_si128(64);
-	const __m128i complement = _mm_sub_epi64(midpoint, count);
-	const __m128i excess = _mm_sub_epi64(count, midpoint);
-	const __m128i low_range = _mm_or_si128(_mm_srl_epi64(lhs, count), _mm_srli_si128(_mm_sll_epi64(lhs, complement), 8));
-	const __m128i high_range = _mm_srl_epi64(_mm_srli_si128(lhs, 8), excess);
-	return _mm_or_si128(low_range, high_range);
+	if (shift <= 0)
+		return lhs;
+	if (shift >= 128)
+		return _mm_setzero_si128();
+	if (shift < 64)
+	{
+		const __m128i count = _mm_cvtsi32_si128(shift);
+		const __m128i complement = _mm_cvtsi32_si128(64 - shift);
+		return _mm_or_si128(_mm_srl_epi64(lhs, count), _mm_srli_si128(_mm_sll_epi64(lhs, complement), 8));
+	}
+	if (shift == 64)
+		return _mm_srli_si128(lhs, 8);
+	return _mm_srl_epi64(_mm_srli_si128(lhs, 8), _mm_cvtsi32_si128(shift - 64));
 }
 
 /**

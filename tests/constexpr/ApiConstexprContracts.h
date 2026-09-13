@@ -96,7 +96,7 @@ template <std::size_t Width, class Element> [[nodiscard]] consteval bool detail_
 {
 	using simd = Api<Width, Element>;
 	constexpr auto values = lane_values<Width, Element>();
-	auto value = Detail::register_from_array<typename simd::vector_t>(values);
+	auto value = Detail::register_from_array_constexpr<typename simd::vector_t>(values);
 
 	for (std::size_t index = 0; index < simd::element_count; ++index)
 	{
@@ -149,6 +149,23 @@ template <std::size_t Width, class Element> [[nodiscard]] consteval bool constru
 	constexpr Element replacement = static_cast<Element>(42);
 	const auto replaced = simd::insert_slow(constructed, replacement, static_cast<int>(simd::element_count - 1));
 	return simd::extract_slow(replaced, static_cast<int>(simd::element_count - 1)) == replacement;
+}
+
+/**
+ * @brief Verifies generator-based native register construction during constant evaluation.
+ * @tparam Implementation Native byte backend selected by the owning width-specific probe.
+ * @return True when every generated lane preserves its compile-time index-derived value.
+ */
+template <class Implementation> [[nodiscard]] consteval bool static_register_construction_contract() noexcept
+{
+	constexpr auto value = Detail::make_static_register<Implementation>([]<std::size_t index>() constexpr noexcept
+	{
+		return static_cast<std::uint8_t>((index * 7U) + 3U);
+	});
+	std::array<std::uint8_t, sizeof(value)> expected{};
+	for (std::size_t index = 0; index < expected.size(); ++index)
+		expected[index] = static_cast<std::uint8_t>((index * 7U) + 3U);
+	return Detail::register_to_array<std::uint8_t>(value) == expected;
 }
 
 /**
