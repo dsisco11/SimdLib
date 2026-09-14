@@ -129,8 +129,21 @@ jobs:
           if-no-files-found: error
 
   container-compilers:
-    name: GCC 13, GCC 14, and Clang 22 containers
+    name: ${{ matrix.name }} container validation
     runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - compiler: Gcc13
+            service: gcc13
+            name: GCC 13
+          - compiler: Gcc14
+            service: gcc14
+            name: GCC 14
+          - compiler: Clang22
+            service: clang22
+            name: Clang 22
     steps:
       - uses: actions/checkout@v4
       - name: Install required Docker Compose
@@ -152,20 +165,33 @@ jobs:
           test "${actual_sha256}" = "${expected_sha256}"
           chmod +x "${plugin_dir}/docker-compose"
           docker compose version
-      - name: Build every Linux validation cell
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Build cached compiler image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: containers/Dockerfile.${{ matrix.service }}
+          tags: simdlib/${{ matrix.service }}:local
+          load: true
+          provenance: false
+          # Include intermediate stages so the compiled CMake toolchain is reusable.
+          cache-from: type=gha,version=2,scope=simdlib-${{ matrix.service }}
+          cache-to: type=gha,version=2,scope=simdlib-${{ matrix.service }},mode=max,ignore-error=true
+      - name: Build selected Linux validation cells
         shell: pwsh
-        run: tools/Build.ps1 -Scope Containers
+        run: tools/Build.ps1 -Scope Containers -Compiler ${{ matrix.compiler }} -SkipImageBuild
       - name: Test the exact Linux build receipt
         shell: pwsh
-        run: tools/Run-Tests.ps1 -Scope Containers
+        run: tools/Run-Tests.ps1 -Scope Containers -Compiler ${{ matrix.compiler }}
       - name: Build Linux benchmark artifacts explicitly
         shell: pwsh
-        run: tools/Build-Benchmarks.ps1 -Scope Containers
+        run: tools/Build-Benchmarks.ps1 -Scope Containers -Compiler ${{ matrix.compiler }}
       - name: Upload container evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: linux-container-evidence
+          name: linux-${{ matrix.service }}-evidence
           path: |
             out/pipeline/linux-*/**/provenance
             out/pipeline/linux-*/**/reports

@@ -39,6 +39,16 @@ package pins remain unchanged. A base-image digest does not freeze package
 repositories or make subsequent package installation fully reproducible.
 The entrypoint rejects an
 unexpected compiler or CMake version before configuring the project.
+GitHub CI runs each compiler service in a separate matrix job, with both Clang
+configurations sharing the Clang job. Docker Buildx imports and exports a
+compiler-specific GitHub Actions layer cache with `mode=max`, including the
+intermediate CMake build stage. Cache misses rebuild the pinned image normally;
+cache export failures do not invalidate an otherwise successful image build.
+The image is loaded into the runner's Docker engine, then
+`tools/Build.ps1 -Scope Containers -Compiler <compiler> -SkipImageBuild`
+validates it without another image build. Test and benchmark-build operations
+already reuse that image. Each job uploads its own `linux-<service>-evidence`
+artifact and continues independently when another compiler fails.
 Building these images requires Docker Compose 2.39.0 or newer so the runner can
 disable BuildKit provenance without changing the image-identity contract.
 
