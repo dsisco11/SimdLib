@@ -774,8 +774,11 @@ template <std::integral int_t>
  * @param source The integer from which to extract bits.
  * @param control The encoded start and length fields.
  * @return The extracted bit range.
+ * @deprecated Use bextr<int_t, start, len>(source) to pack the control at compile time.
  */
-template <std::integral int_t> [[nodiscard]] constexpr int_t SIMD_FLAGS(Neither, ForceInline) bextr(const int_t source, const std::uint32_t control) noexcept
+template <std::integral int_t>
+[[deprecated("Use bextr<int_t, start, len>(source) for compile-time control packing.")]]
+[[nodiscard]] constexpr int_t SIMD_FLAGS(Neither, ForceInline) bextr(const int_t source, const std::uint32_t control) noexcept
 {
 #if SIMDLIB_TARGET_X86 && SIMDLIB_HAS_BMI1
 	if (!std::is_constant_evaluated())
@@ -841,13 +844,47 @@ template <std::integral int_t, std::size_t len>
 	return bextr(source, static_cast<std::uint8_t>(len), start);
 }
 
-/// @brief Extract contiguous bits from source integer, and return them shifted to the LSB side of the output. Extract the number of bits specified by len,
-/// starting at the bit specified by start.
+/**
+ * @brief Extracts bits using a control mask packed at compile time.
+ * @tparam int_t Source and result integer type.
+ * @tparam start Starting bit index, from 0 through 255.
+ * @tparam len Extraction length, from 0 through 255.
+ * @param source The integer from which to extract bits.
+ * @return The extracted bits shifted to the least-significant side; zero when
+ * the start is outside the source width or the length is zero.
+ */
 template <std::integral int_t, std::size_t start, std::size_t len>
 [[nodiscard]] constexpr int_t SIMD_FLAGS(Neither, ForceInline) bextr(const int_t source) noexcept
 {
 	static_assert(start <= 255 && len <= 255, "BMI bit-extract controls must fit the intrinsic control fields");
-	return bextr(source, static_cast<std::uint8_t>(len), static_cast<std::uint8_t>(start));
+#if SIMDLIB_TARGET_X86 && SIMDLIB_HAS_BMI1
+	if (!std::is_constant_evaluated())
+	{
+		// Pack the template arguments directly into the intrinsic's control operand.
+		[[maybe_unused]] constexpr std::uint32_t control = static_cast<std::uint32_t>(start) | (static_cast<std::uint32_t>(len) << 8u);
+#if SIMDLIB_TARGET_X64
+		if constexpr (sizeof(int_t) == sizeof(std::uint64_t))
+		{
+#if SIMDLIB_COMPILER_GCC
+			return static_cast<int_t>(__bextr_u64(static_cast<std::uint64_t>(source), static_cast<std::uint64_t>(control)));
+#else
+			return static_cast<int_t>(_bextr2_u64(static_cast<std::uint64_t>(source), static_cast<std::uint64_t>(control)));
+#endif
+		}
+		else
+#endif
+			if constexpr (sizeof(int_t) == sizeof(std::uint32_t))
+		{
+#if SIMDLIB_COMPILER_GCC
+			return static_cast<int_t>(__bextr_u32(static_cast<std::uint32_t>(source), control));
+#else
+			return static_cast<int_t>(_bextr2_u32(static_cast<std::uint32_t>(source), control));
+#endif
+		}
+	}
+#endif
+	// Constant evaluation and widths without a matching intrinsic use defined shifts.
+	return Detail::portable_bextr(source, static_cast<unsigned>(start), static_cast<unsigned>(len));
 }
 #pragma endregion
 
