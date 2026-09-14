@@ -756,7 +756,8 @@ template <> struct SimdImpl128<uint8_t>
 	}
 
 	// loading
-	static auto SIMD_FLAGS(Out, RegisterOnly, ForceInline) set1(auto lhs) noexcept
+	/** @brief Broadcasts one value to all unsigned 8-bit lanes. */
+	static __m128i SIMD_FLAGS(Out, RegisterOnly, ForceInline) set1(auto lhs) noexcept
 	{
 		return _ext_set1_epu8(lhs);
 	}
@@ -2211,7 +2212,8 @@ template <> struct SimdImpl128<uint32_t>
 	}
 
 	// loading
-	static auto SIMD_FLAGS(Out, RegisterOnly, ForceInline) set1(auto lhs) noexcept
+	/** @brief Broadcasts one value to all unsigned 32-bit lanes. */
+	static __m128i SIMD_FLAGS(Out, RegisterOnly, ForceInline) set1(auto lhs) noexcept
 	{
 		return _mm_set1_epi32(lhs);
 	}
@@ -2808,7 +2810,8 @@ template <> struct SimdImpl128<uint64_t>
 	}
 
 	// loading
-	static auto SIMD_FLAGS(Out, RegisterOnly, ForceInline) set1(auto lhs) noexcept
+	/** @brief Broadcasts one value to all unsigned 64-bit lanes. */
+	static __m128i SIMD_FLAGS(Out, RegisterOnly, ForceInline) set1(auto lhs) noexcept
 	{
 		return _mm_set1_epi64x(lhs);
 	}
