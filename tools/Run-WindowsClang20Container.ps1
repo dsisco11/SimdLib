@@ -29,8 +29,15 @@ if (-not (Get-Command docker -CommandType Application -ErrorAction SilentlyConti
     throw 'Docker is required to run the Windows clang-cl 20 container.'
 }
 
-$serverOs = (& docker version --format '{{.Server.Os}}' 2>&1).Trim()
-if ($LASTEXITCODE -ne 0) { throw "Unable to query the Docker engine: $serverOs" }
+# Native stderr can contain ErrorRecord objects; preserve the diagnostic as text
+# and check the exit code before interpreting the response as an operating system.
+$dockerOutput = & docker version --format '{{.Server.Os}}' 2>&1
+$dockerExitCode = $LASTEXITCODE
+$dockerText = ($dockerOutput | ForEach-Object { "$_" }) -join "`n"
+if ($dockerExitCode -ne 0) {
+    throw "Unable to query the Docker engine (exit $dockerExitCode):`n$dockerText"
+}
+$serverOs = $dockerText.Trim()
 if ($serverOs -ne 'windows') {
     throw "The Windows clang-cl 20 container requires a Windows Docker engine; selected engine: $serverOs"
 }
@@ -45,8 +52,10 @@ $script = switch ($Action) {
     'Test' { 'tools/Run-Tests.ps1' }
     'BuildBenchmarks' { 'tools/Build-Benchmarks.ps1' }
 }
-$revision = (& git -C $repositoryRoot rev-parse HEAD).Trim()
-if ($LASTEXITCODE -ne 0 -or $revision -notmatch '^[0-9a-f]{40}$') {
+$revisionOutput = & git -C $repositoryRoot rev-parse HEAD
+$revisionExitCode = $LASTEXITCODE
+$revision = ([string]$revisionOutput).Trim()
+if ($revisionExitCode -ne 0 -or $revision -notmatch '^[0-9a-f]{40}$') {
     throw 'Unable to determine the source revision for container provenance.'
 }
 

@@ -495,8 +495,10 @@ Imports the installed Visual Studio x64 developer environment.
 function Initialize-PipelineVisualStudioEnvironment {
     $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
     if (-not (Test-Path -LiteralPath $vswhere)) { throw "Visual Studio locator is missing: $vswhere" }
-    $installation = (& $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath).Trim()
-    if ($LASTEXITCODE -ne 0 -or -not $installation) { throw 'A Visual Studio installation with the x64 C++ tools is required.' }
+    $installationOutput = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+    $installationExitCode = $LASTEXITCODE
+    $installation = ([string]$installationOutput).Trim()
+    if ($installationExitCode -ne 0 -or -not $installation) { throw 'A Visual Studio installation with the x64 C++ tools is required.' }
     $developerCommand = Join-Path $installation 'Common7\Tools\VsDevCmd.bat'
     $environmentLines = & cmd.exe /s /c "`"$developerCommand`" -no_logo -arch=x64 -host_arch=x64 && set"
     if ($LASTEXITCODE -ne 0) { throw 'Unable to initialize the Visual Studio x64 developer environment.' }
@@ -515,8 +517,10 @@ Absolute source-tree path.
 #>
 function Get-PipelineRevision {
     param([Parameter(Mandatory)][string]$RepositoryRoot)
-    $revision = (& git -C $RepositoryRoot rev-parse HEAD 2>$null).Trim()
-    if ($LASTEXITCODE -ne 0 -or -not $revision) { return 'unknown' }
+    $revisionOutput = & git -C $RepositoryRoot rev-parse HEAD 2>$null
+    $revisionExitCode = $LASTEXITCODE
+    $revision = ([string]$revisionOutput).Trim()
+    if ($revisionExitCode -ne 0 -or -not $revision) { return 'unknown' }
     return $revision
 }
 

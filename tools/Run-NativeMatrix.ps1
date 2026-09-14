@@ -144,7 +144,13 @@ function Get-NativeCompilerIdentity {
     $version = if ($BuildCell.Compiler -eq 'msvc') {
         $command.FileVersionInfo.ProductVersion
     } else {
-        (& $command.Source --version | Select-Object -First 1).Trim()
+        $versionOutput = & $command.Source --version
+        $versionExitCode = $LASTEXITCODE
+        $versionLine = ([string]($versionOutput | Select-Object -First 1)).Trim()
+        if ($versionExitCode -ne 0 -or -not $versionLine) {
+            throw "Unable to determine the compiler version at $($command.Source) (exit $versionExitCode)."
+        }
+        $versionLine
     }
     return [ordered]@{ id = $BuildCell.Compiler; path = $command.Source; version = $version }
 }
@@ -158,6 +164,13 @@ Native cell definition.
 function Initialize-NativeArtifact {
     param([Parameter(Mandatory)]$BuildCell)
     $compilerIdentity = Get-NativeCompilerIdentity -BuildCell $BuildCell
+    # Reject missing version output before recording a toolchain fingerprint.
+    $cmakeOutput = & $cmake --version
+    $cmakeExitCode = $LASTEXITCODE
+    $cmakeVersion = ([string]($cmakeOutput | Select-Object -First 1)).Trim()
+    if ($cmakeExitCode -ne 0 -or -not $cmakeVersion) {
+        throw "Unable to determine the CMake version at $cmake (exit $cmakeExitCode)."
+    }
     $fingerprint = [ordered]@{
         schema = 'simdlib.build-cell-fingerprint.v1'
         platform = 'windows-x64'
@@ -172,7 +185,7 @@ function Initialize-NativeArtifact {
             cxxStandard = '20-and-23-register'
         }
         dependencies = [ordered]@{
-            cmakeVersion = (& $cmake --version | Select-Object -First 1).Trim()
+            cmakeVersion = $cmakeVersion
             ninjaPath = if ($BuildCell.Generator -eq 'Ninja') { $ninja } else { '' }
             visualStudio = $visualStudio
             catch2Commit = '2b60af89e23d28eefc081bc930831ee9d45ea58b'
