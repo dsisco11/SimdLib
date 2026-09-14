@@ -9,6 +9,8 @@ file(GLOB_RECURSE public_consumer_sources
     "${SOURCE_DIRECTORY}/tests/consumer/*.cpp"
     "${SOURCE_DIRECTORY}/tests/format_odr/*.cpp"
     "${SOURCE_DIRECTORY}/tests/headers/*.cpp"
+	"${SOURCE_DIRECTORY}/tests/installed_consumer/*.cpp"
+	"${SOURCE_DIRECTORY}/tests/partial_register_odr/*.cpp"
     "${SOURCE_DIRECTORY}/tests/register_odr/*.cpp"
     "${SOURCE_DIRECTORY}/tests/smoke/*.cpp")
 list(SORT public_consumer_sources)

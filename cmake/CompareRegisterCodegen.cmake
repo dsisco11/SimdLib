@@ -28,6 +28,12 @@ endif()
 if(NOT DEFINED RECORDED_DIFFERENCE_REASON OR "${RECORDED_DIFFERENCE_REASON}" STREQUAL "")
 	set(RECORDED_DIFFERENCE_REASON "non-release-differential")
 endif()
+if(NOT DEFINED EXPECTED_WRAPPER_PROFILE_SHA256)
+	set(EXPECTED_WRAPPER_PROFILE_SHA256 "")
+endif()
+if(NOT DEFINED EXPECTED_RAW_PROFILE_SHA256)
+	set(EXPECTED_RAW_PROFILE_SHA256 "")
+endif()
 if(NOT DEFINED RECORD_FILE OR "${RECORD_FILE}" STREQUAL "")
 	set(RECORD_FILE "${ARTIFACT_DIRECTORY}/comparison.record.json")
 endif()
@@ -132,16 +138,20 @@ endfunction()
 # @brief Removes object identity, instruction addresses, and encoded bytes while retaining instructions.
 # @param input_text Raw object disassembly.
 # @param output_variable Variable that receives normalized disassembly.
+# @param symbol_variable Optional variable that receives fixture symbols in disassembly order.
 function(simdlib_normalize_disassembly input_text output_variable)
 	set(normalized "${input_text}")
 	string(REPLACE "\r\n" "\n" normalized "${normalized}")
 	string(REPLACE "\n" ";" disassembly_lines "${normalized}")
 	set(fixture_only "")
+	set(fixture_symbols "")
 	set(in_fixture OFF)
 	foreach(disassembly_line IN LISTS disassembly_lines)
 		if(disassembly_line MATCHES "<[^>]*${SYMBOL_PATTERN}[^>]*>:")
 			if(EXCLUDE_SYMBOL_PATTERN STREQUAL "" OR NOT disassembly_line MATCHES "<[^>]*${EXCLUDE_SYMBOL_PATTERN}[^>]*>:")
 				set(in_fixture ON)
+				string(REGEX REPLACE ".*<([^>]*)>:.*" "\\1" fixture_symbol "${disassembly_line}")
+				list(APPEND fixture_symbols "${fixture_symbol}")
 				string(APPEND fixture_only "<symbol>:\n")
 			else()
 				set(in_fixture OFF)
@@ -165,6 +175,9 @@ function(simdlib_normalize_disassembly input_text output_variable)
 	string(REGEX REPLACE "\n+" "\n" normalized "${normalized}")
 	string(STRIP "${normalized}" normalized)
 	set(${output_variable} "${normalized}" PARENT_SCOPE)
+	if(ARGC GREATER 2)
+		set(${ARGV2} "${fixture_symbols}" PARENT_SCOPE)
+	endif()
 endfunction()
 
 # @brief Removes allocator-selected vector-register identities, including names repeated in disassembler comments.
@@ -309,8 +322,8 @@ endfunction()
 
 simdlib_disassemble("${WRAPPER_OBJECT}" wrapper_disassembly)
 simdlib_disassemble("${RAW_OBJECT}" raw_disassembly)
-simdlib_normalize_disassembly("${wrapper_disassembly}" wrapper_normalized)
-simdlib_normalize_disassembly("${raw_disassembly}" raw_normalized)
+simdlib_normalize_disassembly("${wrapper_disassembly}" wrapper_normalized wrapper_symbols)
+simdlib_normalize_disassembly("${raw_disassembly}" raw_normalized raw_symbols)
 simdlib_profile_disassembly("${wrapper_normalized}" wrapper_profile)
 simdlib_profile_disassembly("${raw_normalized}" raw_profile)
 
@@ -367,9 +380,61 @@ file(WRITE "${ARTIFACT_DIRECTORY}/raw.normalized.txt" "${raw_normalized}\n")
 file(WRITE "${ARTIFACT_DIRECTORY}/wrapper.profile.txt" "${wrapper_profile}\n")
 file(WRITE "${ARTIFACT_DIRECTORY}/raw.profile.txt" "${raw_profile}\n")
 file(WRITE "${ARTIFACT_DIRECTORY}/wrapper.comparable.profile.txt" "${comparable_wrapper_profile}\n")
+string(REPLACE "<symbol>:\n" ";" wrapper_profile_blocks "${wrapper_profile}")
+string(REPLACE "<symbol>:\n" ";" raw_profile_blocks "${raw_profile}")
+list(POP_FRONT wrapper_profile_blocks)
+list(POP_FRONT raw_profile_blocks)
+list(LENGTH wrapper_symbols wrapper_symbol_count)
+list(LENGTH raw_symbols raw_symbol_count)
+list(LENGTH wrapper_profile_blocks wrapper_block_count)
+list(LENGTH raw_profile_blocks raw_block_count)
+if(NOT wrapper_symbol_count EQUAL raw_symbol_count OR
+	NOT wrapper_symbol_count EQUAL wrapper_block_count OR
+	NOT raw_symbol_count EQUAL raw_block_count)
+	message(FATAL_ERROR "Unable to map generated-code profile blocks to exact fixture symbols")
+endif()
+set(symbol_inventory "")
+set(instruction_differences "")
+if(wrapper_symbol_count GREATER 0)
+	math(EXPR last_symbol_index "${wrapper_symbol_count} - 1")
+	foreach(symbol_index RANGE 0 ${last_symbol_index})
+		list(GET wrapper_symbols ${symbol_index} wrapper_symbol)
+		list(GET raw_symbols ${symbol_index} raw_symbol)
+		list(GET wrapper_profile_blocks ${symbol_index} wrapper_block)
+		list(GET raw_profile_blocks ${symbol_index} raw_block)
+		string(APPEND symbol_inventory
+			"wrapper=${wrapper_symbol}\nraw=${raw_symbol}\n")
+		if(NOT wrapper_block STREQUAL raw_block)
+			string(APPEND instruction_differences
+				"wrapper_symbol=${wrapper_symbol}\nraw_symbol=${raw_symbol}\n"
+				"wrapper:\n${wrapper_block}\nraw:\n${raw_block}\n")
+		endif()
+	endforeach()
+endif()
+file(WRITE "${ARTIFACT_DIRECTORY}/symbols.txt" "${symbol_inventory}")
+file(WRITE "${ARTIFACT_DIRECTORY}/instruction-differences.txt" "${instruction_differences}")
+file(SHA256 "${ARTIFACT_DIRECTORY}/wrapper.profile.txt" wrapper_profile_hash)
+file(SHA256 "${ARTIFACT_DIRECTORY}/raw.profile.txt" raw_profile_hash)
+
+if(comparison_result STREQUAL "failed" AND
+	NOT EXPECTED_WRAPPER_PROFILE_SHA256 STREQUAL "" AND
+	NOT EXPECTED_RAW_PROFILE_SHA256 STREQUAL "")
+	if(NOT wrapper_profile_hash STREQUAL EXPECTED_WRAPPER_PROFILE_SHA256 OR
+		NOT raw_profile_hash STREQUAL EXPECTED_RAW_PROFILE_SHA256)
+		message(FATAL_ERROR
+			"The retained generated-code difference changed; "
+			"wrapper expected=${EXPECTED_WRAPPER_PROFILE_SHA256} actual=${wrapper_profile_hash}; "
+			"raw expected=${EXPECTED_RAW_PROFILE_SHA256} actual=${raw_profile_hash}; "
+			"inspect ${ARTIFACT_DIRECTORY}")
+	endif()
+	set(comparison_result "accepted-compiler-exception")
+	set(accepted_exception "${RECORDED_DIFFERENCE_REASON}")
+endif()
 file(WRITE "${ARTIFACT_DIRECTORY}/comparison.txt"
 	"result=${comparison_result}\n"
-	"accepted_exception=${accepted_exception}\n")
+	"accepted_exception=${accepted_exception}\n"
+	"wrapper_profile_sha256=${wrapper_profile_hash}\n"
+	"raw_profile_sha256=${raw_profile_hash}\n")
 file(WRITE "${ARTIFACT_DIRECTORY}/provenance.txt"
 	"compiler_id=${COMPILER_ID}\n"
 	"compiler_version=${COMPILER_VERSION}\n"
@@ -387,6 +452,10 @@ file(WRITE "${ARTIFACT_DIRECTORY}/provenance.txt"
 	"record_only=${RECORD_ONLY}\n"
 	"comparison_result=${comparison_result}\n"
 	"accepted_exception=${accepted_exception}\n"
+	"wrapper_profile_sha256=${wrapper_profile_hash}\n"
+	"raw_profile_sha256=${raw_profile_hash}\n"
+	"expected_wrapper_profile_sha256=${EXPECTED_WRAPPER_PROFILE_SHA256}\n"
+	"expected_raw_profile_sha256=${EXPECTED_RAW_PROFILE_SHA256}\n"
 	"wrapper_object=${WRAPPER_OBJECT}\n"
 	"raw_object=${RAW_OBJECT}\n")
 
@@ -428,6 +497,7 @@ file(WRITE "${record_temporary_file}"
 	"  \"kind\": \"comparison\",\n"
 	"  \"result\": \"${comparison_result_json}\",\n"
 	"  \"accepted_exception\": \"${accepted_exception_json}\",\n"
+	"  \"profiles\": {\"wrapper_sha256\": \"${wrapper_profile_hash}\", \"raw_sha256\": \"${raw_profile_hash}\"},\n"
 	"  \"inputs\": {\n"
 	"    \"wrapper\": {\"path\": \"${WRAPPER_OBJECT_json}\", \"sha256\": \"${wrapper_hash}\"},\n"
 	"    \"raw\": {\"path\": \"${RAW_OBJECT_json}\", \"sha256\": \"${raw_hash}\"}\n"

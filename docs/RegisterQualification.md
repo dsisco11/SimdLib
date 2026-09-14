@@ -7,6 +7,10 @@ artifacts and individual execution results are intentionally not committed; the
 commands below reproduce them under `build*/register-codegen` or
 `out/pipeline`.
 
+Public semantics are defined by [RegisterContract.md](RegisterContract.md), and
+operation-level implementation traceability is maintained in
+[RegisterImplementationMatrix.md](RegisterImplementationMatrix.md).
+
 ## Supported matrix
 
 | Dimension | Supported cells |
@@ -64,10 +68,10 @@ temporaries, and indirection.
 The permanent corpus assigns one contract to each fixture and one public raw
 `Api` baseline to each parity comparison:
 
-The per-symbol ownership, category, baseline, validation owner, retention
-decision, and rationale are recorded in
-`RegisterCodegenSymbolAudit.csv`; `RegisterCodegenAudit.md` inventories the
-source, target, record, CTest, CI-artifact, and documentation boundaries.
+Generated `symbols.txt`, `instruction-differences.txt`, and comparison records
+are the authoritative per-symbol inventories. The checked-in CMake symbol
+filters, fixture sources, and ownership rules below define which records may be
+generated and which validator owns them.
 
 - `RegisterCodegenFixture.h` retains composed expressions, mask composition and
   reduction, broadcast reuse, nonzero lane extraction, immediate and complete
@@ -90,6 +94,48 @@ source, target, record, CTest, CI-artifact, and documentation boundaries.
 - `RegisterRearrangementCodegenFixture.h` covers selectors, rearrangements,
   conversions, bit casts, width changes, and the public `Register::shuffle`
   versus `Api::shuffle` baseline.
+
+### Fixture and baseline ownership
+
+| Fixture family | Permanent contract | Comparison baseline |
+| --- | --- | --- |
+| `RegisterCodegenFixture.h` | Composed expressions, memory paths, special members, reassignment, pressure, and opaque calls | Matching public `Api` expression in `RegisterCodegenRaw.cpp` |
+| `RegisterTypeMatrixCodegenFixture.h` | Every available isolated Register and RegisterMask operation/type/width cell | Matching public `Api` expression in `RegisterTypeMatrixCodegenRaw.cpp` |
+| `RegisterSpecializedCodegenFixture.h` | FMA-independent specialized arithmetic and reductions | Matching public `Api` expression in `RegisterSpecializedCodegenRaw.cpp` |
+| `RegisterFmaCodegenFixture.h` | Multiply-add with FMA explicitly enabled and disabled | Matching public `Api` expression in `RegisterFmaCodegenRaw.cpp` |
+| `RegisterRearrangementCodegenFixture.h` | Rearrangements, selectors, bit casts, conversions, lower halves, and widening | Matching public `Api` expression in `RegisterRearrangementCodegenRaw.cpp` |
+| `RegisterAbi.cpp` | Explicit-object and real consumer ABI boundaries | Native-vector signatures in `RegisterAbiRaw.cpp` |
+| `RegisterDefaultAbi.cpp` | Diagnostic platform-default aggregate ABI | Native-vector signature in `RegisterDefaultAbiRaw.cpp` |
+| `MethodFlagsFlagged.cpp` | Compiler-attribute enforcement | Equivalent raw compiler attributes in `MethodFlagsRaw.cpp` |
+
+Public zero-overhead fixtures compare `Register` with the narrowest equivalent
+public `Api` expression. A raw translation unit must not call `Register`, an
+implementation specialization, or an extension helper. ABI fixtures compare
+aggregate signatures with native-vector signatures; method-flag fixtures
+compare `SIMD_FLAGS(...)` with equivalent raw compiler attributes. The
+platform-default ABI fixture is diagnostic rather than an equality gate.
+
+### Comparison record ownership
+
+Each generated record appears exactly once in its profile's CMake-owned index.
+Release validation requires every enforced record to report `ENFORCE`;
+record-only results belong only to diagnostic indexes.
+
+| Record | Symbol selection | Wrapper/raw inputs | Owning validation |
+| --- | --- | --- | --- |
+| `primary-composition` | Memory-capable and composed primary symbols | `RegisterCodegen.cpp` / `RegisterCodegenRaw.cpp` | `RegisterCodegen.<profile>` |
+| `register-only` | Register-only primary symbols | `RegisterCodegen.cpp` / `RegisterCodegenRaw.cpp` | `RegisterCodegen.<profile>` |
+| `reassignment` | Reassignment arithmetic | `RegisterCodegen.cpp` / `RegisterCodegenRaw.cpp` | `RegisterCodegen.<profile>` |
+| `specialized` | FMA-independent specialized symbols | `RegisterSpecializedCodegen.cpp` / `RegisterSpecializedCodegenRaw.cpp` | `RegisterCodegen.<profile>` |
+| `fma-disabled` | Floating multiply-add with FMA disabled | `RegisterFmaCodegen.cpp` / `RegisterFmaCodegenRaw.cpp` | `RegisterCodegen.<profile>` |
+| `fma-enabled` | Floating multiply-add with FMA enabled | `RegisterFmaCodegen.cpp` / `RegisterFmaCodegenRaw.cpp` | AVX2 `RegisterCodegen.<profile>` |
+| `rearrangement-conversion` | Applicable rearrangement and conversion symbols | `RegisterRearrangementCodegen.cpp` / `RegisterRearrangementCodegenRaw.cpp` | `RegisterCodegen.<profile>` |
+| `common-type-matrix` | Applicable non-modulus type-matrix symbols | `RegisterTypeMatrixCodegen.cpp` / `RegisterTypeMatrixCodegenRaw.cpp` | `RegisterCodegen.<profile>` |
+| `modulus-type-matrix` | Integer modulus symbols | `RegisterTypeMatrixCodegen.cpp` / `RegisterTypeMatrixCodegenRaw.cpp` | `RegisterCodegen.<profile>` |
+| `abi` | Explicit-object ABI mirrors | `RegisterAbi.cpp` / `RegisterAbiRaw.cpp` | `RegisterCodegen.<profile>` |
+| `consumer-abi` | Downstream Register and RegisterMask boundaries | `RegisterAbi.cpp` / `RegisterAbiRaw.cpp` | `RegisterCodegen.<profile>` |
+| `default-abi` | Platform-default aggregate boundary | `RegisterDefaultAbi.cpp` / `RegisterDefaultAbiRaw.cpp` | `RegisterCodegen.<profile>` |
+| `method-flags` | `SIMD_FLAGS(...)` declaration fixtures | `MethodFlagsFlagged.cpp` / `MethodFlagsRaw.cpp` | `MethodFlagsCodegen` |
 
 Handwritten intrinsic or scalar mirrors are algorithm-evaluation tools, not
 permanent codegen baselines, unless they protect a documented instruction

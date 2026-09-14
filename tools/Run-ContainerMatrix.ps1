@@ -38,14 +38,30 @@ if (-not (Get-Command docker -CommandType Application -ErrorAction SilentlyConti
 }
 
 if (-not $env:SIMDLIB_BUILD_REVISION) {
-    $env:SIMDLIB_BUILD_REVISION = (& git -C $repositoryRoot rev-parse HEAD).Trim()
-    if ($LASTEXITCODE -ne 0) {
+    $revisionOutput = & git -C $repositoryRoot rev-parse HEAD
+    $revisionExitCode = $LASTEXITCODE
+    $revision = ([string]$revisionOutput).Trim()
+    if ($revisionExitCode -ne 0 -or $revision -notmatch '^[0-9a-f]{40}$') {
         throw 'Unable to determine the SimdLib revision for operation provenance.'
     }
+    $env:SIMDLIB_BUILD_REVISION = $revision
 }
 if ($IsLinux -or $IsMacOS) {
-    $env:SIMDLIB_HOST_UID = (& id -u).Trim()
-    $env:SIMDLIB_HOST_GID = (& id -g).Trim()
+    # Validate host IDs before forwarding them as the container's user identity.
+    $uidOutput = & id -u
+    $uidExitCode = $LASTEXITCODE
+    $hostUid = ([string]$uidOutput).Trim()
+    if ($uidExitCode -ne 0 -or $hostUid -notmatch '^\d+$') {
+        throw 'Unable to determine the host user ID for the container.'
+    }
+    $gidOutput = & id -g
+    $gidExitCode = $LASTEXITCODE
+    $hostGid = ([string]$gidOutput).Trim()
+    if ($gidExitCode -ne 0 -or $hostGid -notmatch '^\d+$') {
+        throw 'Unable to determine the host group ID for the container.'
+    }
+    $env:SIMDLIB_HOST_UID = $hostUid
+    $env:SIMDLIB_HOST_GID = $hostGid
 }
 
 <#
@@ -341,7 +357,7 @@ function Start-CellOperation {
 
 <#
 .SYNOPSIS
-Completes one child process, writes its logs, and returns its exit code.
+Completes one child process, writes its logs, reports failure output, and returns its exit code.
 .PARAMETER Run
 Running cell operation to complete.
 #>
@@ -349,9 +365,27 @@ function Complete-CellOperation {
     param([Parameter(Mandatory)]$Run)
     if (-not $Run.Process.HasExited) { $Run.Process.WaitForExit() }
     if (-not $Run.Captured) {
-        [System.IO.File]::WriteAllText($Run.StandardOutputPath, $Run.StandardOutput.GetAwaiter().GetResult(), $utf8NoBom)
-        [System.IO.File]::WriteAllText($Run.StandardErrorPath, $Run.StandardError.GetAwaiter().GetResult(), $utf8NoBom)
+        $stdout = $Run.StandardOutput.GetAwaiter().GetResult()
+        $stderr = $Run.StandardError.GetAwaiter().GetResult()
+        [System.IO.File]::WriteAllText($Run.StandardOutputPath, $stdout, $utf8NoBom)
+        [System.IO.File]::WriteAllText($Run.StandardErrorPath, $stderr, $utf8NoBom)
         $Run.Captured = $true
+
+        # Replay both streams on failure: build tools can emit diagnostics on either.
+        # Keep reporting inside the capture guard so final cleanup cannot repeat it.
+        if ($Run.Process.ExitCode -ne 0) {
+            $failureLabel = "$($Run.Cell.Id) operation=$($Run.Operation) exit=$($Run.Process.ExitCode)"
+            [Console]::Error.WriteLine("--- $failureLabel ---")
+            if (-not [string]::IsNullOrWhiteSpace($stdout)) {
+                [Console]::Error.WriteLine("stdout ($($Run.StandardOutputPath)):")
+                [Console]::Error.WriteLine($stdout.TrimEnd())
+            }
+            if (-not [string]::IsNullOrWhiteSpace($stderr)) {
+                [Console]::Error.WriteLine("stderr ($($Run.StandardErrorPath)):")
+                [Console]::Error.WriteLine($stderr.TrimEnd())
+            }
+            [Console]::Error.WriteLine("--- End $failureLabel ---")
+        }
     }
     return $Run.Process.ExitCode
 }

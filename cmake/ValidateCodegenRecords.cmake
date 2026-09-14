@@ -1,9 +1,10 @@
 cmake_minimum_required(VERSION 3.31)
 
-if(NOT DEFINED RECORD_INDEX OR "${RECORD_INDEX}" STREQUAL "")
-	message(FATAL_ERROR "ValidateCodegenRecords requires RECORD_INDEX")
+if((NOT DEFINED RECORD_INDEX OR "${RECORD_INDEX}" STREQUAL "") AND
+	(NOT DEFINED RECORD_FILE OR "${RECORD_FILE}" STREQUAL ""))
+	message(FATAL_ERROR "ValidateCodegenRecords requires RECORD_INDEX or RECORD_FILE")
 endif()
-if(NOT EXISTS "${RECORD_INDEX}")
+if(DEFINED RECORD_INDEX AND NOT "${RECORD_INDEX}" STREQUAL "" AND NOT EXISTS "${RECORD_INDEX}")
 	message(FATAL_ERROR "Required generated-code record index is missing: ${RECORD_INDEX}")
 endif()
 
@@ -63,6 +64,11 @@ function(simdlib_validate_codegen_record record_file)
 		message(FATAL_ERROR "Generated-code record tool identity is stale: ${record_file}")
 	endif()
 endfunction()
+
+if(DEFINED RECORD_FILE AND NOT "${RECORD_FILE}" STREQUAL "")
+	simdlib_validate_codegen_record("${RECORD_FILE}")
+	return()
+endif()
 
 file(STRINGS "${RECORD_INDEX}" record_files)
 set(validated_record_count 0)

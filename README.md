@@ -3,7 +3,7 @@
 SimdLib is a small, header-only library for working with SIMD data and bit-heavy
 code without scattering compiler intrinsics throughout your project. Its core
 surface remains C++20; supporting C++23 translation units can additionally use
-the complete-register value interface.
+complete- and partial-register value interfaces.
 
 There is no library binary to build or ship. Add the headers to your project,
 link the CMake interface target, and use only the pieces you need.
@@ -16,6 +16,11 @@ link the CMake interface target, and use only the pieces you need.
   stable storage and ABI contracts.
 - `RegisterMask<T, Bits>` preserves native comparison predicates and provides
   composition, reduction, observation, and selection operations.
+- `PartialRegister<T, Bits, Active>` represents a compile-time contiguous
+  low-lane prefix in one native register and keeps its inactive suffix
+  all-bits-zero.
+- `PartialRegisterMask<T, Bits, Active>` is the matching active-prefix
+  predicate type.
 - `NativeApi<T>` and `Api<Bits, T>` remain supported for C++20, compatibility,
   specialized low-level access, collection helpers, and operations intentionally
   excluded from `Register`.
@@ -306,6 +311,12 @@ fixtures retain normal `/GS` protection and paired disassembly for review.
   configuration details, formatting, and development commands.
 - [Public namespace and compatibility](docs/PublicNamespace.md) describes the
   supported API boundary.
+- [Register contract and qualification](docs/RegisterContract.md) records the
+  complete-register semantics; [RegisterQualification.md](docs/RegisterQualification.md)
+  records its compiler, ABI, generated-code, and validation boundaries.
+- [PartialRegister design and qualification](docs/PartialRegisterQualification.md)
+  records the active-prefix contract, result rules, examples, compiler matrix,
+  and validation evidence.
 - [Build and validation](docs/BuildPipeline.md) documents the supported build,
   test, compiler-matrix, and reporting commands.
 

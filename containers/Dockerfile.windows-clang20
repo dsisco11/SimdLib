@@ -1,0 +1,89 @@
+# syntax=docker/dockerfile:1.7@sha256:a57df69d0ea827fb7266491f2813635de6f17269be881f696fbfdf2d83dda33e
+# escape=`
+
+ARG WINDOWS_BASE=mcr.microsoft.com/dotnet/framework/runtime:4.8-windowsservercore-ltsc2022@sha256:3983348680840ca6e53ad641e314c3c9184ca2fd19f88bc467600f7d9f6e9d73
+
+FROM ${WINDOWS_BASE}
+
+LABEL org.opencontainers.image.title="SimdLib Windows clang-cl 20 validation" `
+      org.opencontainers.image.description="Visual Studio 2022 Build Tools and pinned LLVM 20 environment for SimdLib" `
+      org.opencontainers.image.source="https://github.com/dsisco11/SimdLib" `
+      org.opencontainers.image.version="clang-cl-20.1.8-cmake-3.31.6" `
+      org.simdlib.base.digest="sha256:3983348680840ca6e53ad641e314c3c9184ca2fd19f88bc467600f7d9f6e9d73" `
+      org.simdlib.chocolatey.version="2.5.1" `
+      org.simdlib.llvm.version="20.1.8" `
+      org.simdlib.cmake.sha256="4cc39d59426cbbeb33d0daff1350e39b0585a90e3c9883dbba70816b8d282811" `
+      org.simdlib.powershell.sha256="28e23a6e3a18662b73e6fb267855f31786fb95ec943111de9e9e1338844106b4" `
+      org.simdlib.git.sha256="c2c955a21fa99889d83f485f24fa5d9a38fffc2d509d4022385510e11c26b250"
+
+SHELL ["powershell.exe", "-NoLogo", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command"]
+
+RUN $ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue'; `
+    Invoke-WebRequest -Uri 'https://aka.ms/vs/17/release/vs_buildtools.exe' -OutFile C:\vs_buildtools.exe; `
+    $arguments = @('--quiet', '--wait', '--norestart', '--nocache', `
+        '--installPath', 'C:\BuildTools', `
+        '--add', 'Microsoft.VisualStudio.Workload.VCTools', `
+        '--add', 'Microsoft.VisualStudio.Component.VC.CMake.Project', `
+        '--includeRecommended', `
+        '--remove', 'Microsoft.VisualStudio.Component.Windows10SDK.10240', `
+        '--remove', 'Microsoft.VisualStudio.Component.Windows10SDK.10586', `
+        '--remove', 'Microsoft.VisualStudio.Component.Windows10SDK.14393', `
+        '--remove', 'Microsoft.VisualStudio.Component.Windows81SDK'); `
+    $process = Start-Process C:\vs_buildtools.exe -ArgumentList $arguments -Wait -PassThru; `
+    if ($process.ExitCode -notin @(0, 3010)) { throw "Visual Studio Build Tools installer failed with exit code $($process.ExitCode)" }; `
+    Remove-Item C:\vs_buildtools.exe
+
+ARG LLVM_VERSION=20.1.8
+ARG CHOCOLATEY_VERSION=2.5.1
+ARG CMAKE_VERSION=3.31.6
+ARG CMAKE_SHA256=4cc39d59426cbbeb33d0daff1350e39b0585a90e3c9883dbba70816b8d282811
+ARG POWERSHELL_VERSION=7.5.3
+ARG POWERSHELL_SHA256=28e23a6e3a18662b73e6fb267855f31786fb95ec943111de9e9e1338844106b4
+ARG MINGIT_VERSION=2.51.0
+ARG MINGIT_SHA256=c2c955a21fa99889d83f485f24fa5d9a38fffc2d509d4022385510e11c26b250
+
+RUN $ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue'; `
+    [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; `
+    $env:chocolateyVersion = $env:CHOCOLATEY_VERSION; `
+    Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1')); `
+    & C:\ProgramData\chocolatey\bin\choco.exe install llvm --version=$env:LLVM_VERSION --yes --no-progress --limit-output; `
+    if ($LASTEXITCODE -notin @(0, 1605, 1614, 1641, 3010)) { throw "Chocolatey failed to install LLVM $env:LLVM_VERSION with exit code $LASTEXITCODE" }
+
+RUN $ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue'; `
+    Invoke-WebRequest -Uri "https://github.com/Kitware/CMake/releases/download/v$env:CMAKE_VERSION/cmake-$env:CMAKE_VERSION-windows-x86_64.msi" -OutFile C:\cmake.msi; `
+    if ((Get-FileHash C:\cmake.msi -Algorithm SHA256).Hash -ne $env:CMAKE_SHA256) { throw 'CMake installer checksum mismatch' }; `
+    $process = Start-Process msiexec.exe -ArgumentList '/i','C:\cmake.msi','/qn','/norestart','ADD_CMAKE_TO_PATH=System' -Wait -PassThru; `
+    if ($process.ExitCode -notin @(0, 3010)) { throw "CMake installer failed with exit code $($process.ExitCode)" }; `
+    Remove-Item C:\cmake.msi
+
+RUN $ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue'; `
+    Invoke-WebRequest -Uri "https://github.com/git-for-windows/git/releases/download/v$env:MINGIT_VERSION.windows.1/MinGit-$env:MINGIT_VERSION-64-bit.zip" -OutFile C:\mingit.zip; `
+    if ((Get-FileHash C:\mingit.zip -Algorithm SHA256).Hash -ne $env:MINGIT_SHA256) { throw 'MinGit archive checksum mismatch' }; `
+    Expand-Archive C:\mingit.zip -DestinationPath C:\Git; `
+    Remove-Item C:\mingit.zip
+
+RUN $ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue'; `
+    Invoke-WebRequest -Uri "https://github.com/PowerShell/PowerShell/releases/download/v$env:POWERSHELL_VERSION/PowerShell-$env:POWERSHELL_VERSION-win-x64.msi" -OutFile C:\powershell.msi; `
+    if ((Get-FileHash C:\powershell.msi -Algorithm SHA256).Hash -ne $env:POWERSHELL_SHA256) { throw 'PowerShell installer checksum mismatch' }; `
+    $process = Start-Process msiexec.exe -ArgumentList '/i','C:\powershell.msi','/qn','/norestart','ADD_PATH=1' -Wait -PassThru; `
+    if ($process.ExitCode -notin @(0, 3010)) { throw "PowerShell installer failed with exit code $($process.ExitCode)" }; `
+    Remove-Item C:\powershell.msi
+
+ENV PATH="C:\Program Files\PowerShell\7;C:\Program Files\CMake\bin;C:\Program Files\LLVM\bin;C:\Git\cmd;C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0"
+
+RUN clang-cl.exe --version; `
+    if ($LASTEXITCODE -ne 0) { throw 'clang-cl validation failed' }; `
+    if ((clang-cl.exe --version | Select-Object -First 1) -notmatch 'clang version 20\.1\.8\b') { throw 'Unexpected clang-cl version' }; `
+    cmake.exe --version; `
+    if ($LASTEXITCODE -ne 0) { throw 'CMake validation failed' }; `
+    if ((cmake.exe --version | Select-Object -First 1) -ne 'cmake version 3.31.6') { throw 'Unexpected CMake version' }; `
+    pwsh.exe --version; `
+    if ($LASTEXITCODE -ne 0) { throw 'PowerShell validation failed' }; `
+    git.exe --version; `
+    if ($LASTEXITCODE -ne 0) { throw 'Git validation failed' }; `
+    if (-not (Test-Path 'C:\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\Ninja\ninja.exe')) { throw 'Visual Studio Ninja is missing' }; `
+    if (-not (Test-Path 'C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe')) { throw 'Visual Studio locator is missing' }; `
+    git.exe config --global --add safe.directory C:/workspace
+
+WORKDIR C:\workspace
+ENTRYPOINT ["pwsh.exe", "-NoLogo", "-NoProfile"]

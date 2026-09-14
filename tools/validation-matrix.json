@@ -507,7 +507,8 @@
       "resolvers": [
         "tools/Pipeline.Common.psm1",
         "tools/Run-NativeMatrix.ps1",
-        "tools/Run-ContainerMatrix.ps1"
+        "tools/Run-ContainerMatrix.ps1",
+        "tools/Run-WindowsClang20Container.ps1"
       ],
       "orchestration": [
         "tools/Build.ps1",
@@ -527,7 +528,7 @@
       ],
       "containerRouting": [
         "compose.yml",
-        "containers/container-entrypoint.sh"
+        "containers"
       ],
       "publicConsumerBoundary": [
         "tools/Test-PublicConsumerBoundary.ps1",

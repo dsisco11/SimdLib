@@ -6,13 +6,16 @@ Scope must be explicit so a host cannot silently omit required native or
 container cells. The command builds validation artifacts and records an exact
 manifest receipt consumed by Run-Tests.ps1. Benchmark compilation is owned
 exclusively by Build-Benchmarks.ps1.
+.PARAMETER SkipImageBuild
+Reuses existing Linux compiler images instead of building them before validation.
 #>
 [CmdletBinding()]
 param(
     [ValidateSet('', 'All', 'Native', 'Containers')]
     [string]$Scope = '',
     [ValidateSet('All', 'Msvc', 'ClangCl', 'ClangCoverage', 'Gcc13', 'Gcc14', 'Clang22')]
-    [string[]]$Compiler = @('All')
+    [string[]]$Compiler = @('All'),
+    [switch]$SkipImageBuild
 )
 
 Set-StrictMode -Version Latest
@@ -148,6 +151,9 @@ function Write-BuildReceipt {
 }
 
 $selectedCompilers = @(Resolve-BuildSelection)
+if ($SkipImageBuild -and -not @($selectedCompilers | Where-Object { $_ -in (Get-PipelineValidationCompilers -Platform container) }).Count) {
+    throw '-SkipImageBuild requires at least one Linux container compiler.'
+}
 if ($Scope -in @('All', 'Native') -and -not $IsWindows) { throw 'Native scope requires a Windows x64 host with Visual Studio C++ tools and LLVM 20 or newer.' }
 $toolingDigest = Get-PipelineToolingDigest -RepositoryRoot $repositoryRoot
 $pipelineValidationPath = Join-Path $pipelineRoot (
@@ -164,11 +170,13 @@ foreach ($name in @($selectedCompilers | Where-Object { $_ -in (Get-PipelineVali
         })
 }
 $containerCompilers = @($selectedCompilers | Where-Object { $_ -in (Get-PipelineValidationCompilers -Platform container) })
+$containerImageArguments = @()
+if ($SkipImageBuild) { $containerImageArguments += '-SkipImageBuild' }
 if ($containerCompilers.Count -eq 3) {
-    $operations.Add([pscustomobject]@{ Id = 'containers'; Script = Join-Path $PSScriptRoot 'Run-ContainerMatrix.ps1'; Arguments = @('-Action', 'Build', '-Compiler', 'All', '-Cell', 'All') })
+    $operations.Add([pscustomobject]@{ Id = 'containers'; Script = Join-Path $PSScriptRoot 'Run-ContainerMatrix.ps1'; Arguments = @('-Action', 'Build', '-Compiler', 'All', '-Cell', 'All') + @($containerImageArguments) })
 } else {
     foreach ($name in $containerCompilers) {
-        $operations.Add([pscustomobject]@{ Id = "container-$($name.ToLowerInvariant())"; Script = Join-Path $PSScriptRoot 'Run-ContainerMatrix.ps1'; Arguments = @('-Action', 'Build', '-Compiler', $name, '-Cell', 'All') })
+        $operations.Add([pscustomobject]@{ Id = "container-$($name.ToLowerInvariant())"; Script = Join-Path $PSScriptRoot 'Run-ContainerMatrix.ps1'; Arguments = @('-Action', 'Build', '-Compiler', $name, '-Cell', 'All') + @($containerImageArguments) })
     }
 }
 $logDirectory = Join-Path $pipelineRoot "logs/$(Get-Date -Format 'yyyyMMdd-HHmmssfff')-build-$PID"

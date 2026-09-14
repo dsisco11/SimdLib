@@ -5,6 +5,18 @@ Clang 22 validation. The same Dockerfiles, Compose definition, entrypoint, and
 PowerShell runner are used locally and in GitHub Actions. Native jobs remain
 authoritative for MSVC, clang-cl, Windows ABI behavior, and vector calling-convention behavior.
 
+The Windows clang-cl 20 compatibility cell is isolated separately in
+`containers/Dockerfile.windows-clang20`. That Windows Server Core image contains
+Visual Studio 2022 Build Tools, Chocolatey-provisioned LLVM 20.1.8, CMake
+3.31.6, PowerShell 7.5.3, and MinGit.
+`tools/Run-WindowsClang20Container.ps1` runs the ordinary native
+`ClangCl` build, test, and benchmark commands inside it. It requires a Windows
+Docker engine; it is intentionally not part of the Linux Compose matrix. Visual
+Studio supplies the MSVC ABI, standard library, SDK, linker, and build
+environment, while the standalone LLVM installation defines SimdLib's explicit
+clang-cl 20 compatibility floor. The image does not represent Visual Studio's
+default compiler selection or its optional bundled Clang version.
+
 ## Environment contract
 
 | Service | Scope | Base | Compiler |
@@ -27,6 +39,17 @@ package pins remain unchanged. A base-image digest does not freeze package
 repositories or make subsequent package installation fully reproducible.
 The entrypoint rejects an
 unexpected compiler or CMake version before configuring the project.
+GitHub CI runs each compiler service in a separate matrix job, with both Clang
+configurations sharing the Clang job. Docker Buildx imports and exports a
+compiler-specific GitHub Actions layer cache with `mode=max`, including the
+intermediate CMake build stage. Cache misses rebuild the pinned image normally;
+cache export failures do not invalidate an otherwise successful image build.
+The image is loaded into the runner's Docker engine, then
+`tools/Build.ps1 -Scope Containers -Compiler <compiler> -SkipImageBuild`
+validates it without another image build. Test operations reuse that image.
+CI does not build or run benchmarks; the local benchmark commands remain available.
+Each job uploads its own `linux-<service>-evidence`
+artifact and continues independently when another compiler fails.
 Building these images requires Docker Compose 2.39.0 or newer so the runner can
 disable BuildKit provenance without changing the image-identity contract.
 

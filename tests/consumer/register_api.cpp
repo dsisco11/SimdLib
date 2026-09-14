@@ -13,4 +13,10 @@ native_type SIMD_FLAGS(InOut, RegisterOnly) increment_native(native_type value) 
 {
 	return _mm_add_epi32(value, _mm_set1_epi32(1));
 }
+
+/** Defines the downstream PartialRegister boundary in a separate translation unit. */
+PartialRegister SIMD_FLAGS(InOut, RegisterOnly) increment_partial(PartialRegister value) noexcept
+{
+	return value + PartialRegister::broadcast(1);
+}
 } // namespace SimdLibConsumer

@@ -150,7 +150,14 @@ template <std::integral Integer> [[nodiscard]] consteval bool bmi_width_contract
 
 static_assert(blsmsk<std::uint32_t>(0b10100) == 0b00111);
 static_assert(bextr<std::uint32_t>(0xFEDC'BA98u, 8, 12) == 0xCBu);
-static_assert(bextr<std::uint32_t>(0xFEDC'BA98u, 12u | (8u << 8u) | 0xFFFF'0000u) == 0xCBu);
+static_assert(bextr<std::uint32_t, 12, 8>(0xFEDC'BA98u) == 0xCBu);
+static_assert(bextr<std::uint64_t, 40, 8>(0x1234'5678'9ABC'DEF0ULL) == 0x56u);
+static_assert(bextr<std::uint32_t, 0, 0>(0xFFFF'FFFFu) == 0u);
+static_assert(bextr<std::uint32_t, 32, 8>(0xFFFF'FFFFu) == 0u);
+static_assert(bextr<std::uint32_t, 28, 255>(0xFEDC'BA98u) == 0xFu);
+static_assert(bextr<std::uint64_t, 0, 64>(0x1234'5678'9ABC'DEF0ULL) == 0x1234'5678'9ABC'DEF0ULL);
+static_assert(bextr<std::uint8_t, 4, 8>(0xABu) == 0xAu);
+static_assert(bextr<std::int32_t, 28, 4>(-1) == 15);
 static_assert(pdep_u64(0b101u, 0b01010100u) == 0b01000100u);
 static_assert(pext_u64(0b01000100u, 0b01010100u) == 0b101u);
 static_assert(bmi_width_contract<std::int8_t>());
