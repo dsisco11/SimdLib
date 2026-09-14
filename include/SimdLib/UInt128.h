@@ -692,19 +692,19 @@ namespace SimdLib::Bmi
 	{
 		// An upper-word range becomes one native 64-bit extraction after rebasing its start field.
 		if (start >= 64)
-			return uint128_t{Bmi::bextr(value.high(), control - 64u)};
+			return uint128_t{Bmi::bextr(value.high(), len, static_cast<std::uint8_t>(start - 64u))};
 
 		// A range wholly inside the low word maps directly to one native extraction.
 		if (len <= 64u - start)
-			return uint128_t{Bmi::bextr(value.low(), control)};
+			return uint128_t{Bmi::bextr(value.low(), len, start)};
 
 		// Cross-word ranges first align their next 64 result bits with one funnel shift.
 		const std::uint64_t resultLow = Detail::funnel_shift_right(value.low(), value.high(), start);
 		if (len <= 64)
-			return uint128_t{Bmi::bextr(resultLow, control & 0xFF00u)};
+			return uint128_t{Bmi::bextr(resultLow, len, 0)};
 
 		// Longer ranges retain the aligned low word and extract only the remaining high result bits.
-		return uint128_t{resultLow, Bmi::bextr(value.high(), control - (64u << 8u))};
+		return uint128_t{resultLow, Bmi::bextr(value.high(), static_cast<std::uint8_t>(len - 64u), 0)};
 	}
 #endif
 	// Constant evaluation and targets without native 64-bit BEXTR retain the portable whole-value contract.
