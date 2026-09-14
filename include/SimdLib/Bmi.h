@@ -783,13 +783,23 @@ template <std::integral int_t> [[nodiscard]] constexpr int_t SIMD_FLAGS(Neither,
 #if SIMDLIB_TARGET_X64
 		if constexpr (sizeof(int_t) == sizeof(std::uint64_t))
 		{
+#if SIMDLIB_COMPILER_GCC
+			// GCC exposes the packed-control BEXTR intrinsic under the double-underscore name.
+			return static_cast<int_t>(__bextr_u64(static_cast<std::uint64_t>(source), static_cast<std::uint64_t>(control)));
+#else
 			return static_cast<int_t>(_bextr2_u64(static_cast<std::uint64_t>(source), static_cast<std::uint64_t>(control)));
+#endif
 		}
 		else
 #endif
 			if constexpr (sizeof(int_t) == sizeof(std::uint32_t))
 		{
+#if SIMDLIB_COMPILER_GCC
+			// Use the packed control directly, matching the 64-bit intrinsic selection.
+			return static_cast<int_t>(__bextr_u32(static_cast<std::uint32_t>(source), control));
+#else
 			return static_cast<int_t>(_bextr2_u32(static_cast<std::uint32_t>(source), control));
+#endif
 		}
 	}
 #endif
