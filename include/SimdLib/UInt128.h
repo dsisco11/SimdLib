@@ -704,7 +704,7 @@ namespace SimdLib::Bmi
 			return uint128_t{Bmi::bextr(resultLow, len, 0)};
 
 		// Longer ranges retain the aligned low word and extract only the remaining high result bits.
-		return uint128_t{resultLow, Bmi::bextr(value.high(), static_cast<std::uint8_t>(len - 64u), 0)};
+		return uint128_t{resultLow, Bmi::bextr(value.high(), static_cast<std::uint8_t>(len - 64u), start)};
 	}
 #endif
 	// Constant evaluation and targets without native 64-bit BEXTR retain the portable whole-value contract.
@@ -728,11 +728,52 @@ template <std::size_t len>
 	return static_cast<std::uint64_t>(bextr(value, static_cast<std::uint8_t>(len), start));
 }
 
+/**
+ * @brief Extracts a compile-time bit range from a 128-bit value.
+ * @tparam start Starting bit index, from 0 through 128.
+ * @tparam len Extraction length, from 0 through 128.
+ * @param value The 128-bit value from which to extract bits.
+ * @return The extracted bit range shifted to bit zero.
+ */
 template <std::size_t start, std::size_t len>
 	requires(start <= 128 && len <= 128)
 [[nodiscard]] constexpr uint128_t bextr(const uint128_t value) noexcept
 {
-	return bextr(value, static_cast<std::uint8_t>(len), static_cast<std::uint8_t>(start));
+	if constexpr (len == 0 || start >= 128)
+	{
+		return {};
+	}
+	else
+	{
+#if SIMDLIB_TARGET_X64 && SIMDLIB_HAS_BMI1
+		if (!std::is_constant_evaluated())
+		{
+			if constexpr (start >= 64)
+			{
+				return uint128_t{Bmi::bextr<std::uint64_t, start - 64, len>(value.high())};
+			}
+			else if constexpr (len <= 64 - start)
+			{
+				return uint128_t{Bmi::bextr<std::uint64_t, start, len>(value.low())};
+			}
+			else
+			{
+				// Align the cross-word range once, then extract each compile-time result segment directly.
+				const std::uint64_t resultLow = Detail::funnel_shift_right(value.low(), value.high(), start);
+				if constexpr (len <= 64)
+				{
+					return uint128_t{Bmi::bextr<std::uint64_t, 0, len>(resultLow)};
+				}
+				else
+				{
+					return uint128_t{resultLow, Bmi::bextr<std::uint64_t, start, len - 64>(value.high())};
+				}
+			}
+		}
+#endif
+		constexpr std::size_t retained = len < 128 - start ? len : 128 - start;
+		return (value >> start) & uint128_t::create_mask(static_cast<int>(retained));
+	}
 }
 } // namespace SimdLib::Bmi
 
