@@ -20,8 +20,6 @@ jobs:
         run: tools/Build.ps1 -Scope Native -Compiler Msvc
       - name: Test the exact MSVC build receipt
         run: tools/Run-Tests.ps1 -Scope Native -Compiler Msvc
-      - name: Build MSVC benchmark artifacts explicitly
-        run: tools/Build-Benchmarks.ps1 -Scope Native -Compiler Msvc
       - name: Upload MSVC evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -31,7 +29,6 @@ jobs:
             out/pipeline/windows-msvc/**/provenance
             out/pipeline/windows-msvc/**/reports
             out/pipeline/windows-msvc/**/validation-build.manifest
-            out/pipeline/windows-msvc/**/benchmark-build.manifest
             out/pipeline/windows-msvc/**/build/register-codegen/**/*.json
             out/pipeline/windows-msvc/**/build/register-codegen/**/*.txt
             out/pipeline/windows-msvc/**/build/method-flags-codegen/**/*.json
@@ -49,8 +46,6 @@ jobs:
         run: tools/Run-WindowsClang20Container.ps1 -Action Build
       - name: Test the exact clang-cl 20 build receipt
         run: tools/Run-WindowsClang20Container.ps1 -Action Test -SkipImageBuild
-      - name: Build clang-cl 20 benchmark artifacts explicitly
-        run: tools/Run-WindowsClang20Container.ps1 -Action BuildBenchmarks -SkipImageBuild
       - name: Upload clang-cl 20 evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -60,7 +55,6 @@ jobs:
             out/pipeline/windows-clangcl/**/provenance
             out/pipeline/windows-clangcl/**/reports
             out/pipeline/windows-clangcl/**/validation-build.manifest
-            out/pipeline/windows-clangcl/**/benchmark-build.manifest
             out/pipeline/windows-clangcl/**/build/register-codegen/**/*.json
             out/pipeline/windows-clangcl/**/build/register-codegen/**/*.txt
             out/pipeline/windows-clangcl/**/build/partial-register-codegen/**/*.json
@@ -101,8 +95,6 @@ jobs:
         run: tools/Build.ps1 -Scope Native -Compiler ClangCl,ClangCoverage
       - name: Test the exact Clang 22 build receipt
         run: tools/Run-Tests.ps1 -Scope Native -Compiler ClangCl,ClangCoverage
-      - name: Build clang-cl 22 benchmark artifacts explicitly
-        run: tools/Build-Benchmarks.ps1 -Scope Native -Compiler ClangCl
       - name: Upload Clang 22 evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -112,7 +104,6 @@ jobs:
             out/pipeline/windows-clangcl/**/provenance
             out/pipeline/windows-clangcl/**/reports
             out/pipeline/windows-clangcl/**/validation-build.manifest
-            out/pipeline/windows-clangcl/**/benchmark-build.manifest
             out/pipeline/windows-clangcl/**/build/register-codegen/**/*.json
             out/pipeline/windows-clangcl/**/build/register-codegen/**/*.txt
             out/pipeline/windows-clangcl/**/build/partial-register-codegen/**/*.json
@@ -184,9 +175,6 @@ jobs:
       - name: Test the exact Linux build receipt
         shell: pwsh
         run: tools/Run-Tests.ps1 -Scope Containers -Compiler ${{ matrix.compiler }}
-      - name: Build Linux benchmark artifacts explicitly
-        shell: pwsh
-        run: tools/Build-Benchmarks.ps1 -Scope Containers -Compiler ${{ matrix.compiler }}
       - name: Upload container evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -196,7 +184,6 @@ jobs:
             out/pipeline/linux-*/**/provenance
             out/pipeline/linux-*/**/reports
             out/pipeline/linux-*/**/validation-build.manifest
-            out/pipeline/linux-*/**/benchmark-build.manifest
             out/pipeline/linux-*/**/build/register-codegen/**/*.json
             out/pipeline/linux-*/**/build/register-codegen/**/*.txt
             out/pipeline/linux-*/**/build/method-flags-codegen/**/*.json

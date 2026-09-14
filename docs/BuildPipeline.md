@@ -52,6 +52,9 @@ plus `coverage-provenance.tsv`. The provenance file records the executable
 identity and profile count used for every independently merged coverage target.
 Benchmark compilation and execution remain separate:
 
+GitHub CI does not compile or run benchmarks. These commands are available for
+explicit local benchmark work:
+
 ```powershell
 tools/Build-Benchmarks.ps1 -Scope All
 tools/Run-Benchmarks.ps1 -Scope All
