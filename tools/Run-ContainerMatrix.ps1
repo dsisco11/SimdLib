@@ -341,7 +341,7 @@ function Start-CellOperation {
 
 <#
 .SYNOPSIS
-Completes one child process, writes its logs, and returns its exit code.
+Completes one child process, writes its logs, reports failure output, and returns its exit code.
 .PARAMETER Run
 Running cell operation to complete.
 #>
@@ -349,9 +349,27 @@ function Complete-CellOperation {
     param([Parameter(Mandatory)]$Run)
     if (-not $Run.Process.HasExited) { $Run.Process.WaitForExit() }
     if (-not $Run.Captured) {
-        [System.IO.File]::WriteAllText($Run.StandardOutputPath, $Run.StandardOutput.GetAwaiter().GetResult(), $utf8NoBom)
-        [System.IO.File]::WriteAllText($Run.StandardErrorPath, $Run.StandardError.GetAwaiter().GetResult(), $utf8NoBom)
+        $stdout = $Run.StandardOutput.GetAwaiter().GetResult()
+        $stderr = $Run.StandardError.GetAwaiter().GetResult()
+        [System.IO.File]::WriteAllText($Run.StandardOutputPath, $stdout, $utf8NoBom)
+        [System.IO.File]::WriteAllText($Run.StandardErrorPath, $stderr, $utf8NoBom)
         $Run.Captured = $true
+
+        # Replay both streams on failure: build tools can emit diagnostics on either.
+        # Keep reporting inside the capture guard so final cleanup cannot repeat it.
+        if ($Run.Process.ExitCode -ne 0) {
+            $failureLabel = "$($Run.Cell.Id) operation=$($Run.Operation) exit=$($Run.Process.ExitCode)"
+            [Console]::Error.WriteLine("--- $failureLabel ---")
+            if (-not [string]::IsNullOrWhiteSpace($stdout)) {
+                [Console]::Error.WriteLine("stdout ($($Run.StandardOutputPath)):")
+                [Console]::Error.WriteLine($stdout.TrimEnd())
+            }
+            if (-not [string]::IsNullOrWhiteSpace($stderr)) {
+                [Console]::Error.WriteLine("stderr ($($Run.StandardErrorPath)):")
+                [Console]::Error.WriteLine($stderr.TrimEnd())
+            }
+            [Console]::Error.WriteLine("--- End $failureLabel ---")
+        }
     }
     return $Run.Process.ExitCode
 }
