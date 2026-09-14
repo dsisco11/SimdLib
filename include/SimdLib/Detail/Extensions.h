@@ -189,17 +189,17 @@ template <auto expression> using static_register_element_t = std::remove_cvref_t
 
 /**
  * @brief Aligned, typed lane storage shared by constant-evaluated and runtime static-register construction.
- * @tparam Implementation Native backend defining the resulting register type.
+ * @tparam Implementation Native backend exposing its resulting `register_t`.
  * @tparam expression Stateless compile-time lane generator.
  * @tparam indices Complete forward-order lane index sequence.
  */
 template <class Implementation, auto expression, std::size_t... indices>
-alignas(sizeof(decltype(Implementation::setr(expression.template operator()<indices>()...)))) inline constexpr static_register_element_t<expression>
+alignas(sizeof(typename Implementation::register_t)) inline constexpr static_register_element_t<expression>
 	static_register_lanes[sizeof...(indices)]{expression.template operator()<indices>()...};
 
 /**
  * @brief Expands a static lane generator over the complete inferred register geometry.
- * @tparam Implementation Native backend providing `set1` and the runtime `setr` constructor.
+ * @tparam Implementation Native backend exposing `register_t` and the runtime `setr` constructor.
  * @tparam expression Stateless compile-time lane generator invoked as `expression.operator()<index>()`.
  * @tparam indices Internally generated forward-order lane indices.
  * @return Native register containing the generated lane sequence.
@@ -208,7 +208,7 @@ template <class Implementation, auto expression, std::size_t... indices>
 constexpr auto SIMD_FLAGS(Out, RegisterOnly, ForceInline, Flatten) make_static_register_from_indices(std::index_sequence<indices...>) noexcept
 {
 	using element_type = std::remove_cvref_t<decltype(expression.template operator()<0>())>;
-	using vector_type = decltype(Implementation::setr(expression.template operator()<indices>()...));
+	using vector_type = typename Implementation::register_t;
 	constexpr auto &lanes = static_register_lanes<Implementation, expression, indices...>;
 	if (std::is_constant_evaluated())
 	{
@@ -244,7 +244,7 @@ constexpr auto SIMD_FLAGS(Out, RegisterOnly, ForceInline, Flatten) make_static_r
 
 /**
  * @brief Constructs a native register from one stateless compile-time lane generator.
- * @tparam Implementation Native backend providing `set1` and the runtime `setr` constructor.
+ * @tparam Implementation Native backend exposing its native `register_t`.
  * @tparam Expression Stateless generator type with a templated zero-argument call operator.
  * @param generator Generator used only for type deduction; its stateless type defines the compile-time expression.
  * @return Native register containing one generated value per inferred logical lane.
@@ -257,7 +257,7 @@ constexpr auto SIMD_FLAGS(Out, RegisterOnly, ForceInline, Flatten) make_static_r
 	using expression_type = std::remove_cvref_t<Expression>;
 	constexpr expression_type expression{};
 	using element_type = std::remove_cvref_t<decltype(expression.template operator()<0>())>;
-	using vector_type = decltype(Implementation::set1(expression.template operator()<0>()));
+	using vector_type = typename Implementation::register_t;
 	constexpr std::size_t lane_count = sizeof(vector_type) / sizeof(element_type);
 	return make_static_register_from_indices<Implementation, expression>(std::make_index_sequence<lane_count>{});
 }
