@@ -73,6 +73,10 @@ The complete `All` scope requires a Windows x64 host with:
 - CMake 3.31 or newer; and
 - Docker Desktop with a running Linux-container daemon.
 
+The standalone instruction-extraction harness additionally uses explicitly
+selected [development inspection tools](codegen/ToolProvisioning.md).
+These tools do not change the installed library's consumer requirements.
+
 `Build.ps1` deliberately has no implicit scope. Calling it without `-Scope`
 fails, because silently falling back to only the current platform would make
 an incomplete build look complete. Hosts that own only Linux container

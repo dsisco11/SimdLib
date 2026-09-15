@@ -283,6 +283,13 @@ write_provenance()
 		echo "packages=$(apk info -v 2>/dev/null | sort | tr '\n' ' ')"
 		echo "cpu_flags=$(sed -n 's/^flags[[:space:]]*: //p' /proc/cpuinfo | head -n 1)"
 	} | tee "$provenance_file"
+	# Retain the exact development-tool distribution with environment receipts.
+	if [ -n "${SIMDLIB_CODEGEN_LLVM_ROOT:-}" ]; then
+		mkdir -p "$provenance_directory/codegen-tools"
+		for receipt in provisioning.sha256 runtime-packages.txt FileCheck.version.txt llvm-objdump.version.txt llvm-readobj.version.txt; do
+			cp "$SIMDLIB_CODEGEN_LLVM_ROOT/$receipt" "$provenance_directory/codegen-tools/$receipt"
+		done
+	fi
 }
 
 ## @brief Runs a command into a report while preserving and displaying its failure.

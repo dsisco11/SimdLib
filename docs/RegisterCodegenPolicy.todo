@@ -76,28 +76,38 @@ Register Code-Generation Instruction Contracts:
     Depends on: Phase 1 case and artifact identities.
     Outcome: a narrowly scoped object-inspection component whose successful extraction is supported by positive and negative evidence.
 
-    ☐ Select FileCheck and the disassembler explicitly, record their versions/identities, and add development-only discovery/provisioning in the relevant local and CI/container environments.
-      ☐ Fail clearly when required tools are absent or unsupported; do not silently select an unrelated PATH executable or skip required qualification.
-      ☐ Keep these tools out of installed library/runtime dependencies and introduce no Python or lit requirement.
-    ☐ Implement cmake/codegen/ExtractFunction.cmake with the proposal's single responsibility and an explicit input/output contract.
-      ☐ Resolve expected symbols exactly and reject absent, empty, duplicate, or ambiguous selections.
-      ☐ Determine complete function boundaries for every supported object format; include blocks after early returns and avoid treating a return as an end-of-function delimiter.
-      ☐ Preserve vector widths, register aliases, operands, immediates, and control-flow relationships.
-      ☐ Preserve relocation/target information where required and expose referenced constant contents when a contract checks them.
-      ☐ Remove only presentation details irrelevant to the selected checks; reject unrecognized formats instead of producing a successful empty extraction.
-      ☐ Retain full disassembly and extracted bodies at case/configuration-specific paths suitable for diagnostics.
-    ☐ Add extraction harness cases under tests/codegen/harness.
-      ☐ Cover valid straight-line, early-return/multiple-block, relocation-bearing, and return-only functions.
-      ☐ Reject missing/ambiguous function names and empty or malformed extraction inputs.
-      ☐ Demonstrate that instructions after the first return, different vector widths, distinct operands, and relevant targets survive extraction.
-      ☐ Cover required referenced constants and unsupported object/disassembly formats.
-    ☐ Validate with synthetic harness inputs and representative real objects from each supported compiler driver/object format; record these as distinct evidence categories.
-      ☐ Use provisional, explicitly recorded compilation settings for these probes; do not claim low-optimization qualification before Phase 4.
+    ☑ Select FileCheck and the disassembler explicitly, record their versions/identities, and add development-only discovery/provisioning in the relevant local and CI/container environments.
+      ☑ Fail clearly when required tools are absent or unsupported; do not silently select an unrelated PATH executable or skip required qualification.
+      ☑ Keep these tools out of installed library/runtime dependencies and introduce no Python or lit requirement.
+    ☑ Implement cmake/codegen/ExtractFunction.cmake with the proposal's single responsibility and an explicit input/output contract.
+      ☑ Resolve expected symbols exactly and reject absent, empty, duplicate, or ambiguous selections.
+      ☑ Determine complete function boundaries for every supported object format; include blocks after early returns and avoid treating a return as an end-of-function delimiter.
+      ☑ Preserve vector widths, register aliases, operands, immediates, and control-flow relationships.
+      ☑ Preserve relocation/target information where required and expose referenced constant contents when a contract checks them.
+      ☑ Remove only presentation details irrelevant to the selected checks; reject unrecognized formats instead of producing a successful empty extraction.
+      ☑ Retain full disassembly and extracted bodies at case/configuration-specific paths suitable for diagnostics.
+    ☑ Add extraction harness cases under tests/codegen/harness.
+      ☑ Cover valid straight-line, early-return/multiple-block, relocation-bearing, and return-only functions.
+      ☑ Reject missing/ambiguous function names and empty or malformed extraction inputs.
+      ☑ Demonstrate that instructions after the first return, different vector widths, distinct operands, and relevant targets survive extraction.
+      ☑ Cover required referenced constants and unsupported object/disassembly formats.
+    ☑ Validate with synthetic harness inputs and representative real objects from each supported compiler driver/object format; record these as distinct evidence categories.
+      ☑ Use provisional, explicitly recorded compilation settings for these probes; do not claim low-optimization qualification before Phase 4.
 
     Completion Criteria:
-      ☐ Extraction harness positives and deliberate negatives behave as specified.
-      ☐ Real-object evidence confirms supported formats and complete-body inspection without relying on the retired lossy normalizer.
-      ☐ Required tools can be selected reproducibly in the intended validation environments.
+      ☑ Extraction harness positives and deliberate negatives behave as specified.
+      ☑ Real-object evidence confirms supported formats and complete-body inspection without relying on the retired lossy normalizer.
+      ☑ Required tools can be selected reproducibly in the intended validation environments.
+
+    Evidence and Review:
+      - Traceability and commands: docs/codegen/FunctionExtraction.md and docs/codegen/ToolProvisioning.md.
+      - LLVM owns bounded disassembly and numeric constant-section dumps; custom instruction/body and byte parsers were removed.
+      - MSVC 19.44.35228 and clang-cl 22.1.8: 27/27 standalone harness checks passed each, including assembled COFF/ELF and invalid-input regressions.
+      - GCC 13.2.1, GCC 14.2.0, and Clang 22.1.3: six fresh object checks passed per container using LLVM 18.1.8, 20.1.8, and 22.1.3 respectively.
+      - Exact Windows SDK/FileCheck provisioning recipe passed locally with LLVM 22.1.8; Linux provisioning, explicit selection, FileCheck positive/negative checks, and no-Python/lit checks passed.
+      - Receipts: out/codegen-tools-provisioned, out/codegen-container-evidence, and out/codegen-extraction-probe/harness-*-wrapper-ctest.log.
+      - Second review and independent audit-stage-completion found no unresolved required issues for this phase's scope.
+      - Evidence is representative x64 extraction with provisional flags. Legacy adjacent x86 gates remain unchanged; full Windows-container/CI execution, production contracts and cutover remain later-phase work.
 
   Phase 3 - Implement Shared Contracts and CTest Registration:
     Depends on: Phase 1 inventory and Phase 2 extraction/tool validation.

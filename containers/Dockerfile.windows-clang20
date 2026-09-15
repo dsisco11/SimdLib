@@ -89,5 +89,10 @@ FROM toolchain AS validation-runtime
 
 RUN git.exe config --global --add safe.directory C:/workspace
 
+COPY cmake/codegen C:/codegen-provisioning
+RUN cmake.exe -DPREFIX=C:/codegen-tools -P C:/codegen-provisioning/ProvisionWindowsTools.cmake; `
+    if ($LASTEXITCODE -ne 0) { throw 'Codegen tool provisioning failed' }
+ENV SIMDLIB_CODEGEN_LLVM_ROOT="C:\codegen-tools"
+
 WORKDIR C:\workspace
 ENTRYPOINT ["pwsh.exe", "-NoLogo", "-NoProfile"]

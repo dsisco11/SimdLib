@@ -25,14 +25,19 @@ The Windows CI job caches the completed compiler image as a `docker save`
 archive in GitHub Actions. An exact cache hit restores the archive with
 `docker load`; a miss builds and saves the image before compiling SimdLib.
 Both compilation and tests then use `-SkipImageBuild`. The cache key includes
-the Windows Server 2022/amd64 environment, the Dockerfile and `.dockerignore`
-hash, and an explicit `image-v1` revision. Source-only changes reuse the image;
+the Windows Server 2022/amd64 environment, hashes of the Dockerfile,
+`.dockerignore` and copied `cmake/codegen/**` inputs, and an explicit `image-v1`
+revision. Library-source changes reuse the image;
 changing these image inputs or incrementing the revision rebuilds it. Increment
 the revision to refresh upstream installers/packages whose URLs have not changed.
 No fallback cache keys are used. Archive restore/load performance and cache
 storage requirements depend on the image size.
 
 ## Environment contract
+
+The images provision explicit [LLVM inspection tools](codegen/ToolProvisioning.md)
+under a separate development-tool prefix. Their release is independent of the
+fixture compiler, and their executable/package identities are retained there.
 
 | Service | Scope | Base | Compiler |
 | --- | --- | --- | --- |

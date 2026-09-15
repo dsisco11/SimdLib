@@ -67,6 +67,10 @@ RUN apk add --no-cache \
     && mkdir -p /workspace/out \
     && chown -R simdlib:simdlib /workspace
 
+COPY --chmod=755 containers/provision-codegen-tools.sh /usr/local/bin/provision-codegen-tools
+RUN /usr/local/bin/provision-codegen-tools 18 18.1.8-r1 /opt/codegen
+ENV SIMDLIB_CODEGEN_LLVM_ROOT=/opt/codegen
+
 COPY --from=tools /opt/cmake /opt/cmake
 COPY --from=tools /opt/catch2 /opt/catch2
 COPY --chmod=755 containers/container-entrypoint.sh /usr/local/bin/simdlib-container
