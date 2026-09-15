@@ -1,0 +1,17 @@
+#pragma once
+namespace CodegenPrototype::Configuration
+{
+inline constexpr auto cmake = R"cfg(@CMAKE_COMMAND@)cfg";
+inline constexpr auto scripts = R"cfg(@SIMDLIB_SOURCE_ROOT@/cmake/codegen)cfg";
+inline constexpr auto inspect = R"cfg(@CMAKE_CURRENT_SOURCE_DIR@/Inspect.cmake)cfg";
+inline constexpr auto input_manifest = R"cfg(@fixture_root@/inputs.cmake)cfg";
+inline constexpr auto receipt = R"cfg(@fixture_root@/build.sha256)cfg";
+inline constexpr auto object = R"cfg($<TARGET_OBJECTS:Catch2CodegenObject>)cfg";
+inline constexpr auto filecheck = R"cfg(@SIMDLIB_FILECHECK@)cfg";
+inline constexpr auto objdump = R"cfg(@SIMDLIB_LLVM_OBJDUMP@)cfg";
+inline constexpr auto readobj = R"cfg(@SIMDLIB_LLVM_READOBJ@)cfg";
+inline constexpr auto symbol = R"cfg(@symbol@)cfg";
+inline constexpr auto rules = R"cfg(@SIMDLIB_SOURCE_ROOT@/tests/codegen)cfg";
+inline constexpr auto artifacts = R"cfg(@CMAKE_CURRENT_BINARY_DIR@/catch2-results)cfg";
+inline constexpr auto supplement = R"cfg(@supplement@)cfg";
+}
