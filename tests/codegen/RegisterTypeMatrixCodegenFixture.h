@@ -241,6 +241,21 @@ template <class element_t> [[nodiscard]] bool SIMD_FLAGS(In, ForceInline) raw_ma
 	const auto bits = api_type::template bit_cast<std::uint8_t>(value);
 	return byte_api_type::testz(bits, bits) != 0;
 }
+
+/** @brief Mirrors the public mask all-lanes Boolean-return boundary with the raw backend operation. */
+template <class element_t> [[nodiscard]] bool SIMD_FLAGS(In, ForceInline) raw_mask_all(native_t<element_t> value) noexcept
+{
+	using api_type = api_t<element_t>;
+	if constexpr (sizeof(element_t) == 2)
+	{
+		// Match RegisterMask::all(): canonical 16-bit predicates permit a whole-register containment test.
+		return api_type::test(value, api_type::compare_equal(value, value)) != 0;
+	}
+	else
+	{
+		return api_type::movemask_slim(value) == all_lane_bits<element_t>();
+	}
+}
 #endif
 
 /**
@@ -286,13 +301,13 @@ template <scalar_operation operation, class element_t>
 	else if constexpr (operation == scalar_operation::mask_any)
 		return raw_mask_any<element_t>(lhs);
 	else if constexpr (operation == scalar_operation::mask_all)
-		return static_cast<mask_bits_t>(api_type::movemask_slim(lhs) == all_lane_bits<element_t>());
+		return static_cast<mask_bits_t>(raw_mask_all<element_t>(lhs));
 	else if constexpr (operation == scalar_operation::mask_none)
 		return raw_mask_none<element_t>(lhs);
 	else if constexpr (operation == scalar_operation::equal)
-		return static_cast<mask_bits_t>(api_type::movemask_slim(api_type::compare_equal(lhs, rhs)) == all_lane_bits<element_t>());
+		return static_cast<mask_bits_t>(raw_mask_all<element_t>(api_type::compare_equal(lhs, rhs)));
 	else if constexpr (operation == scalar_operation::not_equal)
-		return static_cast<mask_bits_t>(api_type::movemask_slim(api_type::compare_equal(lhs, rhs)) != all_lane_bits<element_t>());
+		return static_cast<mask_bits_t>(!raw_mask_all<element_t>(api_type::compare_equal(lhs, rhs)));
 	else
 		return static_cast<mask_bits_t>(api_type::template extract<0>(lhs));
 #endif
