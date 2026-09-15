@@ -9,6 +9,10 @@ The Windows clang-cl 20 compatibility cell is isolated separately in
 `containers/Dockerfile.windows-clang20`. That Windows Server Core image contains
 Visual Studio 2022 Build Tools, Chocolatey-provisioned LLVM 20.1.8, CMake
 3.31.6, PowerShell 7.5.3, and MinGit.
+Its named `toolchain` stage owns installation and verification of that compiler
+environment. The final `validation-runtime` stage inherits the verified
+toolchain and owns workspace trust, the runtime working-directory, and the
+entrypoint contract.
 `tools/Run-WindowsClang20Container.ps1` runs the ordinary native
 `ClangCl` build, test, and benchmark commands inside it. It requires a Windows
 Docker engine; it is intentionally not part of the Linux Compose matrix. Visual
