@@ -1,4 +1,4 @@
-name: SimdLib CI
+name: Validation
 
 on:
   push:
@@ -12,15 +12,16 @@ permissions:
 
 jobs:
   native-msvc:
-    name: MSVC x64 validation
+    name: Windows | MSVC | Native
     runs-on: windows-2022
     steps:
-      - uses: actions/checkout@v4
-      - name: Build every MSVC validation cell
+      - name: Source | Check out repository
+        uses: actions/checkout@v4
+      - name: Validation | Build targets
         run: tools/Build.ps1 -Scope Native -Compiler Msvc
-      - name: Test the exact MSVC build receipt
+      - name: Validation | Run tests
         run: tools/Run-Tests.ps1 -Scope Native -Compiler Msvc
-      - name: Upload MSVC evidence
+      - name: Evidence | Upload results
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -38,23 +39,24 @@ jobs:
           if-no-files-found: error
 
   windows-clang20-container:
-    name: Windows clang-cl 20 container validation
+    name: Windows | clang-cl 20 | Container
     runs-on: windows-2022
     steps:
-      - uses: actions/checkout@v4
-      - name: Restore compiler image archive
+      - name: Source | Check out repository
+        uses: actions/checkout@v4
+      - name: Image | Restore cached archive
         id: compiler-cache
         uses: actions/cache/restore@v4
         with:
           path: ${{ runner.temp }}/windows-clang20.tar
           key: windows-2022-amd64-clang20-image-v1-${{ hashFiles('containers/Dockerfile.windows-clang20', '.dockerignore') }}
-      - name: Load cached compiler image
+      - name: Image | Load cached archive
         if: steps.compiler-cache.outputs.cache-hit == 'true'
         shell: pwsh
         run: |
           docker load --input "$env:RUNNER_TEMP/windows-clang20.tar"
           if ($LASTEXITCODE -ne 0) { throw 'Compiler image load failed' }
-      - name: Build and archive compiler image
+      - name: Image | Build and archive compiler environment
         if: steps.compiler-cache.outputs.cache-hit != 'true'
         shell: pwsh
         run: |
@@ -67,17 +69,17 @@ jobs:
             simdlib/windows-clang20:local
           if ($LASTEXITCODE -ne 0) { throw 'Compiler image archive failed' }
       # Save before compilation so source failures do not discard the environment.
-      - name: Save compiler image archive
+      - name: Image | Save archive to cache
         if: steps.compiler-cache.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4
         with:
           path: ${{ runner.temp }}/windows-clang20.tar
           key: ${{ steps.compiler-cache.outputs.cache-primary-key }}
-      - name: Build Windows clang-cl 20 validation cell
+      - name: Validation | Build targets
         run: tools/Run-WindowsClang20Container.ps1 -Action Build -SkipImageBuild
-      - name: Test the exact clang-cl 20 build receipt
+      - name: Validation | Run tests
         run: tools/Run-WindowsClang20Container.ps1 -Action Test -SkipImageBuild
-      - name: Upload clang-cl 20 evidence
+      - name: Evidence | Upload results
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -97,11 +99,12 @@ jobs:
           if-no-files-found: error
 
   native-clang22:
-    name: clang-cl 22 and Clang 22 coverage x64 validation
+    name: Windows | Clang 22 + coverage | Native
     runs-on: windows-2022
     steps:
-      - uses: actions/checkout@v4
-      - name: Install the pinned Windows toolchain with Chocolatey
+      - name: Source | Check out repository
+        uses: actions/checkout@v4
+      - name: Toolchain | Install compiler environment
         shell: pwsh
         run: |
           choco upgrade cmake --version=4.4.0 --yes --allow-downgrade --no-progress --limit-output
@@ -114,7 +117,7 @@ jobs:
           }
           'C:\Program Files\CMake\bin' | Out-File -Encoding utf8 -Append $env:GITHUB_PATH
           'C:\Program Files\LLVM\bin' | Out-File -Encoding utf8 -Append $env:GITHUB_PATH
-      - name: Verify the pinned Windows toolchain
+      - name: Toolchain | Verify compiler environment
         run: |
           $cmakeVersion = & 'C:\Program Files\CMake\bin\cmake.exe' --version | Select-Object -First 1
           if ($cmakeVersion -ne 'cmake version 4.4.0') { throw "Unexpected CMake version: $cmakeVersion" }
@@ -122,11 +125,11 @@ jobs:
           if ($version -notmatch 'clang version 22\.1\.7\b') { throw "Unexpected clang-cl version: $version" }
           $cmakeVersion
           $version
-      - name: Build every Clang 22 validation cell
+      - name: Validation | Build targets
         run: tools/Build.ps1 -Scope Native -Compiler ClangCl,ClangCoverage
-      - name: Test the exact Clang 22 build receipt
+      - name: Validation | Run tests
         run: tools/Run-Tests.ps1 -Scope Native -Compiler ClangCl,ClangCoverage
-      - name: Upload Clang 22 evidence
+      - name: Evidence | Upload results
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -151,7 +154,7 @@ jobs:
           if-no-files-found: error
 
   container-compilers:
-    name: ${{ matrix.name }} container validation
+    name: Linux | ${{ matrix.name }} | Container
     runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
@@ -167,8 +170,9 @@ jobs:
             service: clang22
             name: Clang 22
     steps:
-      - uses: actions/checkout@v4
-      - name: Install required Docker Compose
+      - name: Source | Check out repository
+        uses: actions/checkout@v4
+      - name: Tools | Install Docker Compose
         shell: bash
         env:
           DOCKER_COMPOSE_VERSION: v2.39.0
@@ -187,9 +191,9 @@ jobs:
           test "${actual_sha256}" = "${expected_sha256}"
           chmod +x "${plugin_dir}/docker-compose"
           docker compose version
-      - name: Set up Docker Buildx
+      - name: Tools | Set up Buildx
         uses: docker/setup-buildx-action@v3
-      - name: Build cached compiler image
+      - name: Image | Build compiler environment with cache
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -200,13 +204,13 @@ jobs:
           # Include intermediate stages so the compiled CMake toolchain is reusable.
           cache-from: type=gha,version=2,scope=simdlib-${{ matrix.service }}
           cache-to: type=gha,version=2,scope=simdlib-${{ matrix.service }},mode=max,ignore-error=true
-      - name: Build selected Linux validation cells
+      - name: Validation | Build targets
         shell: pwsh
         run: tools/Build.ps1 -Scope Containers -Compiler ${{ matrix.compiler }} -SkipImageBuild
-      - name: Test the exact Linux build receipt
+      - name: Validation | Run tests
         shell: pwsh
         run: tools/Run-Tests.ps1 -Scope Containers -Compiler ${{ matrix.compiler }}
-      - name: Upload container evidence
+      - name: Evidence | Upload results
         if: always()
         uses: actions/upload-artifact@v4
         with:
