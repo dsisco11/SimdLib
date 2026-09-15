@@ -71,9 +71,16 @@ boundary rather than inheriting the old wrapper/raw equality claim.
 ## One production-code fixture per case
 
 A fixture exposes a concrete production operation or representative composition
-through a small emitted function. It supplies runtime inputs and returns or
-stores the result so the operation cannot disappear through constant evaluation
-or unused-result elimination.
+through a small emitted function. It supplies runtime inputs where relevant and
+returns or stores the result to keep it observable. This prevents accidental
+constant folding of runtime-dependent work and unused-result elimination.
+
+Intentional constant and identity lowering remains valid. For example, `zero()`
+produces a constant value, and `shift_bytes_left<0>()` may require no operation
+instructions. Do not add artificial inputs or barriers to prevent these intended
+results. A valid emitted function containing only a return can satisfy its
+contract; it is distinct from a missing function or empty extraction output,
+which [complete function inspection](#complete-function-inspection) must reject.
 
 Fixture requirements:
 
@@ -377,8 +384,10 @@ retain two implementations merely to preserve the retired comparison mechanism.
 
 ## Acceptance criteria
 
-- Every migrated case tests one production-code fixture with an explicit
-  instruction contract and stable identity.
+- Every migrated case tests one production-code fixture or an
+  [ABI caller/callee fixture group](#primary-cases-and-supplemental-cases), with an
+  explicit instruction contract and stable identity. An ABI fixture group exposes
+  the required boundaries without introducing a duplicate implementation.
 - Shared rules are reusable across methods without duplicating algorithms.
 - Each primary method case is authored once and runs across its supported
   compiler matrix; compiler-specific copies of the full case are absent.
