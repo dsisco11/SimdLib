@@ -215,7 +215,7 @@ template <> struct SimdImpl128<int8_t>
 	/** @brief Native SIMD register returned by this implementation backend. */
 	using register_t = __m128i;
 	/** @brief Selects bytes from two registers using a canonical predicate register. */
-	static __m128i SIMD_FLAGS(InOut, RegisterOnly, ForceInline) select(__m128i condition, __m128i when_true, __m128i when_false) noexcept
+	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline) select(register_t condition, register_t when_true, register_t when_false) noexcept
 	{
 		return _mm_blendv_epi8(when_false, when_true, condition);
 	}
@@ -228,7 +228,7 @@ template <> struct SimdImpl128<int8_t>
 	 */
 	template <std::size_t... indices>
 		requires(sizeof...(indices) == 16 && ((indices < 16) && ...))
-	static __m128i SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shuffle(__m128i lhs) noexcept
+	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shuffle(register_t lhs) noexcept
 	{
 		return _mm_shuffle_epi8(lhs, _mm_setr_epi8(static_cast<int>(indices)...));
 	}
@@ -240,10 +240,10 @@ template <> struct SimdImpl128<int8_t>
 	/** @brief Multiplies adjacent lanes and adds their products for this native register specialization. */
 	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) multiply_add_adjacent(auto lhs, auto rhs) noexcept
 	{
-		const __m128i lhsWideLo = _mm_cvtepi8_epi16(lhs);
-		const __m128i rhsWideLo = _mm_cvtepi8_epi16(rhs);
-		const __m128i lhsWideHi = _mm_cvtepi8_epi16(_mm_srli_si128(lhs, 8));
-		const __m128i rhsWideHi = _mm_cvtepi8_epi16(_mm_srli_si128(rhs, 8));
+		const register_t lhsWideLo = _mm_cvtepi8_epi16(lhs);
+		const register_t rhsWideLo = _mm_cvtepi8_epi16(rhs);
+		const register_t lhsWideHi = _mm_cvtepi8_epi16(_mm_srli_si128(lhs, 8));
+		const register_t rhsWideHi = _mm_cvtepi8_epi16(_mm_srli_si128(rhs, 8));
 		return _mm_hadd_epi16(_mm_mullo_epi16(lhsWideLo, rhsWideLo), _mm_mullo_epi16(lhsWideHi, rhsWideHi));
 	}
 	/** @brief Multiplies unsigned and signed byte pairs for this native register specialization. */
@@ -272,25 +272,25 @@ template <> struct SimdImpl128<int8_t>
 	/** @brief Computes lane-wise square roots for this native register specialization. */
 	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) sqrt(auto lhs) noexcept
 	{
-		auto sqrt16 = [](__m128i values) noexcept
+		auto sqrt16 = [](register_t values) noexcept
 		{
-			const __m128i lo32 = _mm_cvtepi16_epi32(values);
-			const __m128i hi32 = _mm_cvtepi16_epi32(_mm_srli_si128(values, 8));
-			const __m128i loRoots = _mm_cvtps_epi32(_mm_sqrt_ps(_mm_cvtepi32_ps(lo32)));
-			const __m128i hiRoots = _mm_cvtps_epi32(_mm_sqrt_ps(_mm_cvtepi32_ps(hi32)));
+			const register_t lo32 = _mm_cvtepi16_epi32(values);
+			const register_t hi32 = _mm_cvtepi16_epi32(_mm_srli_si128(values, 8));
+			const register_t loRoots = _mm_cvtps_epi32(_mm_sqrt_ps(_mm_cvtepi32_ps(lo32)));
+			const register_t hiRoots = _mm_cvtps_epi32(_mm_sqrt_ps(_mm_cvtepi32_ps(hi32)));
 			return _mm_packs_epi32(loRoots, hiRoots);
 		};
 
-		const __m128i lo16 = sqrt16(_mm_cvtepi8_epi16(lhs));
-		const __m128i hi16 = sqrt16(_mm_cvtepi8_epi16(_mm_srli_si128(lhs, 8)));
+		const register_t lo16 = sqrt16(_mm_cvtepi8_epi16(lhs));
+		const register_t hi16 = sqrt16(_mm_cvtepi8_epi16(_mm_srli_si128(lhs, 8)));
 		return _mm_packs_epi16(lo16, hi16);
 	}
 	/** @brief Computes the unchecked group magnitude in lane zero; all other lanes are unspecified. */
 	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) magnitude(auto lhs) noexcept
 	{
-		const __m128i low = _mm_cvtepi8_epi16(lhs);
-		const __m128i high = _mm_cvtepi8_epi16(_mm_srli_si128(lhs, 8));
-		__m128i total = _mm_add_epi16(_mm_mullo_epi16(low, low), _mm_mullo_epi16(high, high));
+		const register_t low = _mm_cvtepi8_epi16(lhs);
+		const register_t high = _mm_cvtepi8_epi16(_mm_srli_si128(lhs, 8));
+		register_t total = _mm_add_epi16(_mm_mullo_epi16(low, low), _mm_mullo_epi16(high, high));
 		total = _mm_hadd_epi16(total, total);
 		total = _mm_hadd_epi16(total, total);
 		total = _mm_hadd_epi16(total, total);
@@ -303,9 +303,9 @@ template <> struct SimdImpl128<int8_t>
 	{
 		constexpr std::uint64_t maximum = static_cast<std::uint64_t>(std::numeric_limits<std::int8_t>::max());
 		constexpr std::uint64_t threshold = maximum * maximum + maximum + 1;
-		const __m128i low = _mm_cvtepi8_epi16(lhs);
-		const __m128i high = _mm_cvtepi8_epi16(_mm_srli_si128(lhs, 8));
-		__m128i pairSums = _mm_add_epi32(_mm_madd_epi16(low, low), _mm_madd_epi16(high, high));
+		const register_t low = _mm_cvtepi8_epi16(lhs);
+		const register_t high = _mm_cvtepi8_epi16(_mm_srli_si128(lhs, 8));
+		register_t pairSums = _mm_add_epi32(_mm_madd_epi16(low, low), _mm_madd_epi16(high, high));
 		pairSums = _mm_hadd_epi32(pairSums, pairSums);
 		pairSums = _mm_hadd_epi32(pairSums, pairSums);
 		const std::uint64_t total = static_cast<std::uint32_t>(_mm_cvtsi128_si32(pairSums));
@@ -317,14 +317,14 @@ template <> struct SimdImpl128<int8_t>
 	/** @brief Computes minimum-value position metadata for this native register specialization. */
 	static register_t SIMD_FLAGS(In, RegisterOnly, ForceInline, Flatten) min_position(auto lhs) noexcept
 	{
-		const __m128i indices = _mm_setr_epi8(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15);
-		__m128i values = lhs;
-		__m128i positions = indices;
+		const register_t indices = _mm_setr_epi8(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15);
+		register_t values = lhs;
+		register_t positions = indices;
 		auto reduce = [&]<int offset>() noexcept
 		{
-			const __m128i shiftedValues = _mm_bsrli_si128(values, offset);
-			const __m128i shiftedIndices = _mm_bsrli_si128(positions, offset);
-			const __m128i less = _mm_cmpgt_epi8(values, shiftedValues);
+			const register_t shiftedValues = _mm_bsrli_si128(values, offset);
+			const register_t shiftedIndices = _mm_bsrli_si128(positions, offset);
+			const register_t less = _mm_cmpgt_epi8(values, shiftedValues);
 			values = _mm_blendv_epi8(values, shiftedValues, less);
 			positions = _mm_blendv_epi8(positions, shiftedIndices, less);
 		};
@@ -340,7 +340,7 @@ template <> struct SimdImpl128<int8_t>
 		return _mm_sad_epu8(lhs, rhs);
 	}
 	/** @brief Computes immediate-selected byte-window absolute-difference sums for this native register specialization. */
-	template <int imm8> static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) multi_sum_absolute_byte_differences(__m128i lhs, __m128i rhs) noexcept
+	template <int imm8> static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) multi_sum_absolute_byte_differences(register_t lhs, register_t rhs) noexcept
 	{
 		return _mm_mpsadbw_epu8(lhs, rhs, imm8);
 	}
@@ -465,7 +465,7 @@ template <> struct SimdImpl128<int8_t>
 	 * @param index Selected lane in the range `[0, 16)`.
 	 * @return Selected scalar lane.
 	 */
-	static int8_t SIMD_FLAGS(In, RegisterOnly, ForceInline) extract_slow(const __m128i lhs, const int index) noexcept
+	static int8_t SIMD_FLAGS(In, RegisterOnly, ForceInline) extract_slow(const register_t lhs, const int index) noexcept
 	{
 		SIMDLIB_PRECONDITION(index >= 0 && index < 16, "Signed 8-bit extraction requires a valid 128-bit lane index");
 		switch (index)
@@ -523,11 +523,11 @@ template <> struct SimdImpl128<int8_t>
 	 * @param index Selected lane in the range `[0, 16)`.
 	 * @return Register with the selected lane replaced.
 	 */
-	static __m128i SIMD_FLAGS(InOut, RegisterOnly, ForceInline) insert_slow(const __m128i lhs, const int8_t rhs, const int index) noexcept
+	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline) insert_slow(const register_t lhs, const int8_t rhs, const int index) noexcept
 	{
 		SIMDLIB_PRECONDITION(index >= 0 && index < 16, "Signed 8-bit insertion requires a valid 128-bit lane index");
-		const __m128i lane_indices = _mm_setr_epi8(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15);
-		const __m128i selected_lane = _mm_cmpeq_epi8(lane_indices, _mm_set1_epi8(static_cast<char>(index)));
+		const register_t lane_indices = _mm_setr_epi8(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15);
+		const register_t selected_lane = _mm_cmpeq_epi8(lane_indices, _mm_set1_epi8(static_cast<char>(index)));
 		return _mm_blendv_epi8(lhs, _mm_set1_epi8(rhs), selected_lane);
 	}
 
@@ -544,12 +544,12 @@ template <> struct SimdImpl128<int8_t>
 	// misc
 	/** @brief Shuffles bytes through the native runtime selector-register instruction. */
 	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline) shuffle(auto lhs, auto rhs) noexcept
-		requires(std::same_as<decltype(lhs), __m128i> && std::same_as<decltype(rhs), __m128i>)
+		requires(std::same_as<decltype(lhs), register_t> && std::same_as<decltype(rhs), register_t>)
 	{
 		return _mm_shuffle_epi8(lhs, rhs);
 	}
 	/** @brief Selects bytes through the native runtime mask-register operation. */
-	static __m128i SIMD_FLAGS(InOut, RegisterOnly, ForceInline) blend(const __m128i lhs, const __m128i rhs, const __m128i mask) noexcept
+	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline) blend(const register_t lhs, const register_t rhs, const register_t mask) noexcept
 	{
 		return register_blend_bytes(lhs, rhs, mask);
 	}
@@ -564,7 +564,7 @@ template <> struct SimdImpl128<uint8_t>
 	/** @brief Native SIMD register returned by this implementation backend. */
 	using register_t = __m128i;
 	/** @brief Selects bytes from two registers using a canonical predicate register. */
-	static __m128i SIMD_FLAGS(InOut, RegisterOnly, ForceInline) select(__m128i condition, __m128i when_true, __m128i when_false) noexcept
+	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline) select(register_t condition, register_t when_true, register_t when_false) noexcept
 	{
 		return _mm_blendv_epi8(when_false, when_true, condition);
 	}
@@ -577,7 +577,7 @@ template <> struct SimdImpl128<uint8_t>
 	 */
 	template <std::size_t... indices>
 		requires(sizeof...(indices) == 16 && ((indices < 16) && ...))
-	static __m128i SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shuffle(__m128i lhs) noexcept
+	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shuffle(register_t lhs) noexcept
 	{
 		return _mm_shuffle_epi8(lhs, _mm_setr_epi8(static_cast<int>(indices)...));
 	}
@@ -589,10 +589,10 @@ template <> struct SimdImpl128<uint8_t>
 	/** @brief Multiplies adjacent lanes and adds their products for this native register specialization. */
 	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) multiply_add_adjacent(auto lhs, auto rhs) noexcept
 	{
-		const __m128i lhsWideLo = _mm_cvtepu8_epi16(lhs);
-		const __m128i rhsWideLo = _mm_cvtepu8_epi16(rhs);
-		const __m128i lhsWideHi = _mm_cvtepu8_epi16(_mm_srli_si128(lhs, 8));
-		const __m128i rhsWideHi = _mm_cvtepu8_epi16(_mm_srli_si128(rhs, 8));
+		const register_t lhsWideLo = _mm_cvtepu8_epi16(lhs);
+		const register_t rhsWideLo = _mm_cvtepu8_epi16(rhs);
+		const register_t lhsWideHi = _mm_cvtepu8_epi16(_mm_srli_si128(lhs, 8));
+		const register_t rhsWideHi = _mm_cvtepu8_epi16(_mm_srli_si128(rhs, 8));
 		return _mm_hadd_epi16(_mm_mullo_epi16(lhsWideLo, rhsWideLo), _mm_mullo_epi16(lhsWideHi, rhsWideHi));
 	}
 	/** @brief Multiplies unsigned and signed byte pairs for this native register specialization. */
@@ -621,25 +621,25 @@ template <> struct SimdImpl128<uint8_t>
 	/** @brief Computes lane-wise square roots for this native register specialization. */
 	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) sqrt(auto lhs) noexcept
 	{
-		auto sqrt16 = [](__m128i values) noexcept
+		auto sqrt16 = [](register_t values) noexcept
 		{
-			const __m128i lo32 = _mm_cvtepu16_epi32(values);
-			const __m128i hi32 = _mm_cvtepu16_epi32(_mm_srli_si128(values, 8));
-			const __m128i loRoots = _mm_cvtps_epi32(_mm_sqrt_ps(_ext_cvtepu32_ps(lo32)));
-			const __m128i hiRoots = _mm_cvtps_epi32(_mm_sqrt_ps(_ext_cvtepu32_ps(hi32)));
+			const register_t lo32 = _mm_cvtepu16_epi32(values);
+			const register_t hi32 = _mm_cvtepu16_epi32(_mm_srli_si128(values, 8));
+			const register_t loRoots = _mm_cvtps_epi32(_mm_sqrt_ps(_ext_cvtepu32_ps(lo32)));
+			const register_t hiRoots = _mm_cvtps_epi32(_mm_sqrt_ps(_ext_cvtepu32_ps(hi32)));
 			return _mm_packus_epi32(loRoots, hiRoots);
 		};
 
-		const __m128i lo16 = sqrt16(_mm_cvtepu8_epi16(lhs));
-		const __m128i hi16 = sqrt16(_mm_cvtepu8_epi16(_mm_srli_si128(lhs, 8)));
+		const register_t lo16 = sqrt16(_mm_cvtepu8_epi16(lhs));
+		const register_t hi16 = sqrt16(_mm_cvtepu8_epi16(_mm_srli_si128(lhs, 8)));
 		return _mm_packus_epi16(lo16, hi16);
 	}
 	/** @brief Computes the unchecked group magnitude in lane zero; all other lanes are unspecified. */
 	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) magnitude(auto lhs) noexcept
 	{
-		const __m128i low = _mm_cvtepu8_epi16(lhs);
-		const __m128i high = _mm_cvtepu8_epi16(_mm_srli_si128(lhs, 8));
-		__m128i total = _mm_add_epi16(_mm_mullo_epi16(low, low), _mm_mullo_epi16(high, high));
+		const register_t low = _mm_cvtepu8_epi16(lhs);
+		const register_t high = _mm_cvtepu8_epi16(_mm_srli_si128(lhs, 8));
+		register_t total = _mm_add_epi16(_mm_mullo_epi16(low, low), _mm_mullo_epi16(high, high));
 		total = _mm_hadd_epi16(total, total);
 		total = _mm_hadd_epi16(total, total);
 		total = _mm_hadd_epi16(total, total);
@@ -652,9 +652,9 @@ template <> struct SimdImpl128<uint8_t>
 	{
 		constexpr std::uint64_t maximum = static_cast<std::uint64_t>(std::numeric_limits<std::uint8_t>::max());
 		constexpr std::uint64_t threshold = maximum * maximum + maximum + 1;
-		const __m128i low = _mm_cvtepu8_epi16(lhs);
-		const __m128i high = _mm_cvtepu8_epi16(_mm_srli_si128(lhs, 8));
-		__m128i pairSums = _mm_add_epi32(_mm_madd_epi16(low, low), _mm_madd_epi16(high, high));
+		const register_t low = _mm_cvtepu8_epi16(lhs);
+		const register_t high = _mm_cvtepu8_epi16(_mm_srli_si128(lhs, 8));
+		register_t pairSums = _mm_add_epi32(_mm_madd_epi16(low, low), _mm_madd_epi16(high, high));
 		pairSums = _mm_hadd_epi32(pairSums, pairSums);
 		pairSums = _mm_hadd_epi32(pairSums, pairSums);
 		const std::uint64_t total = static_cast<std::uint32_t>(_mm_cvtsi128_si32(pairSums));
@@ -664,7 +664,7 @@ template <> struct SimdImpl128<uint8_t>
 	}
 
 	/** @brief Returns the unsigned-byte lane indices as one compile-time-generated native register. */
-	static __m128i SIMD_FLAGS(Out, RegisterOnly, ForceInline, Flatten) lane_indices() noexcept
+	static register_t SIMD_FLAGS(Out, RegisterOnly, ForceInline, Flatten) lane_indices() noexcept
 	{
 		return make_static_register<SimdImpl128<std::uint8_t>>([]<std::size_t index>() constexpr noexcept
 		{
@@ -675,15 +675,15 @@ template <> struct SimdImpl128<uint8_t>
 	/** @brief Computes minimum-value position metadata for this native register specialization. */
 	static register_t SIMD_FLAGS(In, RegisterOnly, ForceInline, Flatten) min_position(auto lhs) noexcept
 	{
-		const __m128i indices = lane_indices();
-		const __m128i signBit = _mm_set1_epi8(static_cast<char>(0x80));
-		__m128i values = lhs;
-		__m128i positions = indices;
+		const register_t indices = lane_indices();
+		const register_t signBit = _mm_set1_epi8(static_cast<char>(0x80));
+		register_t values = lhs;
+		register_t positions = indices;
 		auto reduce = [&]<int offset>() noexcept
 		{
-			const __m128i shiftedValues = _mm_bsrli_si128(values, offset);
-			const __m128i shiftedIndices = _mm_bsrli_si128(positions, offset);
-			const __m128i less = _mm_cmpgt_epi8(_mm_xor_si128(values, signBit), _mm_xor_si128(shiftedValues, signBit));
+			const register_t shiftedValues = _mm_bsrli_si128(values, offset);
+			const register_t shiftedIndices = _mm_bsrli_si128(positions, offset);
+			const register_t less = _mm_cmpgt_epi8(_mm_xor_si128(values, signBit), _mm_xor_si128(shiftedValues, signBit));
 			values = _mm_blendv_epi8(values, shiftedValues, less);
 			positions = _mm_blendv_epi8(positions, shiftedIndices, less);
 		};
@@ -699,7 +699,7 @@ template <> struct SimdImpl128<uint8_t>
 		return _mm_sad_epu8(lhs, rhs);
 	}
 	/** @brief Computes immediate-selected byte-window absolute-difference sums for this native register specialization. */
-	template <int imm8> static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) multi_sum_absolute_byte_differences(__m128i lhs, __m128i rhs) noexcept
+	template <int imm8> static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) multi_sum_absolute_byte_differences(register_t lhs, register_t rhs) noexcept
 	{
 		return _mm_mpsadbw_epu8(lhs, rhs, imm8);
 	}
@@ -834,7 +834,7 @@ template <> struct SimdImpl128<uint8_t>
 	 * @param index Selected lane in the range `[0, 16)`.
 	 * @return Selected scalar lane.
 	 */
-	static uint8_t SIMD_FLAGS(In, RegisterOnly, ForceInline) extract_slow(const __m128i lhs, const int index) noexcept
+	static uint8_t SIMD_FLAGS(In, RegisterOnly, ForceInline) extract_slow(const register_t lhs, const int index) noexcept
 	{
 		SIMDLIB_PRECONDITION(index >= 0 && index < 16, "Unsigned 8-bit extraction requires a valid 128-bit lane index");
 		switch (index)
@@ -892,11 +892,11 @@ template <> struct SimdImpl128<uint8_t>
 	 * @param index Selected lane in the range `[0, 16)`.
 	 * @return Register with the selected lane replaced.
 	 */
-	static __m128i SIMD_FLAGS(InOut, RegisterOnly, ForceInline) insert_slow(const __m128i lhs, const uint8_t rhs, const int index) noexcept
+	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline) insert_slow(const register_t lhs, const uint8_t rhs, const int index) noexcept
 	{
 		SIMDLIB_PRECONDITION(index >= 0 && index < 16, "Unsigned 8-bit insertion requires a valid 128-bit lane index");
-		const __m128i lane_indices = _mm_setr_epi8(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15);
-		const __m128i selected_lane = _mm_cmpeq_epi8(lane_indices, _mm_set1_epi8(static_cast<char>(index)));
+		const register_t lane_indices = _mm_setr_epi8(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15);
+		const register_t selected_lane = _mm_cmpeq_epi8(lane_indices, _mm_set1_epi8(static_cast<char>(index)));
 		return _mm_blendv_epi8(lhs, _mm_set1_epi8(std::bit_cast<int8_t>(rhs)), selected_lane);
 	}
 
@@ -913,12 +913,12 @@ template <> struct SimdImpl128<uint8_t>
 	// misc
 	/** @brief Shuffles bytes through the native runtime selector-register instruction. */
 	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline) shuffle(auto lhs, auto rhs) noexcept
-		requires(std::same_as<decltype(lhs), __m128i> && std::same_as<decltype(rhs), __m128i>)
+		requires(std::same_as<decltype(lhs), register_t> && std::same_as<decltype(rhs), register_t>)
 	{
 		return _mm_shuffle_epi8(lhs, rhs);
 	}
 	/** @brief Selects bytes through the native runtime mask-register operation. */
-	static __m128i SIMD_FLAGS(InOut, RegisterOnly, ForceInline) blend(const __m128i lhs, const __m128i rhs, const __m128i mask) noexcept
+	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline) blend(const register_t lhs, const register_t rhs, const register_t mask) noexcept
 	{
 		return register_blend_bytes(lhs, rhs, mask);
 	}
@@ -933,7 +933,7 @@ template <> struct SimdImpl128<int16_t>
 	/** @brief Native SIMD register returned by this implementation backend. */
 	using register_t = __m128i;
 	/** @brief Selects 16-bit lanes from two registers using a canonical predicate register. */
-	static __m128i SIMD_FLAGS(InOut, RegisterOnly, ForceInline) select(__m128i condition, __m128i when_true, __m128i when_false) noexcept
+	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline) select(register_t condition, register_t when_true, register_t when_false) noexcept
 	{
 		return _mm_blendv_epi8(when_false, when_true, condition);
 	}
@@ -946,7 +946,7 @@ template <> struct SimdImpl128<int16_t>
 	 */
 	template <std::size_t... indices>
 		requires(sizeof...(indices) == 8 && ((indices < 8) && ...))
-	static __m128i SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shuffle(__m128i lhs) noexcept
+	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shuffle(register_t lhs) noexcept
 	{
 		return _mm_shuffle_epi8(lhs, make_logical_shuffle_16_control<std::array{indices...}>(std::make_index_sequence<16>{}));
 	}
@@ -986,16 +986,16 @@ template <> struct SimdImpl128<int16_t>
 	/** @brief Computes lane-wise square roots for this native register specialization. */
 	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) sqrt(auto lhs) noexcept
 	{
-		const __m128i lo32 = _mm_cvtepi16_epi32(lhs);
-		const __m128i hi32 = _mm_cvtepi16_epi32(_mm_srli_si128(lhs, 8));
-		const __m128i loRoots = _mm_cvtps_epi32(_mm_sqrt_ps(_mm_cvtepi32_ps(lo32)));
-		const __m128i hiRoots = _mm_cvtps_epi32(_mm_sqrt_ps(_mm_cvtepi32_ps(hi32)));
+		const register_t lo32 = _mm_cvtepi16_epi32(lhs);
+		const register_t hi32 = _mm_cvtepi16_epi32(_mm_srli_si128(lhs, 8));
+		const register_t loRoots = _mm_cvtps_epi32(_mm_sqrt_ps(_mm_cvtepi32_ps(lo32)));
+		const register_t hiRoots = _mm_cvtps_epi32(_mm_sqrt_ps(_mm_cvtepi32_ps(hi32)));
 		return _mm_packs_epi32(loRoots, hiRoots);
 	}
 	/** @brief Computes the unchecked group magnitude in lane zero; all other lanes are unspecified. */
 	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) magnitude(auto lhs) noexcept
 	{
-		__m128i total = _mm_madd_epi16(lhs, lhs);
+		register_t total = _mm_madd_epi16(lhs, lhs);
 		total = _mm_hadd_epi32(total, total);
 		total = _mm_hadd_epi32(total, total);
 		return _mm_cvtpd_epi32(_mm_sqrt_sd(_mm_cvtepi32_pd(total), _mm_cvtepi32_pd(total)));
@@ -1006,14 +1006,14 @@ template <> struct SimdImpl128<int16_t>
 	{
 		constexpr std::uint64_t maximum = static_cast<std::uint64_t>(std::numeric_limits<std::int16_t>::max());
 		constexpr std::uint64_t threshold = maximum * maximum + maximum + 1;
-		const __m128i minimum = _mm_set1_epi16(std::numeric_limits<std::int16_t>::min());
+		const register_t minimum = _mm_set1_epi16(std::numeric_limits<std::int16_t>::min());
 		if (_mm_movemask_epi8(_mm_cmpeq_epi16(lhs, minimum)) != 0)
 			return magnitude_checked_result<std::int16_t>(maximum, true);
-		const __m128i pairSquares = _mm_madd_epi16(lhs, lhs);
-		const __m128i lowPairs = _mm_cvtepu32_epi64(pairSquares);
-		const __m128i highPairs = _mm_cvtepu32_epi64(_mm_srli_si128(pairSquares, 8));
-		const __m128i pairTotals = _mm_add_epi64(lowPairs, highPairs);
-		const __m128i totalVector = _mm_add_epi64(pairTotals, _mm_srli_si128(pairTotals, 8));
+		const register_t pairSquares = _mm_madd_epi16(lhs, lhs);
+		const register_t lowPairs = _mm_cvtepu32_epi64(pairSquares);
+		const register_t highPairs = _mm_cvtepu32_epi64(_mm_srli_si128(pairSquares, 8));
+		const register_t pairTotals = _mm_add_epi64(lowPairs, highPairs);
+		const register_t totalVector = _mm_add_epi64(pairTotals, _mm_srli_si128(pairTotals, 8));
 		const std::uint64_t total = static_cast<std::uint64_t>(_mm_cvtsi128_si64(totalVector));
 		const bool overflow = total >= threshold;
 		const std::uint64_t result = overflow ? maximum : magnitude_round_sqrt_u64(total, maximum);
@@ -1023,16 +1023,16 @@ template <> struct SimdImpl128<int16_t>
 	/** @brief Computes minimum-value position metadata for this native register specialization. */
 	static register_t SIMD_FLAGS(In, RegisterOnly, ForceInline, Flatten) min_position(auto lhs) noexcept
 	{
-		const __m128i indices = _mm_setr_epi16(0, 1, 2, 3, 4, 5, 6, 7);
-		__m128i values = lhs;
-		__m128i positions = indices;
+		const register_t indices = _mm_setr_epi16(0, 1, 2, 3, 4, 5, 6, 7);
+		register_t values = lhs;
+		register_t positions = indices;
 		auto reduce = [&]<int offset>() noexcept
 		{
 			if constexpr (offset < 8)
 			{
-				const __m128i shiftedValues = _mm_bsrli_si128(values, offset * 2);
-				const __m128i shiftedIndices = _mm_bsrli_si128(positions, offset * 2);
-				const __m128i less = _mm_cmpgt_epi16(values, shiftedValues);
+				const register_t shiftedValues = _mm_bsrli_si128(values, offset * 2);
+				const register_t shiftedIndices = _mm_bsrli_si128(positions, offset * 2);
+				const register_t less = _mm_cmpgt_epi16(values, shiftedValues);
 				values = _mm_blendv_epi8(values, shiftedValues, less);
 				positions = _mm_blendv_epi8(positions, shiftedIndices, less);
 			}
@@ -1048,7 +1048,7 @@ template <> struct SimdImpl128<int16_t>
 		return _mm_sad_epu8(lhs, rhs);
 	}
 	/** @brief Computes immediate-selected byte-window absolute-difference sums for this native register specialization. */
-	template <int imm8> static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) multi_sum_absolute_byte_differences(__m128i lhs, __m128i rhs) noexcept
+	template <int imm8> static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) multi_sum_absolute_byte_differences(register_t lhs, register_t rhs) noexcept
 	{
 		return _mm_mpsadbw_epu8(lhs, rhs, imm8);
 	}
@@ -1122,10 +1122,10 @@ template <> struct SimdImpl128<int16_t>
 	}
 	static register_t SIMD_FLAGS(InOut, ForceInline) multiply_saturated(auto lhs, auto rhs) noexcept
 	{
-		const __m128i lhsLo = _mm_cvtepi16_epi32(lhs);
-		const __m128i rhsLo = _mm_cvtepi16_epi32(rhs);
-		const __m128i lhsHi = _mm_cvtepi16_epi32(_mm_srli_si128(lhs, 8));
-		const __m128i rhsHi = _mm_cvtepi16_epi32(_mm_srli_si128(rhs, 8));
+		const register_t lhsLo = _mm_cvtepi16_epi32(lhs);
+		const register_t rhsLo = _mm_cvtepi16_epi32(rhs);
+		const register_t lhsHi = _mm_cvtepi16_epi32(_mm_srli_si128(lhs, 8));
+		const register_t rhsHi = _mm_cvtepi16_epi32(_mm_srli_si128(rhs, 8));
 		return _mm_packs_epi32(_mm_mullo_epi32(lhsLo, rhsLo), _mm_mullo_epi32(lhsHi, rhsHi));
 	}
 
@@ -1202,7 +1202,7 @@ template <> struct SimdImpl128<int16_t>
 	 * @param index Selected lane in the range `[0, 8)`.
 	 * @return Selected scalar lane.
 	 */
-	static int16_t SIMD_FLAGS(In, RegisterOnly, ForceInline) extract_slow(const __m128i lhs, const int index) noexcept
+	static int16_t SIMD_FLAGS(In, RegisterOnly, ForceInline) extract_slow(const register_t lhs, const int index) noexcept
 	{
 		SIMDLIB_PRECONDITION(index >= 0 && index < 8, "Signed 16-bit extraction requires a valid 128-bit lane index");
 		switch (index)
@@ -1244,11 +1244,11 @@ template <> struct SimdImpl128<int16_t>
 	 * @param index Selected lane in the range `[0, 8)`.
 	 * @return Register with the selected lane replaced.
 	 */
-	static __m128i SIMD_FLAGS(InOut, RegisterOnly, ForceInline) insert_slow(const __m128i lhs, const int16_t rhs, const int index) noexcept
+	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline) insert_slow(const register_t lhs, const int16_t rhs, const int index) noexcept
 	{
 		SIMDLIB_PRECONDITION(index >= 0 && index < 8, "Signed 16-bit insertion requires a valid 128-bit lane index");
-		const __m128i lane_indices = _mm_setr_epi16(0, 1, 2, 3, 4, 5, 6, 7);
-		const __m128i selected_lane = _mm_cmpeq_epi16(lane_indices, _mm_set1_epi16(static_cast<int16_t>(index)));
+		const register_t lane_indices = _mm_setr_epi16(0, 1, 2, 3, 4, 5, 6, 7);
+		const register_t selected_lane = _mm_cmpeq_epi16(lane_indices, _mm_set1_epi16(static_cast<int16_t>(index)));
 		return _mm_blendv_epi8(lhs, _mm_set1_epi16(rhs), selected_lane);
 	}
 
@@ -1273,7 +1273,7 @@ template <> struct SimdImpl128<int16_t>
 		return register_shuffle_half_16_slow(lhs, static_cast<unsigned int>(rhs), false);
 	}
 	/** @brief Shuffles the low four 16-bit lanes in each 128-bit group with an immediate control. */
-	template <int imm8> static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shuffle_lo(__m128i lhs) noexcept
+	template <int imm8> static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shuffle_lo(register_t lhs) noexcept
 	{
 		return _mm_shufflelo_epi16(lhs, imm8);
 	}
@@ -1287,7 +1287,7 @@ template <> struct SimdImpl128<int16_t>
 		return register_shuffle_half_16_slow(lhs, static_cast<unsigned int>(rhs), true);
 	}
 	/** @brief Shuffles the high four 16-bit lanes in each 128-bit group with an immediate control. */
-	template <int imm8> static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shuffle_hi(__m128i lhs) noexcept
+	template <int imm8> static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shuffle_hi(register_t lhs) noexcept
 	{
 		return _mm_shufflehi_epi16(lhs, imm8);
 	}
@@ -1299,15 +1299,15 @@ template <> struct SimdImpl128<int16_t>
 	 */
 	static register_t SIMD_FLAGS(InOut, ForceInline) blend_slow(auto lhs, auto rhs, const int imm8) noexcept
 	{
-		const __m128i selectors = make_static_register<SimdImpl128<std::int16_t>>([]<std::size_t index>() constexpr noexcept
+		const register_t selectors = make_static_register<SimdImpl128<std::int16_t>>([]<std::size_t index>() constexpr noexcept
 		{
 			return static_cast<std::int16_t>(1u << index);
 		});
-		const __m128i selected = _mm_and_si128(_mm_set1_epi16(static_cast<std::int16_t>(imm8)), selectors);
+		const register_t selected = _mm_and_si128(_mm_set1_epi16(static_cast<std::int16_t>(imm8)), selectors);
 		return _mm_blendv_epi8(lhs, rhs, _mm_cmpeq_epi16(selected, selectors));
 	}
 	/** @brief Selects signed 16-bit lanes from two registers with an immediate control. */
-	template <int imm8> constexpr static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) blend(const __m128i lhs, const __m128i rhs) noexcept
+	template <int imm8> constexpr static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) blend(const register_t lhs, const register_t rhs) noexcept
 	{
 		if (std::is_constant_evaluated())
 			return register_blend_constexpr<std::int16_t>(lhs, rhs, static_cast<unsigned int>(imm8));
@@ -1320,7 +1320,7 @@ template <> struct SimdImpl128<uint16_t>
 	/** @brief Native SIMD register returned by this implementation backend. */
 	using register_t = __m128i;
 	/** @brief Selects 16-bit lanes from two registers using a canonical predicate register. */
-	static __m128i SIMD_FLAGS(InOut, RegisterOnly, ForceInline) select(__m128i condition, __m128i when_true, __m128i when_false) noexcept
+	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline) select(register_t condition, register_t when_true, register_t when_false) noexcept
 	{
 		return _mm_blendv_epi8(when_false, when_true, condition);
 	}
@@ -1333,7 +1333,7 @@ template <> struct SimdImpl128<uint16_t>
 	 */
 	template <std::size_t... indices>
 		requires(sizeof...(indices) == 8 && ((indices < 8) && ...))
-	static __m128i SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shuffle(__m128i lhs) noexcept
+	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shuffle(register_t lhs) noexcept
 	{
 		return _mm_shuffle_epi8(lhs, make_logical_shuffle_16_control<std::array{indices...}>(std::make_index_sequence<16>{}));
 	}
@@ -1345,10 +1345,10 @@ template <> struct SimdImpl128<uint16_t>
 	/** @brief Multiplies adjacent lanes and adds their products for this native register specialization. */
 	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) multiply_add_adjacent(auto lhs, auto rhs) noexcept
 	{
-		const __m128i lhsLo = _mm_cvtepu16_epi32(lhs);
-		const __m128i rhsLo = _mm_cvtepu16_epi32(rhs);
-		const __m128i lhsHi = _mm_cvtepu16_epi32(_mm_srli_si128(lhs, 8));
-		const __m128i rhsHi = _mm_cvtepu16_epi32(_mm_srli_si128(rhs, 8));
+		const register_t lhsLo = _mm_cvtepu16_epi32(lhs);
+		const register_t rhsLo = _mm_cvtepu16_epi32(rhs);
+		const register_t lhsHi = _mm_cvtepu16_epi32(_mm_srli_si128(lhs, 8));
+		const register_t rhsHi = _mm_cvtepu16_epi32(_mm_srli_si128(rhs, 8));
 		return _mm_hadd_epi32(_mm_mullo_epi32(lhsLo, rhsLo), _mm_mullo_epi32(lhsHi, rhsHi));
 	}
 	/** @brief Multiplies unsigned and signed byte pairs for this native register specialization. */
@@ -1359,11 +1359,11 @@ template <> struct SimdImpl128<uint16_t>
 	/** @brief Computes the unchecked group magnitude in lane zero; all other lanes are unspecified. */
 	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) magnitude(auto lhs) noexcept
 	{
-		const __m128i lowProducts = _mm_mullo_epi16(lhs, lhs);
-		const __m128i highProducts = _mm_mulhi_epu16(lhs, lhs);
-		const __m128i lowSquares = _mm_unpacklo_epi16(lowProducts, highProducts);
-		const __m128i highSquares = _mm_unpackhi_epi16(lowProducts, highProducts);
-		__m128i total = _mm_add_epi32(lowSquares, highSquares);
+		const register_t lowProducts = _mm_mullo_epi16(lhs, lhs);
+		const register_t highProducts = _mm_mulhi_epu16(lhs, lhs);
+		const register_t lowSquares = _mm_unpacklo_epi16(lowProducts, highProducts);
+		const register_t highSquares = _mm_unpackhi_epi16(lowProducts, highProducts);
+		register_t total = _mm_add_epi32(lowSquares, highSquares);
 		total = _mm_hadd_epi32(total, total);
 		total = _mm_hadd_epi32(total, total);
 		const std::uint32_t squareSum = static_cast<std::uint32_t>(_mm_cvtsi128_si32(total));
@@ -1376,14 +1376,14 @@ template <> struct SimdImpl128<uint16_t>
 	{
 		constexpr std::uint64_t maximum = static_cast<std::uint64_t>(std::numeric_limits<std::uint16_t>::max());
 		constexpr std::uint64_t threshold = maximum * maximum + maximum + 1;
-		const __m128i lowProducts = _mm_mullo_epi16(lhs, lhs);
-		const __m128i highProducts = _mm_mulhi_epu16(lhs, lhs);
-		const __m128i lowSquares = _mm_unpacklo_epi16(lowProducts, highProducts);
-		const __m128i highSquares = _mm_unpackhi_epi16(lowProducts, highProducts);
-		const __m128i lowPairs = _mm_add_epi64(_mm_cvtepu32_epi64(lowSquares), _mm_cvtepu32_epi64(_mm_srli_si128(lowSquares, 8)));
-		const __m128i highPairs = _mm_add_epi64(_mm_cvtepu32_epi64(highSquares), _mm_cvtepu32_epi64(_mm_srli_si128(highSquares, 8)));
-		const __m128i pairTotals = _mm_add_epi64(lowPairs, highPairs);
-		const __m128i totalVector = _mm_add_epi64(pairTotals, _mm_srli_si128(pairTotals, 8));
+		const register_t lowProducts = _mm_mullo_epi16(lhs, lhs);
+		const register_t highProducts = _mm_mulhi_epu16(lhs, lhs);
+		const register_t lowSquares = _mm_unpacklo_epi16(lowProducts, highProducts);
+		const register_t highSquares = _mm_unpackhi_epi16(lowProducts, highProducts);
+		const register_t lowPairs = _mm_add_epi64(_mm_cvtepu32_epi64(lowSquares), _mm_cvtepu32_epi64(_mm_srli_si128(lowSquares, 8)));
+		const register_t highPairs = _mm_add_epi64(_mm_cvtepu32_epi64(highSquares), _mm_cvtepu32_epi64(_mm_srli_si128(highSquares, 8)));
+		const register_t pairTotals = _mm_add_epi64(lowPairs, highPairs);
+		const register_t totalVector = _mm_add_epi64(pairTotals, _mm_srli_si128(pairTotals, 8));
 		const std::uint64_t total = static_cast<std::uint64_t>(_mm_cvtsi128_si64(totalVector));
 		const bool overflow = total >= threshold;
 		const std::uint64_t result = overflow ? maximum : magnitude_round_sqrt_u64(total, maximum);
@@ -1416,10 +1416,10 @@ template <> struct SimdImpl128<uint16_t>
 	/** @brief Computes lane-wise square roots for this native register specialization. */
 	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) sqrt(auto lhs) noexcept
 	{
-		const __m128i lo32 = _mm_cvtepu16_epi32(lhs);
-		const __m128i hi32 = _mm_cvtepu16_epi32(_mm_srli_si128(lhs, 8));
-		const __m128i loRoots = _mm_cvtps_epi32(_mm_sqrt_ps(_ext_cvtepu32_ps(lo32)));
-		const __m128i hiRoots = _mm_cvtps_epi32(_mm_sqrt_ps(_ext_cvtepu32_ps(hi32)));
+		const register_t lo32 = _mm_cvtepu16_epi32(lhs);
+		const register_t hi32 = _mm_cvtepu16_epi32(_mm_srli_si128(lhs, 8));
+		const register_t loRoots = _mm_cvtps_epi32(_mm_sqrt_ps(_ext_cvtepu32_ps(lo32)));
+		const register_t hiRoots = _mm_cvtps_epi32(_mm_sqrt_ps(_ext_cvtepu32_ps(hi32)));
 		return _mm_packus_epi32(loRoots, hiRoots);
 	}
 	/** @brief Computes byte-wise absolute-difference sums for this native register specialization. */
@@ -1428,7 +1428,7 @@ template <> struct SimdImpl128<uint16_t>
 		return _mm_sad_epu8(lhs, rhs);
 	}
 	/** @brief Computes immediate-selected byte-window absolute-difference sums for this native register specialization. */
-	template <int imm8> static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) multi_sum_absolute_byte_differences(__m128i lhs, __m128i rhs) noexcept
+	template <int imm8> static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) multi_sum_absolute_byte_differences(register_t lhs, register_t rhs) noexcept
 	{
 		return _mm_mpsadbw_epu8(lhs, rhs, imm8);
 	}
@@ -1486,17 +1486,17 @@ template <> struct SimdImpl128<uint16_t>
 	/** @brief Horizontally adds unsigned 16-bit lanes with unsigned saturation. */
 	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) hadd_saturated(auto lhs, auto rhs) noexcept
 	{
-		const __m128i zero = _mm_setzero_si128();
-		const __m128i lhsPairs = _mm_adds_epu16(lhs, _mm_srli_epi32(lhs, 16));
-		const __m128i rhsPairs = _mm_adds_epu16(rhs, _mm_srli_epi32(rhs, 16));
+		const register_t zero = _mm_setzero_si128();
+		const register_t lhsPairs = _mm_adds_epu16(lhs, _mm_srli_epi32(lhs, 16));
+		const register_t rhsPairs = _mm_adds_epu16(rhs, _mm_srli_epi32(rhs, 16));
 		return _mm_packus_epi32(_mm_blend_epi16(lhsPairs, zero, 0xAA), _mm_blend_epi16(rhsPairs, zero, 0xAA));
 	}
 	/** @brief Horizontally subtracts unsigned 16-bit lanes with unsigned saturation. */
 	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) hsubtract_saturated(auto lhs, auto rhs) noexcept
 	{
-		const __m128i zero = _mm_setzero_si128();
-		const __m128i lhsPairs = _mm_subs_epu16(lhs, _mm_srli_epi32(lhs, 16));
-		const __m128i rhsPairs = _mm_subs_epu16(rhs, _mm_srli_epi32(rhs, 16));
+		const register_t zero = _mm_setzero_si128();
+		const register_t lhsPairs = _mm_subs_epu16(lhs, _mm_srli_epi32(lhs, 16));
+		const register_t rhsPairs = _mm_subs_epu16(rhs, _mm_srli_epi32(rhs, 16));
 		return _mm_packus_epi32(_mm_blend_epi16(lhsPairs, zero, 0xAA), _mm_blend_epi16(rhsPairs, zero, 0xAA));
 	}
 
@@ -1513,10 +1513,10 @@ template <> struct SimdImpl128<uint16_t>
 	}
 	static register_t SIMD_FLAGS(InOut, ForceInline) multiply_saturated(auto lhs, auto rhs) noexcept
 	{
-		const __m128i lhsLo = _mm_cvtepu16_epi32(lhs);
-		const __m128i rhsLo = _mm_cvtepu16_epi32(rhs);
-		const __m128i lhsHi = _mm_cvtepu16_epi32(_mm_srli_si128(lhs, 8));
-		const __m128i rhsHi = _mm_cvtepu16_epi32(_mm_srli_si128(rhs, 8));
+		const register_t lhsLo = _mm_cvtepu16_epi32(lhs);
+		const register_t rhsLo = _mm_cvtepu16_epi32(rhs);
+		const register_t lhsHi = _mm_cvtepu16_epi32(_mm_srli_si128(lhs, 8));
+		const register_t rhsHi = _mm_cvtepu16_epi32(_mm_srli_si128(rhs, 8));
 		return _mm_packus_epi32(_mm_mullo_epi32(lhsLo, rhsLo), _mm_mullo_epi32(lhsHi, rhsHi));
 	}
 
@@ -1593,7 +1593,7 @@ template <> struct SimdImpl128<uint16_t>
 	 * @param index Selected lane in the range `[0, 8)`.
 	 * @return Selected scalar lane.
 	 */
-	static uint16_t SIMD_FLAGS(In, RegisterOnly, ForceInline) extract_slow(const __m128i lhs, const int index) noexcept
+	static uint16_t SIMD_FLAGS(In, RegisterOnly, ForceInline) extract_slow(const register_t lhs, const int index) noexcept
 	{
 		SIMDLIB_PRECONDITION(index >= 0 && index < 8, "Unsigned 16-bit extraction requires a valid 128-bit lane index");
 		switch (index)
@@ -1635,11 +1635,11 @@ template <> struct SimdImpl128<uint16_t>
 	 * @param index Selected lane in the range `[0, 8)`.
 	 * @return Register with the selected lane replaced.
 	 */
-	static __m128i SIMD_FLAGS(InOut, RegisterOnly, ForceInline) insert_slow(const __m128i lhs, const uint16_t rhs, const int index) noexcept
+	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline) insert_slow(const register_t lhs, const uint16_t rhs, const int index) noexcept
 	{
 		SIMDLIB_PRECONDITION(index >= 0 && index < 8, "Unsigned 16-bit insertion requires a valid 128-bit lane index");
-		const __m128i lane_indices = _mm_setr_epi16(0, 1, 2, 3, 4, 5, 6, 7);
-		const __m128i selected_lane = _mm_cmpeq_epi16(lane_indices, _mm_set1_epi16(static_cast<int16_t>(index)));
+		const register_t lane_indices = _mm_setr_epi16(0, 1, 2, 3, 4, 5, 6, 7);
+		const register_t selected_lane = _mm_cmpeq_epi16(lane_indices, _mm_set1_epi16(static_cast<int16_t>(index)));
 		return _mm_blendv_epi8(lhs, _mm_set1_epi16(std::bit_cast<int16_t>(rhs)), selected_lane);
 	}
 
@@ -1664,7 +1664,7 @@ template <> struct SimdImpl128<uint16_t>
 		return register_shuffle_half_16_slow(lhs, static_cast<unsigned int>(rhs), false);
 	}
 	/** @brief Shuffles the low four unsigned 16-bit lanes in each 128-bit group with an immediate control. */
-	template <int imm8> static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shuffle_lo(__m128i lhs) noexcept
+	template <int imm8> static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shuffle_lo(register_t lhs) noexcept
 	{
 		return _mm_shufflelo_epi16(lhs, imm8);
 	}
@@ -1678,7 +1678,7 @@ template <> struct SimdImpl128<uint16_t>
 		return register_shuffle_half_16_slow(lhs, static_cast<unsigned int>(rhs), true);
 	}
 	/** @brief Shuffles the high four unsigned 16-bit lanes in each 128-bit group with an immediate control. */
-	template <int imm8> static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shuffle_hi(__m128i lhs) noexcept
+	template <int imm8> static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shuffle_hi(register_t lhs) noexcept
 	{
 		return _mm_shufflehi_epi16(lhs, imm8);
 	}
@@ -1690,15 +1690,15 @@ template <> struct SimdImpl128<uint16_t>
 	 */
 	static register_t SIMD_FLAGS(InOut, ForceInline) blend_slow(auto lhs, auto rhs, const int imm8) noexcept
 	{
-		const __m128i selectors = make_static_register<SimdImpl128<std::uint16_t>>([]<std::size_t index>() constexpr noexcept
+		const register_t selectors = make_static_register<SimdImpl128<std::uint16_t>>([]<std::size_t index>() constexpr noexcept
 		{
 			return static_cast<std::uint16_t>(1u << index);
 		});
-		const __m128i selected = _mm_and_si128(_mm_set1_epi16(static_cast<std::int16_t>(imm8)), selectors);
+		const register_t selected = _mm_and_si128(_mm_set1_epi16(static_cast<std::int16_t>(imm8)), selectors);
 		return _mm_blendv_epi8(lhs, rhs, _mm_cmpeq_epi16(selected, selectors));
 	}
 	/** @brief Selects unsigned 16-bit lanes from two registers with an immediate control. */
-	template <int imm8> constexpr static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) blend(const __m128i lhs, const __m128i rhs) noexcept
+	template <int imm8> constexpr static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) blend(const register_t lhs, const register_t rhs) noexcept
 	{
 		if (std::is_constant_evaluated())
 			return register_blend_constexpr<std::uint16_t>(lhs, rhs, static_cast<unsigned int>(imm8));
@@ -1711,7 +1711,7 @@ template <> struct SimdImpl128<int32_t>
 	/** @brief Native SIMD register returned by this implementation backend. */
 	using register_t = __m128i;
 	/** @brief Selects 32-bit lanes from two registers using a canonical predicate register. */
-	static __m128i SIMD_FLAGS(InOut, RegisterOnly, ForceInline) select(__m128i condition, __m128i when_true, __m128i when_false) noexcept
+	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline) select(register_t condition, register_t when_true, register_t when_false) noexcept
 	{
 		return _mm_blendv_epi8(when_false, when_true, condition);
 	}
@@ -1724,7 +1724,7 @@ template <> struct SimdImpl128<int32_t>
 	 */
 	template <std::size_t... indices>
 		requires(sizeof...(indices) == 4 && ((indices < 4) && ...))
-	static __m128i SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shuffle(__m128i lhs) noexcept
+	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shuffle(register_t lhs) noexcept
 	{
 		return _mm_shuffle_epi32(lhs, encode_logical_shuffle_32_immediate<indices...>());
 	}
@@ -1736,8 +1736,8 @@ template <> struct SimdImpl128<int32_t>
 	/** @brief Multiplies adjacent lanes and adds their products for this native register specialization. */
 	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) multiply_add_adjacent(auto lhs, auto rhs) noexcept
 	{
-		const __m128i evenProducts = _mm_mul_epi32(lhs, rhs);
-		const __m128i oddProducts = _mm_mul_epi32(_mm_srli_si128(lhs, 4), _mm_srli_si128(rhs, 4));
+		const register_t evenProducts = _mm_mul_epi32(lhs, rhs);
+		const register_t oddProducts = _mm_mul_epi32(_mm_srli_si128(lhs, 4), _mm_srli_si128(rhs, 4));
 		return _mm_add_epi64(evenProducts, oddProducts);
 	}
 	/** @brief Multiplies unsigned and signed byte pairs for this native register specialization. */
@@ -1772,8 +1772,8 @@ template <> struct SimdImpl128<int32_t>
 	/** @brief Computes the unchecked group magnitude in lane zero; all other lanes are unspecified. */
 	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) magnitude(auto lhs) noexcept
 	{
-		const __m128i pairSums = multiply_add_adjacent(lhs, lhs);
-		const __m128i totalVector = _mm_add_epi64(pairSums, _mm_srli_si128(pairSums, 8));
+		const register_t pairSums = multiply_add_adjacent(lhs, lhs);
+		const register_t totalVector = _mm_add_epi64(pairSums, _mm_srli_si128(pairSums, 8));
 		const std::int64_t total = _mm_cvtsi128_si64(totalVector);
 		const __m128d root = _mm_sqrt_sd(_mm_setzero_pd(), _mm_cvtsi64_sd(_mm_setzero_pd(), total));
 		return _mm_cvtsi64_si128(_mm_cvtsd_si64(root));
@@ -1784,14 +1784,14 @@ template <> struct SimdImpl128<int32_t>
 	{
 		constexpr std::uint64_t maximum = static_cast<std::uint64_t>(std::numeric_limits<std::int32_t>::max());
 		constexpr std::uint64_t threshold = maximum * maximum + maximum + 1;
-		const __m128i minimum = _mm_set1_epi32(std::numeric_limits<std::int32_t>::min());
+		const register_t minimum = _mm_set1_epi32(std::numeric_limits<std::int32_t>::min());
 		if (_mm_movemask_epi8(_mm_cmpeq_epi32(lhs, minimum)) != 0)
 			return magnitude_checked_result<std::int32_t>(maximum, true);
-		const __m128i evenSquares = _mm_mul_epi32(lhs, lhs);
-		const __m128i shifted = _mm_srli_si128(lhs, 4);
-		const __m128i oddSquares = _mm_mul_epi32(shifted, shifted);
-		const __m128i pairTotals = _mm_add_epi64(evenSquares, oddSquares);
-		const __m128i totalVector = _mm_add_epi64(pairTotals, _mm_srli_si128(pairTotals, 8));
+		const register_t evenSquares = _mm_mul_epi32(lhs, lhs);
+		const register_t shifted = _mm_srli_si128(lhs, 4);
+		const register_t oddSquares = _mm_mul_epi32(shifted, shifted);
+		const register_t pairTotals = _mm_add_epi64(evenSquares, oddSquares);
+		const register_t totalVector = _mm_add_epi64(pairTotals, _mm_srli_si128(pairTotals, 8));
 		const std::uint64_t total = static_cast<std::uint64_t>(_mm_cvtsi128_si64(totalVector));
 		const bool overflow = total >= threshold;
 		const std::uint64_t result = overflow ? maximum : magnitude_round_sqrt_u64(total, maximum);
@@ -1801,17 +1801,17 @@ template <> struct SimdImpl128<int32_t>
 	/** @brief Computes minimum-value position metadata for this native register specialization. */
 	static register_t SIMD_FLAGS(In, RegisterOnly, ForceInline, Flatten) min_position(auto lhs) noexcept
 	{
-		const __m128i indices = _mm_setr_epi32(0, 1, 2, 3);
-		__m128i values = lhs;
-		__m128i positions = indices;
-		const __m128i shifted1Values = _mm_bsrli_si128(values, 4);
-		const __m128i shifted1Indices = _mm_bsrli_si128(positions, 4);
-		const __m128i less1 = _mm_cmpgt_epi32(values, shifted1Values);
+		const register_t indices = _mm_setr_epi32(0, 1, 2, 3);
+		register_t values = lhs;
+		register_t positions = indices;
+		const register_t shifted1Values = _mm_bsrli_si128(values, 4);
+		const register_t shifted1Indices = _mm_bsrli_si128(positions, 4);
+		const register_t less1 = _mm_cmpgt_epi32(values, shifted1Values);
 		values = _mm_blendv_epi8(values, shifted1Values, less1);
 		positions = _mm_blendv_epi8(positions, shifted1Indices, less1);
-		const __m128i shifted2Values = _mm_bsrli_si128(values, 8);
-		const __m128i shifted2Indices = _mm_bsrli_si128(positions, 8);
-		const __m128i less2 = _mm_cmpgt_epi32(values, shifted2Values);
+		const register_t shifted2Values = _mm_bsrli_si128(values, 8);
+		const register_t shifted2Indices = _mm_bsrli_si128(positions, 8);
+		const register_t less2 = _mm_cmpgt_epi32(values, shifted2Values);
 		values = _mm_blendv_epi8(values, shifted2Values, less2);
 		positions = _mm_blendv_epi8(positions, shifted2Indices, less2);
 		return _mm_insert_epi32(values, _mm_extract_epi32(positions, 0), 1);
@@ -1822,7 +1822,7 @@ template <> struct SimdImpl128<int32_t>
 		return _mm_sad_epu8(lhs, rhs);
 	}
 	/** @brief Computes immediate-selected byte-window absolute-difference sums for this native register specialization. */
-	template <int imm8> static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) multi_sum_absolute_byte_differences(__m128i lhs, __m128i rhs) noexcept
+	template <int imm8> static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) multi_sum_absolute_byte_differences(register_t lhs, register_t rhs) noexcept
 	{
 		return _mm_mpsadbw_epu8(lhs, rhs, imm8);
 	}
@@ -1936,7 +1936,7 @@ template <> struct SimdImpl128<int32_t>
 	 * @param index Selected lane in the range `[0, 4)`.
 	 * @return Selected scalar lane.
 	 */
-	static int32_t SIMD_FLAGS(In, RegisterOnly, ForceInline) extract_slow(const __m128i lhs, const int index) noexcept
+	static int32_t SIMD_FLAGS(In, RegisterOnly, ForceInline) extract_slow(const register_t lhs, const int index) noexcept
 	{
 		SIMDLIB_PRECONDITION(index >= 0 && index < 4, "Signed 32-bit extraction requires a valid 128-bit lane index");
 		switch (index)
@@ -1970,11 +1970,11 @@ template <> struct SimdImpl128<int32_t>
 	 * @param index Selected lane in the range `[0, 4)`.
 	 * @return Register with the selected lane replaced.
 	 */
-	static __m128i SIMD_FLAGS(InOut, RegisterOnly, ForceInline) insert_slow(const __m128i lhs, const int32_t rhs, const int index) noexcept
+	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline) insert_slow(const register_t lhs, const int32_t rhs, const int index) noexcept
 	{
 		SIMDLIB_PRECONDITION(index >= 0 && index < 4, "Signed 32-bit insertion requires a valid 128-bit lane index");
-		const __m128i lane_indices = _mm_setr_epi32(0, 1, 2, 3);
-		const __m128i selected_lane = _mm_cmpeq_epi32(lane_indices, _mm_set1_epi32(index));
+		const register_t lane_indices = _mm_setr_epi32(0, 1, 2, 3);
+		const register_t selected_lane = _mm_cmpeq_epi32(lane_indices, _mm_set1_epi32(index));
 		return _mm_blendv_epi8(lhs, _mm_set1_epi32(rhs), selected_lane);
 	}
 
@@ -2015,15 +2015,15 @@ template <> struct SimdImpl128<int32_t>
 	 */
 	static register_t SIMD_FLAGS(InOut, ForceInline) blend_slow(auto lhs, auto rhs, const int imm8) noexcept
 	{
-		const __m128i selectors = make_static_register<SimdImpl128<std::int32_t>>([]<std::size_t index>() constexpr noexcept
+		const register_t selectors = make_static_register<SimdImpl128<std::int32_t>>([]<std::size_t index>() constexpr noexcept
 		{
 			return static_cast<std::int32_t>(1u << index);
 		});
-		const __m128i selected = _mm_and_si128(_mm_set1_epi32(imm8), selectors);
+		const register_t selected = _mm_and_si128(_mm_set1_epi32(imm8), selectors);
 		return _mm_blendv_epi8(lhs, rhs, _mm_cmpeq_epi32(selected, selectors));
 	}
 	/** @brief Selects signed 32-bit lanes from two registers with an immediate control. */
-	template <int imm8> constexpr static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) blend(const __m128i lhs, const __m128i rhs) noexcept
+	template <int imm8> constexpr static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) blend(const register_t lhs, const register_t rhs) noexcept
 	{
 		if (std::is_constant_evaluated())
 			return register_blend_constexpr<std::int32_t>(lhs, rhs, static_cast<unsigned int>(imm8));
@@ -2036,7 +2036,7 @@ template <> struct SimdImpl128<uint32_t>
 	/** @brief Native SIMD register returned by this implementation backend. */
 	using register_t = __m128i;
 	/** @brief Selects 32-bit lanes from two registers using a canonical predicate register. */
-	static __m128i SIMD_FLAGS(InOut, RegisterOnly, ForceInline) select(__m128i condition, __m128i when_true, __m128i when_false) noexcept
+	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline) select(register_t condition, register_t when_true, register_t when_false) noexcept
 	{
 		return _mm_blendv_epi8(when_false, when_true, condition);
 	}
@@ -2049,7 +2049,7 @@ template <> struct SimdImpl128<uint32_t>
 	 */
 	template <std::size_t... indices>
 		requires(sizeof...(indices) == 4 && ((indices < 4) && ...))
-	static __m128i SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shuffle(__m128i lhs) noexcept
+	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shuffle(register_t lhs) noexcept
 	{
 		return _mm_shuffle_epi32(lhs, encode_logical_shuffle_32_immediate<indices...>());
 	}
@@ -2064,15 +2064,15 @@ template <> struct SimdImpl128<uint32_t>
 	 * @param lhs The unsigned integer lanes.
 	 * @return The converted floating-point lanes.
 	 */
-	static auto SIMD_FLAGS(InOut, ForceInline) convert_to_float(const __m128i lhs) noexcept
+	static auto SIMD_FLAGS(InOut, ForceInline) convert_to_float(const register_t lhs) noexcept
 	{
 		return _ext_cvtepu32_ps(lhs);
 	}
 	/** @brief Multiplies adjacent lanes and adds their products for this native register specialization. */
 	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) multiply_add_adjacent(auto lhs, auto rhs) noexcept
 	{
-		const __m128i evenProducts = _mm_mul_epu32(lhs, rhs);
-		const __m128i oddProducts = _mm_mul_epu32(_mm_srli_si128(lhs, 4), _mm_srli_si128(rhs, 4));
+		const register_t evenProducts = _mm_mul_epu32(lhs, rhs);
+		const register_t oddProducts = _mm_mul_epu32(_mm_srli_si128(lhs, 4), _mm_srli_si128(rhs, 4));
 		return _mm_add_epi64(evenProducts, oddProducts);
 	}
 	/** @brief Multiplies unsigned and signed byte pairs for this native register specialization. */
@@ -2113,8 +2113,8 @@ template <> struct SimdImpl128<uint32_t>
 	/** @brief Computes the unchecked group magnitude in lane zero; all other lanes are unspecified. */
 	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) magnitude(auto lhs) noexcept
 	{
-		const __m128i pairSums = multiply_add_adjacent(lhs, lhs);
-		const __m128i totalVector = _mm_add_epi64(pairSums, _mm_srli_si128(pairSums, 8));
+		const register_t pairSums = multiply_add_adjacent(lhs, lhs);
+		const register_t totalVector = _mm_add_epi64(pairSums, _mm_srli_si128(pairSums, 8));
 		const std::uint64_t total = static_cast<std::uint64_t>(_mm_cvtsi128_si64(totalVector));
 		const __m128d root = _mm_sqrt_sd(_mm_setzero_pd(), _mm_set_sd(static_cast<double>(total)));
 		return _mm_cvtsi64_si128(_mm_cvtsd_si64(root));
@@ -2125,12 +2125,12 @@ template <> struct SimdImpl128<uint32_t>
 	{
 		constexpr std::uint64_t maximum = static_cast<std::uint64_t>(std::numeric_limits<std::uint32_t>::max());
 		constexpr std::uint64_t threshold = maximum * maximum + maximum + 1;
-		const __m128i evenSquares = _mm_mul_epu32(lhs, lhs);
-		const __m128i shifted = _mm_srli_si128(lhs, 4);
-		const __m128i oddSquares = _mm_mul_epu32(shifted, shifted);
-		const __m128i pairTotals = _mm_add_epi64(evenSquares, oddSquares);
-		const __m128i signBit = _mm_set1_epi64x(std::numeric_limits<std::int64_t>::min());
-		const __m128i pairCarries = _mm_cmpgt_epi64(_mm_xor_si128(evenSquares, signBit), _mm_xor_si128(pairTotals, signBit));
+		const register_t evenSquares = _mm_mul_epu32(lhs, lhs);
+		const register_t shifted = _mm_srli_si128(lhs, 4);
+		const register_t oddSquares = _mm_mul_epu32(shifted, shifted);
+		const register_t pairTotals = _mm_add_epi64(evenSquares, oddSquares);
+		const register_t signBit = _mm_set1_epi64x(std::numeric_limits<std::int64_t>::min());
+		const register_t pairCarries = _mm_cmpgt_epi64(_mm_xor_si128(evenSquares, signBit), _mm_xor_si128(pairTotals, signBit));
 		const std::uint64_t lowTotal = static_cast<std::uint64_t>(_mm_cvtsi128_si64(pairTotals));
 		const std::uint64_t highTotal = static_cast<std::uint64_t>(_mm_extract_epi64(pairTotals, 1));
 		const std::uint64_t total = lowTotal + highTotal;
@@ -2140,7 +2140,7 @@ template <> struct SimdImpl128<uint32_t>
 	}
 
 	/** @brief Returns the unsigned-doubleword lane indices as one compile-time-generated native register. */
-	static __m128i SIMD_FLAGS(Out, RegisterOnly, ForceInline, Flatten) lane_indices() noexcept
+	static register_t SIMD_FLAGS(Out, RegisterOnly, ForceInline, Flatten) lane_indices() noexcept
 	{
 		return make_static_register<SimdImpl128<std::uint32_t>>([]<std::size_t index>() constexpr noexcept
 		{
@@ -2151,18 +2151,18 @@ template <> struct SimdImpl128<uint32_t>
 	/** @brief Computes minimum-value position metadata for this native register specialization. */
 	static register_t SIMD_FLAGS(In, RegisterOnly, ForceInline, Flatten) min_position(auto lhs) noexcept
 	{
-		const __m128i indices = lane_indices();
-		const __m128i signBit = _mm_set1_epi32(static_cast<int>(0x80000000u));
-		__m128i values = lhs;
-		__m128i positions = indices;
-		const __m128i shifted1Values = _mm_bsrli_si128(values, 4);
-		const __m128i shifted1Indices = _mm_bsrli_si128(positions, 4);
-		const __m128i less1 = _mm_cmpgt_epi32(_mm_xor_si128(values, signBit), _mm_xor_si128(shifted1Values, signBit));
+		const register_t indices = lane_indices();
+		const register_t signBit = _mm_set1_epi32(static_cast<int>(0x80000000u));
+		register_t values = lhs;
+		register_t positions = indices;
+		const register_t shifted1Values = _mm_bsrli_si128(values, 4);
+		const register_t shifted1Indices = _mm_bsrli_si128(positions, 4);
+		const register_t less1 = _mm_cmpgt_epi32(_mm_xor_si128(values, signBit), _mm_xor_si128(shifted1Values, signBit));
 		values = _mm_blendv_epi8(values, shifted1Values, less1);
 		positions = _mm_blendv_epi8(positions, shifted1Indices, less1);
-		const __m128i shifted2Values = _mm_bsrli_si128(values, 8);
-		const __m128i shifted2Indices = _mm_bsrli_si128(positions, 8);
-		const __m128i less2 = _mm_cmpgt_epi32(_mm_xor_si128(values, signBit), _mm_xor_si128(shifted2Values, signBit));
+		const register_t shifted2Values = _mm_bsrli_si128(values, 8);
+		const register_t shifted2Indices = _mm_bsrli_si128(positions, 8);
+		const register_t less2 = _mm_cmpgt_epi32(_mm_xor_si128(values, signBit), _mm_xor_si128(shifted2Values, signBit));
 		values = _mm_blendv_epi8(values, shifted2Values, less2);
 		positions = _mm_blendv_epi8(positions, shifted2Indices, less2);
 		return _mm_insert_epi32(values, _mm_extract_epi32(positions, 0), 1);
@@ -2173,7 +2173,7 @@ template <> struct SimdImpl128<uint32_t>
 		return _mm_sad_epu8(lhs, rhs);
 	}
 	/** @brief Computes immediate-selected byte-window absolute-difference sums for this native register specialization. */
-	template <int imm8> static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) multi_sum_absolute_byte_differences(__m128i lhs, __m128i rhs) noexcept
+	template <int imm8> static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) multi_sum_absolute_byte_differences(register_t lhs, register_t rhs) noexcept
 	{
 		return _mm_mpsadbw_epu8(lhs, rhs, imm8);
 	}
@@ -2289,7 +2289,7 @@ template <> struct SimdImpl128<uint32_t>
 	 * @param index Selected lane in the range `[0, 4)`.
 	 * @return Selected scalar lane.
 	 */
-	static uint32_t SIMD_FLAGS(In, RegisterOnly, ForceInline) extract_slow(const __m128i lhs, const int index) noexcept
+	static uint32_t SIMD_FLAGS(In, RegisterOnly, ForceInline) extract_slow(const register_t lhs, const int index) noexcept
 	{
 		SIMDLIB_PRECONDITION(index >= 0 && index < 4, "Unsigned 32-bit extraction requires a valid 128-bit lane index");
 		switch (index)
@@ -2323,11 +2323,11 @@ template <> struct SimdImpl128<uint32_t>
 	 * @param index Selected lane in the range `[0, 4)`.
 	 * @return Register with the selected lane replaced.
 	 */
-	static __m128i SIMD_FLAGS(InOut, RegisterOnly, ForceInline) insert_slow(const __m128i lhs, const uint32_t rhs, const int index) noexcept
+	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline) insert_slow(const register_t lhs, const uint32_t rhs, const int index) noexcept
 	{
 		SIMDLIB_PRECONDITION(index >= 0 && index < 4, "Unsigned 32-bit insertion requires a valid 128-bit lane index");
-		const __m128i lane_indices = _mm_setr_epi32(0, 1, 2, 3);
-		const __m128i selected_lane = _mm_cmpeq_epi32(lane_indices, _mm_set1_epi32(index));
+		const register_t lane_indices = _mm_setr_epi32(0, 1, 2, 3);
+		const register_t selected_lane = _mm_cmpeq_epi32(lane_indices, _mm_set1_epi32(index));
 		return _mm_blendv_epi8(lhs, _mm_set1_epi32(std::bit_cast<int32_t>(rhs)), selected_lane);
 	}
 
@@ -2368,15 +2368,15 @@ template <> struct SimdImpl128<uint32_t>
 	 */
 	static register_t SIMD_FLAGS(InOut, ForceInline) blend_slow(auto lhs, auto rhs, const int imm8) noexcept
 	{
-		const __m128i selectors = make_static_register<SimdImpl128<std::uint32_t>>([]<std::size_t index>() constexpr noexcept
+		const register_t selectors = make_static_register<SimdImpl128<std::uint32_t>>([]<std::size_t index>() constexpr noexcept
 		{
 			return static_cast<std::uint32_t>(1u << index);
 		});
-		const __m128i selected = _mm_and_si128(_mm_set1_epi32(imm8), selectors);
+		const register_t selected = _mm_and_si128(_mm_set1_epi32(imm8), selectors);
 		return _mm_blendv_epi8(lhs, rhs, _mm_cmpeq_epi32(selected, selectors));
 	}
 	/** @brief Selects unsigned 32-bit lanes from two registers with an immediate control. */
-	template <int imm8> constexpr static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) blend(const __m128i lhs, const __m128i rhs) noexcept
+	template <int imm8> constexpr static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) blend(const register_t lhs, const register_t rhs) noexcept
 	{
 		if (std::is_constant_evaluated())
 			return register_blend_constexpr<std::uint32_t>(lhs, rhs, static_cast<unsigned int>(imm8));
@@ -2389,7 +2389,7 @@ template <> struct SimdImpl128<int64_t>
 	/** @brief Native SIMD register returned by this implementation backend. */
 	using register_t = __m128i;
 	/** @brief Selects 64-bit lanes from two registers using a canonical predicate register. */
-	static __m128i SIMD_FLAGS(InOut, RegisterOnly, ForceInline) select(__m128i condition, __m128i when_true, __m128i when_false) noexcept
+	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline) select(register_t condition, register_t when_true, register_t when_false) noexcept
 	{
 		return _mm_blendv_epi8(when_false, when_true, condition);
 	}
@@ -2402,7 +2402,7 @@ template <> struct SimdImpl128<int64_t>
 	 */
 	template <std::size_t... indices>
 		requires(sizeof...(indices) == 2 && ((indices < 2) && ...))
-	static __m128i SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shuffle(__m128i lhs) noexcept
+	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shuffle(register_t lhs) noexcept
 	{
 		return _mm_shuffle_epi32(lhs, encode_logical_shuffle_64_immediate<indices...>());
 	}
@@ -2414,13 +2414,13 @@ template <> struct SimdImpl128<int64_t>
 	/** @brief Multiplies adjacent lanes and adds their products for this native register specialization. */
 	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) multiply_add_adjacent(auto lhs, auto rhs) noexcept
 	{
-		const __m128i productLow = _mm_mul_epu32(lhs, rhs);
-		const __m128i lhsHigh = _mm_srli_epi64(lhs, 32);
-		const __m128i rhsHigh = _mm_srli_epi64(rhs, 32);
-		const __m128i cross = _mm_add_epi64(_mm_mul_epu32(lhsHigh, rhs), _mm_mul_epu32(lhs, rhsHigh));
-		const __m128i products = _mm_add_epi64(productLow, _mm_slli_epi64(cross, 32));
-		const __m128i shifted = _mm_bsrli_si128(products, 8);
-		const __m128i sum = _mm_add_epi64(products, shifted);
+		const register_t productLow = _mm_mul_epu32(lhs, rhs);
+		const register_t lhsHigh = _mm_srli_epi64(lhs, 32);
+		const register_t rhsHigh = _mm_srli_epi64(rhs, 32);
+		const register_t cross = _mm_add_epi64(_mm_mul_epu32(lhsHigh, rhs), _mm_mul_epu32(lhs, rhsHigh));
+		const register_t products = _mm_add_epi64(productLow, _mm_slli_epi64(cross, 32));
+		const register_t shifted = _mm_bsrli_si128(products, 8);
+		const register_t sum = _mm_add_epi64(products, shifted);
 		return _mm_unpacklo_epi64(sum, _mm_setzero_si128());
 	}
 	/** @brief Multiplies unsigned and signed byte pairs for this native register specialization. */
@@ -2463,8 +2463,8 @@ template <> struct SimdImpl128<int64_t>
 		const std::uint64_t highSign = rawHigh >> 63;
 		const std::uint64_t lowValue = (rawLow ^ (std::uint64_t{0} - lowSign)) + lowSign;
 		const std::uint64_t highValue = (rawHigh ^ (std::uint64_t{0} - highSign)) + highSign;
-		const __m128i lowSquare = magnitude_square_u64(lowValue);
-		const __m128i highSquare = magnitude_square_u64(highValue);
+		const register_t lowSquare = magnitude_square_u64(lowValue);
+		const register_t highSquare = magnitude_square_u64(highValue);
 		const std::uint64_t lowWord0 = static_cast<std::uint64_t>(_mm_cvtsi128_si64(lowSquare));
 		const std::uint64_t lowWord1 = static_cast<std::uint64_t>(_mm_cvtsi128_si64(highSquare));
 		const std::uint64_t highWord0 = static_cast<std::uint64_t>(_mm_extract_epi64(lowSquare, 1));
@@ -2487,8 +2487,8 @@ template <> struct SimdImpl128<int64_t>
 		const std::uint64_t highSign = rawHigh >> 63;
 		const std::uint64_t lowValue = (rawLow ^ (std::uint64_t{0} - lowSign)) + lowSign;
 		const std::uint64_t highValue = (rawHigh ^ (std::uint64_t{0} - highSign)) + highSign;
-		const __m128i lowSquare = magnitude_square_u64(lowValue);
-		const __m128i highSquare = magnitude_square_u64(highValue);
+		const register_t lowSquare = magnitude_square_u64(lowValue);
+		const register_t highSquare = magnitude_square_u64(highValue);
 		const std::uint64_t lowWord0 = static_cast<std::uint64_t>(_mm_cvtsi128_si64(lowSquare));
 		const std::uint64_t lowWord1 = static_cast<std::uint64_t>(_mm_cvtsi128_si64(highSquare));
 		const std::uint64_t highWord0 = static_cast<std::uint64_t>(_mm_extract_epi64(lowSquare, 1));
@@ -2506,12 +2506,12 @@ template <> struct SimdImpl128<int64_t>
 	/** @brief Computes minimum-value position metadata for this native register specialization. */
 	static register_t SIMD_FLAGS(In, RegisterOnly, ForceInline, Flatten) min_position(auto lhs) noexcept
 	{
-		const __m128i indices = _mm_set_epi64x(1, 0);
-		const __m128i shiftedValues = _mm_bsrli_si128(lhs, 8);
-		const __m128i shiftedIndices = _mm_bsrli_si128(indices, 8);
-		const __m128i less = _mm_cmpgt_epi64(lhs, shiftedValues);
-		const __m128i values = _mm_blendv_epi8(lhs, shiftedValues, less);
-		const __m128i positions = _mm_blendv_epi8(indices, shiftedIndices, less);
+		const register_t indices = _mm_set_epi64x(1, 0);
+		const register_t shiftedValues = _mm_bsrli_si128(lhs, 8);
+		const register_t shiftedIndices = _mm_bsrli_si128(indices, 8);
+		const register_t less = _mm_cmpgt_epi64(lhs, shiftedValues);
+		const register_t values = _mm_blendv_epi8(lhs, shiftedValues, less);
+		const register_t positions = _mm_blendv_epi8(indices, shiftedIndices, less);
 		return _mm_insert_epi64(values, _mm_extract_epi64(positions, 0), 1);
 	}
 	/** @brief Computes byte-wise absolute-difference sums for this native register specialization. */
@@ -2520,7 +2520,7 @@ template <> struct SimdImpl128<int64_t>
 		return _mm_sad_epu8(lhs, rhs);
 	}
 	/** @brief Computes immediate-selected byte-window absolute-difference sums for this native register specialization. */
-	template <int imm8> static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) multi_sum_absolute_byte_differences(__m128i lhs, __m128i rhs) noexcept
+	template <int imm8> static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) multi_sum_absolute_byte_differences(register_t lhs, register_t rhs) noexcept
 	{
 		return _mm_mpsadbw_epu8(lhs, rhs, imm8);
 	}
@@ -2600,7 +2600,7 @@ template <> struct SimdImpl128<int64_t>
 	 * @param index Selected lane in the range `[0, 2)`.
 	 * @return Selected scalar lane.
 	 */
-	static int64_t SIMD_FLAGS(In, RegisterOnly, ForceInline) extract_slow(const __m128i lhs, const int index) noexcept
+	static int64_t SIMD_FLAGS(In, RegisterOnly, ForceInline) extract_slow(const register_t lhs, const int index) noexcept
 	{
 		SIMDLIB_PRECONDITION(index >= 0 && index < 2, "Signed 64-bit extraction requires a valid 128-bit lane index");
 		switch (index)
@@ -2630,11 +2630,11 @@ template <> struct SimdImpl128<int64_t>
 	 * @param index Selected lane in the range `[0, 2)`.
 	 * @return Register with the selected lane replaced.
 	 */
-	static __m128i SIMD_FLAGS(InOut, RegisterOnly, ForceInline) insert_slow(const __m128i lhs, const int64_t rhs, const int index) noexcept
+	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline) insert_slow(const register_t lhs, const int64_t rhs, const int index) noexcept
 	{
 		SIMDLIB_PRECONDITION(index >= 0 && index < 2, "Signed 64-bit insertion requires a valid 128-bit lane index");
-		const __m128i lane_indices = _mm_set_epi64x(1, 0);
-		const __m128i selected_lane = _mm_cmpeq_epi64(lane_indices, _mm_set1_epi64x(index));
+		const register_t lane_indices = _mm_set_epi64x(1, 0);
+		const register_t selected_lane = _mm_cmpeq_epi64(lane_indices, _mm_set1_epi64x(index));
 		return _mm_blendv_epi8(lhs, _mm_set1_epi64x(rhs), selected_lane);
 	}
 
@@ -2654,7 +2654,7 @@ template <> struct SimdImpl128<uint64_t>
 	/** @brief Native SIMD register returned by this implementation backend. */
 	using register_t = __m128i;
 	/** @brief Selects 64-bit lanes from two registers using a canonical predicate register. */
-	static __m128i SIMD_FLAGS(InOut, RegisterOnly, ForceInline) select(__m128i condition, __m128i when_true, __m128i when_false) noexcept
+	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline) select(register_t condition, register_t when_true, register_t when_false) noexcept
 	{
 		return _mm_blendv_epi8(when_false, when_true, condition);
 	}
@@ -2667,7 +2667,7 @@ template <> struct SimdImpl128<uint64_t>
 	 */
 	template <std::size_t... indices>
 		requires(sizeof...(indices) == 2 && ((indices < 2) && ...))
-	static __m128i SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shuffle(__m128i lhs) noexcept
+	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shuffle(register_t lhs) noexcept
 	{
 		return _mm_shuffle_epi32(lhs, encode_logical_shuffle_64_immediate<indices...>());
 	}
@@ -2679,13 +2679,13 @@ template <> struct SimdImpl128<uint64_t>
 	/** @brief Multiplies adjacent lanes and adds their products for this native register specialization. */
 	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) multiply_add_adjacent(auto lhs, auto rhs) noexcept
 	{
-		const __m128i productLow = _mm_mul_epu32(lhs, rhs);
-		const __m128i lhsHigh = _mm_srli_epi64(lhs, 32);
-		const __m128i rhsHigh = _mm_srli_epi64(rhs, 32);
-		const __m128i cross = _mm_add_epi64(_mm_mul_epu32(lhsHigh, rhs), _mm_mul_epu32(lhs, rhsHigh));
-		const __m128i products = _mm_add_epi64(productLow, _mm_slli_epi64(cross, 32));
-		const __m128i shifted = _mm_bsrli_si128(products, 8);
-		const __m128i sum = _mm_add_epi64(products, shifted);
+		const register_t productLow = _mm_mul_epu32(lhs, rhs);
+		const register_t lhsHigh = _mm_srli_epi64(lhs, 32);
+		const register_t rhsHigh = _mm_srli_epi64(rhs, 32);
+		const register_t cross = _mm_add_epi64(_mm_mul_epu32(lhsHigh, rhs), _mm_mul_epu32(lhs, rhsHigh));
+		const register_t products = _mm_add_epi64(productLow, _mm_slli_epi64(cross, 32));
+		const register_t shifted = _mm_bsrli_si128(products, 8);
+		const register_t sum = _mm_add_epi64(products, shifted);
 		return _mm_unpacklo_epi64(sum, _mm_setzero_si128());
 	}
 	/** @brief Multiplies unsigned and signed byte pairs for this native register specialization. */
@@ -2725,8 +2725,8 @@ template <> struct SimdImpl128<uint64_t>
 	{
 		const std::uint64_t lowValue = static_cast<std::uint64_t>(_mm_cvtsi128_si64(lhs));
 		const std::uint64_t highValue = static_cast<std::uint64_t>(_mm_extract_epi64(lhs, 1));
-		const __m128i lowSquare = magnitude_square_u64(lowValue);
-		const __m128i highSquare = magnitude_square_u64(highValue);
+		const register_t lowSquare = magnitude_square_u64(lowValue);
+		const register_t highSquare = magnitude_square_u64(highValue);
 		const std::uint64_t lowWord0 = static_cast<std::uint64_t>(_mm_cvtsi128_si64(lowSquare));
 		const std::uint64_t lowWord1 = static_cast<std::uint64_t>(_mm_cvtsi128_si64(highSquare));
 		const std::uint64_t highWord0 = static_cast<std::uint64_t>(_mm_extract_epi64(lowSquare, 1));
@@ -2745,8 +2745,8 @@ template <> struct SimdImpl128<uint64_t>
 		constexpr std::uint64_t thresholdHigh = maximum;
 		const std::uint64_t lowValue = static_cast<std::uint64_t>(_mm_cvtsi128_si64(lhs));
 		const std::uint64_t highValue = static_cast<std::uint64_t>(_mm_extract_epi64(lhs, 1));
-		const __m128i lowSquare = magnitude_square_u64(lowValue);
-		const __m128i highSquare = magnitude_square_u64(highValue);
+		const register_t lowSquare = magnitude_square_u64(lowValue);
+		const register_t highSquare = magnitude_square_u64(highValue);
 		const std::uint64_t lowWord0 = static_cast<std::uint64_t>(_mm_cvtsi128_si64(lowSquare));
 		const std::uint64_t lowWord1 = static_cast<std::uint64_t>(_mm_cvtsi128_si64(highSquare));
 		const std::uint64_t highWord0 = static_cast<std::uint64_t>(_mm_extract_epi64(lowSquare, 1));
@@ -2762,7 +2762,7 @@ template <> struct SimdImpl128<uint64_t>
 	}
 
 	/** @brief Returns the unsigned-quadword lane indices as one compile-time-generated native register. */
-	static __m128i SIMD_FLAGS(Out, RegisterOnly, ForceInline, Flatten) lane_indices() noexcept
+	static register_t SIMD_FLAGS(Out, RegisterOnly, ForceInline, Flatten) lane_indices() noexcept
 	{
 		return make_static_register<SimdImpl128<std::uint64_t>>([]<std::size_t index>() constexpr noexcept
 		{
@@ -2773,13 +2773,13 @@ template <> struct SimdImpl128<uint64_t>
 	/** @brief Computes minimum-value position metadata for this native register specialization. */
 	static register_t SIMD_FLAGS(In, RegisterOnly, ForceInline, Flatten) min_position(auto lhs) noexcept
 	{
-		const __m128i indices = lane_indices();
-		const __m128i signBit = _mm_set1_epi64x(std::numeric_limits<std::int64_t>::min());
-		const __m128i shiftedValues = _mm_bsrli_si128(lhs, 8);
-		const __m128i shiftedIndices = _mm_bsrli_si128(indices, 8);
-		const __m128i less = _mm_cmpgt_epi64(_mm_xor_si128(lhs, signBit), _mm_xor_si128(shiftedValues, signBit));
-		const __m128i values = _mm_blendv_epi8(lhs, shiftedValues, less);
-		const __m128i positions = _mm_blendv_epi8(indices, shiftedIndices, less);
+		const register_t indices = lane_indices();
+		const register_t signBit = _mm_set1_epi64x(std::numeric_limits<std::int64_t>::min());
+		const register_t shiftedValues = _mm_bsrli_si128(lhs, 8);
+		const register_t shiftedIndices = _mm_bsrli_si128(indices, 8);
+		const register_t less = _mm_cmpgt_epi64(_mm_xor_si128(lhs, signBit), _mm_xor_si128(shiftedValues, signBit));
+		const register_t values = _mm_blendv_epi8(lhs, shiftedValues, less);
+		const register_t positions = _mm_blendv_epi8(indices, shiftedIndices, less);
 		return _mm_insert_epi64(values, _mm_extract_epi64(positions, 0), 1);
 	}
 	/** @brief Computes byte-wise absolute-difference sums for this native register specialization. */
@@ -2788,7 +2788,7 @@ template <> struct SimdImpl128<uint64_t>
 		return _mm_sad_epu8(lhs, rhs);
 	}
 	/** @brief Computes immediate-selected byte-window absolute-difference sums for this native register specialization. */
-	template <int imm8> static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) multi_sum_absolute_byte_differences(__m128i lhs, __m128i rhs) noexcept
+	template <int imm8> static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) multi_sum_absolute_byte_differences(register_t lhs, register_t rhs) noexcept
 	{
 		return _mm_mpsadbw_epu8(lhs, rhs, imm8);
 	}
@@ -2869,7 +2869,7 @@ template <> struct SimdImpl128<uint64_t>
 	 * @param index Selected lane in the range `[0, 2)`.
 	 * @return Selected scalar lane.
 	 */
-	static uint64_t SIMD_FLAGS(In, RegisterOnly, ForceInline) extract_slow(const __m128i lhs, const int index) noexcept
+	static uint64_t SIMD_FLAGS(In, RegisterOnly, ForceInline) extract_slow(const register_t lhs, const int index) noexcept
 	{
 		SIMDLIB_PRECONDITION(index >= 0 && index < 2, "Unsigned 64-bit extraction requires a valid 128-bit lane index");
 		switch (index)
@@ -2899,11 +2899,11 @@ template <> struct SimdImpl128<uint64_t>
 	 * @param index Selected lane in the range `[0, 2)`.
 	 * @return Register with the selected lane replaced.
 	 */
-	static __m128i SIMD_FLAGS(InOut, RegisterOnly, ForceInline) insert_slow(const __m128i lhs, const uint64_t rhs, const int index) noexcept
+	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline) insert_slow(const register_t lhs, const uint64_t rhs, const int index) noexcept
 	{
 		SIMDLIB_PRECONDITION(index >= 0 && index < 2, "Unsigned 64-bit insertion requires a valid 128-bit lane index");
-		const __m128i lane_indices = _mm_set_epi64x(1, 0);
-		const __m128i selected_lane = _mm_cmpeq_epi64(lane_indices, _mm_set1_epi64x(index));
+		const register_t lane_indices = _mm_set_epi64x(1, 0);
+		const register_t selected_lane = _mm_cmpeq_epi64(lane_indices, _mm_set1_epi64x(index));
 		return _mm_blendv_epi8(lhs, _mm_set1_epi64x(std::bit_cast<int64_t>(rhs)), selected_lane);
 	}
 
@@ -2923,7 +2923,7 @@ template <> struct SimdImpl128<float>
 	/** @brief Native SIMD register returned by this implementation backend. */
 	using register_t = __m128;
 	/** @brief Selects float lanes from two registers using a canonical predicate register. */
-	static __m128 SIMD_FLAGS(InOut, RegisterOnly, ForceInline) select(__m128 condition, __m128 when_true, __m128 when_false) noexcept
+	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline) select(register_t condition, register_t when_true, register_t when_false) noexcept
 	{
 		return _mm_blendv_ps(when_false, when_true, condition);
 	}
@@ -2936,7 +2936,7 @@ template <> struct SimdImpl128<float>
 	 */
 	template <std::size_t... indices>
 		requires(sizeof...(indices) == 4 && ((indices < 4) && ...))
-	static __m128 SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shuffle(__m128 lhs) noexcept
+	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shuffle(register_t lhs) noexcept
 	{
 		return _mm_shuffle_ps(lhs, lhs, encode_logical_shuffle_32_immediate<indices...>());
 	}
@@ -2982,7 +2982,7 @@ template <> struct SimdImpl128<float>
 #endif
 	}
 	/** @brief Computes an immediate-controlled dot product for this native register specialization. */
-	template <int imm8> static register_t SIMD_FLAGS(In, RegisterOnly, ForceInline, Flatten) dot_product(__m128 lhs, __m128 rhs) noexcept
+	template <int imm8> static register_t SIMD_FLAGS(In, RegisterOnly, ForceInline, Flatten) dot_product(register_t lhs, register_t rhs) noexcept
 	{
 		return _mm_dp_ps(lhs, rhs, imm8);
 	}
@@ -3058,7 +3058,7 @@ template <> struct SimdImpl128<float>
 	 * @param index Selected lane in the range `[0, 4)`.
 	 * @return Selected scalar lane.
 	 */
-	static float SIMD_FLAGS(In, RegisterOnly, ForceInline) extract_slow(const __m128 lhs, const int index) noexcept
+	static float SIMD_FLAGS(In, RegisterOnly, ForceInline) extract_slow(const register_t lhs, const int index) noexcept
 	{
 		SIMDLIB_PRECONDITION(index >= 0 && index < 4, "32-bit floating-point extraction requires a valid 128-bit lane index");
 		switch (index)
@@ -3092,7 +3092,7 @@ template <> struct SimdImpl128<float>
 	 * @param index Selected lane index.
 	 * @return Register with the selected lane replaced.
 	 */
-	static __m128 SIMD_FLAGS(InOut, RegisterOnly, ForceInline) insert_slow(const __m128 lhs, const float rhs, const int index) noexcept
+	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline) insert_slow(const register_t lhs, const float rhs, const int index) noexcept
 	{
 		SIMDLIB_PRECONDITION(index >= 0 && index < 4, "32-bit floating-point insertion requires a valid 128-bit lane index");
 		switch (index)
@@ -3145,7 +3145,7 @@ template <> struct SimdImpl128<float>
 		return _mm_blendv_ps(lhs, rhs, _mm_castsi128_ps(_mm_cmpeq_epi32(selected, selectors)));
 	}
 	/** @brief Selects 32-bit floating-point lanes from two registers with an immediate control. */
-	template <int imm8> constexpr static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) blend(const __m128 lhs, const __m128 rhs) noexcept
+	template <int imm8> constexpr static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) blend(const register_t lhs, const register_t rhs) noexcept
 	{
 		if (std::is_constant_evaluated())
 			return register_blend_constexpr<float>(lhs, rhs, static_cast<unsigned int>(imm8));
@@ -3162,7 +3162,7 @@ template <> struct SimdImpl128<double>
 	/** @brief Native SIMD register returned by this implementation backend. */
 	using register_t = __m128d;
 	/** @brief Selects double lanes from two registers using a canonical predicate register. */
-	static __m128d SIMD_FLAGS(InOut, RegisterOnly, ForceInline) select(__m128d condition, __m128d when_true, __m128d when_false) noexcept
+	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline) select(register_t condition, register_t when_true, register_t when_false) noexcept
 	{
 		return _mm_blendv_pd(when_false, when_true, condition);
 	}
@@ -3175,7 +3175,7 @@ template <> struct SimdImpl128<double>
 	 */
 	template <std::size_t... indices>
 		requires(sizeof...(indices) == 2 && ((indices < 2) && ...))
-	static __m128d SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shuffle(__m128d lhs) noexcept
+	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shuffle(register_t lhs) noexcept
 	{
 		return _mm_shuffle_pd(lhs, lhs, encode_logical_shuffle_double_immediate<indices...>());
 	}
@@ -3221,7 +3221,7 @@ template <> struct SimdImpl128<double>
 #endif
 	}
 	/** @brief Computes an immediate-controlled dot product for this native register specialization. */
-	template <int imm8> static register_t SIMD_FLAGS(In, RegisterOnly, ForceInline, Flatten) dot_product(__m128d lhs, __m128d rhs) noexcept
+	template <int imm8> static register_t SIMD_FLAGS(In, RegisterOnly, ForceInline, Flatten) dot_product(register_t lhs, register_t rhs) noexcept
 	{
 		return _mm_dp_pd(lhs, rhs, imm8);
 	}
@@ -3300,7 +3300,7 @@ template <> struct SimdImpl128<double>
 	 * @param index Selected lane in the range `[0, 2)`.
 	 * @return Selected scalar lane.
 	 */
-	static double SIMD_FLAGS(In, RegisterOnly, ForceInline) extract_slow(const __m128d lhs, const int index) noexcept
+	static double SIMD_FLAGS(In, RegisterOnly, ForceInline) extract_slow(const register_t lhs, const int index) noexcept
 	{
 		SIMDLIB_PRECONDITION(index >= 0 && index < 2, "64-bit floating-point extraction requires a valid 128-bit lane index");
 		switch (index)
@@ -3321,7 +3321,7 @@ template <> struct SimdImpl128<double>
 	/** @brief Replaces the compile-time-selected 64-bit floating-point lane. */
 	template <int index> static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline) insert(auto lhs, const double rhs) noexcept
 	{
-		const __m128d replacement = _mm_set_sd(rhs);
+		const register_t replacement = _mm_set_sd(rhs);
 		if constexpr (index == 0)
 			return _mm_move_sd(lhs, replacement);
 		else
@@ -3334,7 +3334,7 @@ template <> struct SimdImpl128<double>
 	 * @param index Selected lane index.
 	 * @return Register with the selected lane replaced.
 	 */
-	static __m128d SIMD_FLAGS(InOut, RegisterOnly, ForceInline) insert_slow(const __m128d lhs, const double rhs, const int index) noexcept
+	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline) insert_slow(const register_t lhs, const double rhs, const int index) noexcept
 	{
 		SIMDLIB_PRECONDITION(index >= 0 && index < 2, "64-bit floating-point insertion requires a valid 128-bit lane index");
 		switch (index)
@@ -3383,7 +3383,7 @@ template <> struct SimdImpl128<double>
 		return _mm_blendv_pd(lhs, rhs, _mm_castsi128_pd(_mm_cmpeq_epi64(selected, selectors)));
 	}
 	/** @brief Selects 64-bit floating-point lanes from two registers with an immediate control. */
-	template <int imm8> constexpr static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) blend(const __m128d lhs, const __m128d rhs) noexcept
+	template <int imm8> constexpr static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) blend(const register_t lhs, const register_t rhs) noexcept
 	{
 		if (std::is_constant_evaluated())
 			return register_blend_constexpr<double>(lhs, rhs, static_cast<unsigned int>(imm8));
@@ -4043,7 +4043,7 @@ template <> struct SimdImpl256<int8_t>
 	/** @brief Native SIMD register returned by this implementation backend. */
 	using register_t = __m256i;
 	/** @brief Selects bytes from two registers using a canonical predicate register. */
-	static __m256i SIMD_FLAGS(InOut, RegisterOnly, ForceInline) select(__m256i condition, __m256i when_true, __m256i when_false) noexcept
+	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline) select(register_t condition, register_t when_true, register_t when_false) noexcept
 	{
 		return _mm256_blendv_epi8(when_false, when_true, condition);
 	}
@@ -4056,7 +4056,7 @@ template <> struct SimdImpl256<int8_t>
 	 */
 	template <std::size_t... indices>
 		requires(sizeof...(indices) == 32 && ((indices < 32) && ...))
-	static __m256i SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shuffle(__m256i lhs) noexcept
+	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shuffle(register_t lhs) noexcept
 	{
 		constexpr auto selectors = std::array{indices...};
 		if constexpr (!logical_shuffle_256_has_cross_half_selector<16, selectors>())
@@ -4065,7 +4065,7 @@ template <> struct SimdImpl256<int8_t>
 		}
 		else
 		{
-			const __m256i swapped = _mm256_permute2x128_si256(lhs, lhs, 0x01);
+			const register_t swapped = _mm256_permute2x128_si256(lhs, lhs, 0x01);
 			if constexpr (!logical_shuffle_256_has_local_half_selector<16, selectors>())
 				return _mm256_shuffle_epi8(swapped, make_logical_shuffle_256_byte_control<1, true, selectors>(std::make_index_sequence<32>{}));
 			else
@@ -4082,10 +4082,10 @@ template <> struct SimdImpl256<int8_t>
 	/** @brief Multiplies signed byte lanes and adds adjacent products into signed 16-bit lanes. */
 	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) multiply_add_adjacent(auto lhs, auto rhs) noexcept
 	{
-		const __m256i lowProducts = _mm256_mullo_epi16(_mm256_cvtepi8_epi16(_mm256_castsi256_si128(lhs)), _mm256_cvtepi8_epi16(_mm256_castsi256_si128(rhs)));
-		const __m256i highProducts =
+		const register_t lowProducts = _mm256_mullo_epi16(_mm256_cvtepi8_epi16(_mm256_castsi256_si128(lhs)), _mm256_cvtepi8_epi16(_mm256_castsi256_si128(rhs)));
+		const register_t highProducts =
 			_mm256_mullo_epi16(_mm256_cvtepi8_epi16(_mm256_extracti128_si256(lhs, 1)), _mm256_cvtepi8_epi16(_mm256_extracti128_si256(rhs, 1)));
-		const __m256i interleavedSums = _mm256_hadd_epi16(lowProducts, highProducts);
+		const register_t interleavedSums = _mm256_hadd_epi16(lowProducts, highProducts);
 		return _mm256_permute4x64_epi64(interleavedSums, _MM_SHUFFLE(3, 1, 2, 0));
 	}
 	/** @brief Multiplies unsigned and signed byte pairs for this native register specialization. */
@@ -4114,14 +4114,14 @@ template <> struct SimdImpl256<int8_t>
 	/** @brief Computes lane-wise square roots for this native register specialization. */
 	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) sqrt(auto lhs) noexcept
 	{
-		auto sqrt16x16 = [](__m256i values) noexcept
+		auto sqrt16x16 = [](register_t values) noexcept
 		{
 			const __m128i low16 = _mm256_castsi256_si128(values);
 			const __m128i high16 = _mm256_extracti128_si256(values, 1);
-			const __m256i low32 = _mm256_cvtepi16_epi32(low16);
-			const __m256i high32 = _mm256_cvtepi16_epi32(high16);
-			const __m256i lowRoots = _mm256_cvtps_epi32(_mm256_sqrt_ps(_mm256_cvtepi32_ps(low32)));
-			const __m256i highRoots = _mm256_cvtps_epi32(_mm256_sqrt_ps(_mm256_cvtepi32_ps(high32)));
+			const register_t low32 = _mm256_cvtepi16_epi32(low16);
+			const register_t high32 = _mm256_cvtepi16_epi32(high16);
+			const register_t lowRoots = _mm256_cvtps_epi32(_mm256_sqrt_ps(_mm256_cvtepi32_ps(low32)));
+			const register_t highRoots = _mm256_cvtps_epi32(_mm256_sqrt_ps(_mm256_cvtepi32_ps(high32)));
 			const __m128i packedLow = _mm_packs_epi32(_mm256_castsi256_si128(lowRoots), _mm256_extracti128_si256(lowRoots, 1));
 			const __m128i packedHigh = _mm_packs_epi32(_mm256_castsi256_si128(highRoots), _mm256_extracti128_si256(highRoots, 1));
 			return _mm256_inserti128_si256(_mm256_castsi128_si256(packedLow), packedHigh, 1);
@@ -4129,10 +4129,10 @@ template <> struct SimdImpl256<int8_t>
 
 		const __m128i low8 = _mm256_castsi256_si128(lhs);
 		const __m128i high8 = _mm256_extracti128_si256(lhs, 1);
-		const __m256i widenedLow = _mm256_cvtepi8_epi16(low8);
-		const __m256i widenedHigh = _mm256_cvtepi8_epi16(high8);
-		const __m256i rootsLow16 = sqrt16x16(widenedLow);
-		const __m256i rootsHigh16 = sqrt16x16(widenedHigh);
+		const register_t widenedLow = _mm256_cvtepi8_epi16(low8);
+		const register_t widenedHigh = _mm256_cvtepi8_epi16(high8);
+		const register_t rootsLow16 = sqrt16x16(widenedLow);
+		const register_t rootsHigh16 = sqrt16x16(widenedHigh);
 		const __m128i packedLow = _mm_packs_epi16(_mm256_castsi256_si128(rootsLow16), _mm256_extracti128_si256(rootsLow16, 1));
 		const __m128i packedHigh = _mm_packs_epi16(_mm256_castsi256_si128(rootsHigh16), _mm256_extracti128_si256(rootsHigh16, 1));
 		return _mm256_inserti128_si256(_mm256_castsi128_si256(packedLow), packedHigh, 1);
@@ -4174,7 +4174,7 @@ template <> struct SimdImpl256<int8_t>
 		return _mm256_sad_epu8(lhs, rhs);
 	}
 	/** @brief Computes immediate-selected byte-window absolute-difference sums for this native register specialization. */
-	template <int imm8> static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) multi_sum_absolute_byte_differences(__m256i lhs, __m256i rhs) noexcept
+	template <int imm8> static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) multi_sum_absolute_byte_differences(register_t lhs, register_t rhs) noexcept
 	{
 		return _mm256_mpsadbw_epu8(lhs, rhs, imm8);
 	}
@@ -4266,10 +4266,10 @@ template <> struct SimdImpl256<int8_t>
 	 * @param index Selected lane in the range `[0, 32)`.
 	 * @return Selected scalar lane.
 	 */
-	static int8_t SIMD_FLAGS(In, RegisterOnly, ForceInline) extract_slow(const __m256i lhs, const int index) noexcept
+	static int8_t SIMD_FLAGS(In, RegisterOnly, ForceInline) extract_slow(const register_t lhs, const int index) noexcept
 	{
 		SIMDLIB_PRECONDITION(index >= 0 && index < 32, "Signed 8-bit extraction requires a valid 256-bit lane index");
-		const __m256i selected = _mm256_permutevar8x32_epi32(lhs, _mm256_set1_epi32(index >> 2));
+		const register_t selected = _mm256_permutevar8x32_epi32(lhs, _mm256_set1_epi32(index >> 2));
 		const uint32_t selected_dword = static_cast<uint32_t>(_mm_cvtsi128_si32(_mm256_castsi256_si128(selected)));
 		return static_cast<int8_t>(selected_dword >> ((index & 3) * 8));
 	}
@@ -4290,13 +4290,13 @@ template <> struct SimdImpl256<int8_t>
 	 * @param index Selected lane in the range `[0, 32)`.
 	 * @return Register with the selected lane replaced.
 	 */
-	static __m256i SIMD_FLAGS(InOut, RegisterOnly, ForceInline) insert_slow(const __m256i lhs, const int8_t rhs, const int index) noexcept
+	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline) insert_slow(const register_t lhs, const int8_t rhs, const int index) noexcept
 	{
 		SIMDLIB_PRECONDITION(index >= 0 && index < 32, "Signed 8-bit insertion requires a valid 256-bit lane index");
-		const __m256i lane_indices =
+		const register_t lane_indices =
 			_mm256_setr_epi8(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31);
 		// A full-width equality mask selects the requested lane without branching on the 128-bit half.
-		const __m256i selected_lane = _mm256_cmpeq_epi8(lane_indices, _mm256_set1_epi8(static_cast<char>(index)));
+		const register_t selected_lane = _mm256_cmpeq_epi8(lane_indices, _mm256_set1_epi8(static_cast<char>(index)));
 		return _mm256_blendv_epi8(lhs, _mm256_set1_epi8(rhs), selected_lane);
 	}
 
@@ -4313,12 +4313,12 @@ template <> struct SimdImpl256<int8_t>
 	// misc
 	/** @brief Shuffles bytes through the native runtime selector-register instruction. */
 	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline) shuffle(auto lhs, auto rhs) noexcept
-		requires(std::same_as<decltype(lhs), __m256i> && std::same_as<decltype(rhs), __m256i>)
+		requires(std::same_as<decltype(lhs), register_t> && std::same_as<decltype(rhs), register_t>)
 	{
 		return _mm256_shuffle_epi8(lhs, rhs);
 	}
 	/** @brief Selects bytes through the native runtime mask-register operation. */
-	static __m256i SIMD_FLAGS(InOut, RegisterOnly, ForceInline) blend(const __m256i lhs, const __m256i rhs, const __m256i mask) noexcept
+	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline) blend(const register_t lhs, const register_t rhs, const register_t mask) noexcept
 	{
 		return register_blend_bytes(lhs, rhs, mask);
 	}
@@ -4333,7 +4333,7 @@ template <> struct SimdImpl256<uint8_t>
 	/** @brief Native SIMD register returned by this implementation backend. */
 	using register_t = __m256i;
 	/** @brief Selects bytes from two registers using a canonical predicate register. */
-	static __m256i SIMD_FLAGS(InOut, RegisterOnly, ForceInline) select(__m256i condition, __m256i when_true, __m256i when_false) noexcept
+	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline) select(register_t condition, register_t when_true, register_t when_false) noexcept
 	{
 		return _mm256_blendv_epi8(when_false, when_true, condition);
 	}
@@ -4346,7 +4346,7 @@ template <> struct SimdImpl256<uint8_t>
 	 */
 	template <std::size_t... indices>
 		requires(sizeof...(indices) == 32 && ((indices < 32) && ...))
-	static __m256i SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shuffle(__m256i lhs) noexcept
+	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shuffle(register_t lhs) noexcept
 	{
 		constexpr auto selectors = std::array{indices...};
 		if constexpr (!logical_shuffle_256_has_cross_half_selector<16, selectors>())
@@ -4355,7 +4355,7 @@ template <> struct SimdImpl256<uint8_t>
 		}
 		else
 		{
-			const __m256i swapped = _mm256_permute2x128_si256(lhs, lhs, 0x01);
+			const register_t swapped = _mm256_permute2x128_si256(lhs, lhs, 0x01);
 			if constexpr (!logical_shuffle_256_has_local_half_selector<16, selectors>())
 				return _mm256_shuffle_epi8(swapped, make_logical_shuffle_256_byte_control<1, true, selectors>(std::make_index_sequence<32>{}));
 			else
@@ -4372,10 +4372,10 @@ template <> struct SimdImpl256<uint8_t>
 	/** @brief Multiplies unsigned byte lanes and adds adjacent products into unsigned 16-bit lanes. */
 	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) multiply_add_adjacent(auto lhs, auto rhs) noexcept
 	{
-		const __m256i lowProducts = _mm256_mullo_epi16(_mm256_cvtepu8_epi16(_mm256_castsi256_si128(lhs)), _mm256_cvtepu8_epi16(_mm256_castsi256_si128(rhs)));
-		const __m256i highProducts =
+		const register_t lowProducts = _mm256_mullo_epi16(_mm256_cvtepu8_epi16(_mm256_castsi256_si128(lhs)), _mm256_cvtepu8_epi16(_mm256_castsi256_si128(rhs)));
+		const register_t highProducts =
 			_mm256_mullo_epi16(_mm256_cvtepu8_epi16(_mm256_extracti128_si256(lhs, 1)), _mm256_cvtepu8_epi16(_mm256_extracti128_si256(rhs, 1)));
-		const __m256i interleavedSums = _mm256_hadd_epi16(lowProducts, highProducts);
+		const register_t interleavedSums = _mm256_hadd_epi16(lowProducts, highProducts);
 		return _mm256_permute4x64_epi64(interleavedSums, _MM_SHUFFLE(3, 1, 2, 0));
 	}
 	/** @brief Multiplies unsigned and signed byte pairs for this native register specialization. */
@@ -4404,14 +4404,14 @@ template <> struct SimdImpl256<uint8_t>
 	/** @brief Computes lane-wise square roots for this native register specialization. */
 	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) sqrt(auto lhs) noexcept
 	{
-		auto sqrt16x16 = [](__m256i values) noexcept
+		auto sqrt16x16 = [](register_t values) noexcept
 		{
 			const __m128i low16 = _mm256_castsi256_si128(values);
 			const __m128i high16 = _mm256_extracti128_si256(values, 1);
-			const __m256i low32 = _mm256_cvtepu16_epi32(low16);
-			const __m256i high32 = _mm256_cvtepu16_epi32(high16);
-			const __m256i lowRoots = _mm256_cvtps_epi32(_mm256_sqrt_ps(_ext256_cvtepu32_ps(low32)));
-			const __m256i highRoots = _mm256_cvtps_epi32(_mm256_sqrt_ps(_ext256_cvtepu32_ps(high32)));
+			const register_t low32 = _mm256_cvtepu16_epi32(low16);
+			const register_t high32 = _mm256_cvtepu16_epi32(high16);
+			const register_t lowRoots = _mm256_cvtps_epi32(_mm256_sqrt_ps(_ext256_cvtepu32_ps(low32)));
+			const register_t highRoots = _mm256_cvtps_epi32(_mm256_sqrt_ps(_ext256_cvtepu32_ps(high32)));
 			const __m128i packedLow = _mm_packus_epi32(_mm256_castsi256_si128(lowRoots), _mm256_extracti128_si256(lowRoots, 1));
 			const __m128i packedHigh = _mm_packus_epi32(_mm256_castsi256_si128(highRoots), _mm256_extracti128_si256(highRoots, 1));
 			return _mm256_inserti128_si256(_mm256_castsi128_si256(packedLow), packedHigh, 1);
@@ -4419,10 +4419,10 @@ template <> struct SimdImpl256<uint8_t>
 
 		const __m128i low8 = _mm256_castsi256_si128(lhs);
 		const __m128i high8 = _mm256_extracti128_si256(lhs, 1);
-		const __m256i widenedLow = _mm256_cvtepu8_epi16(low8);
-		const __m256i widenedHigh = _mm256_cvtepu8_epi16(high8);
-		const __m256i rootsLow16 = sqrt16x16(widenedLow);
-		const __m256i rootsHigh16 = sqrt16x16(widenedHigh);
+		const register_t widenedLow = _mm256_cvtepu8_epi16(low8);
+		const register_t widenedHigh = _mm256_cvtepu8_epi16(high8);
+		const register_t rootsLow16 = sqrt16x16(widenedLow);
+		const register_t rootsHigh16 = sqrt16x16(widenedHigh);
 		const __m128i packedLow = _mm_packus_epi16(_mm256_castsi256_si128(rootsLow16), _mm256_extracti128_si256(rootsLow16, 1));
 		const __m128i packedHigh = _mm_packus_epi16(_mm256_castsi256_si128(rootsHigh16), _mm256_extracti128_si256(rootsHigh16, 1));
 		return _mm256_inserti128_si256(_mm256_castsi128_si256(packedLow), packedHigh, 1);
@@ -4464,7 +4464,7 @@ template <> struct SimdImpl256<uint8_t>
 		return _mm256_sad_epu8(lhs, rhs);
 	}
 	/** @brief Computes immediate-selected byte-window absolute-difference sums for this native register specialization. */
-	template <int imm8> static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) multi_sum_absolute_byte_differences(__m256i lhs, __m256i rhs) noexcept
+	template <int imm8> static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) multi_sum_absolute_byte_differences(register_t lhs, register_t rhs) noexcept
 	{
 		return _mm256_mpsadbw_epu8(lhs, rhs, imm8);
 	}
@@ -4561,10 +4561,10 @@ template <> struct SimdImpl256<uint8_t>
 	 * @param index Selected lane in the range `[0, 32)`.
 	 * @return Selected scalar lane.
 	 */
-	static uint8_t SIMD_FLAGS(In, RegisterOnly, ForceInline) extract_slow(const __m256i lhs, const int index) noexcept
+	static uint8_t SIMD_FLAGS(In, RegisterOnly, ForceInline) extract_slow(const register_t lhs, const int index) noexcept
 	{
 		SIMDLIB_PRECONDITION(index >= 0 && index < 32, "Unsigned 8-bit extraction requires a valid 256-bit lane index");
-		const __m256i selected = _mm256_permutevar8x32_epi32(lhs, _mm256_set1_epi32(index >> 2));
+		const register_t selected = _mm256_permutevar8x32_epi32(lhs, _mm256_set1_epi32(index >> 2));
 		const uint32_t selected_dword = static_cast<uint32_t>(_mm_cvtsi128_si32(_mm256_castsi256_si128(selected)));
 		return static_cast<uint8_t>(selected_dword >> ((index & 3) * 8));
 	}
@@ -4585,13 +4585,13 @@ template <> struct SimdImpl256<uint8_t>
 	 * @param index Selected lane in the range `[0, 32)`.
 	 * @return Register with the selected lane replaced.
 	 */
-	static __m256i SIMD_FLAGS(InOut, RegisterOnly, ForceInline) insert_slow(const __m256i lhs, const uint8_t rhs, const int index) noexcept
+	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline) insert_slow(const register_t lhs, const uint8_t rhs, const int index) noexcept
 	{
 		SIMDLIB_PRECONDITION(index >= 0 && index < 32, "Unsigned 8-bit insertion requires a valid 256-bit lane index");
-		const __m256i lane_indices =
+		const register_t lane_indices =
 			_mm256_setr_epi8(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31);
 		// A full-width equality mask selects the requested lane without branching on the 128-bit half.
-		const __m256i selected_lane = _mm256_cmpeq_epi8(lane_indices, _mm256_set1_epi8(static_cast<char>(index)));
+		const register_t selected_lane = _mm256_cmpeq_epi8(lane_indices, _mm256_set1_epi8(static_cast<char>(index)));
 		return _mm256_blendv_epi8(lhs, _mm256_set1_epi8(std::bit_cast<int8_t>(rhs)), selected_lane);
 	}
 
@@ -4608,12 +4608,12 @@ template <> struct SimdImpl256<uint8_t>
 	// misc
 	/** @brief Shuffles bytes through the native runtime selector-register instruction. */
 	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline) shuffle(auto lhs, auto rhs) noexcept
-		requires(std::same_as<decltype(lhs), __m256i> && std::same_as<decltype(rhs), __m256i>)
+		requires(std::same_as<decltype(lhs), register_t> && std::same_as<decltype(rhs), register_t>)
 	{
 		return _mm256_shuffle_epi8(lhs, rhs);
 	}
 	/** @brief Selects bytes through the native runtime mask-register operation. */
-	static __m256i SIMD_FLAGS(InOut, RegisterOnly, ForceInline) blend(const __m256i lhs, const __m256i rhs, const __m256i mask) noexcept
+	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline) blend(const register_t lhs, const register_t rhs, const register_t mask) noexcept
 	{
 		return register_blend_bytes(lhs, rhs, mask);
 	}
@@ -4628,7 +4628,7 @@ template <> struct SimdImpl256<int16_t>
 	/** @brief Native SIMD register returned by this implementation backend. */
 	using register_t = __m256i;
 	/** @brief Selects 16-bit lanes from two registers using a canonical predicate register. */
-	static __m256i SIMD_FLAGS(InOut, RegisterOnly, ForceInline) select(__m256i condition, __m256i when_true, __m256i when_false) noexcept
+	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline) select(register_t condition, register_t when_true, register_t when_false) noexcept
 	{
 		return _mm256_blendv_epi8(when_false, when_true, condition);
 	}
@@ -4641,7 +4641,7 @@ template <> struct SimdImpl256<int16_t>
 	 */
 	template <std::size_t... indices>
 		requires(sizeof...(indices) == 16 && ((indices < 16) && ...))
-	static __m256i SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shuffle(__m256i lhs) noexcept
+	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shuffle(register_t lhs) noexcept
 	{
 		constexpr auto selectors = std::array{indices...};
 		if constexpr (!logical_shuffle_256_has_cross_half_selector<8, selectors>())
@@ -4650,7 +4650,7 @@ template <> struct SimdImpl256<int16_t>
 		}
 		else
 		{
-			const __m256i swapped = _mm256_permute2x128_si256(lhs, lhs, 0x01);
+			const register_t swapped = _mm256_permute2x128_si256(lhs, lhs, 0x01);
 			if constexpr (!logical_shuffle_256_has_local_half_selector<8, selectors>())
 				return _mm256_shuffle_epi8(swapped, make_logical_shuffle_256_byte_control<2, true, selectors>(std::make_index_sequence<32>{}));
 			else
@@ -4697,9 +4697,9 @@ template <> struct SimdImpl256<int16_t>
 	{
 		auto sqrt16x8 = [](__m128i values) noexcept
 		{
-			const __m256i widened = _mm256_cvtepi16_epi32(values);
+			const register_t widened = _mm256_cvtepi16_epi32(values);
 			const __m256 roots = _mm256_sqrt_ps(_mm256_cvtepi32_ps(widened));
-			const __m256i integers = _mm256_cvtps_epi32(roots);
+			const register_t integers = _mm256_cvtps_epi32(roots);
 			return _mm_packs_epi32(_mm256_castsi256_si128(integers), _mm256_extracti128_si256(integers, 1));
 		};
 
@@ -4746,7 +4746,7 @@ template <> struct SimdImpl256<int16_t>
 		return _mm256_sad_epu8(lhs, rhs);
 	}
 	/** @brief Computes immediate-selected byte-window absolute-difference sums for this native register specialization. */
-	template <int imm8> static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) multi_sum_absolute_byte_differences(__m256i lhs, __m256i rhs) noexcept
+	template <int imm8> static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) multi_sum_absolute_byte_differences(register_t lhs, register_t rhs) noexcept
 	{
 		return _mm256_mpsadbw_epu8(lhs, rhs, imm8);
 	}
@@ -4825,8 +4825,8 @@ template <> struct SimdImpl256<int16_t>
 		const __m128i lhsHi128 = _mm256_extracti128_si256(lhs, 1);
 		const __m128i rhsHi128 = _mm256_extracti128_si256(rhs, 1);
 
-		const __m256i loProducts = _mm256_mullo_epi32(_mm256_cvtepi16_epi32(lhsLo128), _mm256_cvtepi16_epi32(rhsLo128));
-		const __m256i hiProducts = _mm256_mullo_epi32(_mm256_cvtepi16_epi32(lhsHi128), _mm256_cvtepi16_epi32(rhsHi128));
+		const register_t loProducts = _mm256_mullo_epi32(_mm256_cvtepi16_epi32(lhsLo128), _mm256_cvtepi16_epi32(rhsLo128));
+		const register_t hiProducts = _mm256_mullo_epi32(_mm256_cvtepi16_epi32(lhsHi128), _mm256_cvtepi16_epi32(rhsHi128));
 
 		const __m128i loPacked = _mm_packs_epi32(_mm256_castsi256_si128(loProducts), _mm256_extracti128_si256(loProducts, 1));
 		const __m128i hiPacked = _mm_packs_epi32(_mm256_castsi256_si128(hiProducts), _mm256_extracti128_si256(hiProducts, 1));
@@ -4878,10 +4878,10 @@ template <> struct SimdImpl256<int16_t>
 	 * @param index Selected lane in the range `[0, 16)`.
 	 * @return Selected scalar lane.
 	 */
-	static int16_t SIMD_FLAGS(In, RegisterOnly, ForceInline) extract_slow(const __m256i lhs, const int index) noexcept
+	static int16_t SIMD_FLAGS(In, RegisterOnly, ForceInline) extract_slow(const register_t lhs, const int index) noexcept
 	{
 		SIMDLIB_PRECONDITION(index >= 0 && index < 16, "Signed 16-bit extraction requires a valid 256-bit lane index");
-		const __m256i selected = _mm256_permutevar8x32_epi32(lhs, _mm256_set1_epi32(index >> 1));
+		const register_t selected = _mm256_permutevar8x32_epi32(lhs, _mm256_set1_epi32(index >> 1));
 		const uint32_t selected_dword = static_cast<uint32_t>(_mm_cvtsi128_si32(_mm256_castsi256_si128(selected)));
 		return static_cast<int16_t>(selected_dword >> ((index & 1) * 16));
 	}
@@ -4902,12 +4902,12 @@ template <> struct SimdImpl256<int16_t>
 	 * @param index Selected lane in the range `[0, 16)`.
 	 * @return Register with the selected lane replaced.
 	 */
-	static __m256i SIMD_FLAGS(InOut, RegisterOnly, ForceInline) insert_slow(const __m256i lhs, const int16_t rhs, const int index) noexcept
+	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline) insert_slow(const register_t lhs, const int16_t rhs, const int index) noexcept
 	{
 		SIMDLIB_PRECONDITION(index >= 0 && index < 16, "Signed 16-bit insertion requires a valid 256-bit lane index");
-		const __m256i lane_indices = _mm256_setr_epi16(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15);
+		const register_t lane_indices = _mm256_setr_epi16(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15);
 		// A full-width equality mask selects the requested lane without branching on the 128-bit half.
-		const __m256i selected_lane = _mm256_cmpeq_epi16(lane_indices, _mm256_set1_epi16(static_cast<std::int16_t>(index)));
+		const register_t selected_lane = _mm256_cmpeq_epi16(lane_indices, _mm256_set1_epi16(static_cast<std::int16_t>(index)));
 		return _mm256_blendv_epi8(lhs, _mm256_set1_epi16(rhs), selected_lane);
 	}
 
@@ -4932,7 +4932,7 @@ template <> struct SimdImpl256<int16_t>
 		return register_shuffle_half_16_slow(lhs, static_cast<unsigned int>(rhs), false);
 	}
 	/** @brief Shuffles the low four signed 16-bit lanes in each 128-bit group with an immediate control. */
-	template <int imm8> static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shuffle_lo(__m256i lhs) noexcept
+	template <int imm8> static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shuffle_lo(register_t lhs) noexcept
 	{
 		return _mm256_shufflelo_epi16(lhs, imm8);
 	}
@@ -4946,7 +4946,7 @@ template <> struct SimdImpl256<int16_t>
 		return register_shuffle_half_16_slow(lhs, static_cast<unsigned int>(rhs), true);
 	}
 	/** @brief Shuffles the high four signed 16-bit lanes in each 128-bit group with an immediate control. */
-	template <int imm8> static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shuffle_hi(__m256i lhs) noexcept
+	template <int imm8> static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shuffle_hi(register_t lhs) noexcept
 	{
 		return _mm256_shufflehi_epi16(lhs, imm8);
 	}
@@ -4958,15 +4958,15 @@ template <> struct SimdImpl256<int16_t>
 	 */
 	static register_t SIMD_FLAGS(InOut, ForceInline) blend_slow(auto lhs, auto rhs, const int imm8) noexcept
 	{
-		const __m256i selectors = make_static_register<SimdImpl256<std::int16_t>>([]<std::size_t index>() constexpr noexcept
+		const register_t selectors = make_static_register<SimdImpl256<std::int16_t>>([]<std::size_t index>() constexpr noexcept
 		{
 			return static_cast<std::int16_t>(1u << (index % 8));
 		});
-		const __m256i selected = _mm256_and_si256(_mm256_set1_epi16(static_cast<std::int16_t>(imm8)), selectors);
+		const register_t selected = _mm256_and_si256(_mm256_set1_epi16(static_cast<std::int16_t>(imm8)), selectors);
 		return _mm256_blendv_epi8(lhs, rhs, _mm256_cmpeq_epi16(selected, selectors));
 	}
 	/** @brief Selects signed 16-bit lanes from two 256-bit registers with a repeated immediate control. */
-	template <int imm8> constexpr static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) blend(const __m256i lhs, const __m256i rhs) noexcept
+	template <int imm8> constexpr static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) blend(const register_t lhs, const register_t rhs) noexcept
 	{
 		if (std::is_constant_evaluated())
 			return register_blend_constexpr<std::int16_t>(lhs, rhs, static_cast<unsigned int>(imm8));
@@ -4979,7 +4979,7 @@ template <> struct SimdImpl256<uint16_t>
 	/** @brief Native SIMD register returned by this implementation backend. */
 	using register_t = __m256i;
 	/** @brief Selects 16-bit lanes from two registers using a canonical predicate register. */
-	static __m256i SIMD_FLAGS(InOut, RegisterOnly, ForceInline) select(__m256i condition, __m256i when_true, __m256i when_false) noexcept
+	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline) select(register_t condition, register_t when_true, register_t when_false) noexcept
 	{
 		return _mm256_blendv_epi8(when_false, when_true, condition);
 	}
@@ -4992,7 +4992,7 @@ template <> struct SimdImpl256<uint16_t>
 	 */
 	template <std::size_t... indices>
 		requires(sizeof...(indices) == 16 && ((indices < 16) && ...))
-	static __m256i SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shuffle(__m256i lhs) noexcept
+	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shuffle(register_t lhs) noexcept
 	{
 		constexpr auto selectors = std::array{indices...};
 		if constexpr (!logical_shuffle_256_has_cross_half_selector<8, selectors>())
@@ -5001,7 +5001,7 @@ template <> struct SimdImpl256<uint16_t>
 		}
 		else
 		{
-			const __m256i swapped = _mm256_permute2x128_si256(lhs, lhs, 0x01);
+			const register_t swapped = _mm256_permute2x128_si256(lhs, lhs, 0x01);
 			if constexpr (!logical_shuffle_256_has_local_half_selector<8, selectors>())
 				return _mm256_shuffle_epi8(swapped, make_logical_shuffle_256_byte_control<2, true, selectors>(std::make_index_sequence<32>{}));
 			else
@@ -5023,10 +5023,10 @@ template <> struct SimdImpl256<uint16_t>
 	/** @brief Multiplies adjacent unsigned 16-bit lanes and adds their products into unsigned 32-bit lanes. */
 	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) multiply_add_adjacent(auto lhs, auto rhs) noexcept
 	{
-		const __m256i lowProducts = _mm256_mullo_epi32(_mm256_cvtepu16_epi32(_mm256_castsi256_si128(lhs)), _mm256_cvtepu16_epi32(_mm256_castsi256_si128(rhs)));
-		const __m256i highProducts =
+		const register_t lowProducts = _mm256_mullo_epi32(_mm256_cvtepu16_epi32(_mm256_castsi256_si128(lhs)), _mm256_cvtepu16_epi32(_mm256_castsi256_si128(rhs)));
+		const register_t highProducts =
 			_mm256_mullo_epi32(_mm256_cvtepu16_epi32(_mm256_extracti128_si256(lhs, 1)), _mm256_cvtepu16_epi32(_mm256_extracti128_si256(rhs, 1)));
-		const __m256i interleavedSums = _mm256_hadd_epi32(lowProducts, highProducts);
+		const register_t interleavedSums = _mm256_hadd_epi32(lowProducts, highProducts);
 		return _mm256_permute4x64_epi64(interleavedSums, _MM_SHUFFLE(3, 1, 2, 0));
 	}
 	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) subtract(auto lhs, auto rhs) noexcept
@@ -5052,9 +5052,9 @@ template <> struct SimdImpl256<uint16_t>
 	{
 		auto sqrt16x8 = [](__m128i values) noexcept
 		{
-			const __m256i widened = _mm256_cvtepu16_epi32(values);
+			const register_t widened = _mm256_cvtepu16_epi32(values);
 			const __m256 roots = _mm256_sqrt_ps(_ext256_cvtepu32_ps(widened));
-			const __m256i integers = _mm256_cvtps_epi32(roots);
+			const register_t integers = _mm256_cvtps_epi32(roots);
 			return _mm_packus_epi32(_mm256_castsi256_si128(integers), _mm256_extracti128_si256(integers, 1));
 		};
 
@@ -5101,7 +5101,7 @@ template <> struct SimdImpl256<uint16_t>
 		return _mm256_sad_epu8(lhs, rhs);
 	}
 	/** @brief Computes immediate-selected byte-window absolute-difference sums for this native register specialization. */
-	template <int imm8> static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) multi_sum_absolute_byte_differences(__m256i lhs, __m256i rhs) noexcept
+	template <int imm8> static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) multi_sum_absolute_byte_differences(register_t lhs, register_t rhs) noexcept
 	{
 		return _mm256_mpsadbw_epu8(lhs, rhs, imm8);
 	}
@@ -5159,17 +5159,17 @@ template <> struct SimdImpl256<uint16_t>
 	/** @brief Horizontally adds unsigned 16-bit lanes with unsigned saturation in each 128-bit group. */
 	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) hadd_saturated(auto lhs, auto rhs) noexcept
 	{
-		const __m256i zero = _mm256_setzero_si256();
-		const __m256i lhsPairs = _mm256_adds_epu16(lhs, _mm256_srli_epi32(lhs, 16));
-		const __m256i rhsPairs = _mm256_adds_epu16(rhs, _mm256_srli_epi32(rhs, 16));
+		const register_t zero = _mm256_setzero_si256();
+		const register_t lhsPairs = _mm256_adds_epu16(lhs, _mm256_srli_epi32(lhs, 16));
+		const register_t rhsPairs = _mm256_adds_epu16(rhs, _mm256_srli_epi32(rhs, 16));
 		return _mm256_packus_epi32(_mm256_blend_epi16(lhsPairs, zero, 0xAA), _mm256_blend_epi16(rhsPairs, zero, 0xAA));
 	}
 	/** @brief Horizontally subtracts unsigned 16-bit lanes with unsigned saturation in each 128-bit group. */
 	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) hsubtract_saturated(auto lhs, auto rhs) noexcept
 	{
-		const __m256i zero = _mm256_setzero_si256();
-		const __m256i lhsPairs = _mm256_subs_epu16(lhs, _mm256_srli_epi32(lhs, 16));
-		const __m256i rhsPairs = _mm256_subs_epu16(rhs, _mm256_srli_epi32(rhs, 16));
+		const register_t zero = _mm256_setzero_si256();
+		const register_t lhsPairs = _mm256_subs_epu16(lhs, _mm256_srli_epi32(lhs, 16));
+		const register_t rhsPairs = _mm256_subs_epu16(rhs, _mm256_srli_epi32(rhs, 16));
 		return _mm256_packus_epi32(_mm256_blend_epi16(lhsPairs, zero, 0xAA), _mm256_blend_epi16(rhsPairs, zero, 0xAA));
 	}
 
@@ -5191,8 +5191,8 @@ template <> struct SimdImpl256<uint16_t>
 		const __m128i lhsHi128 = _mm256_extracti128_si256(lhs, 1);
 		const __m128i rhsHi128 = _mm256_extracti128_si256(rhs, 1);
 
-		const __m256i loProducts = _mm256_mullo_epi32(_mm256_cvtepu16_epi32(lhsLo128), _mm256_cvtepu16_epi32(rhsLo128));
-		const __m256i hiProducts = _mm256_mullo_epi32(_mm256_cvtepu16_epi32(lhsHi128), _mm256_cvtepu16_epi32(rhsHi128));
+		const register_t loProducts = _mm256_mullo_epi32(_mm256_cvtepu16_epi32(lhsLo128), _mm256_cvtepu16_epi32(rhsLo128));
+		const register_t hiProducts = _mm256_mullo_epi32(_mm256_cvtepu16_epi32(lhsHi128), _mm256_cvtepu16_epi32(rhsHi128));
 
 		const __m128i loPacked = _mm_packus_epi32(_mm256_castsi256_si128(loProducts), _mm256_extracti128_si256(loProducts, 1));
 		const __m128i hiPacked = _mm_packus_epi32(_mm256_castsi256_si128(hiProducts), _mm256_extracti128_si256(hiProducts, 1));
@@ -5244,10 +5244,10 @@ template <> struct SimdImpl256<uint16_t>
 	 * @param index Selected lane in the range `[0, 16)`.
 	 * @return Selected scalar lane.
 	 */
-	static uint16_t SIMD_FLAGS(In, RegisterOnly, ForceInline) extract_slow(const __m256i lhs, const int index) noexcept
+	static uint16_t SIMD_FLAGS(In, RegisterOnly, ForceInline) extract_slow(const register_t lhs, const int index) noexcept
 	{
 		SIMDLIB_PRECONDITION(index >= 0 && index < 16, "Unsigned 16-bit extraction requires a valid 256-bit lane index");
-		const __m256i selected = _mm256_permutevar8x32_epi32(lhs, _mm256_set1_epi32(index >> 1));
+		const register_t selected = _mm256_permutevar8x32_epi32(lhs, _mm256_set1_epi32(index >> 1));
 		const uint32_t selected_dword = static_cast<uint32_t>(_mm_cvtsi128_si32(_mm256_castsi256_si128(selected)));
 		return static_cast<uint16_t>(selected_dword >> ((index & 1) * 16));
 	}
@@ -5268,12 +5268,12 @@ template <> struct SimdImpl256<uint16_t>
 	 * @param index Selected lane in the range `[0, 16)`.
 	 * @return Register with the selected lane replaced.
 	 */
-	static __m256i SIMD_FLAGS(InOut, RegisterOnly, ForceInline) insert_slow(const __m256i lhs, const uint16_t rhs, const int index) noexcept
+	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline) insert_slow(const register_t lhs, const uint16_t rhs, const int index) noexcept
 	{
 		SIMDLIB_PRECONDITION(index >= 0 && index < 16, "Unsigned 16-bit insertion requires a valid 256-bit lane index");
-		const __m256i lane_indices = _mm256_setr_epi16(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15);
+		const register_t lane_indices = _mm256_setr_epi16(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15);
 		// A full-width equality mask selects the requested lane without branching on the 128-bit half.
-		const __m256i selected_lane = _mm256_cmpeq_epi16(lane_indices, _mm256_set1_epi16(static_cast<std::int16_t>(index)));
+		const register_t selected_lane = _mm256_cmpeq_epi16(lane_indices, _mm256_set1_epi16(static_cast<std::int16_t>(index)));
 		return _mm256_blendv_epi8(lhs, _mm256_set1_epi16(std::bit_cast<int16_t>(rhs)), selected_lane);
 	}
 
@@ -5298,7 +5298,7 @@ template <> struct SimdImpl256<uint16_t>
 		return register_shuffle_half_16_slow(lhs, static_cast<unsigned int>(rhs), false);
 	}
 	/** @brief Shuffles the low four unsigned 16-bit lanes in each 128-bit group with an immediate control. */
-	template <int imm8> static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shuffle_lo(__m256i lhs) noexcept
+	template <int imm8> static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shuffle_lo(register_t lhs) noexcept
 	{
 		return _mm256_shufflelo_epi16(lhs, imm8);
 	}
@@ -5312,7 +5312,7 @@ template <> struct SimdImpl256<uint16_t>
 		return register_shuffle_half_16_slow(lhs, static_cast<unsigned int>(rhs), true);
 	}
 	/** @brief Shuffles the high four unsigned 16-bit lanes in each 128-bit group with an immediate control. */
-	template <int imm8> static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shuffle_hi(__m256i lhs) noexcept
+	template <int imm8> static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shuffle_hi(register_t lhs) noexcept
 	{
 		return _mm256_shufflehi_epi16(lhs, imm8);
 	}
@@ -5324,15 +5324,15 @@ template <> struct SimdImpl256<uint16_t>
 	 */
 	static register_t SIMD_FLAGS(InOut, ForceInline) blend_slow(auto lhs, auto rhs, const int imm8) noexcept
 	{
-		const __m256i selectors = make_static_register<SimdImpl256<std::uint16_t>>([]<std::size_t index>() constexpr noexcept
+		const register_t selectors = make_static_register<SimdImpl256<std::uint16_t>>([]<std::size_t index>() constexpr noexcept
 		{
 			return static_cast<std::uint16_t>(1u << (index % 8));
 		});
-		const __m256i selected = _mm256_and_si256(_mm256_set1_epi16(static_cast<std::int16_t>(imm8)), selectors);
+		const register_t selected = _mm256_and_si256(_mm256_set1_epi16(static_cast<std::int16_t>(imm8)), selectors);
 		return _mm256_blendv_epi8(lhs, rhs, _mm256_cmpeq_epi16(selected, selectors));
 	}
 	/** @brief Selects unsigned 16-bit lanes from two 256-bit registers with a repeated immediate control. */
-	template <int imm8> constexpr static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) blend(const __m256i lhs, const __m256i rhs) noexcept
+	template <int imm8> constexpr static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) blend(const register_t lhs, const register_t rhs) noexcept
 	{
 		if (std::is_constant_evaluated())
 			return register_blend_constexpr<std::uint16_t>(lhs, rhs, static_cast<unsigned int>(imm8));
@@ -5345,7 +5345,7 @@ template <> struct SimdImpl256<int32_t>
 	/** @brief Native SIMD register returned by this implementation backend. */
 	using register_t = __m256i;
 	/** @brief Selects 32-bit lanes from two registers using a canonical predicate register. */
-	static __m256i SIMD_FLAGS(InOut, RegisterOnly, ForceInline) select(__m256i condition, __m256i when_true, __m256i when_false) noexcept
+	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline) select(register_t condition, register_t when_true, register_t when_false) noexcept
 	{
 		return _mm256_blendv_epi8(when_false, when_true, condition);
 	}
@@ -5358,7 +5358,7 @@ template <> struct SimdImpl256<int32_t>
 	 */
 	template <std::size_t... indices>
 		requires(sizeof...(indices) == 8 && ((indices < 8) && ...))
-	static __m256i SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shuffle(__m256i lhs) noexcept
+	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shuffle(register_t lhs) noexcept
 	{
 		return _mm256_permutevar8x32_epi32(lhs, _mm256_setr_epi32(static_cast<int>(indices)...));
 	}
@@ -5371,8 +5371,8 @@ template <> struct SimdImpl256<int32_t>
 	/** @brief Multiplies adjacent lanes and adds their products for this native register specialization. */
 	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) multiply_add_adjacent(auto lhs, auto rhs) noexcept
 	{
-		const __m256i evenProducts = _mm256_mul_epi32(lhs, rhs);
-		const __m256i oddProducts = _mm256_mul_epi32(_mm256_srli_si256(lhs, 4), _mm256_srli_si256(rhs, 4));
+		const register_t evenProducts = _mm256_mul_epi32(lhs, rhs);
+		const register_t oddProducts = _mm256_mul_epi32(_mm256_srli_si256(lhs, 4), _mm256_srli_si256(rhs, 4));
 		return _mm256_add_epi64(evenProducts, oddProducts);
 	}
 	/** @brief Multiplies unsigned and signed byte pairs for this native register specialization. */
@@ -5441,7 +5441,7 @@ template <> struct SimdImpl256<int32_t>
 		return _mm256_sad_epu8(lhs, rhs);
 	}
 	/** @brief Computes immediate-selected byte-window absolute-difference sums for this native register specialization. */
-	template <int imm8> static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) multi_sum_absolute_byte_differences(__m256i lhs, __m256i rhs) noexcept
+	template <int imm8> static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) multi_sum_absolute_byte_differences(register_t lhs, register_t rhs) noexcept
 	{
 		return _mm256_mpsadbw_epu8(lhs, rhs, imm8);
 	}
@@ -5537,10 +5537,10 @@ template <> struct SimdImpl256<int32_t>
 	 * @param index Selected lane in the range `[0, 8)`.
 	 * @return Selected scalar lane.
 	 */
-	static int32_t SIMD_FLAGS(In, RegisterOnly, ForceInline) extract_slow(const __m256i lhs, const int index) noexcept
+	static int32_t SIMD_FLAGS(In, RegisterOnly, ForceInline) extract_slow(const register_t lhs, const int index) noexcept
 	{
 		SIMDLIB_PRECONDITION(index >= 0 && index < 8, "Signed 32-bit extraction requires a valid 256-bit lane index");
-		const __m256i selected = _mm256_permutevar8x32_epi32(lhs, _mm256_set1_epi32(index));
+		const register_t selected = _mm256_permutevar8x32_epi32(lhs, _mm256_set1_epi32(index));
 		return _mm_cvtsi128_si32(_mm256_castsi256_si128(selected));
 	}
 	/** @brief Replaces the compile-time-selected signed 32-bit lane during constant evaluation. */
@@ -5560,12 +5560,12 @@ template <> struct SimdImpl256<int32_t>
 	 * @param index Selected lane in the range `[0, 8)`.
 	 * @return Register with the selected lane replaced.
 	 */
-	static __m256i SIMD_FLAGS(InOut, RegisterOnly, ForceInline) insert_slow(const __m256i lhs, const int32_t rhs, const int index) noexcept
+	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline) insert_slow(const register_t lhs, const int32_t rhs, const int index) noexcept
 	{
 		SIMDLIB_PRECONDITION(index >= 0 && index < 8, "Signed 32-bit insertion requires a valid 256-bit lane index");
-		const __m256i lane_indices = _mm256_setr_epi32(0, 1, 2, 3, 4, 5, 6, 7);
+		const register_t lane_indices = _mm256_setr_epi32(0, 1, 2, 3, 4, 5, 6, 7);
 		// A full-width equality mask selects the requested lane without branching on the 128-bit half.
-		const __m256i selected_lane = _mm256_cmpeq_epi32(lane_indices, _mm256_set1_epi32(index));
+		const register_t selected_lane = _mm256_cmpeq_epi32(lane_indices, _mm256_set1_epi32(index));
 		return _mm256_blendv_epi8(lhs, _mm256_set1_epi32(rhs), selected_lane);
 	}
 
@@ -5606,15 +5606,15 @@ template <> struct SimdImpl256<int32_t>
 	 */
 	static register_t SIMD_FLAGS(InOut, ForceInline) blend_slow(auto lhs, auto rhs, const int imm8) noexcept
 	{
-		const __m256i selectors = make_static_register<SimdImpl256<std::int32_t>>([]<std::size_t index>() constexpr noexcept
+		const register_t selectors = make_static_register<SimdImpl256<std::int32_t>>([]<std::size_t index>() constexpr noexcept
 		{
 			return static_cast<std::int32_t>(1u << index);
 		});
-		const __m256i selected = _mm256_and_si256(_mm256_set1_epi32(imm8), selectors);
+		const register_t selected = _mm256_and_si256(_mm256_set1_epi32(imm8), selectors);
 		return _mm256_blendv_epi8(lhs, rhs, _mm256_cmpeq_epi32(selected, selectors));
 	}
 	/** @brief Selects signed 32-bit lanes from two 256-bit registers with an immediate control. */
-	template <int imm8> constexpr static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) blend(const __m256i lhs, const __m256i rhs) noexcept
+	template <int imm8> constexpr static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) blend(const register_t lhs, const register_t rhs) noexcept
 	{
 		if (std::is_constant_evaluated())
 			return register_blend_constexpr<std::int32_t>(lhs, rhs, static_cast<unsigned int>(imm8));
@@ -5627,7 +5627,7 @@ template <> struct SimdImpl256<uint32_t>
 	/** @brief Native SIMD register returned by this implementation backend. */
 	using register_t = __m256i;
 	/** @brief Selects 32-bit lanes from two registers using a canonical predicate register. */
-	static __m256i SIMD_FLAGS(InOut, RegisterOnly, ForceInline) select(__m256i condition, __m256i when_true, __m256i when_false) noexcept
+	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline) select(register_t condition, register_t when_true, register_t when_false) noexcept
 	{
 		return _mm256_blendv_epi8(when_false, when_true, condition);
 	}
@@ -5640,7 +5640,7 @@ template <> struct SimdImpl256<uint32_t>
 	 */
 	template <std::size_t... indices>
 		requires(sizeof...(indices) == 8 && ((indices < 8) && ...))
-	static __m256i SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shuffle(__m256i lhs) noexcept
+	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shuffle(register_t lhs) noexcept
 	{
 		return _mm256_permutevar8x32_epi32(lhs, _mm256_setr_epi32(static_cast<int>(indices)...));
 	}
@@ -5656,15 +5656,15 @@ template <> struct SimdImpl256<uint32_t>
 	 * @param lhs The unsigned integer lanes.
 	 * @return The converted floating-point lanes.
 	 */
-	static auto SIMD_FLAGS(InOut, ForceInline) convert_to_float(const __m256i lhs) noexcept
+	static auto SIMD_FLAGS(InOut, ForceInline) convert_to_float(const register_t lhs) noexcept
 	{
 		return _ext256_cvtepu32_ps(lhs);
 	}
 	/** @brief Multiplies adjacent lanes and adds their products for this native register specialization. */
 	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) multiply_add_adjacent(auto lhs, auto rhs) noexcept
 	{
-		const __m256i evenProducts = _mm256_mul_epu32(lhs, rhs);
-		const __m256i oddProducts = _mm256_mul_epu32(_mm256_srli_si256(lhs, 4), _mm256_srli_si256(rhs, 4));
+		const register_t evenProducts = _mm256_mul_epu32(lhs, rhs);
+		const register_t oddProducts = _mm256_mul_epu32(_mm256_srli_si256(lhs, 4), _mm256_srli_si256(rhs, 4));
 		return _mm256_add_epi64(evenProducts, oddProducts);
 	}
 	/** @brief Multiplies unsigned and signed byte pairs for this native register specialization. */
@@ -5738,7 +5738,7 @@ template <> struct SimdImpl256<uint32_t>
 		return _mm256_sad_epu8(lhs, rhs);
 	}
 	/** @brief Computes immediate-selected byte-window absolute-difference sums for this native register specialization. */
-	template <int imm8> static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) multi_sum_absolute_byte_differences(__m256i lhs, __m256i rhs) noexcept
+	template <int imm8> static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) multi_sum_absolute_byte_differences(register_t lhs, register_t rhs) noexcept
 	{
 		return _mm256_mpsadbw_epu8(lhs, rhs, imm8);
 	}
@@ -5834,10 +5834,10 @@ template <> struct SimdImpl256<uint32_t>
 	 * @param index Selected lane in the range `[0, 8)`.
 	 * @return Selected scalar lane.
 	 */
-	static uint32_t SIMD_FLAGS(In, RegisterOnly, ForceInline) extract_slow(const __m256i lhs, const int index) noexcept
+	static uint32_t SIMD_FLAGS(In, RegisterOnly, ForceInline) extract_slow(const register_t lhs, const int index) noexcept
 	{
 		SIMDLIB_PRECONDITION(index >= 0 && index < 8, "Unsigned 32-bit extraction requires a valid 256-bit lane index");
-		const __m256i selected = _mm256_permutevar8x32_epi32(lhs, _mm256_set1_epi32(index));
+		const register_t selected = _mm256_permutevar8x32_epi32(lhs, _mm256_set1_epi32(index));
 		return static_cast<uint32_t>(_mm_cvtsi128_si32(_mm256_castsi256_si128(selected)));
 	}
 	/** @brief Replaces the compile-time-selected unsigned 32-bit lane during constant evaluation. */
@@ -5857,12 +5857,12 @@ template <> struct SimdImpl256<uint32_t>
 	 * @param index Selected lane in the range `[0, 8)`.
 	 * @return Register with the selected lane replaced.
 	 */
-	static __m256i SIMD_FLAGS(InOut, RegisterOnly, ForceInline) insert_slow(const __m256i lhs, const uint32_t rhs, const int index) noexcept
+	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline) insert_slow(const register_t lhs, const uint32_t rhs, const int index) noexcept
 	{
 		SIMDLIB_PRECONDITION(index >= 0 && index < 8, "Unsigned 32-bit insertion requires a valid 256-bit lane index");
-		const __m256i lane_indices = _mm256_setr_epi32(0, 1, 2, 3, 4, 5, 6, 7);
+		const register_t lane_indices = _mm256_setr_epi32(0, 1, 2, 3, 4, 5, 6, 7);
 		// A full-width equality mask selects the requested lane without branching on the 128-bit half.
-		const __m256i selected_lane = _mm256_cmpeq_epi32(lane_indices, _mm256_set1_epi32(index));
+		const register_t selected_lane = _mm256_cmpeq_epi32(lane_indices, _mm256_set1_epi32(index));
 		return _mm256_blendv_epi8(lhs, _mm256_set1_epi32(std::bit_cast<int32_t>(rhs)), selected_lane);
 	}
 
@@ -5903,15 +5903,15 @@ template <> struct SimdImpl256<uint32_t>
 	 */
 	static register_t SIMD_FLAGS(InOut, ForceInline) blend_slow(auto lhs, auto rhs, const int imm8) noexcept
 	{
-		const __m256i selectors = make_static_register<SimdImpl256<std::uint32_t>>([]<std::size_t index>() constexpr noexcept
+		const register_t selectors = make_static_register<SimdImpl256<std::uint32_t>>([]<std::size_t index>() constexpr noexcept
 		{
 			return static_cast<std::uint32_t>(1u << index);
 		});
-		const __m256i selected = _mm256_and_si256(_mm256_set1_epi32(imm8), selectors);
+		const register_t selected = _mm256_and_si256(_mm256_set1_epi32(imm8), selectors);
 		return _mm256_blendv_epi8(lhs, rhs, _mm256_cmpeq_epi32(selected, selectors));
 	}
 	/** @brief Selects unsigned 32-bit lanes from two 256-bit registers with an immediate control. */
-	template <int imm8> constexpr static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) blend(const __m256i lhs, const __m256i rhs) noexcept
+	template <int imm8> constexpr static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) blend(const register_t lhs, const register_t rhs) noexcept
 	{
 		if (std::is_constant_evaluated())
 			return register_blend_constexpr<std::uint32_t>(lhs, rhs, static_cast<unsigned int>(imm8));
@@ -5924,7 +5924,7 @@ template <> struct SimdImpl256<int64_t>
 	/** @brief Native SIMD register returned by this implementation backend. */
 	using register_t = __m256i;
 	/** @brief Selects 64-bit lanes from two registers using a canonical predicate register. */
-	static __m256i SIMD_FLAGS(InOut, RegisterOnly, ForceInline) select(__m256i condition, __m256i when_true, __m256i when_false) noexcept
+	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline) select(register_t condition, register_t when_true, register_t when_false) noexcept
 	{
 		return _mm256_blendv_epi8(when_false, when_true, condition);
 	}
@@ -5937,7 +5937,7 @@ template <> struct SimdImpl256<int64_t>
 	 */
 	template <std::size_t... indices>
 		requires(sizeof...(indices) == 4 && ((indices < 4) && ...))
-	static __m256i SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shuffle(__m256i lhs) noexcept
+	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shuffle(register_t lhs) noexcept
 	{
 		return _mm256_permute4x64_epi64(lhs, encode_logical_shuffle_32_immediate<indices...>());
 	}
@@ -6021,7 +6021,7 @@ template <> struct SimdImpl256<int64_t>
 		return _mm256_sad_epu8(lhs, rhs);
 	}
 	/** @brief Computes immediate-selected byte-window absolute-difference sums for this native register specialization. */
-	template <int imm8> static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) multi_sum_absolute_byte_differences(__m256i lhs, __m256i rhs) noexcept
+	template <int imm8> static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) multi_sum_absolute_byte_differences(register_t lhs, register_t rhs) noexcept
 	{
 		return _mm256_mpsadbw_epu8(lhs, rhs, imm8);
 	}
@@ -6098,12 +6098,12 @@ template <> struct SimdImpl256<int64_t>
 	 * @param index Selected lane in the range `[0, 4)`.
 	 * @return Selected scalar lane.
 	 */
-	static int64_t SIMD_FLAGS(In, RegisterOnly, ForceInline) extract_slow(const __m256i lhs, const int index) noexcept
+	static int64_t SIMD_FLAGS(In, RegisterOnly, ForceInline) extract_slow(const register_t lhs, const int index) noexcept
 	{
 		SIMDLIB_PRECONDITION(index >= 0 && index < 4, "Signed 64-bit extraction requires a valid 256-bit lane index");
-		const __m256i first_word = _mm256_set1_epi32(index * 2);
-		const __m256i word_offsets = _mm256_setr_epi32(0, 1, 0, 1, 0, 1, 0, 1);
-		const __m256i selected = _mm256_permutevar8x32_epi32(lhs, _mm256_add_epi32(first_word, word_offsets));
+		const register_t first_word = _mm256_set1_epi32(index * 2);
+		const register_t word_offsets = _mm256_setr_epi32(0, 1, 0, 1, 0, 1, 0, 1);
+		const register_t selected = _mm256_permutevar8x32_epi32(lhs, _mm256_add_epi32(first_word, word_offsets));
 		return SimdImpl128<int64_t>::template extract<0>(_mm256_castsi256_si128(selected));
 	}
 	/** @brief Replaces the compile-time-selected signed 64-bit lane during constant evaluation. */
@@ -6123,12 +6123,12 @@ template <> struct SimdImpl256<int64_t>
 	 * @param index Selected lane in the range `[0, 4)`.
 	 * @return Register with the selected lane replaced.
 	 */
-	static __m256i SIMD_FLAGS(InOut, RegisterOnly, ForceInline) insert_slow(const __m256i lhs, const int64_t rhs, const int index) noexcept
+	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline) insert_slow(const register_t lhs, const int64_t rhs, const int index) noexcept
 	{
 		SIMDLIB_PRECONDITION(index >= 0 && index < 4, "Signed 64-bit insertion requires a valid 256-bit lane index");
-		const __m256i lane_indices = _mm256_setr_epi64x(0, 1, 2, 3);
+		const register_t lane_indices = _mm256_setr_epi64x(0, 1, 2, 3);
 		// A full-width equality mask selects the requested lane without branching on the 128-bit half.
-		const __m256i selected_lane = _mm256_cmpeq_epi64(lane_indices, _mm256_set1_epi64x(index));
+		const register_t selected_lane = _mm256_cmpeq_epi64(lane_indices, _mm256_set1_epi64x(index));
 		return _mm256_blendv_epi8(lhs, _mm256_set1_epi64x(rhs), selected_lane);
 	}
 
@@ -6148,7 +6148,7 @@ template <> struct SimdImpl256<uint64_t>
 	/** @brief Native SIMD register returned by this implementation backend. */
 	using register_t = __m256i;
 	/** @brief Selects 64-bit lanes from two registers using a canonical predicate register. */
-	static __m256i SIMD_FLAGS(InOut, RegisterOnly, ForceInline) select(__m256i condition, __m256i when_true, __m256i when_false) noexcept
+	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline) select(register_t condition, register_t when_true, register_t when_false) noexcept
 	{
 		return _mm256_blendv_epi8(when_false, when_true, condition);
 	}
@@ -6161,7 +6161,7 @@ template <> struct SimdImpl256<uint64_t>
 	 */
 	template <std::size_t... indices>
 		requires(sizeof...(indices) == 4 && ((indices < 4) && ...))
-	static __m256i SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shuffle(__m256i lhs) noexcept
+	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shuffle(register_t lhs) noexcept
 	{
 		return _mm256_permute4x64_epi64(lhs, encode_logical_shuffle_32_immediate<indices...>());
 	}
@@ -6245,7 +6245,7 @@ template <> struct SimdImpl256<uint64_t>
 		return _mm256_sad_epu8(lhs, rhs);
 	}
 	/** @brief Computes immediate-selected byte-window absolute-difference sums for this native register specialization. */
-	template <int imm8> static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) multi_sum_absolute_byte_differences(__m256i lhs, __m256i rhs) noexcept
+	template <int imm8> static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) multi_sum_absolute_byte_differences(register_t lhs, register_t rhs) noexcept
 	{
 		return _mm256_mpsadbw_epu8(lhs, rhs, imm8);
 	}
@@ -6322,12 +6322,12 @@ template <> struct SimdImpl256<uint64_t>
 	 * @param index Selected lane in the range `[0, 4)`.
 	 * @return Selected scalar lane.
 	 */
-	static uint64_t SIMD_FLAGS(In, RegisterOnly, ForceInline) extract_slow(const __m256i lhs, const int index) noexcept
+	static uint64_t SIMD_FLAGS(In, RegisterOnly, ForceInline) extract_slow(const register_t lhs, const int index) noexcept
 	{
 		SIMDLIB_PRECONDITION(index >= 0 && index < 4, "Unsigned 64-bit extraction requires a valid 256-bit lane index");
-		const __m256i first_word = _mm256_set1_epi32(index * 2);
-		const __m256i word_offsets = _mm256_setr_epi32(0, 1, 0, 1, 0, 1, 0, 1);
-		const __m256i selected = _mm256_permutevar8x32_epi32(lhs, _mm256_add_epi32(first_word, word_offsets));
+		const register_t first_word = _mm256_set1_epi32(index * 2);
+		const register_t word_offsets = _mm256_setr_epi32(0, 1, 0, 1, 0, 1, 0, 1);
+		const register_t selected = _mm256_permutevar8x32_epi32(lhs, _mm256_add_epi32(first_word, word_offsets));
 		return SimdImpl128<uint64_t>::template extract<0>(_mm256_castsi256_si128(selected));
 	}
 	/** @brief Replaces the compile-time-selected unsigned 64-bit lane during constant evaluation. */
@@ -6347,12 +6347,12 @@ template <> struct SimdImpl256<uint64_t>
 	 * @param index Selected lane in the range `[0, 4)`.
 	 * @return Register with the selected lane replaced.
 	 */
-	static __m256i SIMD_FLAGS(InOut, RegisterOnly, ForceInline) insert_slow(const __m256i lhs, const uint64_t rhs, const int index) noexcept
+	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline) insert_slow(const register_t lhs, const uint64_t rhs, const int index) noexcept
 	{
 		SIMDLIB_PRECONDITION(index >= 0 && index < 4, "Unsigned 64-bit insertion requires a valid 256-bit lane index");
-		const __m256i lane_indices = _mm256_setr_epi64x(0, 1, 2, 3);
+		const register_t lane_indices = _mm256_setr_epi64x(0, 1, 2, 3);
 		// A full-width equality mask selects the requested lane without branching on the 128-bit half.
-		const __m256i selected_lane = _mm256_cmpeq_epi64(lane_indices, _mm256_set1_epi64x(index));
+		const register_t selected_lane = _mm256_cmpeq_epi64(lane_indices, _mm256_set1_epi64x(index));
 		return _mm256_blendv_epi8(lhs, _mm256_set1_epi64x(std::bit_cast<int64_t>(rhs)), selected_lane);
 	}
 
@@ -6372,7 +6372,7 @@ template <> struct SimdImpl256<float>
 	/** @brief Native SIMD register returned by this implementation backend. */
 	using register_t = __m256;
 	/** @brief Selects float lanes from two registers using a canonical predicate register. */
-	static __m256 SIMD_FLAGS(InOut, RegisterOnly, ForceInline) select(__m256 condition, __m256 when_true, __m256 when_false) noexcept
+	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline) select(register_t condition, register_t when_true, register_t when_false) noexcept
 	{
 		return _mm256_blendv_ps(when_false, when_true, condition);
 	}
@@ -6385,7 +6385,7 @@ template <> struct SimdImpl256<float>
 	 */
 	template <std::size_t... indices>
 		requires(sizeof...(indices) == 8 && ((indices < 8) && ...))
-	static __m256 SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shuffle(__m256 lhs) noexcept
+	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shuffle(register_t lhs) noexcept
 	{
 		return _mm256_permutevar8x32_ps(lhs, _mm256_setr_epi32(static_cast<int>(indices)...));
 	}
@@ -6432,7 +6432,7 @@ template <> struct SimdImpl256<float>
 #endif
 	}
 	/** @brief Computes an immediate-controlled dot product for this native register specialization. */
-	template <int imm8> static register_t SIMD_FLAGS(In, RegisterOnly, ForceInline, Flatten) dot_product(__m256 lhs, __m256 rhs) noexcept
+	template <int imm8> static register_t SIMD_FLAGS(In, RegisterOnly, ForceInline, Flatten) dot_product(register_t lhs, register_t rhs) noexcept
 	{
 		const __m128 lhsLow = _mm256_castps256_ps128(lhs);
 		const __m128 lhsHigh = _mm256_extractf128_ps(lhs, 1);
@@ -6526,10 +6526,10 @@ template <> struct SimdImpl256<float>
 	 * @param index Selected lane in the range `[0, 8)`.
 	 * @return Selected scalar lane.
 	 */
-	static float SIMD_FLAGS(In, RegisterOnly, ForceInline) extract_slow(const __m256 lhs, const int index) noexcept
+	static float SIMD_FLAGS(In, RegisterOnly, ForceInline) extract_slow(const register_t lhs, const int index) noexcept
 	{
 		SIMDLIB_PRECONDITION(index >= 0 && index < 8, "32-bit floating-point extraction requires a valid 256-bit lane index");
-		const __m256 selected = _mm256_permutevar8x32_ps(lhs, _mm256_set1_epi32(index));
+		const register_t selected = _mm256_permutevar8x32_ps(lhs, _mm256_set1_epi32(index));
 		return SimdImpl128<float>::template extract<0>(_mm256_castps256_ps128(selected));
 	}
 	/** @brief Replaces the compile-time-selected 32-bit floating-point lane during constant evaluation. */
@@ -6557,7 +6557,7 @@ template <> struct SimdImpl256<float>
 	 * @param index Selected lane index.
 	 * @return Register with the selected lane replaced.
 	 */
-	static __m256 SIMD_FLAGS(InOut, RegisterOnly, ForceInline) insert_slow(const __m256 lhs, const float rhs, const int index) noexcept
+	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline) insert_slow(const register_t lhs, const float rhs, const int index) noexcept
 	{
 		SIMDLIB_PRECONDITION(index >= 0 && index < 8, "32-bit floating-point insertion requires a valid 256-bit lane index");
 		if (index < 4)
@@ -6606,7 +6606,7 @@ template <> struct SimdImpl256<float>
 		return _mm256_blendv_ps(lhs, rhs, _mm256_castsi256_ps(_mm256_cmpeq_epi32(selected, selectors)));
 	}
 	/** @brief Selects 32-bit floating-point lanes from two 256-bit registers with an immediate control. */
-	template <int imm8> constexpr static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) blend(const __m256 lhs, const __m256 rhs) noexcept
+	template <int imm8> constexpr static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) blend(const register_t lhs, const register_t rhs) noexcept
 	{
 		if (std::is_constant_evaluated())
 			return register_blend_constexpr<float>(lhs, rhs, static_cast<unsigned int>(imm8));
@@ -6619,7 +6619,7 @@ template <> struct SimdImpl256<double>
 	/** @brief Native SIMD register returned by this implementation backend. */
 	using register_t = __m256d;
 	/** @brief Selects double lanes from two registers using a canonical predicate register. */
-	static __m256d SIMD_FLAGS(InOut, RegisterOnly, ForceInline) select(__m256d condition, __m256d when_true, __m256d when_false) noexcept
+	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline) select(register_t condition, register_t when_true, register_t when_false) noexcept
 	{
 		return _mm256_blendv_pd(when_false, when_true, condition);
 	}
@@ -6632,7 +6632,7 @@ template <> struct SimdImpl256<double>
 	 */
 	template <std::size_t... indices>
 		requires(sizeof...(indices) == 4 && ((indices < 4) && ...))
-	static __m256d SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shuffle(__m256d lhs) noexcept
+	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) shuffle(register_t lhs) noexcept
 	{
 		return _mm256_permute4x64_pd(lhs, encode_logical_shuffle_32_immediate<indices...>());
 	}
@@ -6667,7 +6667,7 @@ template <> struct SimdImpl256<double>
 	/** @brief Computes and broadcasts floating-point magnitudes independently in both 128-bit groups. */
 	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) magnitude(auto lhs) noexcept
 	{
-		const __m256d squares = _mm256_mul_pd(lhs, lhs);
+		const register_t squares = _mm256_mul_pd(lhs, lhs);
 		return _mm256_sqrt_pd(_mm256_hadd_pd(squares, squares));
 	}
 	/** @brief Multiplies lanes and adds a third register for this native register specialization. */
@@ -6680,7 +6680,7 @@ template <> struct SimdImpl256<double>
 #endif
 	}
 	/** @brief Computes an immediate-controlled dot product for this native register specialization. */
-	template <int imm8> static register_t SIMD_FLAGS(In, RegisterOnly, ForceInline, Flatten) dot_product(__m256d lhs, __m256d rhs) noexcept
+	template <int imm8> static register_t SIMD_FLAGS(In, RegisterOnly, ForceInline, Flatten) dot_product(register_t lhs, register_t rhs) noexcept
 	{
 		const __m128d lhsLow = _mm256_castpd256_pd128(lhs);
 		const __m128d lhsHigh = _mm256_extractf128_pd(lhs, 1);
@@ -6777,7 +6777,7 @@ template <> struct SimdImpl256<double>
 	 * @param index Selected lane in the range `[0, 4)`.
 	 * @return Selected scalar lane.
 	 */
-	static double SIMD_FLAGS(In, RegisterOnly, ForceInline) extract_slow(const __m256d lhs, const int index) noexcept
+	static double SIMD_FLAGS(In, RegisterOnly, ForceInline) extract_slow(const register_t lhs, const int index) noexcept
 	{
 		SIMDLIB_PRECONDITION(index >= 0 && index < 4, "64-bit floating-point extraction requires a valid 256-bit lane index");
 		const __m256i first_word = _mm256_set1_epi32(index * 2);
@@ -6814,7 +6814,7 @@ template <> struct SimdImpl256<double>
 	 * @param index Selected lane index.
 	 * @return Register with the selected lane replaced.
 	 */
-	static __m256d SIMD_FLAGS(InOut, RegisterOnly, ForceInline) insert_slow(const __m256d lhs, const double rhs, const int index) noexcept
+	static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline) insert_slow(const register_t lhs, const double rhs, const int index) noexcept
 	{
 		SIMDLIB_PRECONDITION(index >= 0 && index < 4, "64-bit floating-point insertion requires a valid 256-bit lane index");
 		if (index < 2)
@@ -6863,7 +6863,7 @@ template <> struct SimdImpl256<double>
 		return _mm256_blendv_pd(lhs, rhs, _mm256_castsi256_pd(_mm256_cmpeq_epi64(selected, selectors)));
 	}
 	/** @brief Selects 64-bit floating-point lanes from two 256-bit registers with an immediate control. */
-	template <int imm8> constexpr static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) blend(const __m256d lhs, const __m256d rhs) noexcept
+	template <int imm8> constexpr static register_t SIMD_FLAGS(InOut, RegisterOnly, ForceInline, Flatten) blend(const register_t lhs, const register_t rhs) noexcept
 	{
 		if (std::is_constant_evaluated())
 			return register_blend_constexpr<double>(lhs, rhs, static_cast<unsigned int>(imm8));
