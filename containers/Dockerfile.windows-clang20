@@ -3,7 +3,7 @@
 
 ARG WINDOWS_BASE=mcr.microsoft.com/dotnet/framework/runtime:4.8-windowsservercore-ltsc2022@sha256:3983348680840ca6e53ad641e314c3c9184ca2fd19f88bc467600f7d9f6e9d73
 
-FROM ${WINDOWS_BASE}
+FROM ${WINDOWS_BASE} AS toolchain
 
 LABEL org.opencontainers.image.title="SimdLib Windows clang-cl 20 validation" `
       org.opencontainers.image.description="Visual Studio 2022 Build Tools and pinned LLVM 20 environment for SimdLib" `
@@ -82,8 +82,12 @@ RUN clang-cl.exe --version; `
     git.exe --version; `
     if ($LASTEXITCODE -ne 0) { throw 'Git validation failed' }; `
     if (-not (Test-Path 'C:\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\Ninja\ninja.exe')) { throw 'Visual Studio Ninja is missing' }; `
-    if (-not (Test-Path 'C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe')) { throw 'Visual Studio locator is missing' }; `
-    git.exe config --global --add safe.directory C:/workspace
+    if (-not (Test-Path 'C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe')) { throw 'Visual Studio locator is missing' }
+
+# Keep the validation runtime separate from the reusable compiler environment.
+FROM toolchain AS validation-runtime
+
+RUN git.exe config --global --add safe.directory C:/workspace
 
 WORKDIR C:\workspace
 ENTRYPOINT ["pwsh.exe", "-NoLogo", "-NoProfile"]
