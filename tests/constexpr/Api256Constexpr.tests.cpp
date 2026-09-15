@@ -23,6 +23,7 @@ static_assert(construction_contract<256, std::int64_t>());
 static_assert(construction_contract<256, std::uint64_t>());
 static_assert(construction_contract<256, float>());
 static_assert(construction_contract<256, double>());
+static_assert(static_register_construction_contract<SimdLib::Detail::SimdImpl256<std::uint8_t>>());
 
 static_assert(comparison_contract<256, std::int8_t>());
 static_assert(comparison_contract<256, std::uint8_t>());
