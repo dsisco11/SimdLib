@@ -8,11 +8,11 @@ obligations; it does not claim tool provisioning or compiled validation.
 
 | Existing owner | Consumed or produced data | Replacement disposition |
 | --- | --- | --- |
-| `cmake/development/RegisterCodegen.cmake` | Paired expression/type/specialized/FMA/rearrangement/ABI objects; comparison records; immediate-shift stamp; all/enforced/diagnostic indexes | Thin primary/supplemental declarations through `CodegenTests.cmake`; preserve aggregate target and build-before-test integration until cutover |
+| `cmake/development/RegisterCodegen.cmake` | Paired expression/type/specialized/FMA/rearrangement/ABI objects; comparison records; immediate-shift stamp; all/enforced/diagnostic indexes | Thin build configuration through `CodegenTests.cmake`; Catch2 definitions own primary/supplemental assertions; preserve aggregate target and build-before-test integration until cutover |
 | `cmake/development/PartialRegisterCodegen.cmake` | Paired predicate/value/arithmetic/general/ABI/API-transfer objects; profile selection; individual records and validators | Preserve all P/A entries and owners in the case inventory; replace profile selection with additive facts after validated migration |
 | `cmake/development/PartialRegisterCodegenProfiles.json` | Sixteen retained hash entries | Retire only after every affected configuration/function has validated replacement facts; hashes are not new instruction policy |
 | `cmake/development/MethodFlagsCodegen.cmake` | Flagged/raw objects, parity record, verification text, all-records index | Preserve distinct core/compiler-attribute owner; reuse shared extraction/check registration |
-| `cmake/CompareRegisterCodegen.cmake` | Disassembly, normalized profiles, symbol/difference sidecars, comparison record, timing and tool provenance | Retire lossy normalization/equality/exception logic; `ExtractFunction.cmake` owns complete functions; `CheckInstructions.cmake` and FileCheck own assertions |
+| `cmake/CompareRegisterCodegen.cmake` | Disassembly, normalized profiles, symbol/difference sidecars, comparison record, timing and tool provenance | Retire lossy normalization/equality/exception logic; `ExtractFunction.cmake` owns complete functions; shared Catch2 fixture and FileCheck own assertions |
 | `cmake/RecordRegisterDefaultAbi.cmake` | Default-convention paired disassembly and diagnostic record | Preserve platform-default observation and provenance under B groups; no Windows equality claim |
 | `cmake/VerifyCompleteRegisterShiftCodegen.cmake` | Raw object -> instruction stamp | Move its exact instruction requirements to production shift cases; parity plus raw checks currently own these jointly |
 | `cmake/VerifyMethodFlagsCodegen.cmake` | Both objects -> no-cookie/no-leaf-call verification | Move properties to flagged fixture contracts; retain stack-policy validation |
@@ -66,8 +66,10 @@ Preserve source digest, compiler executable/version, target, generator, effectiv
 options, object identity, configuration, checks/instrumentation, FMA, ABI and
 stack policy, selected contracts, exact function identity, tool executable/version,
 and results. Tool/input/artifact hashes may prove freshness; instruction hashes
-must not decide acceptability. New outputs are isolated by case, geometry,
-configuration and primary/supplemental fact. Shared objects remain read-only.
+must not decide acceptability. New outputs are isolated by process, function and
+configuration, with primary/supplemental identities in Catch2 diagnostics.
+Shared objects remain read-only; applicable rules share inspection input and
+report one composite result without success-marker files.
 Retain full disassembly, extracted bodies, FileCheck stdout/stderr and result
 metadata, including failures and elapsed times. Build receipts, JUnit reports,
 `fingerprint.json`, manifests and `codegen-records.index` live under
@@ -84,8 +86,9 @@ metadata, including failures and elapsed times. Build receipts, JUnit reports,
 | `containers/Dockerfile.windows-clang20` | LLVM 20.1.8, CMake 3.31.6, VS Build Tools, Windows SDK/runtime; verify actual FileCheck availability instead of assuming the LLVM installer contains it. |
 | Local native tooling and `docs/BuildPipeline.md` prerequisites | Explicit tool paths and version checks are required by replacement design; current CMAKE_OBJDUMP/PATH discovery does not prove reproducible selection. |
 
-There is no new Python or lit dependency. FileCheck/disassembler selection and
-COFF/ELF extraction remain unqualified until tool/extraction work succeeds.
+There is no new Python or lit dependency. The original source inventory did not
+qualify tool selection or COFF/ELF extraction; their subsequent evidence is in
+[ToolProvisioning.md](ToolProvisioning.md) and [FunctionExtraction.md](FunctionExtraction.md).
 Installed library/package consumers must not acquire these development tools.
 
 ## Named remaining decisions
@@ -95,7 +98,7 @@ These are required downstream implementation tasks, not missing inventory rows:
 | Decision | Tasklist owner | Required evidence |
 | --- | --- | --- |
 | Exact tool versions, distribution, explicit paths, COFF/ELF symbol/boundary/relocation handling | 2: provisioning and complete extraction | Real objects for each supported driver plus positive/negative extraction harness |
-| Exact registration interface, expanded expected symbol lists, FileCheck invocation and per-case artifact schema | 3: shared contracts/CTest | Primary/supplemental composition failures, coverage and stale/missing-object rejection |
+| Readable Catch2 interface, exact expected symbols/rules, FileCheck invocation and artifact schema | 3A: Catch2 migration (3 retains historical CMake-runner evidence) | Composite failure/continuation, independent discovery/rule coverage, stale/missing inputs and bounded process execution |
 | Low optimization, production companion flags, wholly unoptimized checked/observational scope, checks/sanitizer policy | 4: optimization/configuration | Representative matrix evidence; no inferred equivalence of `/O1` and `-O1` |
 | Exact per-symbol instruction bounds and stronger supplemental properties from existing profile variations | 5/6: corpus migration | Real complete-body inspection and negative variants, before any legacy profile deletion |
 | Bind the positional MSVC array-cookie recognizer to actual emitted identities | 5: Register/type-matrix migration | Exact legacy symbol/object mapping and bounded target-aware new contract |

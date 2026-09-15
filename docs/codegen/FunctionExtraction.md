@@ -55,12 +55,17 @@ harness before running CTest. For example, from a configured compiler environmen
 
 ```powershell
 cmake -S tests/codegen/harness -B out/extraction -G Ninja `
+  "-DSIMDLIB_CATCH2_SOURCE=<existing Catch2 3 source checkout>" `
   "-DSIMDLIB_CODEGEN_LLVM_ROOT=$PWD/out/codegen-tools-provisioned" `
   '-DSIMDLIB_HARNESS_CLANG=C:/Program Files/LLVM/bin/clang.exe' `
   '-DSIMDLIB_HARNESS_OBJCOPY=C:/Program Files/LLVM/bin/llvm-objcopy.exe'
 cmake --build out/extraction
 ctest --test-dir out/extraction --output-on-failure
 ```
+
+The standalone project now includes the maintained Catch2 pilot by default on
+Register-capable drivers. Set `SIMDLIB_HARNESS_BUILD_CONTRACTS=OFF` for extraction
+alone; this is the default on core-only GCC 13 and does not require Catch2.
 
 The design evaluation and reproducible commands are retained locally in
 `out/codegen-option1-evaluation/REPORT.md`. That evaluation demonstrated ordinary

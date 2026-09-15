@@ -58,7 +58,7 @@ See [function inspection](FunctionExtraction.md) and the
 ## Validation and scope
 
 The tool tasks in [the tasklist](../RegisterCodegenPolicy.todo) inherit the
-proposal's [tool responsibilities](../RegisterCodegenPolicyProposal.md#cmake-ctest-and-filecheck-responsibilities)
+proposal's [tool responsibilities](../RegisterCodegenPolicyProposal.md#cmake-catch2-ctest-and-filecheck-responsibilities)
 and the [integration inventory](IntegrationInventory.md) environment owners.
 Selection must fail explicitly; tools must remain development-only; local and
 container provisioning must retain identities without introducing Python/lit.

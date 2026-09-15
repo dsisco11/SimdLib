@@ -1,0 +1,7 @@
+#pragma once
+namespace Harness
+{
+inline constexpr auto process_probe = R"cfg($<TARGET_FILE:CodegenProcessProbe>)cfg";
+inline constexpr auto output_root = R"cfg(@CMAKE_CURRENT_BINARY_DIR@/codegen-harness)cfg";
+inline constexpr auto production_runner = R"cfg($<TARGET_FILE:CodegenTests128>)cfg";
+}

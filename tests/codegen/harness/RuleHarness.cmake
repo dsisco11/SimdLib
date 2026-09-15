@@ -95,24 +95,30 @@ elseif(CASE MATCHES "^abi-")
     else()
         string(APPEND body " e: 48 89 04 24  mov qword ptr [rsp], rax\n")
     endif()
+elseif(CASE MATCHES "^constant-")
+    set(body "0x00000000 ffffffff ffffffff ffffffff 00000000\n")
+    set(rules "${root}/tests/codegen/partial-register/mask128.check")
+    set(constant_argument --constants)
+    if(CASE STREQUAL "constant-valid")
+        set(expect_failure FALSE)
+    else()
+        string(REPLACE "00000000\n" "ffffffff\n" body "${body}")
+    endif()
 else()
     message(FATAL_ERROR "Unknown harness case ${CASE}")
 endif()
 file(WRITE "${OUTPUT_DIRECTORY}/body.txt" "${body}")
-execute_process(COMMAND "${CMAKE_COMMAND}"
-    "-DBODY_FILE=${OUTPUT_DIRECTORY}/body.txt" "-DFILECHECK=${FILECHECK}"
-    "-DRULES=${rules}" "-DALLOW_MNEMONICS=${ALLOW_MNEMONICS}"
-    "-DFILECHECK_ARGS=-DREG=xmm;-DMEM=xmmword;-DMASK=0x8;-DTARGET=simdlib_contract_abi_binary_callee"
-    "-DOUTPUT_DIRECTORY=${OUTPUT_DIRECTORY}/check"
-    -P "${root}/cmake/codegen/CheckInstructions.cmake"
+set(allow_argument "")
+if(NOT ALLOW_MNEMONICS STREQUAL "" AND DEFINED ALLOW_MNEMONICS)
+    set(allow_argument --allow "${ALLOW_MNEMONICS}")
+endif()
+execute_process(COMMAND "${RUNNER}" "[.rule]"
+    --body "${OUTPUT_DIRECTORY}/body.txt" --rules "${rules}" ${allow_argument} ${constant_argument}
     RESULT_VARIABLE result OUTPUT_VARIABLE output ERROR_VARIABLE error)
 file(WRITE "${OUTPUT_DIRECTORY}/harness.txt" "exit=${result}\n${output}${error}")
 if(expect_failure)
-    if(result EQUAL 0 OR NOT "${error}" MATCHES "Instruction expectations failed|Forbidden instruction family|Empty or invalid")
+    if(result EQUAL 0 OR NOT "${output}${error}" MATCHES "Instruction expectations failed|Forbidden instruction family|Empty or invalid")
         message(FATAL_ERROR "Expected specific rule rejection for ${CASE}: ${output}${error}")
-    endif()
-    if(EXISTS "${OUTPUT_DIRECTORY}/check/passed.txt")
-        message(FATAL_ERROR "Failed check retained success")
     endif()
 elseif(NOT result EQUAL 0)
     message(FATAL_ERROR "Valid ${CASE} rejected: ${output}${error}")

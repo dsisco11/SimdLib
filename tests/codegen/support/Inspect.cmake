@@ -1,0 +1,6 @@
+cmake_minimum_required(VERSION 3.31)
+include("${SCRIPTS}/InputReceipt.cmake")
+simdlib_verify_codegen_build("${INPUT_MANIFEST}" "${OBJECT_FILE}" "${BUILD_RECEIPT}")
+if(NOT VERIFY_ONLY)
+    include("${SCRIPTS}/ExtractFunction.cmake")
+endif()

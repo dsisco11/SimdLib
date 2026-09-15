@@ -1,7 +1,9 @@
 # Catch2 codegen runner prototype
 
-The isolated project in `tests/codegen/catch2-prototype` evaluates Catch2 as the
-owner of instruction-check assertions. It does not replace the existing pilot.
+This historical evaluation used the isolated `tests/codegen/catch2-prototype`
+project to assess Catch2 as owner of instruction-check assertions. That temporary
+project has been removed during the maintained-runner migration; current build
+instructions are in [InstructionContracts.md](InstructionContracts.md).
 The comparison uses its production `Register<float, 128>` transfer fixture,
 the same two primary FileCheck rules, and the same mandatory compiler supplement.
 
@@ -21,9 +23,10 @@ Extraction is cached within each executable process. Separately discovered CTest
 tests use separate processes and therefore extract separately. Each process
 reserves its own artifact directory; diagnostic artifacts are retained.
 
-## Build and run
+## Historical build and run
 
-From a configured compiler environment, using an existing Catch2 source checkout:
+The following records the former experiment's invocation shape and is not a
+current reproduction command; its source directory has been retired:
 
 ```powershell
 cmake -S tests/codegen/catch2-prototype -B out/catch2-codegen -G Ninja `

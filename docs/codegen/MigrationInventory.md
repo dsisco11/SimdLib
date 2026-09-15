@@ -39,9 +39,13 @@ artificial runtime dependency.
 `<driver>-<version>-<target>-<isa>-w<width>-<optimization>-<checks>-<instrumentation>-<fma>-<abi>-<stack-policy>`.
 Record the resolved executable and effective flags separately. Driver values are
 `msvc`, `clang-cl`, `clang`, and `gcc`; Clang's compiler ID alone is insufficient.
-CTest identities are `Codegen.<case_id>.<geometry-id>.<configuration_id>.primary`
-and `.supplemental.<fact-id>`. Shared and supplemental invocations inspect the
-same object/body independently and have independent results and captures.
+CTest identities identify the logical case, geometry and configuration in one
+composite Catch2 result. Primary and supplemental rule identities appear within
+that result; they are not separately scheduled CTest cases. Shared and
+supplemental FileCheck invocations inspect the same object/body independently
+with independent captures. An independently authored required-rule ledger detects
+omitted or incorrectly selected assertions, and discovery is checked against an
+independent expected-case inventory.
 
 `geometry-id` serializes `<source>-w<source-width>-n<active-count>-to<target>-w<target-width>-imm<control>-shape<signature>`.
 Use `all` for complete active count and `none` for absent target/control. Encode
@@ -115,8 +119,9 @@ families above are not a claim that their FileCheck implementation exists.
 ## Register primary declarations
 
 All rows use R matrix unless restricted. Legacy sources are under `tests/codegen`.
-The owner is the future thin `cmake/development/RegisterCodegen.cmake`
-declaration suite, replacing the listed record under `RegisterCodegen.<profile>`.
+The owner is the Catch2 declaration beside its operation family, built through
+thin `cmake/development/RegisterCodegen.cmake` configuration, replacing the listed
+record under `RegisterCodegen.<profile>`.
 The fixture family determines the new production-only source responsibility.
 
 ### Expressions (`RegisterCodegenFixture.h`, prefix `simdlib_codegen_`)

@@ -5,7 +5,15 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 get_filename_component(SIMDLIB_SOURCE_ROOT "${CMAKE_CURRENT_LIST_DIR}/../../.." ABSOLUTE)
 include("${SIMDLIB_SOURCE_ROOT}/cmake/development/CodegenTools.cmake")
 simdlib_select_codegen_tools()
-include("${CMAKE_CURRENT_LIST_DIR}/InstructionRules.cmake")
+set(contract_default ON)
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 14)
+    set(contract_default OFF)
+endif()
+option(SIMDLIB_HARNESS_BUILD_CONTRACTS "Include the Register Catch2 pilot and rule harness" ${contract_default})
+if(SIMDLIB_HARNESS_BUILD_CONTRACTS)
+    add_subdirectory("${SIMDLIB_SOURCE_ROOT}" "${CMAKE_CURRENT_BINARY_DIR}/library" EXCLUDE_FROM_ALL)
+    include("${SIMDLIB_SOURCE_ROOT}/cmake/development/CodegenPilot.cmake")
+endif()
 add_test(NAME Extraction.tools.FileCheck COMMAND "${CMAKE_COMMAND}"
     "-DFILECHECK=${SIMDLIB_FILECHECK}"
     "-DOUTPUT_DIRECTORY=${CMAKE_CURRENT_BINARY_DIR}/tools/FileCheck"
@@ -28,16 +36,6 @@ add_test(NAME Extraction.tools.missing COMMAND "${CMAKE_COMMAND}"
 include("${CMAKE_CURRENT_LIST_DIR}/AdversarialObjects.cmake")
 
 add_library(ExtractionObjects OBJECT ObjectFixture.cpp)
-foreach(case IN ITEMS valid failed-primary failed-supplement stale-configuration
-        stale-object missing-object missing-receipt)
-    add_test(NAME Instructions.composition.${case} COMMAND "${CMAKE_COMMAND}"
-        "-DMAKE_PROGRAM=${CMAKE_MAKE_PROGRAM}"
-        "-DCASE=${case}" "-DOBJECT_FILE=$<TARGET_OBJECTS:ExtractionObjects>"
-        "-DFILECHECK=${SIMDLIB_FILECHECK}" "-DLLVM_OBJDUMP=${SIMDLIB_LLVM_OBJDUMP}"
-        "-DLLVM_READOBJ=${SIMDLIB_LLVM_READOBJ}" "-DCTEST=${CMAKE_CTEST_COMMAND}"
-        "-DOUTPUT_DIRECTORY=${CMAKE_CURRENT_BINARY_DIR}/composition/${case}"
-        -P "${CMAKE_CURRENT_LIST_DIR}/CompositionHarness.cmake")
-endforeach()
 target_compile_features(ExtractionObjects PRIVATE cxx_std_20)
 if(MSVC)
     target_compile_options(ExtractionObjects PRIVATE /O1 /Gy /arch:AVX2)

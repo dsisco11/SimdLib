@@ -166,37 +166,47 @@ Register Code-Generation Instruction Contracts:
       - docs/codegen/Catch2Prototype.md records the isolated transfer128 experiment: MSVC and GCC14 each passed four tests, including deliberate negatives; injected primary/supplement failures rejected independently.
       - The prototype retains existing extraction and freshness scripts. It does not establish full pilot parity, complete driver coverage, production process handling, or final CI integration.
 
-    ☐ Reconcile codegen/MigrationInventory.md, IntegrationInventory.md, and InstructionContracts.md with the revised proposal, preserving case identities, required facts, and validation ownership.
-    ☐ Implement shared support under tests/codegen/support with separate responsibilities for fixture lifetime, inspected-function assertions, and process execution.
-      ☐ Define readable TEST_CASE_METHOD declarations beside each operation family; expose the inspected symbol, primary rule files, and named compiler selectors without exit-code or artifact bookkeeping.
-      ☐ Implement nonfatal check/check_for semantics so every primary and applicable supplement reports and any failure fails the composite Catch2 test; inspection failure must fail clearly before matching.
-      ☐ Select supplements by explicit compiler/driver/version/configuration applicability, permitting named shared compiler sets; prohibit positional compiler-rule mappings and primary-rule suppression.
-      ☐ Parameterize geometry, ISA, extent, immediates, FMA, ABI, and configuration through fixture metadata, keeping each primary definition authored once.
-      ☐ Keep FileCheck matching state independent per rule and reuse one complete input per function; preserve exact ABI member identities and constant-data checks.
-    ☐ Retain the LLVM-based inspection wrapper and build-owned freshness receipts, removing only superseded outer orchestration.
-      ☐ Verify selected tool identities, inputs, objects, and configuration before inspection or cached reuse; preserve missing/stale-input failures without per-rule marker files.
-      ☐ Key process-local inspection reuse by object/function/configuration and account for separate CTest processes; isolate parallel artifact directories and define diagnostic retention/cleanup.
-      ☐ Capture FileCheck diagnostics directly into Catch2 with case/function, primary/supplement identity, compiler/tools, effective options, configuration, and artifact locations.
-      ☐ Provide shell-free Windows/Linux process handling with correct argument quoting, Unicode Windows paths, launch/read/exit errors, cleanup, and timeout behavior; test failures and paths with spaces/non-ASCII characters.
-    ☐ Adapt CodegenTests.cmake and thin suite build helpers to build fixture objects and Catch2 runners, supply explicit metadata, and use existing Catch2 discovery and development ownership.
-      ☐ Keep CTest test names stable by logical case/configuration, with primary/supplement identities visible in Catch2 diagnostics; no separately scheduled supplemental or qualified-result tests are required.
-      ☐ Keep build-before-test behavior and ordinary incremental dependencies; supplements must not duplicate object compilation.
-      ☐ Validate expected case/configuration/rule applicability independently of discovered tests; missing definitions or omitted/misapplied supplements must fail coverage validation.
-    ☐ Port the full representative pilot and applicable harness negatives to the Catch2 runner, retaining provisional compiler settings and legacy qualification gates.
-      ☐ Exercise register-only, memory, partial-invariant, constant/identity, return-only, and ABI fixture-group cases on MSVC, clang-cl, GCC, and GNU-style Clang; distinguish exercised versions from remaining compatibility coverage.
-      ☐ Reproduce wrong widths/immediates, broken operands/targets, extra counted operations, forbidden work after returns, missing/ambiguous/empty extraction, and primary/supplement failure isolation.
-      ☐ Prove actual composite-test failure for each required rule category, including passing-primary/failing-supplement and failing-primary/passing-supplement scenarios.
-      ☐ Validate missing/stale inputs, tool errors/timeouts, expected coverage, filtered selection, parallel artifact isolation, process-local reuse, and two unchanged builds without fixture recompilation or receipt regeneration.
-    ☐ Remove obsolete PrepareCase.cmake, RunCase.cmake, CheckInstructions.cmake, VerifyCaseResults.cmake and associated manifests/markers once all their pilot/harness consumers have validated replacements; reconcile references before removal.
-      ☐ Retain any independently needed extraction, input-receipt, and allowlist responsibilities; do not remove the legacy wrapper/raw gates scheduled for Phase 7.
-      ☐ Remove the isolated catch2-prototype project after its useful checks and evidence have been incorporated into the maintained runner.
-    ☐ Review test definitions for readability against the proposal example and update reproduction/diagnostic documentation to describe the actual Catch2 interface.
+    ☑ Reconcile codegen/MigrationInventory.md, IntegrationInventory.md, and InstructionContracts.md with the revised proposal, preserving case identities, required facts, and validation ownership.
+    ☑ Implement shared support under tests/codegen/support with separate responsibilities for fixture lifetime, inspected-function assertions, and process execution.
+      ☑ Define readable TEST_CASE_METHOD declarations beside each operation family; expose the inspected symbol, primary rule files, and named compiler selectors without exit-code or artifact bookkeeping.
+      ☑ Implement nonfatal check/check_for semantics so every primary and applicable supplement reports and any failure fails the composite Catch2 test; inspection failure must fail clearly before matching.
+      ☑ Select supplements by explicit compiler/driver/version/configuration applicability, permitting named shared compiler sets; prohibit positional compiler-rule mappings and primary-rule suppression.
+      ☑ Parameterize geometry, ISA, extent, immediates, FMA, ABI, and configuration through fixture metadata, keeping each primary definition authored once.
+      ☑ Keep FileCheck matching state independent per rule and reuse one complete input per function; preserve exact ABI member identities and constant-data checks.
+    ☑ Retain the LLVM-based inspection wrapper and build-owned freshness receipts, removing only superseded outer orchestration.
+      ☑ Verify selected tool identities, inputs, objects, and configuration before inspection or cached reuse; preserve missing/stale-input failures without per-rule marker files.
+      ☑ Key process-local inspection reuse by object/function/configuration and account for separate CTest processes; isolate parallel artifact directories and define diagnostic retention/cleanup.
+      ☑ Capture FileCheck diagnostics directly into Catch2 with case/function, primary/supplement identity, compiler/tools, effective options, configuration, and artifact locations.
+      ☑ Provide shell-free Windows/Linux process handling with correct argument quoting, Unicode Windows paths, launch/read/exit errors, cleanup, and timeout behavior; test failures and paths with spaces/non-ASCII characters.
+    ☑ Adapt CodegenTests.cmake and thin suite build helpers to build fixture objects and Catch2 runners, supply explicit metadata, and use existing Catch2 discovery and development ownership.
+      ☑ Keep CTest test names stable by logical case/configuration, with primary/supplement identities visible in Catch2 diagnostics; no separately scheduled supplemental or qualified-result tests are required.
+      ☑ Keep build-before-test behavior and ordinary incremental dependencies; supplements must not duplicate object compilation.
+      ☑ Validate expected case/configuration/rule applicability independently of discovered tests; missing definitions or omitted/misapplied supplements must fail coverage validation.
+    ☑ Port the full representative pilot and applicable harness negatives to the Catch2 runner, retaining provisional compiler settings and legacy qualification gates.
+      ☑ Exercise register-only, memory, partial-invariant, constant/identity, return-only, and ABI fixture-group cases on MSVC, clang-cl, GCC, and GNU-style Clang; distinguish exercised versions from remaining compatibility coverage.
+      ☑ Reproduce wrong widths/immediates, broken operands/targets, extra counted operations, forbidden work after returns, missing/ambiguous/empty extraction, and primary/supplement failure isolation.
+      ☑ Prove actual composite-test failure for each required rule category, including passing-primary/failing-supplement and failing-primary/passing-supplement scenarios.
+      ☑ Validate missing/stale inputs, tool errors/timeouts, expected coverage, filtered selection, parallel artifact isolation, process-local reuse, and two unchanged builds without fixture recompilation or receipt regeneration.
+    ☑ Remove obsolete PrepareCase.cmake, RunCase.cmake, CheckInstructions.cmake, VerifyCaseResults.cmake and associated manifests/markers once all their pilot/harness consumers have validated replacements; reconcile references before removal.
+      ☑ Retain any independently needed extraction, input-receipt, and allowlist responsibilities; do not remove the legacy wrapper/raw gates scheduled for Phase 7.
+      ☑ Remove the isolated catch2-prototype project after its useful checks and evidence have been incorporated into the maintained runner.
+    ☑ Review test definitions for readability against the proposal example and update reproduction/diagnostic documentation to describe the actual Catch2 interface.
 
     Completion Criteria:
-      ☐ The complete representative pilot and required harness checks pass through Catch2 on the declared drivers with independent expected-coverage validation.
-      ☐ Definitions state function, shared rules, and named supplemental applicability; matching remains LLVM/FileCheck-owned and all required failures propagate to one composite result.
-      ☐ Process handling, freshness, diagnostics, parallel isolation, incremental behavior, and development integration have evidence; obsolete outer-runner plumbing and the isolated prototype are removed.
-      ☐ A second proposal-to-implementation review confirms parity without reusing historical CMake-runner results as Catch2 qualification.
+      ☑ The complete representative pilot and required harness checks pass through Catch2 on the declared drivers with independent expected-coverage validation.
+      ☑ Definitions state function, shared rules, and named supplemental applicability; matching remains LLVM/FileCheck-owned and all required failures propagate to one composite result.
+      ☑ Process handling, freshness, diagnostics, parallel isolation, incremental behavior, and development integration have evidence; obsolete outer-runner plumbing and the isolated prototype are removed.
+      ☑ A second proposal-to-implementation review confirms parity without reusing historical CMake-runner results as Catch2 qualification.
+
+    Evidence and Review:
+      - Task-to-document traceability, source review and final receipts: docs/codegen/Catch2Migration.md; readable usage: docs/codegen/InstructionContracts.md.
+      - MSVC 19.44.35228, clang-cl 22.1.8, GCC 14.2.0 and GNU-style Clang 22.1.3: 51/51 tests each (12 production cases, 39 rule/support checks).
+      - Native complete extraction/instruction harness: 78/78. Fresh top-level CUSTOM integration: 56/56, including five ownership checks.
+      - All four drivers: effective CTest JSON confirms owner labels on 51 tests, 180-second limits on 19 discovered tests and 90-second limits on 32 explicit rule tests; transfer-only selection passes 2/2 and two unchanged builds perform no compilation or receipt regeneration.
+      - Audit findings resolved and regression-tested: cached receipt snapshot changes after legitimate rebuilds, nonfatal malformed allowlist handling, and Catch2 discovery label/timeout serialization.
+      - Obsolete outer CMake scripts, their unused harness projects, and the isolated Catch2 prototype were removed; LLVM extraction and legacy wrapper/raw gates remain intact.
+      - Second review and independent audit-stage-completion verdict: fully satisfied, no required gaps. Source-reference, local-link and git diff --check verification passed.
+      - Receipts: out/codegen-catch2-migration/validation-summary.md and per-driver logs. Representative x64 migration evidence does not claim clang-cl 20, full CI/corpus, final optimization policy or new semantic/package qualification.
 
   Phase 4 - Establish Optimization and Configuration Contracts:
     Depends on: Phase 3A's validated Catch2 compiled pilot and trusted checks.

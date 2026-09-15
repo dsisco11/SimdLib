@@ -1,9 +1,10 @@
-# CTest instruction contracts
+# Catch2 instruction contracts
 
-The provisional pilot runs through the existing CMake/CTest development system.
-Catch2 continues to define runtime assertions; CTest runs both those executables
-and the LLVM instruction checks. FileCheck expectations do not prove runtime
-correctness, optimal code, or measured performance.
+The provisional pilot defines codegen assertions with the project's Catch2
+system. CMake compiles production fixture objects and test executables; CTest
+discovers and schedules the Catch2 cases; LLVM FileCheck matches instructions.
+These expectations do not prove runtime correctness, optimal code, or measured
+performance. Migration validation is tracked in [Catch2Migration.md](Catch2Migration.md).
 
 ## Build and run
 
@@ -12,6 +13,8 @@ In a configured compiler environment, with Ninja and the
 
 ```powershell
 cmake -S tests/codegen/pilot -B out/instruction-pilot -G Ninja `
+  -DCMAKE_BUILD_TYPE=Release `
+  "-DSIMDLIB_CATCH2_SOURCE=<existing Catch2 3 source checkout>" `
   "-DSIMDLIB_CODEGEN_LLVM_ROOT=$PWD/out/codegen-tools-provisioned"
 cmake --build out/instruction-pilot --target CodegenPilot
 ctest --test-dir out/instruction-pilot -L CODEGEN_CONTRACT -j 4 --output-on-failure
@@ -33,16 +36,18 @@ freshness, never instruction acceptance. Build before testing after changes.
 
 ## Registration and results
 
-`cmake/development/CodegenTests.cmake` has three responsibilities at its public
-boundary:
+The build and test responsibilities are separated:
 
 - `simdlib_add_codegen_fixture`: compile one source with explicit definitions,
   options, geometry and configuration; produce a source/tool/configuration receipt.
-- `simdlib_add_codegen_case`: register a mandatory primary, every required emitted
-  function, and applicable additive facts over that same object.
-- `simdlib_finalize_codegen_cases`: compare registrations with an independently
-  authored expected execution ledger. Missing primary/supplemental registrations
-  and incorrect applicability fail configuration.
+- `CodegenPilot.cmake`: supplies explicit object/symbol/configuration metadata;
+  operation-family C++ files own readable Catch2 test definitions.
+- `CodegenCatch2.cmake`: discovers composite Catch2 results independently of
+  whether runtime suites are enabled, assigning OPTIMIZED_CODEGEN ownership.
+- `pilot/VerifyDiscovery.cmake` and `pilot/ExpectedRules.cpp`: independently
+  validate the required case list and each test's observed rule applicability.
+  Discovery is verified at build time, and missing or wrongly selected assertions
+  fail the affected composite test.
 
 Type, width, active extent, immediates, ISA, FMA, ABI and configuration travel in
 the explicit geometry/configuration metadata and target definitions/options.
@@ -50,27 +55,56 @@ The pilot expands its shared declarations at widths 128 and 256 on MSVC,
 clang-cl, GNU-style Clang and GCC 14. It does not clone a compiler's complete suite.
 GCC 13's core-only scope does not include this Register pilot.
 
-Each case has an extraction fixture, independently reported `.primary` and
-`.supplemental.<fact>` tests, and a `.qualified` result. CTest fixture dependencies
-automatically include extraction and all applicable checks when only
-`.qualified` is selected. Either failed check prevents qualification. Selecting
-an individual check reports only that check; its pass is not full qualification.
+## Writing a case
+
+The production transfer definition states its shared and additional facts directly:
+
+```cpp
+TEST_CASE_METHOD(CodegenFixture, "transfer.load_operate_store", "[codegen][register][transfer]")
+{
+    const auto function = inspect("simdlib_contract_transfer_load_operate_store");
+    function.check("contracts/return.check");
+    function.check("register/transfer.check");
+    function.check_for(Compiler::MSVC, "contracts/msvc-cookie.check");
+    function.check_for(Compiler::GCC, "contracts/no-call-stack.check");
+    function.check_for(Compiler::Clang, "contracts/no-call-stack.check");
+}
+```
+
+`Compiler::Clang` includes both Clang drivers. A `Scenario` can additionally name
+an exact driver/configuration and numeric minimum/exclusive-upper version bounds
+when a fact needs that narrower scope. Rule parameters such as register width,
+mask immediate and ABI target come from the runner's explicit build metadata.
+Add or change the independently authored required-rule ledger alongside an
+intentional contract change; missing or extra assertions fail coverage.
+
+## Composite result and artifacts
+
+Each case/configuration has one CTest-discovered Catch2 result. Selecting that
+case runs every primary and applicable supplemental rule. Nonfatal `check` and
+`check_for` assertions collect all failures; inspection failure terminates the
+affected case because there is no valid input to match. No separate `.qualified`
+test or pass-marker protocol is required.
 
 ABI groups list exact caller and callee symbols. Each receives its own extracted
 body and applicable rule invocations. Microsoft vectorcall decoration is explicit
 in the case declarations. One group result requires every listed member.
 
-Artifacts live below `codegen-contracts/<fixture>/<case>/`. Extraction is performed
-once per case before parallel checks; primary and supplements read the same body.
-Their FileCheck inputs, stdout/stderr, result metadata and success markers use
-distinct subdirectories. The extraction receipt retains object and LLVM identities.
+Artifacts live below `codegen-contracts/runner-<width>/artifacts/<unique-run>/`.
+The fixture shares extraction within a process and revalidates inputs before
+cache reuse. It binds cached text to the original build-receipt contents; a new
+build snapshot requires restarting the test process. Separate CTest processes own
+separate directories. Primary and
+supplemental rules share one input per function; constant checks share a second
+input when needed. FileCheck diagnostics report directly through Catch2.
+The extraction receipt retains object and LLVM identities.
 `configuration.txt`, `codegen-tools.txt`, `compile_commands.json`, `build.sha256`
-and `codegen-expected.txt` retain compilation, input and expected-result evidence.
+and the authored expected-case/rule ledgers retain compilation, input and coverage evidence.
 Failed checks retain their rules, diagnostics and full disassembly.
 
 ## Rule ownership
 
-`CheckInstructions.cmake` invokes each selected FileCheck file independently.
+The shared Catch2 function assertions invoke each selected FileCheck file independently.
 Captures are local to that invocation. Whole-body negatives use explicit
 `CODEGEN-BEGIN`/`CODEGEN-END` sentinels around the unchanged LLVM output. Exact
 counts exclude additional occurrences in every interval around positive matches.
@@ -107,7 +141,12 @@ policy or a claim that `/O1` and `-O1` are equivalent. Production code and its
 attributes are unchanged. Observation boundaries preserve the established
 explicit calling convention and partial-register public observation.
 
-## Contract traceability
+## Historical CMake-runner traceability
+
+The table and execution receipts below describe the superseded outer runner.
+They establish retained rule/extraction history, not Catch2 migration completion.
+Current task-to-document mapping and evidence belong to
+[Catch2Migration.md](Catch2Migration.md).
 
 | Tasklist section 3 item | Controlling source and extracted requirement | Implementation / planned evidence |
 | --- | --- | --- |
@@ -124,7 +163,7 @@ and CTest fixture semantics. Tool/reference documentation informs implementation
 the repository proposal and tasklist control acceptance. Final validation and
 independent audit results are recorded below only after execution.
 
-## Validation
+## Historical CMake-runner validation
 
 Receipts are retained locally under `out/codegen-contract-evidence`:
 

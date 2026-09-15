@@ -1,0 +1,22 @@
+#pragma once
+#include <array>
+#include <string_view>
+namespace Codegen::Configuration
+{
+/** @brief Build-owned object identity and freshness inputs. */
+struct Object { const char* path; const char* manifest; const char* receipt; const char* provenance; };
+/** @brief Exact emitted symbol and any required constant symbol. */
+struct Symbol { const char* name; const char* emitted; unsigned object; const char* constants; };
+inline constexpr auto cmake = R"cfg(@CMAKE_COMMAND@)cfg";
+inline constexpr auto root = R"cfg(@SIMDLIB_SOURCE_ROOT@)cfg";
+inline constexpr auto filecheck = R"cfg(@SIMDLIB_FILECHECK@)cfg";
+inline constexpr auto objdump = R"cfg(@SIMDLIB_LLVM_OBJDUMP@)cfg";
+inline constexpr auto readobj = R"cfg(@SIMDLIB_LLVM_READOBJ@)cfg";
+inline constexpr auto artifacts = R"cfg(@runner_root@/artifacts)cfg";
+inline constexpr auto driver = "@driver@";
+inline constexpr auto version = "@CMAKE_CXX_COMPILER_VERSION@";
+inline constexpr auto configuration = "@configuration@";
+inline constexpr unsigned width = @width@;
+inline constexpr std::array<Object, 4> objects{{@object_rows@}};
+inline constexpr std::array<Symbol, 7> symbols{{@symbol_rows@}};
+}
