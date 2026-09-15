@@ -4,7 +4,7 @@ Register Code-Generation Instruction Contracts:
     docs/RegisterCodegenPolicyProposal.md
 
   Goal:
-    Replace paired wrapper/raw comparisons with CTest + FileCheck instruction contracts for production-code fixtures.
+    Replace paired wrapper/raw comparisons with Catch2-defined instruction contracts for production-code fixtures, scheduled by CTest and matched by LLVM FileCheck.
     Define each method's primary case once across its supported compiler matrix; add only supplemental compiler-specific facts.
     Preserve coverage, independently owned correctness evidence, and useful build provenance without retaining instruction hashes as acceptance policy.
 
@@ -20,7 +20,7 @@ Register Code-Generation Instruction Contracts:
   Scope and Non-Goals:
     - Cover Register, RegisterMask, PartialRegister, PartialRegisterMask, and the existing API partial-transfer and method-attribute checks that depend on retired machinery.
     - Preserve runtime, constexpr, availability, compile-failure, layout, and external-consumer test responsibilities; independent behavioral reference implementations are not codegen duplicates to delete.
-    - Use CMake for compilation/dependencies, CTest for execution/reporting, and FileCheck for expectations; introduce no Python or lit requirement.
+    - Use CMake for compilation/dependencies and Catch2 discovery, Catch2 for composite assertions and diagnostics, CTest for scheduling/reporting, and FileCheck for expectations; introduce no Python or lit requirement.
     - Do not add a general assembly-equivalence engine, full-listing golden baselines, or a separate retained-hash exception mechanism.
     - A pass establishes the declared instruction properties for the exercised case and configuration, not semantic correctness, optimal code, measured speed, or equality with another implementation.
     - Existing gates remain authoritative until validated replacements are selected at cutover. Temporary coexistence is migration scaffolding, not the final design.
@@ -29,7 +29,7 @@ Register Code-Generation Instruction Contracts:
     - GCC/Clang -O1 is a candidate, not a prequalified setting. Phase 4 selects and validates exact low-optimization options for every supported driver, including MSVC optimization/inlining settings.
     - Wholly unoptimized coverage is intentionally unresolved. Phase 4 defines meaningful checked contracts and diagnostic-only observations without claiming a worst-case performance bound.
     - This plan follows the proposal's recommended production-optimization companion checks; their exact flags and applicability are recorded in Phase 4.
-    - FileCheck/disassembler versions, provisioning sources, object-format extraction details, and the concrete registration interface are resolved in Phases 1-3. No tool availability or extraction capability is assumed proven.
+    - Phases 1-3 retain their recorded inventory, extraction, and original CMake-runner evidence. The approved Catch2 direction supersedes the outer runner design; Phase 3A must validate its replacement before Phase 4 begins.
     - Proposed component paths follow the proposal. The migration inventory's storage format is an implementation implication to settle in Phase 1, not an additional public API.
     - If the new checks reveal a production defect or an unsupported performance requirement, record it and resolve the stated support boundary separately; do not silently alter production algorithms or weaken the checks to complete this plan.
 
@@ -109,9 +109,13 @@ Register Code-Generation Instruction Contracts:
       - Second review and independent audit-stage-completion found no unresolved required issues for this phase's scope.
       - Evidence is representative x64 extraction with provisional flags. Legacy adjacent x86 gates remain unchanged; full Windows-container/CI execution, production contracts and cutover remain later-phase work.
 
-  Phase 3 - Implement Shared Contracts and CTest Registration:
+  Phase 3 - Implement Shared Contracts and CTest Registration (Historical Baseline):
     Depends on: Phase 1 inventory and Phase 2 extraction/tool validation.
     Outcome: a reusable build-and-check pipeline that enforces primary and supplemental requirements on shared fixture objects.
+
+    Revision status:
+      - Checked items below record completed work under the earlier proposal. They do not establish completion of the approved Catch2 replacement.
+      - Phase 3A supersedes separate CMake check scheduling, pass-marker bookkeeping, and qualification tests while retaining LLVM extraction, shared rule files, and applicable evidence.
 
     ☑ Implement cmake/codegen/CheckInstructions.cmake for rule application and FileCheck invocation.
       ☑ Define reusable rule files under tests/codegen/contracts and method-specific expectations beside their fixtures.
@@ -154,8 +158,48 @@ Register Code-Generation Instruction Contracts:
       - Second review and independent audit-stage-completion found no unresolved required issues. git diff --check passed.
       - Receipts: out/codegen-contract-evidence. Settings remain provisional; compatibility-version matrix, final optimization policy, full corpus and CI/cutover qualification remain later work.
 
+  Phase 3A - Replace Outer Orchestration with Readable Catch2 Fixtures:
+    Depends on: Phases 1-3 and the approved Catch2 design in the revised proposal.
+    Outcome: the representative pilot runs through the existing Catch2 test system with readable definitions and no separate CMake result-marker protocol.
+
+    Existing evidence, not completion:
+      - docs/codegen/Catch2Prototype.md records the isolated transfer128 experiment: MSVC and GCC14 each passed four tests, including deliberate negatives; injected primary/supplement failures rejected independently.
+      - The prototype retains existing extraction and freshness scripts. It does not establish full pilot parity, complete driver coverage, production process handling, or final CI integration.
+
+    ☐ Reconcile codegen/MigrationInventory.md, IntegrationInventory.md, and InstructionContracts.md with the revised proposal, preserving case identities, required facts, and validation ownership.
+    ☐ Implement shared support under tests/codegen/support with separate responsibilities for fixture lifetime, inspected-function assertions, and process execution.
+      ☐ Define readable TEST_CASE_METHOD declarations beside each operation family; expose the inspected symbol, primary rule files, and named compiler selectors without exit-code or artifact bookkeeping.
+      ☐ Implement nonfatal check/check_for semantics so every primary and applicable supplement reports and any failure fails the composite Catch2 test; inspection failure must fail clearly before matching.
+      ☐ Select supplements by explicit compiler/driver/version/configuration applicability, permitting named shared compiler sets; prohibit positional compiler-rule mappings and primary-rule suppression.
+      ☐ Parameterize geometry, ISA, extent, immediates, FMA, ABI, and configuration through fixture metadata, keeping each primary definition authored once.
+      ☐ Keep FileCheck matching state independent per rule and reuse one complete input per function; preserve exact ABI member identities and constant-data checks.
+    ☐ Retain the LLVM-based inspection wrapper and build-owned freshness receipts, removing only superseded outer orchestration.
+      ☐ Verify selected tool identities, inputs, objects, and configuration before inspection or cached reuse; preserve missing/stale-input failures without per-rule marker files.
+      ☐ Key process-local inspection reuse by object/function/configuration and account for separate CTest processes; isolate parallel artifact directories and define diagnostic retention/cleanup.
+      ☐ Capture FileCheck diagnostics directly into Catch2 with case/function, primary/supplement identity, compiler/tools, effective options, configuration, and artifact locations.
+      ☐ Provide shell-free Windows/Linux process handling with correct argument quoting, Unicode Windows paths, launch/read/exit errors, cleanup, and timeout behavior; test failures and paths with spaces/non-ASCII characters.
+    ☐ Adapt CodegenTests.cmake and thin suite build helpers to build fixture objects and Catch2 runners, supply explicit metadata, and use existing Catch2 discovery and development ownership.
+      ☐ Keep CTest test names stable by logical case/configuration, with primary/supplement identities visible in Catch2 diagnostics; no separately scheduled supplemental or qualified-result tests are required.
+      ☐ Keep build-before-test behavior and ordinary incremental dependencies; supplements must not duplicate object compilation.
+      ☐ Validate expected case/configuration/rule applicability independently of discovered tests; missing definitions or omitted/misapplied supplements must fail coverage validation.
+    ☐ Port the full representative pilot and applicable harness negatives to the Catch2 runner, retaining provisional compiler settings and legacy qualification gates.
+      ☐ Exercise register-only, memory, partial-invariant, constant/identity, return-only, and ABI fixture-group cases on MSVC, clang-cl, GCC, and GNU-style Clang; distinguish exercised versions from remaining compatibility coverage.
+      ☐ Reproduce wrong widths/immediates, broken operands/targets, extra counted operations, forbidden work after returns, missing/ambiguous/empty extraction, and primary/supplement failure isolation.
+      ☐ Prove actual composite-test failure for each required rule category, including passing-primary/failing-supplement and failing-primary/passing-supplement scenarios.
+      ☐ Validate missing/stale inputs, tool errors/timeouts, expected coverage, filtered selection, parallel artifact isolation, process-local reuse, and two unchanged builds without fixture recompilation or receipt regeneration.
+    ☐ Remove obsolete PrepareCase.cmake, RunCase.cmake, CheckInstructions.cmake, VerifyCaseResults.cmake and associated manifests/markers once all their pilot/harness consumers have validated replacements; reconcile references before removal.
+      ☐ Retain any independently needed extraction, input-receipt, and allowlist responsibilities; do not remove the legacy wrapper/raw gates scheduled for Phase 7.
+      ☐ Remove the isolated catch2-prototype project after its useful checks and evidence have been incorporated into the maintained runner.
+    ☐ Review test definitions for readability against the proposal example and update reproduction/diagnostic documentation to describe the actual Catch2 interface.
+
+    Completion Criteria:
+      ☐ The complete representative pilot and required harness checks pass through Catch2 on the declared drivers with independent expected-coverage validation.
+      ☐ Definitions state function, shared rules, and named supplemental applicability; matching remains LLVM/FileCheck-owned and all required failures propagate to one composite result.
+      ☐ Process handling, freshness, diagnostics, parallel isolation, incremental behavior, and development integration have evidence; obsolete outer-runner plumbing and the isolated prototype are removed.
+      ☐ A second proposal-to-implementation review confirms parity without reusing historical CMake-runner results as Catch2 qualification.
+
   Phase 4 - Establish Optimization and Configuration Contracts:
-    Depends on: Phase 3's working compiled pilot and trusted checks.
+    Depends on: Phase 3A's validated Catch2 compiled pilot and trusted checks.
     Outcome: an evidence-backed configuration policy that can be used for the complete fixture migration.
 
     ☐ Evaluate low-optimization settings on the same representative fixture sources for every supported driver.
@@ -179,10 +223,10 @@ Register Code-Generation Instruction Contracts:
       ☐ No required configuration decision or applicable pilot-contract failure remains unresolved; documented diagnostic limitations are distinguished from failed required checks.
 
   Phase 5 - Migrate Register and RegisterMask Cases:
-    Depends on: Phases 1-4.
+    Depends on: Phases 1-4, including Phase 3A.
     Outcome: complete mapped Register/RegisterMask instruction contracts validated alongside the legacy gates.
 
-    ☐ Rewrite Register fixtures under tests/codegen/register by method or operation family, with thin case declarations in cmake/development/RegisterCodegen.cmake.
+    ☐ Rewrite Register fixtures and readable Catch2 case definitions under tests/codegen/register by method or operation family, with thin build configuration in cmake/development/RegisterCodegen.cmake.
       ☐ Migrate every available isolated operation/type/width case from the common and modulus type matrices.
       ☐ Migrate construction, observation, transfers, special members, mutation, reassignment, and composed expressions.
       ☐ Migrate specialized arithmetic/reductions, FMA enabled/disabled cases, rearrangements, conversions, bit casts, and width changes.
@@ -202,10 +246,10 @@ Register Code-Generation Instruction Contracts:
       ☐ No legacy gate or raw fixture needed by remaining migrations has been removed.
 
   Phase 6 - Migrate Partial Registers and Remaining Instruction Cases:
-    Depends on: Phase 5's completed Register migration and the shared infrastructure from Phases 1-4.
+    Depends on: Phase 5's completed Register migration and the shared infrastructure from Phases 1-4, including Phase 3A.
     Outcome: all remaining fixture and instruction-contract cases have validated replacements through the pilot pipeline; aggregate and pipeline-consumer migration remains in Phase 7.
 
-    ☐ Rewrite PartialRegister and PartialRegisterMask fixtures under tests/codegen/partial-register, keeping cmake/development/PartialRegisterCodegen.cmake as thin case declarations.
+    ☐ Rewrite PartialRegister and PartialRegisterMask fixtures and readable Catch2 definitions under tests/codegen/partial-register, keeping cmake/development/PartialRegisterCodegen.cmake as thin build configuration.
       ☐ Migrate predicate/invariant boundaries, value operations, arithmetic/specialized results, general operations, and ABI cases from the inventory.
       ☐ Preserve native-import sanitation, inactive-suffix projection, inactive-divisor neutralization, logical extents, and checked public observation boundaries where required.
       ☐ Cover selected active extents and cross-width/type results explicitly; do not treat inactive-lane invariant work as unwanted wrapper overhead.
@@ -249,7 +293,7 @@ Register Code-Generation Instruction Contracts:
     ☐ Verify a focused build/test/diagnostic workflow on the new owners and audit references for orphaned targets, obsolete policy data, missing artifacts, and unintended runtime dependencies.
 
     Completion Criteria:
-      ☐ Normal execution uses only CTest + FileCheck instruction acceptance; no retained wrapper/raw hash remains an acceptance mechanism.
+      ☐ Normal execution uses Catch2 composite assertions scheduled by CTest and matched by FileCheck; no retained wrapper/raw hash remains an acceptance mechanism.
       ☐ All legacy removals have both case evidence from Phases 5-6 and pipeline-consumer evidence from the pre-removal gate, with no dangling consumers; temporary migration paths are removed.
       ☐ Pipeline ownership, diagnostic behavior, documentation, and artifact publication agree before final qualification.
 
@@ -279,7 +323,8 @@ Register Code-Generation Instruction Contracts:
     - Primary/supplemental ownership, reusable rules, counts, operands, and matching scope: Phases 1, 3, 5, 6.
     - Complete function extraction, relevant relocations/constants, and failure on missing/unsupported input: Phase 2, checked again in Phases 3 and 8.
     - Optimization choices and limited claims: Phase 4, with corpus execution in Phases 5, 6, 8.
-    - CMake/CTest ownership, freshness, parallel artifacts, provisioning, and no Python/lit: Phases 2, 3, 7, 8.
+    - Readable Catch2 definitions, named selectors, composite nonfatal assertions, process handling, and removal of outer CMake bookkeeping: Phase 3A, expanded in Phases 5-6 and qualified in Phase 8.
+    - CMake/Catch2/CTest ownership, freshness, parallel artifacts, provisioning, and no Python/lit: Phases 2, 3A, 7, 8; Phase 3 is historical baseline evidence.
     - Coverage inventory, migration, removal, diagnostics, and qualification documents: Phases 1, 5, 6, 7, 8.
 
   Final Acceptance:
@@ -288,6 +333,7 @@ Register Code-Generation Instruction Contracts:
     ☐ Each tested operation or composition has one production-code implementation under test, allowing legitimate constant/identity results and necessary ABI caller/callee groups without duplicated algorithms.
     ☐ Complete-body inspection and rule enforcement reject the specified adversarial cases and missing coverage, including failures in either primary or supplemental checks.
     ☐ Low-optimization settings, production companion checks, and the selected unoptimized boundary have explicit evidence and accurate claims.
-    ☐ CTest + FileCheck is the final runner/checker setup, with no new Python/lit requirement or library/runtime tooling dependency.
+    ☐ Catch2 owns readable composite instruction tests, CTest schedules them, and FileCheck matches rules, with no new Python/lit requirement or library/runtime tooling dependency.
+    ☐ Named selectors cannot suppress primary rules or required supplements; no separate CMake pass-marker/qualification protocol or isolated prototype remains.
     ☐ Retired raw duplicates, retained-hash acceptance, obsolete gates, and temporary coexistence plumbing are removed without deleting independent behavioral references.
     ☐ Required final-tree codegen, behavioral, ABI/consumer/package, and CI evidence is complete, and documentation matches executed policy.

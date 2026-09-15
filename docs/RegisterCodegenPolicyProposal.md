@@ -9,7 +9,9 @@ contracts for compiled production methods and representative expressions.
 
 The agreed direction is:
 
-- Use CTest as the test runner and LLVM FileCheck for instruction expectations.
+- Define instruction tests with the project's existing Catch2 unit-testing
+  system. CTest selects and schedules those executables; LLVM FileCheck owns
+  instruction expectations.
 - Write each fixture once, calling production code instead of maintaining a
   second implementation of the same logic.
 - Define one primary test case per method or representative expression, with
@@ -30,6 +32,9 @@ alongside the low-optimization suite; their purposes are described below.
 
 This document proposes a replacement testing practice. It does not change the
 current qualification contract or claim that the replacement has been validated.
+The approved [Catch2 prototype](codegen/Catch2Prototype.md) validates a limited
+transfer case on Windows/MSVC and Linux/GCC. Full migration and qualification
+remain required; its timings establish local orchestration savings only.
 
 ## Motivation
 
@@ -120,6 +125,11 @@ copied into every fixture.
 
 ### Primary cases and supplemental cases
 
+Here, primary and supplemental cases describe assertion ownership. They do not
+require separately scheduled CTest tests. One Catch2 test execution owns the
+primary rules and every applicable supplement for a case/configuration, and fails
+if any required rule fails.
+
 Each method's primary case owns the established expectations that hold across
 all supported compiler scenarios for its declared configuration and operation
 geometry. Every applicable matrix execution must run that primary case.
@@ -164,7 +174,7 @@ arguments or result storage; those fixtures still call production code once.
 ### Matching rules
 
 FileCheck owns required patterns, forbidden patterns, bounded sequences, and
-captured operand relationships. A small shared CMake helper may supplement it
+captured operand relationships. A small shared inspection helper may supplement it
 with instruction-line allowlist validation where expressing a whole-body
 allowlist through FileCheck would be unnecessarily obscure.
 
@@ -269,13 +279,59 @@ A passing case means its stated contract holds. If that contract permits known
 overhead, its documentation must say so. This is a claim-description requirement,
 not an additional pass/fail mechanism.
 
-## CMake, CTest, and FileCheck responsibilities
+## Readable Catch2 test definitions
+
+Test definitions should expose the function, primary rules, and explicitly named
+compiler-specific facts. Process execution, exit-code assertions, freshness,
+artifact paths, and diagnostic plumbing belong inside the shared fixture.
+Instruction patterns remain in reviewable FileCheck files beside their owning
+contract or operation family.
+
+The intended interface is illustrated below; these helper names are a design
+target, not an assertion that the prototype already implements them:
+
+```cpp
+TEST_CASE_METHOD(CodegenFixture,
+    "Register transfer uses one vector addition",
+    "[codegen][register][transfer]")
+{
+    const auto function = inspect("simdlib_contract_transfer_load_operate_store");
+
+    function.check("contracts/return.check");
+    function.check("register/transfer.check");
+
+    function.check_for(Compiler::MSVC, "contracts/msvc-cookie.check");
+    function.check_for(Compiler::GCC, "contracts/no-call-stack.check");
+    function.check_for(Compiler::Clang, "contracts/no-call-stack.check");
+}
+```
+
+This transfer example uses the provisional prototype settings. Applicability
+must also account for driver, version, and configuration where the established
+fact requires them; a named compiler selector is not proof of universal support.
+Shared facts may select a named set of compilers without duplicating a full test.
+Never use positional rule arguments whose compiler meaning must be memorized.
+
+`check` and applicable `check_for` calls produce nonfatal Catch2 assertions,
+equivalent in continuation behavior to `CHECK`, so all applicable rules report
+even after another rule fails. Inspection failures terminate the affected case
+clearly because subsequent matching would have no valid input. Use `check`
+rather than `require` to avoid implying Catch2's fatal `REQUIRE` behavior.
+
+The fixture resolves the active compiled configuration and supplies named rule
+parameters for geometry and ISA. Case authors do not repeat the matrix or launch
+tools. Each rule gets independent FileCheck matching state on the same complete
+body. Required-rule applicability and expected-case coverage are validated
+independently; an omitted declaration or selector cannot silently reduce coverage.
+
+## CMake, Catch2, CTest, and FileCheck responsibilities
 
 | Component | Ownership |
 | --- | --- |
 | CMake build targets | Compile fixtures with explicit settings and ordinary source/header dependencies |
-| Shared CMake registration helper | Expand each primary case across the supported matrix and register only applicable supplemental cases, reusing fixtures and artifacts |
-| CTest | Select, schedule, execute, and report instruction checks |
+| Shared CMake registration helper | Build configured fixture objects and Catch2 executables, supply explicit object/tool metadata, and register tests through existing Catch2 discovery |
+| Catch2 fixture and test definitions | Own primary and applicable supplemental assertions, reuse inspection, capture tool diagnostics, and report one composite result per case/configuration |
+| CTest | Select, schedule, execute, and report the discovered Catch2 tests |
 | Inspection helper | Extract and validate complete named functions and preserve relevant object information |
 | FileCheck and shared contract rules | Enforce generated-instruction expectations |
 
@@ -283,11 +339,10 @@ The intended workflow is:
 
 ```text
 Build selected fixture objects through CMake/Ninja
-    -> CTest selects a case and configuration
-    -> extract its complete disassembly
-    -> run the primary case's shared rules and method expectations
-    -> run any applicable supplemental compiler-specific cases on the same body
-    -> retain diagnostics and report pass/fail
+    -> CTest selects a Catch2 case and configuration
+    -> the fixture verifies freshness and extracts complete LLVM disassembly
+    -> independent FileCheck invocations check primary and supplemental rules
+    -> Catch2 collects every applicable assertion and reports the composite result
 ```
 
 CTest does not implicitly build fixtures. The project build/test commands must
@@ -298,11 +353,24 @@ Keep incremental compilation under the build system rather than launching a
 compiler separately for every CTest invocation. Give parallel checks distinct
 output paths and treat shared object inputs as read-only.
 
-CTest names and results should distinguish the primary case from supplemental
-cases and identify the execution configuration. A compiler selector controls only
-the supplemental case it owns; it must never remove the primary case from that
-compiler's required tests. Supplemental executions reuse the compiled fixture
-instead of introducing duplicate compilation targets.
+CTest names identify the logical case and execution configuration. Catch2
+diagnostics distinguish primary rules and named supplements within that result.
+A compiler selector controls only its supplemental assertions; it must never
+remove the primary assertions from that compiler's required tests. There is no
+separate success-marker or qualification-test protocol between these assertions.
+
+Reuse inspection within a test process, keyed by object, function, and
+configuration. Do not assume a cache is shared across separately discovered
+CTest processes. Reject changed inputs before reusing cached inspection. Keep
+parallel artifact ownership explicit and define retention/cleanup behavior.
+Use one shared FileCheck input per inspected body; retain useful LLVM diagnostics
+without writing intermediate pass markers or duplicating inputs per rule.
+
+The fixture launches explicit tool executables without a shell and captures
+diagnostics directly. Its process component must support Windows Unicode paths,
+argument quoting, error propagation, resource cleanup, and bounded execution on
+Windows and Linux. The existing narrow CMake/LLVM extraction wrapper may remain;
+do not replace LLVM decoding or boundary selection with a new C++ parser.
 
 Provision FileCheck and the selected disassembler as explicit development tools
 in local and CI environments. Python and `lit` are not required. Runtime tests
@@ -310,16 +378,19 @@ continue to use their existing runner and reporting integration.
 
 ### Proposed source layout
 
-- `cmake/development/CodegenTests.cmake`: shared target and test registration.
+- `cmake/development/CodegenTests.cmake`: shared fixture/runner targets, build
+  metadata, freshness dependencies, and Catch2 discovery integration.
 - `cmake/development/RegisterCodegen.cmake` and
-  `PartialRegisterCodegen.cmake`: thin suite-specific case declarations.
+  `PartialRegisterCodegen.cmake`: thin suite-specific build configuration.
 - `cmake/codegen/ExtractFunction.cmake`: complete function extraction and input
   validation.
-- `cmake/codegen/CheckInstructions.cmake`: rule application and FileCheck
-  invocation.
+- `tests/codegen/support/`: shared Catch2 fixture, inspected-function/rule
+  assertions, and platform process execution in separate responsibility files.
+  This replaces outer CMake rule orchestration and result-marker bookkeeping.
 - `tests/codegen/contracts/`: reusable instruction-family expectations.
 - `tests/codegen/register/` and `tests/codegen/partial-register/`: production-code
-  fixtures, primary method expectations, and optional supplemental expectations
+  emitted fixtures, readable Catch2 test definitions, primary method expectations,
+  and optional supplemental expectations
   containing only compiler-specific facts. Organize these by method or operation
   family rather than mirroring the whole suite into compiler-specific trees.
 - `tests/codegen/harness/`: positive and negative tests of extraction and rule
@@ -366,8 +437,9 @@ that a few permitted mnemonics prove zero overhead.
 
 1. Inventory existing cases, define each method's primary instruction contract,
    and identify only the additional facts requiring supplemental cases.
-2. Prove CMake/CTest/FileCheck integration with representative register-only,
-   memory, partial-invariant, and ABI cases across the supported compiler drivers.
+2. Prove CMake/Catch2/CTest/FileCheck integration with representative register-only,
+   memory, partial-invariant, and ABI cases across the supported compiler drivers,
+   replacing the original pilot's outer CMake orchestration with readable fixtures.
 3. Validate extraction and rule enforcement with deliberate failing inputs before
    trusting positive results.
 4. Establish low-optimization settings and the unoptimized support boundary;
@@ -393,7 +465,10 @@ retain two implementations merely to preserve the retired comparison mechanism.
   compiler matrix; compiler-specific copies of the full case are absent.
 - Supplemental cases contain only compiler-specific facts, reuse the primary
   fixture, and never replace or weaken the primary checks.
-- CTest runs the suite with FileCheck and no new Python or `lit` requirement.
+- Catch2 owns readable composite tests and nonfatal primary/supplemental rule
+  assertions; CTest runs them with FileCheck and no new Python or `lit` requirement.
+- Definitions name functions, rules, and compiler applicability without exposing
+  process bookkeeping; no separate pass-marker qualification protocol remains.
 - Expected functions and configurations cannot disappear silently.
 - Checks inspect complete function bodies and retain the information their
   contracts need.
