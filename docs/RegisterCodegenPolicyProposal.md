@@ -12,6 +12,9 @@ The agreed direction is:
 - Use CTest as the test runner and LLVM FileCheck for instruction expectations.
 - Write each fixture once, calling production code instead of maintaining a
   second implementation of the same logic.
+- Define one primary test case per method or representative expression, with
+  shared expectations applied across all supported compiler scenarios. Add
+  compiler-specific cases only for additional facts specific to that compiler.
 - Define reusable allow/deny instruction rules, supplemented by required
   instructions, counts, and operand relationships where the contract needs them.
 - Make low-optimization behavior an explicit concern instead of relying solely
@@ -94,6 +97,11 @@ Related cases may share a source file and compilation target. Each function stil
 has its own contract and result. Compilation grouping must not determine the
 scope of compiler-specific allowances.
 
+The primary case is defined once and instantiated across the supported compiler,
+ISA, type, width, and configuration matrix. These are executions of the same
+case, not separately authored compiler-specific copies. Parameterize genuine
+specialization differences rather than duplicating the case definition.
+
 Independent scalar references remain appropriate in behavioral tests. Their role
 is semantic validation, not a second generated-code implementation.
 
@@ -102,6 +110,35 @@ is semantic validation, not a second generated-code implementation.
 Each case selects a reusable contract family and adds operation-specific
 expectations. Shared rules belong to the contract family rather than being
 copied into every fixture.
+
+### Primary cases and supplemental cases
+
+Each method's primary case owns the established expectations that hold across
+all supported compiler scenarios for its declared configuration and operation
+geometry. Every applicable matrix execution must run that primary case.
+
+A compiler-specific case supplements the primary case and contains only facts
+that are specific to the selected compiler. It reuses the same production-code
+fixture and extracted function body. Do not copy the common assertions, source,
+or full case registration into separate MSVC, Clang, and GCC definitions.
+
+For example, if a method has compiler-independent arithmetic requirements but
+different instruction ordering on one compiler:
+
+- The primary case owns the common arithmetic, operand, and forbidden-work
+  requirements.
+- A supplemental case owns only that compiler's established ordering requirement.
+- The other compilers need no supplemental case unless there is another specific
+  fact to check.
+
+The effective requirements are the primary case plus every applicable
+supplemental case. A supplemental case cannot replace, skip, or override the
+primary case. A method with no compiler-specific facts has only its primary case.
+
+Keep shared and supplemental checks independently applicable to the complete
+function body, for example through separate FileCheck invocations on the same
+extracted input. Do not force their patterns into an artificial combined order
+or depend on captures from a different invocation.
 
 | Contract family | Typical requirements |
 | --- | --- |
@@ -202,13 +239,19 @@ optimization level.
 
 ## Compiler-specific expectations
 
-Compiler- and ISA-specific patterns use the same contract mechanism as ordinary
-expectations. Each variation has a narrow scope, an explicit reason, and a
-defined set of supported configurations.
+Compiler-specific facts are supplemental cases using the same contract mechanism
+as the primary case. Each has a narrow scope, an explicit reason, and a defined
+set of supported configurations. Shared ISA and width parameters do not require
+a separate full definition for every compiler.
 
-For example, a documented MSVC case may permit a bounded `/GS` sequence while
-continuing to enforce the operation's remaining requirements. The allowance must
-not authorize arbitrary calls, stack traffic, or changes in unrelated functions.
+For example, when a method has a documented MSVC `/GS` sequence, its primary case
+must express the operation's genuinely common requirements. It cannot declare a
+universal no-stack/no-call rule and then let the MSVC case cancel that rule.
+Supplemental cases check the bounded `/GS` sequence where it occurs and the
+stronger absence-of-stack/call property where that property is established.
+Compilers sharing the latter property can share one supplemental declaration.
+This preserves both the common facts and the stronger compiler-specific facts
+without copying the entire test or allowing arbitrary calls and stack traffic.
 The contract must identify the intended check target where its identity matters.
 
 No retained wrapper/raw hash pair, baseline-update workflow, or separate
@@ -224,7 +267,7 @@ not an additional pass/fail mechanism.
 | Component | Ownership |
 | --- | --- |
 | CMake build targets | Compile fixtures with explicit settings and ordinary source/header dependencies |
-| Shared CMake registration helper | Register cases, selected contracts, artifact paths, and compiler/ISA variants |
+| Shared CMake registration helper | Expand each primary case across the supported matrix and register only applicable supplemental cases, reusing fixtures and artifacts |
 | CTest | Select, schedule, execute, and report instruction checks |
 | Inspection helper | Extract and validate complete named functions and preserve relevant object information |
 | FileCheck and shared contract rules | Enforce generated-instruction expectations |
@@ -235,7 +278,8 @@ The intended workflow is:
 Build selected fixture objects through CMake/Ninja
     -> CTest selects a case and configuration
     -> extract its complete disassembly
-    -> apply shared rules and operation-specific FileCheck expectations
+    -> run the primary case's shared rules and method expectations
+    -> run any applicable supplemental compiler-specific cases on the same body
     -> retain diagnostics and report pass/fail
 ```
 
@@ -246,6 +290,12 @@ stale inputs must fail clearly; tests must not silently validate an earlier buil
 Keep incremental compilation under the build system rather than launching a
 compiler separately for every CTest invocation. Give parallel checks distinct
 output paths and treat shared object inputs as read-only.
+
+CTest names and results should distinguish the primary case from supplemental
+cases and identify the execution configuration. A compiler selector controls only
+the supplemental case it owns; it must never remove the primary case from that
+compiler's required tests. Supplemental executions reuse the compiled fixture
+instead of introducing duplicate compilation targets.
 
 Provision FileCheck and the selected disassembler as explicit development tools
 in local and CI environments. Python and `lit` are not required. Runtime tests
@@ -262,7 +312,9 @@ continue to use their existing runner and reporting integration.
   invocation.
 - `tests/codegen/contracts/`: reusable instruction-family expectations.
 - `tests/codegen/register/` and `tests/codegen/partial-register/`: production-code
-  fixtures and their operation-specific expectations.
+  fixtures, primary method expectations, and optional supplemental expectations
+  containing only compiler-specific facts. Organize these by method or operation
+  family rather than mirroring the whole suite into compiler-specific trees.
 - `tests/codegen/harness/`: positive and negative tests of extraction and rule
   enforcement.
 
@@ -278,6 +330,12 @@ fixture, contract, supported configurations, and validation owner. Register exac
 expected cases independently of what the disassembler happens to emit. Preserve
 the operation-availability tests that distinguish supported and unavailable
 specializations.
+
+Record the primary case once with its supported execution matrix, and list only
+the supplemental facts and their applicability separately. Coverage validation
+must require the primary case on every supported compiler and must not accept a
+supplemental result as a substitute. Preserve established stronger facts in
+supplemental checks when they cannot be expressed as universal requirements.
 
 The inventory must include existing compiler families and drivers, SSE4.2/128 and
 AVX2 widths where supported, FMA modes, active extents, and explicit versus
@@ -299,7 +357,8 @@ that a few permitted mnemonics prove zero overhead.
 
 ## Adoption sequence
 
-1. Inventory existing cases and define the replacement instruction contracts.
+1. Inventory existing cases, define each method's primary instruction contract,
+   and identify only the additional facts requiring supplemental cases.
 2. Prove CMake/CTest/FileCheck integration with representative register-only,
    memory, partial-invariant, and ABI cases across the supported compiler drivers.
 3. Validate extraction and rule enforcement with deliberate failing inputs before
@@ -321,6 +380,10 @@ retain two implementations merely to preserve the retired comparison mechanism.
 - Every migrated case tests one production-code fixture with an explicit
   instruction contract and stable identity.
 - Shared rules are reusable across methods without duplicating algorithms.
+- Each primary method case is authored once and runs across its supported
+  compiler matrix; compiler-specific copies of the full case are absent.
+- Supplemental cases contain only compiler-specific facts, reuse the primary
+  fixture, and never replace or weaken the primary checks.
 - CTest runs the suite with FileCheck and no new Python or `lit` requirement.
 - Expected functions and configurations cannot disappear silently.
 - Checks inspect complete function bodies and retain the information their
@@ -330,6 +393,9 @@ retain two implementations merely to preserve the retired comparison mechanism.
   widths, broken captured operand relationships, and incorrect required targets.
 - Valid cases and narrowly scoped compiler variations pass; nearby invalid
   variants fail.
+- Harness checks establish that a shared-rule violation fails even when a
+  supplemental case passes, and that an applicable supplemental-rule violation
+  fails even when the primary case passes.
 - Low-optimization settings are explicit and evidence-backed. Production and
   unoptimized results are reported according to their declared roles.
 - No retained wrapper/raw instruction hashes remain as an acceptance mechanism.
