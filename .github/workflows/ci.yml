@@ -42,8 +42,39 @@ jobs:
     runs-on: windows-2022
     steps:
       - uses: actions/checkout@v4
-      - name: Build the Windows clang-cl 20 container and validation cell
-        run: tools/Run-WindowsClang20Container.ps1 -Action Build
+      - name: Restore compiler image archive
+        id: compiler-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ runner.temp }}/windows-clang20.tar
+          key: windows-2022-amd64-clang20-image-v1-${{ hashFiles('containers/Dockerfile.windows-clang20', '.dockerignore') }}
+      - name: Load cached compiler image
+        if: steps.compiler-cache.outputs.cache-hit == 'true'
+        shell: pwsh
+        run: |
+          docker load --input "$env:RUNNER_TEMP/windows-clang20.tar"
+          if ($LASTEXITCODE -ne 0) { throw 'Compiler image load failed' }
+      - name: Build and archive compiler image
+        if: steps.compiler-cache.outputs.cache-hit != 'true'
+        shell: pwsh
+        run: |
+          docker build --isolation=process --memory 4GB `
+            --file containers/Dockerfile.windows-clang20 `
+            --tag simdlib/windows-clang20:local .
+          if ($LASTEXITCODE -ne 0) { throw 'Compiler image build failed' }
+
+          docker save --output "$env:RUNNER_TEMP/windows-clang20.tar" `
+            simdlib/windows-clang20:local
+          if ($LASTEXITCODE -ne 0) { throw 'Compiler image archive failed' }
+      # Save before compilation so source failures do not discard the environment.
+      - name: Save compiler image archive
+        if: steps.compiler-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ runner.temp }}/windows-clang20.tar
+          key: ${{ steps.compiler-cache.outputs.cache-primary-key }}
+      - name: Build Windows clang-cl 20 validation cell
+        run: tools/Run-WindowsClang20Container.ps1 -Action Build -SkipImageBuild
       - name: Test the exact clang-cl 20 build receipt
         run: tools/Run-WindowsClang20Container.ps1 -Action Test -SkipImageBuild
       - name: Upload clang-cl 20 evidence

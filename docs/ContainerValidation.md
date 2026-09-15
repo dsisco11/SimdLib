@@ -21,6 +21,17 @@ environment, while the standalone LLVM installation defines SimdLib's explicit
 clang-cl 20 compatibility floor. The image does not represent Visual Studio's
 default compiler selection or its optional bundled Clang version.
 
+The Windows CI job caches the completed compiler image as a `docker save`
+archive in GitHub Actions. An exact cache hit restores the archive with
+`docker load`; a miss builds and saves the image before compiling SimdLib.
+Both compilation and tests then use `-SkipImageBuild`. The cache key includes
+the Windows Server 2022/amd64 environment, the Dockerfile and `.dockerignore`
+hash, and an explicit `image-v1` revision. Source-only changes reuse the image;
+changing these image inputs or incrementing the revision rebuilds it. Increment
+the revision to refresh upstream installers/packages whose URLs have not changed.
+No fallback cache keys are used. Archive restore/load performance and cache
+storage requirements depend on the image size.
+
 ## Environment contract
 
 | Service | Scope | Base | Compiler |
