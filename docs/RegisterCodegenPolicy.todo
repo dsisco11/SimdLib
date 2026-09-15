@@ -1,0 +1,254 @@
+Register Code-Generation Instruction Contracts:
+
+  Source Proposal:
+    docs/RegisterCodegenPolicyProposal.md
+
+  Goal:
+    Replace paired wrapper/raw comparisons with CTest + FileCheck instruction contracts for production-code fixtures.
+    Define each method's primary case once across its supported compiler matrix; add only supplemental compiler-specific facts.
+    Preserve coverage, independently owned correctness evidence, and useful build provenance without retaining instruction hashes as acceptance policy.
+
+  Execution Contract:
+    ☐ Treat the source proposal as authoritative; implement this plan without expanding the production API or algorithm scope.
+    ☐ Preserve unrelated worktree and index changes; do not commit, clean, or overwrite unrelated work as part of execution.
+    ☐ Run build and test tools through subagents, as required by the repository instructions supplied by the user.
+    ☐ Add the required documentation comments to methods/classes and logical explanations to nontrivial methods; keep composition roots thin and group related methods as instructed.
+    ☐ Keep phase terminology in planning documents only.
+    ☐ Record commands, compiler/tool identities, selected configurations, results, and artifact paths for each completed increment; distinguish source review, harness tests, compiled codegen checks, behavioral tests, and consumer/package evidence.
+    ☐ Perform a second review against the proposal before marking an increment complete; leave unchecked any task whose required evidence is missing.
+
+  Scope and Non-Goals:
+    - Cover Register, RegisterMask, PartialRegister, PartialRegisterMask, and the existing API partial-transfer and method-attribute checks that depend on retired machinery.
+    - Preserve runtime, constexpr, availability, compile-failure, layout, and external-consumer test responsibilities; independent behavioral reference implementations are not codegen duplicates to delete.
+    - Use CMake for compilation/dependencies, CTest for execution/reporting, and FileCheck for expectations; introduce no Python or lit requirement.
+    - Do not add a general assembly-equivalence engine, full-listing golden baselines, or a separate retained-hash exception mechanism.
+    - A pass establishes the declared instruction properties for the exercised case and configuration, not semantic correctness, optimal code, measured speed, or equality with another implementation.
+    - Existing gates remain authoritative until validated replacements are selected at cutover. Temporary coexistence is migration scaffolding, not the final design.
+
+  Assumptions and Open Decisions:
+    - GCC/Clang -O1 is a candidate, not a prequalified setting. Phase 4 selects and validates exact low-optimization options for every supported driver, including MSVC optimization/inlining settings.
+    - Wholly unoptimized coverage is intentionally unresolved. Phase 4 defines meaningful checked contracts and diagnostic-only observations without claiming a worst-case performance bound.
+    - This plan follows the proposal's recommended production-optimization companion checks; their exact flags and applicability are recorded in Phase 4.
+    - FileCheck/disassembler versions, provisioning sources, object-format extraction details, and the concrete registration interface are resolved in Phases 1-3. No tool availability or extraction capability is assumed proven.
+    - Proposed component paths follow the proposal. The migration inventory's storage format is an implementation implication to settle in Phase 1, not an additional public API.
+    - If the new checks reveal a production defect or an unsupported performance requirement, record it and resolve the stated support boundary separately; do not silently alter production algorithms or weaken the checks to complete this plan.
+
+  Phase 1 - Inventory Coverage and Specify Case Ownership:
+    Depends on: the source proposal and current qualification documents.
+    Outcome: an explicit migration inventory and case model that can drive registration without rediscovering legacy coverage.
+
+    ☐ Read RegisterQualification.md, PartialRegisterQualification.md, and RegisterImplementationMatrix.md to inventory the current support and evidence boundaries; distinguish existing claims from the proposed replacement claims.
+    ☐ Inventory existing fixture symbols, comparison records, instruction checks, and validation owners in tests/codegen and cmake/development/{RegisterCodegen,PartialRegisterCodegen,MethodFlagsCodegen}.cmake.
+      ☐ Include isolated operations/type matrices, composition, transfers, special members, reassignment, immediate and complete shifts, specialized operations, FMA, rearrangements/conversions, pressure, opaque calls, and ABI/consumer boundaries.
+      ☐ Include API partial transfers, method attributes, and observational platform-default ABI records; identify every consumer of the old comparator, profile data, indexes, and validators before proposing removal.
+      ☐ Record supported compiler families/drivers and versions, ISA/width combinations, element types, active extents, immediate parameters, FMA modes, and ABI/configuration dimensions.
+    ☐ Choose and create a durable migration inventory mapping each existing case to its replacement primary case, emitted function or ABI fixture group, shared contract, supplemental facts, applicability, and validation owner.
+      ☐ Record a primary case once with its execution matrix; do not create separately authored full definitions for MSVC, Clang, and GCC.
+      ☐ Preserve existing availability distinctions and identify expected emitted functions independently of disassembly output.
+      ☐ Identify established stronger compiler-specific properties that must remain checked even when they are not universal.
+    ☐ Specify stable logical case IDs, explicit emitted-symbol identities, configuration IDs, and the relationship between reusable contract families and method expectations.
+      ☐ Define supplemental checks as additive requirements only; a selected compiler must still execute the primary case.
+      ☐ Permit one shared supplemental declaration for compilers with the same additional fact.
+      ☐ Distinguish constant/identity cases with valid minimal bodies from missing functions; identify ABI cases that require caller/callee fixture groups.
+    ☐ Define the initial contract set: register-only, load/operate/store, immediate operations, FMA behavior, ABI boundaries, and targeted regressions, selecting only applicable restrictions per case.
+    ☐ Identify existing build/test entry points, artifact/provenance ownership, CI upload rules, and provisioning locations that must integrate with the replacement.
+
+    Completion Criteria:
+      ☐ Every existing in-scope case has a mapped replacement and evidence owner, including observations and adjacent consumers of retired machinery.
+      ☐ The case model contains no compiler-specific copies of complete primary definitions and no unrecorded loss of stronger expectations.
+      ☐ Open implementation choices have named resolution tasks below; the inventory does not present unknown settings as qualified.
+
+  Phase 2 - Provision Tools and Validate Complete Function Extraction:
+    Depends on: Phase 1 case and artifact identities.
+    Outcome: a narrowly scoped object-inspection component whose successful extraction is supported by positive and negative evidence.
+
+    ☐ Select FileCheck and the disassembler explicitly, record their versions/identities, and add development-only discovery/provisioning in the relevant local and CI/container environments.
+      ☐ Fail clearly when required tools are absent or unsupported; do not silently select an unrelated PATH executable or skip required qualification.
+      ☐ Keep these tools out of installed library/runtime dependencies and introduce no Python or lit requirement.
+    ☐ Implement cmake/codegen/ExtractFunction.cmake with the proposal's single responsibility and an explicit input/output contract.
+      ☐ Resolve expected symbols exactly and reject absent, empty, duplicate, or ambiguous selections.
+      ☐ Determine complete function boundaries for every supported object format; include blocks after early returns and avoid treating a return as an end-of-function delimiter.
+      ☐ Preserve vector widths, register aliases, operands, immediates, and control-flow relationships.
+      ☐ Preserve relocation/target information where required and expose referenced constant contents when a contract checks them.
+      ☐ Remove only presentation details irrelevant to the selected checks; reject unrecognized formats instead of producing a successful empty extraction.
+      ☐ Retain full disassembly and extracted bodies at case/configuration-specific paths suitable for diagnostics.
+    ☐ Add extraction harness cases under tests/codegen/harness.
+      ☐ Cover valid straight-line, early-return/multiple-block, relocation-bearing, and return-only functions.
+      ☐ Reject missing/ambiguous function names and empty or malformed extraction inputs.
+      ☐ Demonstrate that instructions after the first return, different vector widths, distinct operands, and relevant targets survive extraction.
+      ☐ Cover required referenced constants and unsupported object/disassembly formats.
+    ☐ Validate with synthetic harness inputs and representative real objects from each supported compiler driver/object format; record these as distinct evidence categories.
+      ☐ Use provisional, explicitly recorded compilation settings for these probes; do not claim low-optimization qualification before Phase 4.
+
+    Completion Criteria:
+      ☐ Extraction harness positives and deliberate negatives behave as specified.
+      ☐ Real-object evidence confirms supported formats and complete-body inspection without relying on the retired lossy normalizer.
+      ☐ Required tools can be selected reproducibly in the intended validation environments.
+
+  Phase 3 - Implement Shared Contracts and CTest Registration:
+    Depends on: Phase 1 inventory and Phase 2 extraction/tool validation.
+    Outcome: a reusable build-and-check pipeline that enforces primary and supplemental requirements on shared fixture objects.
+
+    ☐ Implement cmake/codegen/CheckInstructions.cmake for rule application and FileCheck invocation.
+      ☐ Define reusable rule files under tests/codegen/contracts and method-specific expectations beside their fixtures.
+      ☐ Add a small whole-body instruction allowlist helper only where FileCheck alone would make the rule unnecessarily obscure.
+      ☐ Implement required/forbidden patterns, counts, bounded sequences, and captured operand relationships without replacing all registers with a common placeholder.
+      ☐ Ensure forbidden patterns cover the complete function, and exact counts exclude extra occurrences outside the counted sequence.
+      ☐ Run primary and supplemental expectations independently on the same body without cross-invocation captures or artificial ordering constraints.
+      ☐ Scope compiler-specific allowances narrowly; model bounded /GS behavior and stronger no-stack/no-call facts as supplemental requirements where appropriate, never as overrides of shared rules.
+    ☐ Implement cmake/development/CodegenTests.cmake as the shared fixture-target and CTest registration helper.
+      ☐ Expand one primary definition across the applicable matrix; register only supplemental facts that apply to the selected compiler/configuration.
+      ☐ Share the compiled object between primary and supplemental executions; do not create duplicate compilation targets for supplemental cases.
+      ☐ Give CTest results stable primary/supplemental identities and configuration labels; require all applicable checks for a qualified case result.
+      ☐ Parameterize type, width, ISA, extent, immediates, FMA, ABI, and configuration without compiler-specific copies of the whole case.
+      ☐ Support ABI fixture groups while preserving exact identities and results for the required emitted functions.
+    ☐ Integrate a limited pilot target with the existing build-before-test workflow without replacing legacy qualification gates yet.
+      ☐ Compile through CMake/Ninja with normal source/header dependencies; CTest checks already-built objects rather than rebuilding each case.
+      ☐ Reuse or adapt existing build freshness/provenance checks; fail clearly for missing or stale objects, tools, or configuration evidence.
+      ☐ Keep parallel output paths distinct and shared object inputs read-only.
+      ☐ Report case/function identity, compiler/tool identities, effective options, configuration, selected contracts, failed expectations, and artifact locations; retain FileCheck output and disassembly.
+    ☐ Validate harness rule enforcement and primary/supplemental composition.
+      ☐ Prove rejection of forbidden instructions after early returns, extra counted operations, wrong widths/immediates, broken captured operands, and incorrect required targets.
+      ☐ Prove valid constant/identity and return-only cases can pass their contracts while empty extraction cannot.
+      ☐ Prove a failed primary cannot be hidden by a passing supplement, and a failed applicable supplement cannot be hidden by a passing primary.
+      ☐ Prove missing required primary/supplemental registrations or incorrect applicability cannot silently reduce expected coverage.
+      ☐ Demonstrate reuse and isolation through focused parallel CTest execution, and verify incremental builds do not recompile unchanged fixtures unnecessarily.
+    ☐ Prove the complete pipeline with representative register-only, memory, partial-invariant, and ABI production-code cases across the supported drivers, using explicit provisional settings.
+
+    Completion Criteria:
+      ☐ Harness and compiled pilot results prove extraction, rule enforcement, additive cases, failure reporting, and artifact isolation.
+      ☐ Case declarations are concise and shared; primary checks remain mandatory on all declared supported compilers.
+      ☐ CTest executes FileCheck without Python/lit or dependence on paired raw implementations.
+
+  Phase 4 - Establish Optimization and Configuration Contracts:
+    Depends on: Phase 3's working compiled pilot and trusted checks.
+    Outcome: an evidence-backed configuration policy that can be used for the complete fixture migration.
+
+    ☐ Evaluate low-optimization settings on the same representative fixture sources for every supported driver.
+      ☐ Evaluate GCC/Clang -O1 as the initial candidate and select explicit MSVC optimization/inlining options; do not equate MSVC /O1 with GCC/Clang -O1 by name.
+      ☐ Record the final effective compiler options and ensure inherited build flags do not silently select a different optimization level.
+      ☐ Separate optimization from assertions, sanitizers, ISA, FMA, stack protection, and calling-convention settings.
+      ☐ Preserve production attributes; do not add fixture-only force-inlining or barriers to manufacture passing output.
+    ☐ Define and verify the production-optimization companion configuration using the same fixtures and applicable contracts.
+      ☐ Run its checks independently; do not infer production results from low-optimization passes.
+    ☐ Decide and document meaningful wholly unoptimized coverage and diagnostic-only observations.
+      ☐ Account explicitly for disabled inlining, including MSVC /Od and /Ob0, and legitimate compiler-generated storage.
+      ☐ Do not impose a universal no-call/no-stack contract on configurations where the selected settings conflict with it.
+      ☐ Do not describe unoptimized output as a worst-case performance bound.
+    ☐ Review each failed proposed contract and record whether it exposes a fixture issue, implementation issue, compiler/configuration limitation, or unsupported claim.
+      ☐ Keep production changes outside this plan and record unresolved failures; do not silently relax primary requirements or lose established stronger supplemental facts.
+    ☐ Add the decided configuration dimensions to the shared registrations and migration inventory, keeping one source and primary definition per method.
+
+    Completion Criteria:
+      ☐ Exact low-optimization settings are supported by real compiled pilot evidence for each required driver.
+      ☐ Production companion checks have their own results, and the selected unoptimized boundary is explicit.
+      ☐ No required configuration decision or applicable pilot-contract failure remains unresolved; documented diagnostic limitations are distinguished from failed required checks.
+
+  Phase 5 - Migrate Register and RegisterMask Cases:
+    Depends on: Phases 1-4.
+    Outcome: complete mapped Register/RegisterMask instruction contracts validated alongside the legacy gates.
+
+    ☐ Rewrite Register fixtures under tests/codegen/register by method or operation family, with thin case declarations in cmake/development/RegisterCodegen.cmake.
+      ☐ Migrate every available isolated operation/type/width case from the common and modulus type matrices.
+      ☐ Migrate construction, observation, transfers, special members, mutation, reassignment, and composed expressions.
+      ☐ Migrate specialized arithmetic/reductions, FMA enabled/disabled cases, rearrangements, conversions, bit casts, and width changes.
+      ☐ Migrate immediate and complete shifts, including zero/count-boundary cases, preserving existing targeted instruction properties.
+      ☐ Migrate register-pressure and opaque-call contexts without artificial fixture spills or barriers.
+      ☐ Migrate explicit and consumer ABI boundaries, using caller/callee fixture groups where needed; preserve platform-default observations with their declared qualification limits.
+    ☐ For every migrated method, define the primary facts once and attach only independently applicable compiler-specific supplements using the same fixture output.
+      ☐ Retain genuine stronger facts through narrow supplements rather than lowering every compiler to the least restrictive expectations.
+      ☐ Avoid implementing the operation through a raw Api or intrinsic mirror; public observation calls remain allowed where needed to expose results.
+    ☐ Update the inventory and expected-case registrations as each family is migrated; keep unsupported availability cells distinct from missing tests.
+    ☐ Build and run the migrated instruction cases across their complete applicable compiler/ISA/type/configuration matrix, retaining per-case evidence.
+    ☐ Run proportionate existing behavioral and ABI/consumer checks for the migrated families; report these separately from instruction-contract results.
+
+    Completion Criteria:
+      ☐ Every Register/RegisterMask inventory entry has a validated replacement or an unresolved entry that prevents phase completion.
+      ☐ Shared definitions cover the full declared matrix without duplicated compiler suites; constant/identity and ABI fixture-group cases follow the approved clarifications.
+      ☐ No legacy gate or raw fixture needed by remaining migrations has been removed.
+
+  Phase 6 - Migrate Partial Registers and Remaining Consumers:
+    Depends on: Phase 5's completed Register migration and the shared infrastructure from Phases 1-4.
+    Outcome: all remaining users of the legacy comparator have validated replacements, enabling safe cutover.
+
+    ☐ Rewrite PartialRegister and PartialRegisterMask fixtures under tests/codegen/partial-register, keeping cmake/development/PartialRegisterCodegen.cmake as thin case declarations.
+      ☐ Migrate predicate/invariant boundaries, value operations, arithmetic/specialized results, general operations, and ABI cases from the inventory.
+      ☐ Preserve native-import sanitation, inactive-suffix projection, inactive-divisor neutralization, logical extents, and checked public observation boundaries where required.
+      ☐ Cover selected active extents and cross-width/type results explicitly; do not treat inactive-lane invariant work as unwanted wrapper overhead.
+      ☐ Reuse primary fixtures for narrow supplements; do not recreate retained hash categories as duplicate compiler-specific full cases.
+    ☐ Migrate API partial-transfer and method-attribute checks that use the retiring machinery, retaining their separate purposes and validation ownership.
+      ☐ Inspect all inventoried references to CompareRegisterCodegen.cmake, retained-profile data, and associated validators; assign and validate a replacement for every in-scope consumer.
+      ☐ Preserve platform-default ABI observations and diagnostic configurations without promoting them to stronger performance claims.
+    ☐ Build and run all newly migrated cases across their complete applicable compiler/ISA/extent/configuration matrix.
+    ☐ Run appropriate existing active-/inactive-lane behavioral, precondition, and ABI/consumer checks; retain their independent oracles and distinguish their results from codegen evidence.
+    ☐ Reconcile the complete migration inventory against expected registrations and produced case results, including all applicable supplements.
+
+    Completion Criteria:
+      ☐ Every in-scope legacy consumer has a validated replacement on its required matrix, with no unexplained missing primary or supplemental result.
+      ☐ Required partial-register semantics and distinct method-attribute/API-transfer evidence remain covered.
+      ☐ The complete inventory supplies the prerequisite evidence for removing the old acceptance machinery.
+
+  Phase 7 - Cut Over the Pipeline and Remove Obsolete Machinery:
+    Depends on: completed Phase 5 and Phase 6 matrix evidence, including every inventoried legacy consumer.
+    Outcome: the normal build/test workflow uses the replacement contracts exclusively and preserves useful diagnostics and provenance.
+
+    ☐ Change the ordinary build/test aggregates and scripts to select the validated replacement targets and CTest cases.
+      ☐ Update tools/Build.ps1, tools/Run-Tests.ps1, tools/Record-Codegen.ps1, validation manifests/indexes, or their owning helpers only where the inventory identifies a dependency on the old format or target names.
+      ☐ Preserve build-before-test freshness, incremental compilation, diagnostic selection, clear missing-tool/input failures, and distinct required versus observational results.
+      ☐ Update validation inventory/policy/isolation checks to recognize the new owners and coverage without weakening non-codegen isolation or unrelated checks.
+    ☐ Finalize local/container/Windows CI provisioning and artifact publication for the selected tools and new case outputs.
+      ☐ Keep the existing compiler/driver coverage, including the distinct supported clang-cl versions; do not silently substitute toolchains or omit unavailable matrix cells.
+      ☐ Publish full disassembly, extracted bodies, FileCheck failures, and compiler/configuration provenance from the new locations.
+    ☐ Remove retired paired raw fixtures, duplicate wrapper/raw scaffolding, and full-profile equality gates after checking all references against the completed inventory.
+      ☐ Remove PartialRegisterCodegenProfiles.json and its retained-profile loader, hash-acceptance branches, obsolete comparison indexes, and validators only when no remaining consumer needs them.
+      ☐ Retire CompareRegisterCodegen.cmake and replaced specialized comparison scripts once every consumer has moved.
+      ☐ Preserve independently useful input/artifact hashes for freshness and independent scalar correctness references.
+      ☐ Remove temporary coexistence switches and pilot-only plumbing; retain useful migrated pilot cases as ordinary tests.
+    ☐ Update qualification documents, the implementation matrix, README, and reproduction instructions with the cutover so executable policy and claims describe the same boundary.
+      ☐ Describe shared primary cases, additive supplements, configuration roles, permitted overhead, and diagnostic exclusions.
+      ☐ Remove obsolete wrapper/raw equality claims and retained-hash acceptance instructions without introducing claims of semantic proof, optimal code, or measured speed.
+    ☐ Verify a focused build/test/diagnostic workflow on the new owners and audit references for orphaned targets, obsolete policy data, missing artifacts, and unintended runtime dependencies.
+
+    Completion Criteria:
+      ☐ Normal execution uses only CTest + FileCheck instruction acceptance; no retained wrapper/raw hash remains an acceptance mechanism.
+      ☐ All legacy removals have replacement evidence and no dangling consumers; temporary migration paths are removed.
+      ☐ Pipeline ownership, diagnostic behavior, documentation, and artifact publication agree before final qualification.
+
+  Phase 8 - Qualify the Final Tree and Reconcile Evidence:
+    Depends on: Phase 7 cutover and cleanup.
+    Outcome: final qualification evidence reflects the actual replacement-only tree and its documented claims.
+
+    ☐ Run the complete applicable native/container/CI compiler matrix against the final tree using the project entry points selected in Phase 7.
+      ☐ Run required low-optimization and production-optimization instruction checks independently, plus the selected wholly unoptimized contracts and diagnostic observations.
+      ☐ Require the exact expected primary cases and applicable supplements across all supported dimensions; distinguish unexecuted cells from unsupported cells and passing cells.
+      ☐ Record real local/container runs separately from Windows CI results; do not infer one environment's success from another's artifacts.
+    ☐ Run the existing required correctness, constexpr, availability, compile-failure, layout, header/consumer, and package checks from the qualification matrix.
+      ☐ Preserve existing sanitizer coverage where required; do not introduce a blanket sanitizer codegen-performance requirement.
+      ☐ Confirm installed consumers gain no FileCheck, disassembler, Python, or lit runtime dependency.
+    ☐ Re-run the harness positives/negatives and case-coverage checks in their required supported environments; preserve failures as failures rather than refreshing acceptance data.
+    ☐ Reconcile final commands, tool identities, results, logs, and artifacts with the migration inventory, qualification documents, implementation matrix, README, and CI definitions.
+    ☐ Perform a second source and documentation review for duplicated full compiler tests, weakened primaries, missing supplements, lossy extraction, unsupported claims, and obsolete compatibility scaffolding.
+
+    Completion Criteria:
+      ☐ Every required final-tree qualification result exists and passes; evidence from a pre-cleanup tree or an unavailable environment does not satisfy this gate.
+      ☐ Behavioral, ABI/consumer/package, harness, and instruction-contract evidence are distinguished and agree with their documented scope.
+      ☐ All acceptance criteria below are satisfied without silently deferred coverage or unresolved required failures.
+
+  Proposal Traceability:
+    - Decision summary and evidence boundaries: execution contract, scope/non-goals, and Phases 1, 7, 8.
+    - Single production fixture, constant/identity lowering, and ABI fixture groups: Phases 1, 3, 5, 6.
+    - Primary/supplemental ownership, reusable rules, counts, operands, and matching scope: Phases 1, 3, 5, 6.
+    - Complete function extraction, relevant relocations/constants, and failure on missing/unsupported input: Phase 2, checked again in Phases 3 and 8.
+    - Optimization choices and limited claims: Phase 4, with corpus execution in Phases 5, 6, 8.
+    - CMake/CTest ownership, freshness, parallel artifacts, provisioning, and no Python/lit: Phases 2, 3, 7, 8.
+    - Coverage inventory, migration, removal, diagnostics, and qualification documents: Phases 1, 5, 6, 7, 8.
+
+  Final Acceptance:
+    ☐ Every source-proposal requirement is mapped to completed work and appropriate evidence; any unresolved required item remains unchecked.
+    ☐ Each primary method case is authored once across its supported matrix; supplements contain only additional compiler-specific facts and cannot replace or weaken it.
+    ☐ Each tested operation or composition has one production-code implementation under test, allowing legitimate constant/identity results and necessary ABI caller/callee groups without duplicated algorithms.
+    ☐ Complete-body inspection and rule enforcement reject the specified adversarial cases and missing coverage, including failures in either primary or supplemental checks.
+    ☐ Low-optimization settings, production companion checks, and the selected unoptimized boundary have explicit evidence and accurate claims.
+    ☐ CTest + FileCheck is the final runner/checker setup, with no new Python/lit requirement or library/runtime tooling dependency.
+    ☐ Retired raw duplicates, retained-hash acceptance, obsolete gates, and temporary coexistence plumbing are removed without deleting independent behavioral references.
+    ☐ Required final-tree codegen, behavioral, ABI/consumer/package, and CI evidence is complete, and documentation matches executed policy.
