@@ -37,26 +37,40 @@ Register Code-Generation Instruction Contracts:
     Depends on: the source proposal and current qualification documents.
     Outcome: an explicit migration inventory and case model that can drive registration without rediscovering legacy coverage.
 
-    ☐ Read RegisterQualification.md, PartialRegisterQualification.md, and RegisterImplementationMatrix.md to inventory the current support and evidence boundaries; distinguish existing claims from the proposed replacement claims.
-    ☐ Inventory existing fixture symbols, comparison records, instruction checks, and validation owners in tests/codegen and cmake/development/{RegisterCodegen,PartialRegisterCodegen,MethodFlagsCodegen}.cmake.
-      ☐ Include isolated operations/type matrices, composition, transfers, special members, reassignment, immediate and complete shifts, specialized operations, FMA, rearrangements/conversions, pressure, opaque calls, and ABI/consumer boundaries.
-      ☐ Include API partial transfers, method attributes, and observational platform-default ABI records; identify every consumer of the old comparator, profile data, indexes, and validators before proposing removal.
-      ☐ Record supported compiler families/drivers and versions, ISA/width combinations, element types, active extents, immediate parameters, FMA modes, and ABI/configuration dimensions.
-    ☐ Choose and create a durable migration inventory mapping each existing case to its replacement primary case, emitted function or ABI fixture group, shared contract, supplemental facts, applicability, and validation owner.
-      ☐ Record a primary case once with its execution matrix; do not create separately authored full definitions for MSVC, Clang, and GCC.
-      ☐ Preserve existing availability distinctions and identify expected emitted functions independently of disassembly output.
-      ☐ Identify established stronger compiler-specific properties that must remain checked even when they are not universal.
-    ☐ Specify stable logical case IDs, explicit emitted-symbol identities, configuration IDs, and the relationship between reusable contract families and method expectations.
-      ☐ Define supplemental checks as additive requirements only; a selected compiler must still execute the primary case.
-      ☐ Permit one shared supplemental declaration for compilers with the same additional fact.
-      ☐ Distinguish constant/identity cases with valid minimal bodies from missing functions; identify ABI cases that require caller/callee fixture groups.
-    ☐ Define the initial contract set: register-only, load/operate/store, immediate operations, FMA behavior, ABI boundaries, and targeted regressions, selecting only applicable restrictions per case.
-    ☐ Identify existing build/test entry points, artifact/provenance ownership, CI upload rules, and provisioning locations that must integrate with the replacement.
+    Deliverables:
+      - codegen/MigrationInventory.md: closed case sets, identities, geometry/matrices, contract families, supplemental facts, and independent validation ownership.
+      - codegen/IntegrationInventory.md: legacy consumers, artifact/provisioning ownership, downstream resolution tasks, and task-to-document traceability.
+    Evidence scope:
+      - Source baseline: 065f15f4d5b7734d128718030fe54791619ea8ee; PowerShell 7.6.6.
+      - Source/document inventory only; no compiled codegen, behavioral, package, or tool-provisioning qualification is claimed.
+      - Second review reconciled the proposal and qualification boundaries with the fixture/CMake declarations, including the distinct 0x1B Register and 0x35 PartialRegister multi-SAD immediates.
+
+    ☑ Read RegisterQualification.md, PartialRegisterQualification.md, and RegisterImplementationMatrix.md to inventory the current support and evidence boundaries; distinguish existing claims from the proposed replacement claims.
+    ☑ Inventory existing fixture symbols, comparison records, instruction checks, and validation owners in tests/codegen and cmake/development/{RegisterCodegen,PartialRegisterCodegen,MethodFlagsCodegen}.cmake.
+      ☑ Include isolated operations/type matrices, composition, transfers, special members, reassignment, immediate and complete shifts, specialized operations, FMA, rearrangements/conversions, pressure, opaque calls, and ABI/consumer boundaries.
+      ☑ Include API partial transfers, method attributes, and observational platform-default ABI records; identify every consumer of the old comparator, profile data, indexes, and validators before proposing removal.
+      ☑ Record supported compiler families/drivers and versions, ISA/width combinations, element types, active extents, immediate parameters, FMA modes, and ABI/configuration dimensions.
+    ☑ Choose and create a durable migration inventory mapping each existing case to its replacement primary case, emitted function or ABI fixture group, shared contract, supplemental facts, applicability, and validation owner.
+      ☑ Record a primary case once with its execution matrix; do not create separately authored full definitions for MSVC, Clang, and GCC.
+      ☑ Preserve existing availability distinctions and identify expected emitted functions independently of disassembly output.
+      ☑ Identify established stronger compiler-specific properties that must remain checked even when they are not universal.
+    ☑ Specify stable logical case IDs, explicit emitted-symbol identities, configuration IDs, and the relationship between reusable contract families and method expectations.
+      ☑ Define supplemental checks as additive requirements only; a selected compiler must still execute the primary case.
+      ☑ Permit one shared supplemental declaration for compilers with the same additional fact.
+      ☑ Distinguish constant/identity cases with valid minimal bodies from missing functions; identify ABI cases that require caller/callee fixture groups.
+    ☑ Define the initial contract set: register-only, load/operate/store, immediate operations, FMA behavior, ABI boundaries, and targeted regressions, selecting only applicable restrictions per case.
+    ☑ Identify existing build/test entry points, artifact/provenance ownership, CI upload rules, and provisioning locations that must integrate with the replacement.
 
     Completion Criteria:
-      ☐ Every existing in-scope case has a mapped replacement and evidence owner, including observations and adjacent consumers of retired machinery.
-      ☐ The case model contains no compiler-specific copies of complete primary definitions and no unrecorded loss of stronger expectations.
-      ☐ Open implementation choices have named resolution tasks below; the inventory does not present unknown settings as qualified.
+      ☑ Every existing in-scope case has a mapped replacement and evidence owner, including observations and adjacent consumers of retired machinery.
+      ☑ The case model contains no compiler-specific copies of complete primary definitions and no unrecorded loss of stronger expectations.
+      ☑ Open implementation choices have named resolution tasks below; the inventory does not present unknown settings as qualified.
+
+    Completion audit:
+      - Independent audit-stage-completion review: fully satisfied for the source-inventory scope; no confirmed defects or required evidence gaps.
+      - Subagent validation: git diff --check passed; all 11 local Markdown links resolved; fixture expansion and legacy-consumer ownership checks passed.
+      - Confirmed 442 isolated operation/type cells per width and 56 partial ABI identity boundaries plus eight named shapes per width.
+      - Tool selection, real-object instruction bounds, optimization settings, and cutover validation remain explicitly owned by later phases.
 
   Phase 2 - Provision Tools and Validate Complete Function Extraction:
     Depends on: Phase 1 case and artifact identities.
