@@ -167,9 +167,9 @@ Register Code-Generation Instruction Contracts:
       ☐ Shared definitions cover the full declared matrix without duplicated compiler suites; constant/identity and ABI fixture-group cases follow the approved clarifications.
       ☐ No legacy gate or raw fixture needed by remaining migrations has been removed.
 
-  Phase 6 - Migrate Partial Registers and Remaining Consumers:
+  Phase 6 - Migrate Partial Registers and Remaining Instruction Cases:
     Depends on: Phase 5's completed Register migration and the shared infrastructure from Phases 1-4.
-    Outcome: all remaining users of the legacy comparator have validated replacements, enabling safe cutover.
+    Outcome: all remaining fixture and instruction-contract cases have validated replacements through the pilot pipeline; aggregate and pipeline-consumer migration remains in Phase 7.
 
     ☐ Rewrite PartialRegister and PartialRegisterMask fixtures under tests/codegen/partial-register, keeping cmake/development/PartialRegisterCodegen.cmake as thin case declarations.
       ☐ Migrate predicate/invariant boundaries, value operations, arithmetic/specialized results, general operations, and ABI cases from the inventory.
@@ -177,19 +177,20 @@ Register Code-Generation Instruction Contracts:
       ☐ Cover selected active extents and cross-width/type results explicitly; do not treat inactive-lane invariant work as unwanted wrapper overhead.
       ☐ Reuse primary fixtures for narrow supplements; do not recreate retained hash categories as duplicate compiler-specific full cases.
     ☐ Migrate API partial-transfer and method-attribute checks that use the retiring machinery, retaining their separate purposes and validation ownership.
-      ☐ Inspect all inventoried references to CompareRegisterCodegen.cmake, retained-profile data, and associated validators; assign and validate a replacement for every in-scope consumer.
+      ☐ Inspect all inventoried references to CompareRegisterCodegen.cmake, retained-profile data, and associated validators; validate replacements for every in-scope fixture and instruction-contract case through the pilot pipeline.
+      ☐ Identify aggregate, manifest, index, and validation policy/isolation consumers separately in the inventory and assign their migration and validation to Phase 7.
       ☐ Preserve platform-default ABI observations and diagnostic configurations without promoting them to stronger performance claims.
     ☐ Build and run all newly migrated cases across their complete applicable compiler/ISA/extent/configuration matrix.
     ☐ Run appropriate existing active-/inactive-lane behavioral, precondition, and ABI/consumer checks; retain their independent oracles and distinguish their results from codegen evidence.
-    ☐ Reconcile the complete migration inventory against expected registrations and produced case results, including all applicable supplements.
+    ☐ Reconcile the migration inventory's fixture and instruction-contract entries against expected registrations and produced case results, including all applicable supplements; retain pipeline-consumer entries as outstanding Phase 7 work.
 
     Completion Criteria:
-      ☐ Every in-scope legacy consumer has a validated replacement on its required matrix, with no unexplained missing primary or supplemental result.
+      ☐ Every in-scope fixture and instruction-contract case has a validated replacement on its required matrix through the pilot pipeline, with no unexplained missing primary or supplemental result.
       ☐ Required partial-register semantics and distinct method-attribute/API-transfer evidence remain covered.
-      ☐ The complete inventory supplies the prerequisite evidence for removing the old acceptance machinery.
+      ☐ The inventory supplies the case evidence required to begin Phase 7; legacy machinery cannot be removed until Phase 7's pipeline-consumer validation gate also passes.
 
   Phase 7 - Cut Over the Pipeline and Remove Obsolete Machinery:
-    Depends on: completed Phase 5 and Phase 6 matrix evidence, including every inventoried legacy consumer.
+    Depends on: completed Phase 5 and Phase 6 matrix evidence for every inventoried fixture and instruction-contract case; pipeline-consumer migration and validation are owned by this phase.
     Outcome: the normal build/test workflow uses the replacement contracts exclusively and preserves useful diagnostics and provenance.
 
     ☐ Change the ordinary build/test aggregates and scripts to select the validated replacement targets and CTest cases.
@@ -199,7 +200,11 @@ Register Code-Generation Instruction Contracts:
     ☐ Finalize local/container/Windows CI provisioning and artifact publication for the selected tools and new case outputs.
       ☐ Keep the existing compiler/driver coverage, including the distinct supported clang-cl versions; do not silently substitute toolchains or omit unavailable matrix cells.
       ☐ Publish full disassembly, extracted bodies, FileCheck failures, and compiler/configuration provenance from the new locations.
-    ☐ Remove retired paired raw fixtures, duplicate wrapper/raw scaffolding, and full-profile equality gates after checking all references against the completed inventory.
+    ☐ Pass the pipeline-consumer validation gate before removing legacy machinery.
+      ☐ Validate migrated aggregates, build/test/diagnostic scripts, manifests, indexes, and validation inventory/policy/isolation checks through the replacement workflow.
+      ☐ Verify required case coverage, freshness failures, diagnostic selection, and artifact publication; retain evidence for every inventoried pipeline consumer.
+      ☐ Keep legacy machinery available until all required replacement consumers pass; unresolved consumer failures block removal.
+    ☐ Remove retired paired raw fixtures, duplicate wrapper/raw scaffolding, and full-profile equality gates only after the pipeline-consumer validation gate passes and all references have been reconciled with the completed inventory.
       ☐ Remove PartialRegisterCodegenProfiles.json and its retained-profile loader, hash-acceptance branches, obsolete comparison indexes, and validators only when no remaining consumer needs them.
       ☐ Retire CompareRegisterCodegen.cmake and replaced specialized comparison scripts once every consumer has moved.
       ☐ Preserve independently useful input/artifact hashes for freshness and independent scalar correctness references.
@@ -211,7 +216,7 @@ Register Code-Generation Instruction Contracts:
 
     Completion Criteria:
       ☐ Normal execution uses only CTest + FileCheck instruction acceptance; no retained wrapper/raw hash remains an acceptance mechanism.
-      ☐ All legacy removals have replacement evidence and no dangling consumers; temporary migration paths are removed.
+      ☐ All legacy removals have both case evidence from Phases 5-6 and pipeline-consumer evidence from the pre-removal gate, with no dangling consumers; temporary migration paths are removed.
       ☐ Pipeline ownership, diagnostic behavior, documentation, and artifact publication agree before final qualification.
 
   Phase 8 - Qualify the Final Tree and Reconcile Evidence:
