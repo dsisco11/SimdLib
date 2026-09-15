@@ -1,0 +1,3 @@
+CHECK: vxorps xmm[[#%u,Z:]],
+CHECK-SAME: xmm[[#Z]], xmm[[#Z]]
+CHECK: vblendps [[REG]]0, [[REG]]0, [[REG]][[#Z]], [[MASK]]

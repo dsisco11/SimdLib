@@ -1,0 +1,7 @@
+cmake_minimum_required(VERSION 3.31)
+project(SimdLibCodegenPilot LANGUAGES CXX)
+include(CTest)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+get_filename_component(SIMDLIB_SOURCE_ROOT "${CMAKE_CURRENT_LIST_DIR}/../../.." ABSOLUTE)
+add_subdirectory("${SIMDLIB_SOURCE_ROOT}" "${CMAKE_CURRENT_BINARY_DIR}/library" EXCLUDE_FROM_ALL)
+include("${SIMDLIB_SOURCE_ROOT}/cmake/development/CodegenPilot.cmake")

@@ -1,0 +1,5 @@
+cmake_minimum_required(VERSION 3.31)
+include("${INPUT_MANIFEST}")
+include("${CMAKE_CURRENT_LIST_DIR}/InputReceipt.cmake")
+simdlib_codegen_input_receipt("${INPUTS};${INPUT_MANIFEST};${OBJECT_FILE}" receipt)
+file(WRITE "${BUILD_RECEIPT}" "${receipt}")

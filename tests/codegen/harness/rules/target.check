@@ -1,0 +1,4 @@
+CHECK: CODEGEN-BEGIN
+CHECK: {{call.*}}
+CHECK: required_target
+CHECK: CODEGEN-END

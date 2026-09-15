@@ -1,0 +1,18 @@
+# Supplemental bounded /GS sequence for the pilot's 0x18 frame, one cookie slot,
+# and exact runtime target. Other compilers retain the stronger no-frame fact.
+CHECK: CODEGEN-BEGIN
+CHECK-NOT: {{[[:space:]](call|sub|push|pop|enter|leave)[[:space:]]|rsp|rbp}}
+CHECK: sub rsp, 0x18
+CHECK-NEXT: {{.*}}mov rax, qword ptr [rip]
+CHECK-NEXT: {{.*}}IMAGE_REL_AMD64_REL32{{[ \t]+}}__security_cookie{{[ \t]*$}}
+CHECK-NEXT: {{.*}}xor rax, rsp
+CHECK-NEXT: {{.*}}mov qword ptr [rsp], rax
+CHECK-NOT: {{[[:space:]](call|sub|push|pop|enter|leave)[[:space:]]|rsp|rbp}}
+CHECK: mov rcx, qword ptr [rsp]
+CHECK-NEXT: {{.*}}xor rcx, rsp
+CHECK-NEXT: {{.*}}call
+CHECK-NEXT: {{.*}}IMAGE_REL_AMD64_REL32{{[ \t]+}}__security_check_cookie{{[ \t]*$}}
+CHECK-NEXT: {{.*}}add rsp, 0x18
+CHECK-NEXT: {{.*}}ret
+CHECK-NOT: {{[[:space:]](call|sub|push|pop|enter|leave)[[:space:]]|rsp|rbp}}
+CHECK: CODEGEN-END

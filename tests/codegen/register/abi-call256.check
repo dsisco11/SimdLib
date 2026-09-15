@@ -1,0 +1,19 @@
+# GCC O1 realigns its outgoing AVX stack boundary to 32 bytes; no hidden return
+# buffer is introduced. Bound that frame and the sole target-bearing call.
+CHECK: CODEGEN-BEGIN
+CHECK: <simdlib_contract_abi_binary_caller>:
+CHECK-NEXT: {{.*}}lea r10, [rsp + 0x8]
+CHECK-NEXT: {{.*}}and rsp, -0x20
+CHECK-NEXT: {{.*}}push qword ptr [r10 - 0x8]
+CHECK-NEXT: {{.*}}push rbp
+CHECK-NEXT: {{.*}}mov rbp, rsp
+CHECK-NEXT: {{.*}}push r10
+CHECK-NEXT: {{.*}}sub rsp, 0x8
+CHECK-NEXT: {{.*}}call
+CHECK-NEXT: {{.*}}R_X86_64_PLT32{{[ \t]+}}simdlib_contract_abi_binary_callee{{(-0x4)?[ \t]*$}}
+CHECK-NEXT: {{.*}}mov r10, qword ptr [rbp - 0x8]
+CHECK-NEXT: {{.*}}leave
+CHECK-NEXT: {{.*}}lea rsp, [r10 - 0x8]
+CHECK-NEXT: {{.*}}ret
+CHECK-NOT: {{[[:space:]][a-z][a-z0-9.]*([[:space:]]|$)}}
+CHECK: CODEGEN-END

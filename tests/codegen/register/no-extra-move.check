@@ -1,0 +1,4 @@
+# A narrow additional VEX result-allocation fact, shared by the Clang drivers.
+CHECK: CODEGEN-BEGIN
+CHECK-NOT: {{[[:space:]](v?movaps|v?movups)[[:space:]]}}
+CHECK: CODEGEN-END

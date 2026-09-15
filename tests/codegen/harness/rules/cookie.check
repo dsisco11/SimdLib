@@ -1,0 +1,18 @@
+# Bounded /GS example. It supplements a memory contract; it never overrides one.
+CHECK: CODEGEN-BEGIN
+CHECK-NOT: {{call|sub[ \t]+rsp}}
+CHECK: sub rsp, 0x28
+CHECK: mov rax, qword ptr [rip
+CHECK-NEXT: {{.*}}__security_cookie
+CHECK: xor rax, rsp
+CHECK: mov qword ptr [rsp + 0x10], rax
+CHECK-NOT: call
+CHECK: mov rcx, qword ptr [rsp + 0x10]
+CHECK: xor rcx, rsp
+CHECK: call
+CHECK-NEXT: {{.*}}__security_check_cookie
+CHECK-NOT: {{call|sub[ \t]+rsp}}
+CHECK: add rsp, 0x28
+CHECK: ret
+CHECK-NOT: {{call|sub[ \t]+rsp}}
+CHECK: CODEGEN-END

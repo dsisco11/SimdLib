@@ -113,36 +113,46 @@ Register Code-Generation Instruction Contracts:
     Depends on: Phase 1 inventory and Phase 2 extraction/tool validation.
     Outcome: a reusable build-and-check pipeline that enforces primary and supplemental requirements on shared fixture objects.
 
-    ☐ Implement cmake/codegen/CheckInstructions.cmake for rule application and FileCheck invocation.
-      ☐ Define reusable rule files under tests/codegen/contracts and method-specific expectations beside their fixtures.
-      ☐ Add a small whole-body instruction allowlist helper only where FileCheck alone would make the rule unnecessarily obscure.
-      ☐ Implement required/forbidden patterns, counts, bounded sequences, and captured operand relationships without replacing all registers with a common placeholder.
-      ☐ Ensure forbidden patterns cover the complete function, and exact counts exclude extra occurrences outside the counted sequence.
-      ☐ Run primary and supplemental expectations independently on the same body without cross-invocation captures or artificial ordering constraints.
-      ☐ Scope compiler-specific allowances narrowly; model bounded /GS behavior and stronger no-stack/no-call facts as supplemental requirements where appropriate, never as overrides of shared rules.
-    ☐ Implement cmake/development/CodegenTests.cmake as the shared fixture-target and CTest registration helper.
-      ☐ Expand one primary definition across the applicable matrix; register only supplemental facts that apply to the selected compiler/configuration.
-      ☐ Share the compiled object between primary and supplemental executions; do not create duplicate compilation targets for supplemental cases.
-      ☐ Give CTest results stable primary/supplemental identities and configuration labels; require all applicable checks for a qualified case result.
-      ☐ Parameterize type, width, ISA, extent, immediates, FMA, ABI, and configuration without compiler-specific copies of the whole case.
-      ☐ Support ABI fixture groups while preserving exact identities and results for the required emitted functions.
-    ☐ Integrate a limited pilot target with the existing build-before-test workflow without replacing legacy qualification gates yet.
-      ☐ Compile through CMake/Ninja with normal source/header dependencies; CTest checks already-built objects rather than rebuilding each case.
-      ☐ Reuse or adapt existing build freshness/provenance checks; fail clearly for missing or stale objects, tools, or configuration evidence.
-      ☐ Keep parallel output paths distinct and shared object inputs read-only.
-      ☐ Report case/function identity, compiler/tool identities, effective options, configuration, selected contracts, failed expectations, and artifact locations; retain FileCheck output and disassembly.
-    ☐ Validate harness rule enforcement and primary/supplemental composition.
-      ☐ Prove rejection of forbidden instructions after early returns, extra counted operations, wrong widths/immediates, broken captured operands, and incorrect required targets.
-      ☐ Prove valid constant/identity and return-only cases can pass their contracts while empty extraction cannot.
-      ☐ Prove a failed primary cannot be hidden by a passing supplement, and a failed applicable supplement cannot be hidden by a passing primary.
-      ☐ Prove missing required primary/supplemental registrations or incorrect applicability cannot silently reduce expected coverage.
-      ☐ Demonstrate reuse and isolation through focused parallel CTest execution, and verify incremental builds do not recompile unchanged fixtures unnecessarily.
-    ☐ Prove the complete pipeline with representative register-only, memory, partial-invariant, and ABI production-code cases across the supported drivers, using explicit provisional settings.
+    ☑ Implement cmake/codegen/CheckInstructions.cmake for rule application and FileCheck invocation.
+      ☑ Define reusable rule files under tests/codegen/contracts and method-specific expectations beside their fixtures.
+      ☑ Add a small whole-body instruction allowlist helper only where FileCheck alone would make the rule unnecessarily obscure.
+      ☑ Implement required/forbidden patterns, counts, bounded sequences, and captured operand relationships without replacing all registers with a common placeholder.
+      ☑ Ensure forbidden patterns cover the complete function, and exact counts exclude extra occurrences outside the counted sequence.
+      ☑ Run primary and supplemental expectations independently on the same body without cross-invocation captures or artificial ordering constraints.
+      ☑ Scope compiler-specific allowances narrowly; model bounded /GS behavior and stronger no-stack/no-call facts as supplemental requirements where appropriate, never as overrides of shared rules.
+    ☑ Implement cmake/development/CodegenTests.cmake as the shared fixture-target and CTest registration helper.
+      ☑ Expand one primary definition across the applicable matrix; register only supplemental facts that apply to the selected compiler/configuration.
+      ☑ Share the compiled object between primary and supplemental executions; do not create duplicate compilation targets for supplemental cases.
+      ☑ Give CTest results stable primary/supplemental identities and configuration labels; require all applicable checks for a qualified case result.
+      ☑ Parameterize type, width, ISA, extent, immediates, FMA, ABI, and configuration without compiler-specific copies of the whole case.
+      ☑ Support ABI fixture groups while preserving exact identities and results for the required emitted functions.
+    ☑ Integrate a limited pilot target with the existing build-before-test workflow without replacing legacy qualification gates yet.
+      ☑ Compile through CMake/Ninja with normal source/header dependencies; CTest checks already-built objects rather than rebuilding each case.
+      ☑ Reuse or adapt existing build freshness/provenance checks; fail clearly for missing or stale objects, tools, or configuration evidence.
+      ☑ Keep parallel output paths distinct and shared object inputs read-only.
+      ☑ Report case/function identity, compiler/tool identities, effective options, configuration, selected contracts, failed expectations, and artifact locations; retain FileCheck output and disassembly.
+    ☑ Validate harness rule enforcement and primary/supplemental composition.
+      ☑ Prove rejection of forbidden instructions after early returns, extra counted operations, wrong widths/immediates, broken captured operands, and incorrect required targets.
+      ☑ Prove valid constant/identity and return-only cases can pass their contracts while empty extraction cannot.
+      ☑ Prove a failed primary cannot be hidden by a passing supplement, and a failed applicable supplement cannot be hidden by a passing primary.
+      ☑ Prove missing required primary/supplemental registrations or incorrect applicability cannot silently reduce expected coverage.
+      ☑ Demonstrate reuse and isolation through focused parallel CTest execution, and verify incremental builds do not recompile unchanged fixtures unnecessarily.
+    ☑ Prove the complete pipeline with representative register-only, memory, partial-invariant, and ABI production-code cases across the supported drivers, using explicit provisional settings.
 
     Completion Criteria:
-      ☐ Harness and compiled pilot results prove extraction, rule enforcement, additive cases, failure reporting, and artifact isolation.
-      ☐ Case declarations are concise and shared; primary checks remain mandatory on all declared supported compilers.
-      ☐ CTest executes FileCheck without Python/lit or dependence on paired raw implementations.
+      ☑ Harness and compiled pilot results prove extraction, rule enforcement, additive cases, failure reporting, and artifact isolation.
+      ☑ Case declarations are concise and shared; primary checks remain mandatory on all declared supported compilers.
+      ☑ CTest executes FileCheck without Python/lit or dependence on paired raw implementations.
+
+    Evidence and Review:
+      - Contract traceability, reproduction and evidence: docs/codegen/InstructionContracts.md.
+      - Shared CTest/FileCheck primary and additive checks reuse eight compiled objects per driver; exact ABI member identities and constant-mask contents are retained.
+      - MSVC 19.44.35228: 44/44; clang-cl 22.1.8: 46/46; GCC 14.2.0: 44/44; GNU-style Clang 22.1.3: 46/46 pilot checks passed.
+      - Native top-level CUSTOM integration: 49/49 including five ownership checks; full native harness: 68/68 including 41 instruction/registration/composition checks.
+      - Qualified-only selection included every mandatory check. Two unchanged builds per driver performed no fixture compilation or receipt regeneration.
+      - Missing/stale inputs, missing or misapplied registrations, failed primaries/supplements, and deliberate instruction-rule mutations were rejected.
+      - Second review and independent audit-stage-completion found no unresolved required issues. git diff --check passed.
+      - Receipts: out/codegen-contract-evidence. Settings remain provisional; compatibility-version matrix, final optimization policy, full corpus and CI/cutover qualification remain later work.
 
   Phase 4 - Establish Optimization and Configuration Contracts:
     Depends on: Phase 3's working compiled pilot and trusted checks.

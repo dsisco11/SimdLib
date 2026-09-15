@@ -77,6 +77,11 @@ The standalone instruction-extraction harness additionally uses explicitly
 selected [development inspection tools](codegen/ToolProvisioning.md).
 These tools do not change the installed library's consumer requirements.
 
+The opt-in [instruction-contract pilot](codegen/InstructionContracts.md) uses
+the same CMake/CTest development ownership with `SIMDLIB_BUILD_CODEGEN_PILOT=ON`.
+Its `CodegenPilot` target builds fixture objects before CTest runs FileCheck;
+existing qualification gates remain selected during migration.
+
 `Build.ps1` deliberately has no implicit scope. Calling it without `-Scope`
 fails, because silently falling back to only the current platform would make
 an incomplete build look complete. Hosts that own only Linux container

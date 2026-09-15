@@ -1,0 +1,3 @@
+# Five active uint32 lanes, followed by three all-bits-zero lanes.
+CHECK: 0x00000000 {{[Ff]{8} [Ff]{8} [Ff]{8} ([Ff]{8})}}
+CHECK-NEXT: 0x00000010 {{[Ff]{8} 00000000 00000000 00000000}}

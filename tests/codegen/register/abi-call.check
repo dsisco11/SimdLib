@@ -1,0 +1,10 @@
+# GCC's provisional O1 boundary makes one real call with ABI stack alignment.
+CHECK: CODEGEN-BEGIN
+CHECK: <simdlib_contract_abi_binary_caller>:
+CHECK-NEXT: {{.*}}sub rsp, 0x8
+CHECK-NEXT: {{.*}}call
+CHECK-NEXT: {{.*}}R_X86_64_PLT32{{[ \t]+}}simdlib_contract_abi_binary_callee{{(-0x4)?[ \t]*$}}
+CHECK-NEXT: {{.*}}add rsp, 0x8
+CHECK-NEXT: {{.*}}ret
+CHECK-NOT: {{[[:space:]][a-z][a-z0-9.]*([[:space:]]|$)}}
+CHECK: CODEGEN-END

@@ -1,0 +1,1 @@
+CHECK: {{[[:space:]]ret([[:space:]]|$)}}

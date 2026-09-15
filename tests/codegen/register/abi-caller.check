@@ -1,0 +1,4 @@
+CHECK: CODEGEN-BEGIN
+CHECK: {{[[:space:]](jmp|call)[[:space:]]}}
+CHECK: {{[ \t<]}}[[TARGET]]{{(-0x4)?([ \t>]|$)}}
+CHECK: CODEGEN-END

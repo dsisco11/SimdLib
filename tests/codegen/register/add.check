@@ -1,0 +1,7 @@
+# Exact single packed add: exclude extra occurrences on both sides of the match.
+CHECK: CODEGEN-BEGIN
+CHECK-NOT: {{[[:space:]]v?addps[[:space:]]}}
+CHECK: vaddps [[REG]]0, [[REG]][[#%u,L:]],
+CHECK-SAME: [[REG]][[#1-L]]
+CHECK-NOT: {{[[:space:]]v?addps[[:space:]]}}
+CHECK: CODEGEN-END

@@ -1,0 +1,8 @@
+cmake_minimum_required(VERSION 3.31)
+include("${CASE_MANIFEST}")
+foreach(result IN LISTS RESULT_FILES)
+    if(NOT EXISTS "${result}")
+        message(FATAL_ERROR "Missing required primary/supplemental result for ${CASE_ID}: ${result}")
+    endif()
+endforeach()
+message(STATUS "${CASE_ID}: primary and all applicable supplemental results passed")

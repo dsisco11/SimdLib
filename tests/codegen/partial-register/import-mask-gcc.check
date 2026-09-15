@@ -1,0 +1,2 @@
+CHECK: vpand [[REG]]0, [[REG]]0, [[MEM]] ptr [rip]
+CHECK-NEXT: {{.*}}R_X86_64_PC32{{[[:space:]]+}}.LC0-0x4

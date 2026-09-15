@@ -1,0 +1,7 @@
+# One complete-width projection produces the public result. Mandatory lowering
+# supplements establish the corresponding mask or blend immediate and input roles.
+CHECK: CODEGEN-BEGIN
+CHECK-NOT: {{[[:space:]]v?(pand|andps|blendps|pblendd)[[:space:]]}}
+CHECK: {{v?(pand|andps|blendps|pblendd)}} [[REG]]0,
+CHECK-NOT: {{[[:space:]]v?(pand|andps|blendps|pblendd)[[:space:]]}}
+CHECK: CODEGEN-END

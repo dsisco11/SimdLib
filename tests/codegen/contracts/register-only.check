@@ -1,0 +1,4 @@
+# Data-memory operands are forbidden independently of instruction ordering.
+CHECK: CODEGEN-BEGIN
+CHECK-NOT: {{\[}}
+CHECK: CODEGEN-END

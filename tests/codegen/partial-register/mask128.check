@@ -1,0 +1,2 @@
+# Numeric-section dump: exactly three active uint32 lanes and a zero suffix.
+CHECK: 0x00000000 {{[Ff]{8} [Ff]{8} [Ff]{8} 00000000}}

@@ -1,0 +1,9 @@
+CHECK: CODEGEN-BEGIN
+CHECK-NOT: {{[[:space:]]v?addps[[:space:]]}}
+CHECK: vmovups [[INPUT:[xy]mm[0-9]+]], {{.*}}[[MEM]] ptr [
+CHECK-NOT: {{[[:space:]]v?addps[[:space:]]}}
+CHECK: vaddps [[OUTPUT:[xy]mm[0-9]+]], [[INPUT]], {{.*}}[[MEM]] ptr [
+CHECK-NOT: {{[[:space:]]v?addps[[:space:]]}}
+CHECK: vmovups {{.*}}[[MEM]] ptr [{{[^]]+}}], [[OUTPUT]]
+CHECK-NOT: {{[[:space:]]v?addps[[:space:]]}}
+CHECK: CODEGEN-END

@@ -1,0 +1,5 @@
+CHECK: CODEGEN-BEGIN
+CHECK-NOT: {{[[:space:]]jmp[[:space:]]}}
+CHECK: {{[[:space:]]jmp[[:space:]]}}
+CHECK-NOT: {{[[:space:]]jmp[[:space:]]}}
+CHECK: CODEGEN-END

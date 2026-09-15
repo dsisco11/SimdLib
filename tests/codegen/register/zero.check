@@ -1,0 +1,5 @@
+CHECK: CODEGEN-BEGIN
+CHECK-NOT: {{[[:space:]]v?(xorps|pxor)[[:space:]]}}
+CHECK: {{v(xorps|pxor)}} [[ZERO:[xy]mm0]], [[ZERO]], [[ZERO]]{{[[:space:]]*$}}
+CHECK-NOT: {{[[:space:]]v?(xorps|pxor)[[:space:]]}}
+CHECK: CODEGEN-END

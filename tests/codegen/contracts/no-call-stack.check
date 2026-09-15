@@ -1,0 +1,5 @@
+# Whole-body exclusions are bounded by sentinels, not by the first return.
+CHECK: CODEGEN-BEGIN
+CHECK-NOT: {{[[:space:]](call|push|pop|enter|leave)[a-z]*([[:space:]]|$)}}
+CHECK-NOT: {{(^|[^a-zA-Z0-9_])(rsp|esp|sp|spl|rbp|ebp|bp|bpl)([^a-zA-Z0-9_]|$)}}
+CHECK: CODEGEN-END

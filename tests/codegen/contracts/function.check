@@ -1,0 +1,4 @@
+# Each invocation still operates on a nonempty, exactly selected emitted body.
+CHECK: CODEGEN-BEGIN
+CHECK: {{[0-9A-Fa-f]+ <[^>]+>:}}
+CHECK: CODEGEN-END

@@ -1,0 +1,3 @@
+CHECK: vmovdqu [[REG]][[#%u,M:]], [[MEM]] ptr [rip]
+CHECK-NEXT: {{.*}}active_lane_filter
+CHECK: vpand [[REG]]0, [[REG]][[#M]], [[REG]]0
